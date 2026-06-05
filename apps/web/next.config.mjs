@@ -11,10 +11,11 @@ const nextConfig = {
     "@ummahlibrary/ui",
   ],
   // Trace from the monorepo root and ship the Quran datasets with the dynamic
-  // tRPC function so it can read them at runtime.
+  // functions that read them at runtime.
   outputFileTracingRoot: join(import.meta.dirname, "../../"),
   outputFileTracingIncludes: {
     "/api/trpc/[trpc]": ["../../packages/data/datasets/**/*"],
+    "/api/v1/surahs/[number]/ayahs/[aya]": ["../../packages/data/datasets/**/*"],
   },
 };
 

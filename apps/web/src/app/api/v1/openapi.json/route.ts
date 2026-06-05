@@ -47,6 +47,25 @@ const spec = {
         responses: { "200": { description: "Surah + ayahs" }, "404": { description: "Not found" } },
       },
     },
+    "/surahs/{number}/ayahs/{aya}": {
+      get: {
+        summary: "Get a single ayah (Arabic, plus a translation via ?edition=)",
+        parameters: [
+          {
+            name: "number",
+            in: "path",
+            required: true,
+            schema: { type: "integer", minimum: 1, maximum: 114 },
+          },
+          { name: "aya", in: "path", required: true, schema: { type: "integer", minimum: 1 } },
+          { name: "edition", in: "query", required: false, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "Ayah (+ translation)" },
+          "404": { description: "Not found" },
+        },
+      },
+    },
     "/editions": {
       get: {
         summary: "List available translation editions",
