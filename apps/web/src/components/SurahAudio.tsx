@@ -97,12 +97,13 @@ export function SurahAudio({
       <button type="button" className="audio-play" onClick={toggle} aria-pressed={isPlaying}>
         {isPlaying ? "❚❚ Pause" : "▶ Play surah"}
       </button>
-      <span className="audio-status">
+      <span className="audio-status" aria-live="polite">
         {current !== null ? `Playing āyah ${current}` : "Tap an āyah number to play"}
       </span>
       {reciters.length > 1 && (
         <select
           className="audio-reciter"
+          aria-label="Reciter"
           value={reciterId}
           onChange={(e) => {
             setReciterId(e.target.value);

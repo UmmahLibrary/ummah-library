@@ -35,7 +35,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={amiri.variable}>
       <body>
-        <div className="container">{children}</div>
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
+        <main id="main" className="container">
+          {children}
+        </main>
         <ServiceWorkerRegister />
       </body>
     </html>

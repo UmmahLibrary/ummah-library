@@ -69,10 +69,12 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
       </Link>
 
       <header className="reader-head">
-        <div className="name-ar arabic">{surah.name}</div>
-        <div className="name-en">
-          {surah.transliteration} · {surah.englishName}
+        <div className="name-ar arabic" lang="ar" dir="rtl">
+          {surah.name}
         </div>
+        <h1 className="name-en">
+          {surah.transliteration} · {surah.englishName}
+        </h1>
         <div className="sub">
           Surah {surah.number} · {surah.ayahCount} āyāt ·{" "}
           {surah.revelationPlace === "meccan" ? "Meccan" : "Medinan"}
@@ -87,12 +89,16 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
       <SurahAudio surah={surah.number} ayahCount={surah.ayahCount} reciters={RECITERS} />
 
       {/* Surah 1's Basmala is ayah 1 itself; others show it as a header. */}
-      {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
+      {surah.hasBismillah && surah.number !== 1 && (
+        <p className="basmala arabic" lang="ar" dir="rtl">
+          {bismillah}
+        </p>
+      )}
 
       <div>
         {ayahs.map((ayah) => (
           <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
-            <p className="ayah-ar arabic">
+            <p className="ayah-ar arabic" lang="ar" dir="rtl">
               {ayah.text}
               <button
                 type="button"
@@ -135,7 +141,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
         ))}
       </div>
 
-      <nav className="reader-nav">
+      <nav className="reader-nav" aria-label="Surah navigation">
         {number > 1 ? <Link href={`/surah/${number - 1}`}>← Previous surah</Link> : <span />}
         {number < TOTAL_SURAHS ? <Link href={`/surah/${number + 1}`}>Next surah →</Link> : <span />}
       </nav>

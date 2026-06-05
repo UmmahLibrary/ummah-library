@@ -25,7 +25,7 @@ export default async function HomePage() {
         }))}
       />
 
-      <nav className="surah-grid">
+      <nav className="surah-grid" aria-label="All surahs">
         {surahs.map((surah) => (
           <Link key={surah.number} href={`/surah/${surah.number}`} className="surah-card">
             <span className="surah-num">{surah.number}</span>
@@ -36,7 +36,9 @@ export default async function HomePage() {
                 {surah.englishName} · {surah.ayahCount} āyāt
               </span>
             </span>
-            <span className="name-ar arabic">{surah.name}</span>
+            <span className="name-ar arabic" lang="ar" dir="rtl">
+              {surah.name}
+            </span>
           </Link>
         ))}
       </nav>
