@@ -42,7 +42,8 @@ export function SurahAudio({
   }
 
   // The reciter is read at call time so handlers stay correct after a change.
-  function playFrom(aya: number) {
+  // `advance` continues to the next ayah on end; otherwise it plays just one.
+  function play(aya: number, advance: boolean) {
     const reciter = reciters.find((r) => r.id === reciterId) ?? reciters[0];
     if (!reciter || aya < 1 || aya > ayahCount) {
       stop();
@@ -50,7 +51,7 @@ export function SurahAudio({
     }
     const audio = (audioRef.current ??= new Audio());
     audio.src = reciterAudioUrl(reciter, { sura: surah, aya });
-    audio.onended = () => playFrom(aya + 1);
+    audio.onended = advance ? () => play(aya + 1, true) : () => stop();
     audio.onerror = () => stop();
     void audio.play().then(
       () => {
@@ -71,17 +72,25 @@ export function SurahAudio({
       void audio.play();
       setIsPlaying(true);
     } else {
-      playFrom(1);
+      play(1, true);
     }
   }
 
-  // Delegate clicks on per-ayah play buttons to start there.
+  // Delegate clicks on per-ayah play buttons: `data-play-single` plays just that
+  // ayah; `data-play-aya` plays from there onward.
   useEffect(() => {
     function onClick(event: MouseEvent) {
-      const target = (event.target as HTMLElement).closest<HTMLElement>("[data-play-aya]");
-      if (!target) return;
+      const node = event.target as HTMLElement;
+      const single = node.closest<HTMLElement>("[data-play-single]");
+      if (single) {
+        event.preventDefault();
+        play(Number(single.dataset.playSingle), false);
+        return;
+      }
+      const from = node.closest<HTMLElement>("[data-play-aya]");
+      if (!from) return;
       event.preventDefault();
-      playFrom(Number(target.dataset.playAya));
+      play(Number(from.dataset.playAya), true);
     }
     document.addEventListener("click", onClick);
     return () => {
@@ -98,7 +107,9 @@ export function SurahAudio({
         {isPlaying ? "❚❚ Pause" : "▶ Play surah"}
       </button>
       <span className="audio-status">
-        {current !== null ? `Playing āyah ${current}` : "Tap an āyah number to play"}
+        {current !== null
+          ? `Playing āyah ${current}`
+          : "Tap ▶ to play one āyah, or its number to play on"}
       </span>
       {reciters.length > 1 && (
         <select

@@ -124,6 +124,14 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
               );
             })}
             <div className="ayah-actions">
+              <button
+                type="button"
+                className="hifz-btn"
+                data-play-single={ayah.aya}
+                aria-label={`Play āyah ${ayah.aya}`}
+              >
+                ▶ Play
+              </button>
               <HifzButton surah={surah.number} aya={ayah.aya} />
               <AyahActions surah={surah.number} aya={ayah.aya} />
             </div>
