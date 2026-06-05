@@ -11,7 +11,8 @@
  *     `fs` and cached. They are server/test-only for now; the web reader wires
  *     them up with a runtime-appropriate loader in Phase 2.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
   Ayah,
@@ -27,11 +28,24 @@ import surahsData from "../datasets/surahs.json";
 
 const SURAHS = surahsData.surahs as readonly Surah[];
 
-const datasetUrl = (relPath: string): string =>
-  fileURLToPath(new URL(`../datasets/${relPath}`, import.meta.url));
+// Resolve the datasets directory robustly: relative to this module at build /
+// test time, or relative to the working directory when bundled into a
+// serverless function (where the package layout is flattened).
+let cachedBase: string | null = null;
+function datasetsBase(): string {
+  if (cachedBase) return cachedBase;
+  const candidates = [
+    join(dirname(fileURLToPath(import.meta.url)), "../datasets"),
+    join(process.cwd(), "packages/data/datasets"),
+    join(process.cwd(), "../../packages/data/datasets"),
+    join(process.cwd(), "datasets"),
+  ];
+  cachedBase = candidates.find((dir) => existsSync(dir)) ?? candidates[0]!;
+  return cachedBase;
+}
 
 function loadJson<T>(relPath: string): T {
-  return JSON.parse(readFileSync(datasetUrl(relPath), "utf8")) as T;
+  return JSON.parse(readFileSync(join(datasetsBase(), relPath), "utf8")) as T;
 }
 
 interface VerseRecord {

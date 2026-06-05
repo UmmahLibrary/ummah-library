@@ -1,16 +1,10 @@
 /**
  * @ummahlibrary/api
  *
- * The application layer. Phase 2 turns this into a tRPC router (with a REST /
- * OpenAPI mirror) consuming the core ports. For now it exposes the configured
- * repositories so apps depend on `api` — not directly on `data` — keeping the
- * dependency direction app → api → core/data intact.
+ * The application layer: the configured repositories plus the tRPC router that
+ * exposes the core ports as a typed read API. Apps depend on `api` — never on
+ * `data` directly — keeping the dependency direction app → api → core/data.
  */
-import type { QuranRepository, TranslationRepository } from "@ummahlibrary/core";
-import { FileQuranRepository, FileTranslationRepository } from "@ummahlibrary/data";
-
-/** The Quran (Arabic + structure) repository wired to the ingested datasets. */
-export const quranRepository: QuranRepository = new FileQuranRepository();
-
-/** The translation repository wired to the ingested datasets. */
-export const translationRepository: TranslationRepository = new FileTranslationRepository();
+export * from "./repositories";
+export { appRouter } from "./trpc";
+export type { AppRouter } from "./trpc";
