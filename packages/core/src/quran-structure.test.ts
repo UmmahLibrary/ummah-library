@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   AYAH_COUNTS,
+  HIZB_STARTS,
   JUZ_STARTS,
   TOTAL_AYAHS,
+  TOTAL_HIZB,
   TOTAL_JUZ,
   TOTAL_PAGES_MADANI,
   TOTAL_SURAHS,
   ayahCountOf,
   compareVerseKeys,
+  hizbNumberOf,
+  isValidHizbNumber,
   isValidJuzNumber,
   isValidPageNumber,
   isValidSurahNumber,
@@ -32,6 +36,15 @@ describe("constants", () => {
     expect(JUZ_STARTS).toHaveLength(TOTAL_JUZ);
     expect(JUZ_STARTS[0]).toEqual({ sura: 1, aya: 1 });
   });
+
+  it("has 60 hizb starts, ascending, beginning at 1:1", () => {
+    expect(TOTAL_HIZB).toBe(60);
+    expect(HIZB_STARTS).toHaveLength(TOTAL_HIZB);
+    expect(HIZB_STARTS[0]).toEqual({ sura: 1, aya: 1 });
+    for (let i = 1; i < HIZB_STARTS.length; i++) {
+      expect(compareVerseKeys(HIZB_STARTS[i - 1]!, HIZB_STARTS[i]!)).toBeLessThan(0);
+    }
+  });
 });
 
 describe("validators", () => {
@@ -47,6 +60,12 @@ describe("validators", () => {
     expect(isValidJuzNumber(1)).toBe(true);
     expect(isValidJuzNumber(30)).toBe(true);
     expect(isValidJuzNumber(31)).toBe(false);
+  });
+
+  it("validates hizb numbers within [1, 60]", () => {
+    expect(isValidHizbNumber(1)).toBe(true);
+    expect(isValidHizbNumber(60)).toBe(true);
+    expect(isValidHizbNumber(61)).toBe(false);
   });
 
   it("validates page numbers within [1, 604]", () => {
@@ -97,5 +116,19 @@ describe("juzNumberOf", () => {
 
   it("throws for an invalid verse", () => {
     expect(() => juzNumberOf({ sura: 1, aya: 99 })).toThrow(RangeError);
+  });
+});
+
+describe("hizbNumberOf", () => {
+  it("maps boundary verses to their hizb", () => {
+    expect(hizbNumberOf({ sura: 1, aya: 1 })).toBe(1);
+    expect(hizbNumberOf({ sura: 2, aya: 74 })).toBe(1); // just before hizb 2
+    expect(hizbNumberOf({ sura: 2, aya: 75 })).toBe(2); // start of hizb 2
+    expect(hizbNumberOf({ sura: 87, aya: 1 })).toBe(60); // last hizb
+    expect(hizbNumberOf({ sura: 114, aya: 6 })).toBe(60);
+  });
+
+  it("throws for an invalid verse", () => {
+    expect(() => hizbNumberOf({ sura: 1, aya: 99 })).toThrow(RangeError);
   });
 });

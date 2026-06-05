@@ -1,6 +1,12 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { AYAH_COUNTS, JUZ_STARTS, TOTAL_AYAHS, TOTAL_SURAHS } from "@ummahlibrary/core";
+import {
+  AYAH_COUNTS,
+  HIZB_STARTS,
+  JUZ_STARTS,
+  TOTAL_AYAHS,
+  TOTAL_SURAHS,
+} from "@ummahlibrary/core";
 import { describe, expect, it } from "vitest";
 import { FileQuranRepository, FileTranslationRepository } from "./index";
 import surahsData from "../datasets/surahs.json";
@@ -73,7 +79,10 @@ describe("FileTranslationRepository", () => {
 describe("datasets agree with the core structural invariants", () => {
   const structure = JSON.parse(
     readFileSync(fileURLToPath(new URL("../datasets/structure.json", import.meta.url)), "utf8"),
-  ) as { juz: { number: number; sura: number; aya: number }[] };
+  ) as {
+    juz: { number: number; sura: number; aya: number }[];
+    hizb: { number: number; sura: number; aya: number }[];
+  };
 
   it("ingested ayah counts match core AYAH_COUNTS (sum 6236)", () => {
     const counts = surahsData.surahs.map((s) => s.ayahCount);
@@ -84,5 +93,10 @@ describe("datasets agree with the core structural invariants", () => {
   it("ingested juzʾ starts match core JUZ_STARTS", () => {
     const starts = structure.juz.map((j) => ({ sura: j.sura, aya: j.aya }));
     expect(starts).toEqual([...JUZ_STARTS]);
+  });
+
+  it("ingested hizb starts match core HIZB_STARTS", () => {
+    const starts = structure.hizb.map((h) => ({ sura: h.sura, aya: h.aya }));
+    expect(starts).toEqual([...HIZB_STARTS]);
   });
 });

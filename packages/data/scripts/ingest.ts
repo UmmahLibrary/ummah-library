@@ -156,6 +156,11 @@ async function main(): Promise<void> {
     sura: Number(a.sura),
     aya: Number(a.aya),
   }));
+  // Tanzil lists 240 quarters (rubʿ al-hizb); every 4th is a hizb start (60).
+  const quarters = tags(xml, "quarter");
+  const hizb = quarters
+    .filter((_, i) => i % 4 === 0)
+    .map((a, i) => ({ number: i + 1, sura: Number(a.sura), aya: Number(a.aya) }));
 
   await writeJson("surahs.json", {
     version: DATA_VERSION,
@@ -165,8 +170,15 @@ async function main(): Promise<void> {
   await writeJson("structure.json", {
     version: DATA_VERSION,
     source: "Tanzil quran-data.xml (https://tanzil.net)",
-    totals: { surahs: TOTAL_SURAHS, ayahs: TOTAL_AYAHS, juz: juz.length, pages: pages.length },
+    totals: {
+      surahs: TOTAL_SURAHS,
+      ayahs: TOTAL_AYAHS,
+      juz: juz.length,
+      hizb: hizb.length,
+      pages: pages.length,
+    },
     juz,
+    hizb,
     pages,
   });
 
