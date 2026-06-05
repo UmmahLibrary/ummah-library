@@ -23,6 +23,10 @@ export default tseslint.config(
     languageOptions: {
       globals: { ...globals.node },
     },
+    rules: {
+      // CommonJS config files (metro.config.js, babel.config.js) use require().
+      "@typescript-eslint/no-require-imports": "off",
+    },
   },
   {
     // Service worker — browser + service worker globals (self, caches, clients).
