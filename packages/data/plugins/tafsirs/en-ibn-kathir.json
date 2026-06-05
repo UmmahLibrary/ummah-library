@@ -1,0 +1,9 @@
+{
+  "kind": "tafsir",
+  "id": "en-ibn-kathir",
+  "name": "Tafsir Ibn Kathir (abridged)",
+  "author": "Ismail ibn Kathir",
+  "language": "en",
+  "direction": "ltr",
+  "surahUrlTemplate": "https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/en-tafisr-ibn-kathir/{surah}.json"
+}

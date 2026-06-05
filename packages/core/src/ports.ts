@@ -3,7 +3,7 @@
  * depends only on these abstractions, never on a concrete data source — a
  * JSON file, a SQLite database, or a remote API all satisfy the same contract.
  */
-import type { Ayah, Surah, TranslatedAyah, Translation, VerseKey } from "./entities";
+import type { Ayah, Surah, TafsirEntry, TranslatedAyah, Translation, VerseKey } from "./entities";
 import type { HifzCard } from "./hifz";
 
 /** Access to the Arabic Quran text and surah structure. */
@@ -31,6 +31,14 @@ export interface TranslationRepository {
   ): Promise<readonly TranslatedAyah[]>;
   /** A single translated ayah, or `null` if the edition or reference is unknown. */
   getTranslatedAyah(translationId: string, ref: VerseKey): Promise<TranslatedAyah | null>;
+}
+
+/** Access to tafsir (commentary) editions. */
+export interface TafsirRepository {
+  /** Every tafsir entry for a surah in one edition, in order. */
+  getSurahTafsir(tafsirId: string, surahNumber: number): Promise<readonly TafsirEntry[]>;
+  /** A single ayah's tafsir, or `null` if the edition or reference is unknown. */
+  getAyahTafsir(tafsirId: string, ref: VerseKey): Promise<TafsirEntry | null>;
 }
 
 /** One tracked memorization item: which ayah, and its SM-2 state. */

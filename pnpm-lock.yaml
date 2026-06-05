@@ -111,6 +111,9 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.19
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -123,6 +126,9 @@ importers:
       '@trpc/server':
         specifier: ^11.0.0
         version: 11.17.0(typescript@5.9.3)
+      '@ummahlibrary/adapters':
+        specifier: workspace:*
+        version: link:../adapters
       '@ummahlibrary/core':
         specifier: workspace:*
         version: link:../core

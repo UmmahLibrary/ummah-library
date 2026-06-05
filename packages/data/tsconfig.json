@@ -4,6 +4,6 @@
     "outDir": "dist",
     "resolveJsonModule": true
   },
-  "include": ["src", "datasets/surahs.json"],
+  "include": ["src", "datasets/surahs.json", "datasets/plugins.json"],
   "exclude": ["node_modules", "dist"]
 }

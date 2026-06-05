@@ -8,6 +8,8 @@
 import type { HifzCard, HifzRecord, HifzRepository, VerseKey } from "@ummahlibrary/core";
 import { compareVerseKeys, isDue } from "@ummahlibrary/core";
 
+export { HttpTafsirRepository } from "./tafsir";
+
 const key = (ayah: VerseKey): string => `${ayah.sura}:${ayah.aya}`;
 const byMushafOrder = (a: HifzRecord, b: HifzRecord): number => compareVerseKeys(a.ayah, b.ayah);
 

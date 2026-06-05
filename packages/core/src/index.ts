@@ -11,5 +11,6 @@
 
 export * from "./quran-structure";
 export * from "./hifz";
+export * from "./plugins";
 export type * from "./entities";
 export type * from "./ports";

@@ -6,7 +6,12 @@
  */
 import { initTRPC } from "@trpc/server";
 import { z } from "zod";
-import { quranRepository, translationRepository } from "./repositories";
+import {
+  pluginRegistry,
+  quranRepository,
+  tafsirRepository,
+  translationRepository,
+} from "./repositories";
 
 const t = initTRPC.create();
 
@@ -32,6 +37,17 @@ export const appRouter = t.router({
   getTranslation: t.procedure
     .input(z.object({ edition: z.string(), number: surahNumber }))
     .query(({ input }) => translationRepository.getSurahTranslation(input.edition, input.number)),
+
+  /** Available reciters (audio). */
+  listReciters: t.procedure.query(() => pluginRegistry.byKind("reciter")),
+
+  /** Available tafsir editions. */
+  listTafsirs: t.procedure.query(() => pluginRegistry.byKind("tafsir")),
+
+  /** A surah's tafsir from one edition (fetched at runtime). */
+  getTafsir: t.procedure
+    .input(z.object({ tafsir: z.string(), number: surahNumber }))
+    .query(({ input }) => tafsirRepository.getSurahTafsir(input.tafsir, input.number)),
 });
 
 export type AppRouter = typeof appRouter;

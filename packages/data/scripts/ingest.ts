@@ -13,9 +13,12 @@
  *
  * Output is validated (114 surahs, 6236 ayahs per edition) before writing.
  */
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { ContentPlugin, TranslationPlugin } from "@ummahlibrary/core";
+import { validatePlugin } from "@ummahlibrary/core";
 
 const DATA_VERSION = "1.0.0";
 const TOTAL_SURAHS = 114;
@@ -23,70 +26,26 @@ const TOTAL_AYAHS = 6236;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "..", "datasets");
+const PLUGINS_DIR = join(HERE, "..", "plugins");
 
 const TANZIL_UTHMANI =
   "https://tanzil.net/pub/download/index.php?quranType=uthmani&outType=txt&agree=true";
 const TANZIL_METADATA = "https://tanzil.net/res/text/metadata/quran-data.xml";
 const FAWAZ_BASE = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1";
 
-interface TranslationSpec {
-  /** fawazahmed0 edition slug (the source file name). */
-  slug: string;
-  /** Stable internal id used as our file name + edition id. */
-  id: string;
-  language: string;
-  name: string;
-  author: string;
+/** Load + validate the content plugin manifests in a subdirectory. */
+function readPlugins(subdir: string): ContentPlugin[] {
+  const dir = join(PLUGINS_DIR, subdir);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => JSON.parse(readFileSync(join(dir, f), "utf8")) as ContentPlugin)
+    .map((plugin) => {
+      const errors = validatePlugin(plugin);
+      if (errors.length) throw new Error(`Invalid plugin '${plugin.id}': ${errors.join(", ")}`);
+      return plugin;
+    });
 }
-
-const TRANSLATIONS: readonly TranslationSpec[] = [
-  {
-    slug: "eng-mustafakhattaba",
-    id: "eng-khattab",
-    language: "en",
-    name: "The Clear Quran",
-    author: "Mustafa Khattab",
-  },
-  {
-    slug: "urd-fatehmuhammadja",
-    id: "urd-jalandhry",
-    language: "ur",
-    name: "Jalandhry",
-    author: "Fateh Muhammad Jalandhry",
-  },
-  {
-    slug: "urd-muhammadjunagar",
-    id: "urd-junagarhi",
-    language: "ur",
-    name: "Junagarhi",
-    author: "Muhammad Junagarhi",
-  },
-  {
-    slug: "urd-ahmedali",
-    id: "urd-ahmedali",
-    language: "ur",
-    name: "Ahmed Ali",
-    author: "Ahmed Ali",
-  },
-  {
-    slug: "urd-muhammadtahirul",
-    id: "urd-tahirulqadri",
-    language: "ur",
-    name: "Irfan-ul-Quran",
-    author: "Muhammad Tahir-ul-Qadri",
-  },
-  {
-    slug: "ben-muhiuddinkhan",
-    id: "ben-muhiuddinkhan",
-    language: "bn",
-    name: "Muhiuddin Khan",
-    author: "Muhiuddin Khan",
-  },
-];
-
-const RTL_LANGUAGES = new Set(["ar", "ur", "fa", "ps"]);
-const direction = (language: string): "rtl" | "ltr" =>
-  RTL_LANGUAGES.has(language) ? "rtl" : "ltr";
 
 interface Verse {
   sura: number;
@@ -258,18 +217,21 @@ async function main(): Promise<void> {
     verses: arabicVerses,
   });
 
-  // 3) Translations from fawazahmed0 editions (with provenance lookup).
-  console.log("• Translations");
+  // 3) Translation plugins → ingested into datasets (with provenance lookup).
+  const translationPlugins = readPlugins("translations").filter(
+    (p): p is TranslationPlugin => p.kind === "translation",
+  );
+  console.log(`• Translations (${translationPlugins.length} plugins)`);
   const editions = await getJson<Record<string, EditionMeta>>(`${FAWAZ_BASE}/editions.json`);
   const manifest: Record<string, unknown> = {};
 
-  for (const t of TRANSLATIONS) {
-    const meta = Object.values(editions).find((e) => e.name === t.slug);
+  for (const t of translationPlugins) {
+    const meta = Object.values(editions).find((e) => e.name === t.source);
     const data = await getJson<{ quran: { chapter: number; verse: number; text: string }[] }>(
-      `${FAWAZ_BASE}/editions/${t.slug}.json`,
+      `${FAWAZ_BASE}/editions/${t.source}.json`,
     );
     if (data.quran.length !== TOTAL_AYAHS) {
-      throw new Error(`${t.slug}: expected ${TOTAL_AYAHS} verses, got ${data.quran.length}`);
+      throw new Error(`${t.source}: expected ${TOTAL_AYAHS} verses, got ${data.quran.length}`);
     }
     const verses: Verse[] = data.quran.map((v) => ({
       sura: v.chapter,
@@ -281,8 +243,8 @@ async function main(): Promise<void> {
       name: t.name,
       author: t.author,
       language: t.language,
-      direction: direction(t.language),
-      sourceSlug: t.slug,
+      direction: t.direction,
+      sourceSlug: t.source,
       source: meta?.source ?? "https://github.com/fawazahmed0/quran-api",
       sourceComments: meta?.comments ?? null,
     };
@@ -296,8 +258,12 @@ async function main(): Promise<void> {
     translations: manifest,
   });
 
+  // 4) The full plugin registry (all kinds) for the app to load at runtime.
+  const allPlugins = [...translationPlugins, ...readPlugins("reciters"), ...readPlugins("tafsirs")];
+  await writeJson("plugins.json", { version: DATA_VERSION, plugins: allPlugins });
+
   console.log(
-    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs, ${TRANSLATIONS.length} translations.`,
+    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs, ${translationPlugins.length} translations, ${allPlugins.length} plugins total.`,
   );
 }
 

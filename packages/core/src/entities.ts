@@ -65,3 +65,9 @@ export interface TranslatedAyah extends VerseKey {
   translationId: string;
   text: string;
 }
+
+/** A tafsir (commentary) entry for one ayah. */
+export interface TafsirEntry extends VerseKey {
+  tafsirId: string;
+  text: string;
+}

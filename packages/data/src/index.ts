@@ -23,10 +23,17 @@ import type {
   TranslationRepository,
   VerseKey,
 } from "@ummahlibrary/core";
-import { isValidSurahNumber, isValidVerseRef } from "@ummahlibrary/core";
+import type { ContentPlugin } from "@ummahlibrary/core";
+import { PluginRegistry, isValidSurahNumber, isValidVerseRef } from "@ummahlibrary/core";
 import surahsData from "../datasets/surahs.json";
+import pluginsData from "../datasets/plugins.json";
 
 const SURAHS = surahsData.surahs as readonly Surah[];
+
+/** Build the content-plugin registry from the ingested `plugins.json`. */
+export function loadPluginRegistry(): PluginRegistry {
+  return new PluginRegistry(pluginsData.plugins as ContentPlugin[]);
+}
 
 // Resolve the datasets directory robustly: relative to this module at build /
 // test time, or relative to the working directory when bundled into a
