@@ -12,6 +12,9 @@ export default async function HomePage() {
           <h1>Ummah Library</h1>
           <p>Read the Quran — {surahs.length} surahs, open source.</p>
         </div>
+        <Link href="/hifz" className="head-link">
+          Hifz review →
+        </Link>
       </header>
 
       <ReadingShelf

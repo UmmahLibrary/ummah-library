@@ -6,6 +6,7 @@ import { pluginRegistry, quranRepository, translationRepository } from "@ummahli
 import { ReaderControls } from "../../../components/ReaderControls";
 import { SurahAudio } from "../../../components/SurahAudio";
 import { AyahTafsir } from "../../../components/AyahTafsir";
+import { HifzButton } from "../../../components/HifzButton";
 
 const RECITERS = pluginRegistry.byKind("reciter");
 const TAFSIR = pluginRegistry.byKind("tafsir")[0] ?? null;
@@ -119,6 +120,9 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
                 </p>
               );
             })}
+            <div className="ayah-actions">
+              <HifzButton surah={surah.number} aya={ayah.aya} />
+            </div>
             {TAFSIR && (
               <AyahTafsir
                 surah={surah.number}

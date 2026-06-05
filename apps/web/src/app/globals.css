@@ -172,6 +172,101 @@ a {
   box-shadow: 0 0 0 1px var(--accent);
 }
 
+.head-link {
+  color: var(--accent);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+/* ---- Hifz (memorization) ---- */
+.ayah-actions {
+  margin-top: 0.3rem;
+}
+.hifz-btn {
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+}
+.hifz-btn[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.hifz-empty,
+.hifz-muted {
+  color: var(--muted);
+}
+.hifz-done {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+.hifz-done-title {
+  font-size: 1.3rem;
+  margin-bottom: 0.25rem;
+}
+.hifz-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-elev);
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+.hifz-progress {
+  color: var(--faint);
+  font-size: 0.8rem;
+}
+.hifz-ref {
+  margin-top: 0.5rem;
+  color: var(--muted);
+}
+.hifz-ar {
+  font-size: 2rem;
+  line-height: 2.1;
+  margin: 1.75rem 0;
+}
+.hifz-reveal {
+  margin: 2rem auto;
+  display: block;
+  font: inherit;
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.4rem;
+  cursor: pointer;
+}
+.hifz-ratings {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+.hifz-rate {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5rem 1.1rem;
+  cursor: pointer;
+}
+.hifz-rate--again {
+  border-color: #b3433a;
+  color: #ff8a7e;
+}
+.hifz-rate--easy {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ---- Tafsir ---- */
 .tafsir {
   margin-top: 0.4rem;
