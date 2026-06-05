@@ -15,6 +15,8 @@ export interface QuranRepository {
   getSurahAyahs(surahNumber: number): Promise<readonly Ayah[]>;
   /** A single ayah, or `null` if the reference does not exist. */
   getAyah(ref: VerseKey): Promise<Ayah | null>;
+  /** The Basmala in its standard form, for rendering as a surah header. */
+  getBismillah(): Promise<string>;
 }
 
 /** Access to translation editions and their text. */

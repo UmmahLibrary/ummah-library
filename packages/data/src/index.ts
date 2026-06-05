@@ -40,13 +40,26 @@ interface VerseRecord {
   text: string;
 }
 
+interface ArabicDoc {
+  bismillah: string;
+  verses: VerseRecord[];
+}
+
 /** Serves the Arabic Quran and surah structure from the ingested datasets. */
 export class FileQuranRepository implements QuranRepository {
-  #arabic: VerseRecord[] | null = null;
+  #arabic: ArabicDoc | null = null;
+
+  #doc(): ArabicDoc {
+    this.#arabic ??= loadJson<ArabicDoc>("arabic-uthmani.json");
+    return this.#arabic;
+  }
 
   #verses(): VerseRecord[] {
-    this.#arabic ??= loadJson<{ verses: VerseRecord[] }>("arabic-uthmani.json").verses;
-    return this.#arabic;
+    return this.#doc().verses;
+  }
+
+  getBismillah(): Promise<string> {
+    return Promise.resolve(this.#doc().bismillah);
   }
 
   listSurahs(): Promise<readonly Surah[]> {
