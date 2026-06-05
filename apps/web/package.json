@@ -8,6 +8,7 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start --port 3000",
+    "icons": "node scripts/generate-icons.mjs",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .turbo .next node_modules"
   },
@@ -23,6 +24,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "19.2.3",
     "@types/react-dom": "19.2.3",
+    "sharp": "^0.34.0",
     "typescript": "^5.7.2"
   }
 }

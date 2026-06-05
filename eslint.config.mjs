@@ -25,6 +25,13 @@ export default tseslint.config(
     },
   },
   {
+    // Service worker — browser + service worker globals (self, caches, clients).
+    files: ["**/public/sw.js"],
+    languageOptions: {
+      globals: { ...globals.serviceworker, ...globals.browser },
+    },
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       globals: {
