@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Ummah Library",
+    "slug": "ummah-library",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "scheme": "ummahlibrary",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "android": {
+      "package": "org.ummahlibrary.app"
+    },
+    "ios": {
+      "bundleIdentifier": "org.ummahlibrary.app"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@ummahlibrary/web",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .turbo .next node_modules"
+  },
+  "dependencies": {
+    "@ummahlibrary/api": "workspace:*",
+    "@ummahlibrary/core": "workspace:*",
+    "@ummahlibrary/ui": "workspace:*",
+    "next": "^15.1.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "19.2.3",
+    "@types/react-dom": "19.2.3",
+    "typescript": "^5.7.2"
+  }
+}
