@@ -5,8 +5,10 @@ import { TOTAL_SURAHS, isValidSurahNumber } from "@ummahlibrary/core";
 import { pluginRegistry, quranRepository, translationRepository } from "@ummahlibrary/api";
 import { ReaderControls } from "../../../components/ReaderControls";
 import { SurahAudio } from "../../../components/SurahAudio";
+import { AyahTafsir } from "../../../components/AyahTafsir";
 
 const RECITERS = pluginRegistry.byKind("reciter");
+const TAFSIR = pluginRegistry.byKind("tafsir")[0] ?? null;
 
 const DEFAULT_EDITION = "eng-khattab";
 
@@ -117,6 +119,14 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
                 </p>
               );
             })}
+            {TAFSIR && (
+              <AyahTafsir
+                surah={surah.number}
+                aya={ayah.aya}
+                tafsirId={TAFSIR.id}
+                tafsirName={TAFSIR.name}
+              />
+            )}
           </div>
         ))}
       </div>
