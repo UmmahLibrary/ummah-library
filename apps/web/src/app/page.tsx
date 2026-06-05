@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { quranRepository } from "@ummahlibrary/api";
+import { ReadingShelf } from "../components/ReadingShelf";
 
 export default async function HomePage() {
   const surahs = await quranRepository.listSurahs();
@@ -12,6 +13,14 @@ export default async function HomePage() {
           <p>Read the Quran — {surahs.length} surahs, open source.</p>
         </div>
       </header>
+
+      <ReadingShelf
+        surahs={surahs.map((s) => ({
+          number: s.number,
+          transliteration: s.transliteration,
+          englishName: s.englishName,
+        }))}
+      />
 
       <nav className="surah-grid">
         {surahs.map((surah) => (
