@@ -259,7 +259,12 @@ async function main(): Promise<void> {
   });
 
   // 4) The full plugin registry (all kinds) for the app to load at runtime.
-  const allPlugins = [...translationPlugins, ...readPlugins("reciters"), ...readPlugins("tafsirs")];
+  const allPlugins = [
+    ...translationPlugins,
+    ...readPlugins("reciters"),
+    ...readPlugins("tafsirs"),
+    ...readPlugins("hadiths"),
+  ];
   await writeJson("plugins.json", { version: DATA_VERSION, plugins: allPlugins });
 
   console.log(

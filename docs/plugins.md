@@ -65,6 +65,24 @@ Tafsir is fetched per-surah at runtime (e.g. from
 }
 ```
 
+## Add a hadith collection
+
+Hadith collections are fetched per-section at runtime (e.g. from
+[fawazahmed0/hadith-api](https://github.com/fawazahmed0/hadith-api)). `{section}`
+is filled in.
+
+```json
+{
+  "kind": "hadith",
+  "id": "eng-nawawi",
+  "name": "40 Hadith Nawawi",
+  "language": "en",
+  "direction": "ltr",
+  "collection": "eng-nawawi",
+  "sectionUrlTemplate": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-nawawi/sections/{section}.min.json"
+}
+```
+
 After editing manifests, run the ingest once so `datasets/plugins.json` (the
 registry the app loads) is regenerated. Islamic content is **scholar-reviewed**
 before release — open a PR and tag it `needs-scholar-review`.

@@ -71,3 +71,20 @@ export interface TafsirEntry extends VerseKey {
   tafsirId: string;
   text: string;
 }
+
+/** A single hadith within a collection. */
+export interface Hadith {
+  collectionId: string;
+  number: number;
+  text: string;
+  grades: string[];
+  reference: { book: number; hadith: number };
+}
+
+/** One section (book/chapter) of a hadith collection with its hadiths. */
+export interface HadithSection {
+  collectionId: string;
+  section: number;
+  name: string;
+  hadiths: Hadith[];
+}

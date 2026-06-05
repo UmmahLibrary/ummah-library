@@ -7,6 +7,7 @@
 import { initTRPC } from "@trpc/server";
 import { z } from "zod";
 import {
+  hadithRepository,
   pluginRegistry,
   quranRepository,
   tafsirRepository,
@@ -48,6 +49,14 @@ export const appRouter = t.router({
   getTafsir: t.procedure
     .input(z.object({ tafsir: z.string(), number: surahNumber }))
     .query(({ input }) => tafsirRepository.getSurahTafsir(input.tafsir, input.number)),
+
+  /** Available hadith collections. */
+  listHadithCollections: t.procedure.query(() => pluginRegistry.byKind("hadith")),
+
+  /** One section of a hadith collection (fetched at runtime). */
+  getHadithSection: t.procedure
+    .input(z.object({ collection: z.string(), section: z.number().int().min(1) }))
+    .query(({ input }) => hadithRepository.getSection(input.collection, input.section)),
 });
 
 export type AppRouter = typeof appRouter;

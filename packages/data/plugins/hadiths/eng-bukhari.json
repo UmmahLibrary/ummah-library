@@ -1,0 +1,9 @@
+{
+  "kind": "hadith",
+  "id": "eng-bukhari",
+  "name": "Sahih al-Bukhari",
+  "language": "en",
+  "direction": "ltr",
+  "collection": "eng-bukhari",
+  "sectionUrlTemplate": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-bukhari/sections/{section}.min.json"
+}

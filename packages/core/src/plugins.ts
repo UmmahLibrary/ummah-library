@@ -13,7 +13,7 @@
  */
 import type { TextDirection, VerseKey } from "./entities";
 
-export type PluginKind = "translation" | "tafsir" | "reciter";
+export type PluginKind = "translation" | "tafsir" | "reciter" | "hadith";
 
 interface PluginBase {
   id: string;
@@ -50,19 +50,32 @@ export interface ReciterPlugin extends PluginBase {
   audioUrlTemplate: string;
 }
 
-export type ContentPlugin = TranslationPlugin | TafsirPlugin | ReciterPlugin;
+/** A hadith collection edition, fetched per-section at runtime. */
+export interface HadithPlugin extends PluginBase {
+  kind: "hadith";
+  direction: TextDirection;
+  /** Collection slug used in URLs (e.g. "eng-bukhari"). */
+  collection: string;
+  /** URL with `{section}`; returns that section's hadiths. */
+  sectionUrlTemplate: string;
+}
+
+export type ContentPlugin = TranslationPlugin | TafsirPlugin | ReciterPlugin | HadithPlugin;
 
 const pad = (value: number, width: number): string => String(value).padStart(width, "0");
 
+/** Fill `{name}` / `{name:N}` placeholders from a variable map. */
+export function fillTemplate(template: string, vars: Record<string, number>): string {
+  return template.replace(/\{(\w+)(?::(\d+))?\}/g, (match, field: string, width?: string) => {
+    const value = vars[field];
+    if (value === undefined) return match;
+    return width ? pad(value, Number(width)) : String(value);
+  });
+}
+
 /** Fill `{surah}` / `{ayah}` (optionally `{surah:N}`) placeholders. */
 export function fillVerseTemplate(template: string, ref: VerseKey): string {
-  return template.replace(
-    /\{(surah|ayah)(?::(\d+))?\}/g,
-    (_match, field: string, width?: string) => {
-      const value = field === "surah" ? ref.sura : ref.aya;
-      return width ? pad(value, Number(width)) : String(value);
-    },
-  );
+  return fillTemplate(template, { surah: ref.sura, ayah: ref.aya });
 }
 
 /** The audio URL for one ayah of a reciter. */
@@ -72,7 +85,12 @@ export function reciterAudioUrl(reciter: ReciterPlugin, ref: VerseKey): string {
 
 /** The URL for a surah's tafsir (only `{surah}` is used). */
 export function tafsirSurahUrl(tafsir: TafsirPlugin, surah: number): string {
-  return fillVerseTemplate(tafsir.surahUrlTemplate, { sura: surah, aya: 1 });
+  return fillTemplate(tafsir.surahUrlTemplate, { surah });
+}
+
+/** The URL for a hadith collection's section. */
+export function hadithSectionUrl(hadith: HadithPlugin, section: number): string {
+  return fillTemplate(hadith.sectionUrlTemplate, { section });
 }
 
 /** Validate a plugin manifest, returning a list of problems (empty = valid). */
@@ -87,6 +105,9 @@ export function validatePlugin(plugin: ContentPlugin): string[] {
   }
   if (plugin.kind === "reciter" && !/\{surah/.test(plugin.audioUrlTemplate)) {
     errors.push("reciter: audioUrlTemplate must contain {surah}");
+  }
+  if (plugin.kind === "hadith" && !plugin.sectionUrlTemplate.includes("{section}")) {
+    errors.push("hadith: sectionUrlTemplate must contain {section}");
   }
   return errors;
 }

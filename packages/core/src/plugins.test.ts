@@ -1,14 +1,26 @@
 import { describe, expect, it } from "vitest";
 import {
+  type HadithPlugin,
   PluginRegistry,
   type ReciterPlugin,
   type TafsirPlugin,
   type TranslationPlugin,
   fillVerseTemplate,
+  hadithSectionUrl,
   reciterAudioUrl,
   tafsirSurahUrl,
   validatePlugin,
 } from "./plugins";
+
+const bukhari: HadithPlugin = {
+  kind: "hadith",
+  id: "eng-bukhari",
+  name: "Sahih al-Bukhari",
+  language: "en",
+  direction: "ltr",
+  collection: "eng-bukhari",
+  sectionUrlTemplate: "https://cdn.example/hadith/eng-bukhari/sections/{section}.json",
+};
 
 const khattab: TranslationPlugin = {
   kind: "translation",
@@ -52,6 +64,11 @@ describe("url helpers", () => {
   it("builds tafsir surah urls", () => {
     expect(tafsirSurahUrl(ibnKathir, 2)).toBe("https://cdn.example/tafsir/ibn-kathir/2.json");
   });
+  it("builds hadith section urls", () => {
+    expect(hadithSectionUrl(bukhari, 3)).toBe(
+      "https://cdn.example/hadith/eng-bukhari/sections/3.json",
+    );
+  });
 });
 
 describe("validatePlugin", () => {
@@ -59,12 +76,16 @@ describe("validatePlugin", () => {
     expect(validatePlugin(khattab)).toEqual([]);
     expect(validatePlugin(alafasy)).toEqual([]);
     expect(validatePlugin(ibnKathir)).toEqual([]);
+    expect(validatePlugin(bukhari)).toEqual([]);
   });
   it("reports problems", () => {
     expect(validatePlugin({ ...khattab, source: "" })).toContain("translation: missing source");
     expect(
       validatePlugin({ ...ibnKathir, surahUrlTemplate: "https://x/no-placeholder" }),
     ).toContain("tafsir: surahUrlTemplate must contain {surah}");
+    expect(validatePlugin({ ...bukhari, sectionUrlTemplate: "https://x/none" })).toContain(
+      "hadith: sectionUrlTemplate must contain {section}",
+    );
   });
 });
 

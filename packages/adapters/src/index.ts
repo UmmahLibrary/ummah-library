@@ -9,6 +9,7 @@ import type { HifzCard, HifzRecord, HifzRepository, VerseKey } from "@ummahlibra
 import { compareVerseKeys, isDue } from "@ummahlibrary/core";
 
 export { HttpTafsirRepository } from "./tafsir";
+export { HttpHadithRepository } from "./hadith";
 
 const key = (ayah: VerseKey): string => `${ayah.sura}:${ayah.aya}`;
 const byMushafOrder = (a: HifzRecord, b: HifzRecord): number => compareVerseKeys(a.ayah, b.ayah);

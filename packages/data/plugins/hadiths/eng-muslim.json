@@ -1,0 +1,9 @@
+{
+  "kind": "hadith",
+  "id": "eng-muslim",
+  "name": "Sahih Muslim",
+  "language": "en",
+  "direction": "ltr",
+  "collection": "eng-muslim",
+  "sectionUrlTemplate": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-muslim/sections/{section}.min.json"
+}

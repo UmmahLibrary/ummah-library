@@ -1,4 +1,5 @@
 import type {
+  HadithRepository,
   PluginRegistry,
   QuranRepository,
   TafsirRepository,
@@ -9,7 +10,7 @@ import {
   FileTranslationRepository,
   loadPluginRegistry,
 } from "@ummahlibrary/data";
-import { HttpTafsirRepository } from "@ummahlibrary/adapters";
+import { HttpHadithRepository, HttpTafsirRepository } from "@ummahlibrary/adapters";
 
 /** The Quran (Arabic + structure) repository wired to the ingested datasets. */
 export const quranRepository: QuranRepository = new FileQuranRepository();
@@ -22,3 +23,6 @@ export const pluginRegistry: PluginRegistry = loadPluginRegistry();
 
 /** Tafsir served at runtime from each tafsir plugin's source URL. */
 export const tafsirRepository: TafsirRepository = new HttpTafsirRepository(pluginRegistry);
+
+/** Hadith collections served at runtime from each hadith plugin's source URL. */
+export const hadithRepository: HadithRepository = new HttpHadithRepository(pluginRegistry);
