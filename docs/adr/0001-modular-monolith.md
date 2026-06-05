@@ -38,6 +38,7 @@ app  →  api  →  core (ports)  ←  data / adapters (implementations)
   are new modules against existing boundaries — no rewrites.
 - **Cost:** more indirection up front (ports for things that have one
   implementation today).
-- **Enforcement:** the boundary rules will be enforced in CI (Step 0.3, e.g.
-  `eslint-plugin-boundaries`) so a violating import fails the build, not a code
-  review.
+- **Enforcement:** the boundary rules are enforced in CI via
+  `eslint-plugin-boundaries` (`boundaries/dependencies` in `eslint.config.mjs`),
+  so a violating import fails `pnpm lint` — caught by the build, not a code
+  review. The allow-lists there are the machine-readable form of this ADR.
