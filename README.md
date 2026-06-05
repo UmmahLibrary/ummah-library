@@ -58,6 +58,20 @@ pnpm build        # production build
 
 Regenerate the Quran datasets from source: `pnpm --filter @ummahlibrary/data ingest`.
 
+### Mobile (Expo)
+
+```bash
+pnpm --filter @ummahlibrary/mobile dev   # then open in Expo Go (scan the QR)
+```
+
+The mobile app shares `@ummahlibrary/core` and reads from the public API. Build
+for the Play Store with EAS (profiles in `apps/mobile/eas.json`):
+
+```bash
+cd apps/mobile && eas login && eas init        # one-time, links your Expo project
+eas build --platform android --profile preview # internal APK
+```
+
 ## Public API
 
 Base URL: `https://app.ummahlibrary.org/api`. Full reference in
