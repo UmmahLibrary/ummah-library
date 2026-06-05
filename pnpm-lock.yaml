@@ -137,12 +137,18 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.19
       tsx:
         specifier: ^4.19.2
         version: 4.22.4
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.19)(lightningcss@1.27.0)(terser@5.48.0)
 
   packages/ui:
     devDependencies:

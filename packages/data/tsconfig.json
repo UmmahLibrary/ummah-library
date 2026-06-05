@@ -2,8 +2,8 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "resolveJsonModule": true
   },
-  "include": ["src"],
+  "include": ["src", "datasets/surahs.json"],
   "exclude": ["node_modules", "dist"]
 }
