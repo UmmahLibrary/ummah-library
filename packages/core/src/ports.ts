@@ -4,6 +4,7 @@
  * JSON file, a SQLite database, or a remote API all satisfy the same contract.
  */
 import type { Ayah, Surah, TranslatedAyah, Translation, VerseKey } from "./entities";
+import type { HifzCard } from "./hifz";
 
 /** Access to the Arabic Quran text and surah structure. */
 export interface QuranRepository {
@@ -30,4 +31,27 @@ export interface TranslationRepository {
   ): Promise<readonly TranslatedAyah[]>;
   /** A single translated ayah, or `null` if the edition or reference is unknown. */
   getTranslatedAyah(translationId: string, ref: VerseKey): Promise<TranslatedAyah | null>;
+}
+
+/** One tracked memorization item: which ayah, and its SM-2 state. */
+export interface HifzRecord {
+  ayah: VerseKey;
+  card: HifzCard;
+}
+
+/**
+ * Persists Hifz progress. Implemented per platform (SQLite on mobile, Postgres
+ * on the server). The SM-2 scheduling itself lives in `hifz.ts`, not here.
+ */
+export interface HifzRepository {
+  /** The card for an ayah, or `null` if it isn't being memorized yet. */
+  get(ayah: VerseKey): Promise<HifzCard | null>;
+  /** Create or update the card for an ayah. */
+  save(ayah: VerseKey, card: HifzCard): Promise<void>;
+  /** Stop tracking an ayah. */
+  remove(ayah: VerseKey): Promise<void>;
+  /** Cards due for review at or before `now`, in mushaf order. */
+  due(now: Date): Promise<readonly HifzRecord[]>;
+  /** Every tracked card, in mushaf order. */
+  all(): Promise<readonly HifzRecord[]>;
 }
