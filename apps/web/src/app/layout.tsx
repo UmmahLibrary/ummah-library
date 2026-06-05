@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Amiri } from "next/font/google";
+import { Amiri, Noto_Nastaliq_Urdu } from "next/font/google";
 import { ServiceWorkerRegister } from "../components/ServiceWorkerRegister";
 import "./globals.css";
 
@@ -8,6 +8,13 @@ const amiri = Amiri({
   subsets: ["arabic"],
   weight: ["400", "700"],
   variable: "--font-amiri",
+  display: "swap",
+});
+
+const nastaliq = Noto_Nastaliq_Urdu({
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  variable: "--font-nastaliq",
   display: "swap",
 });
 
@@ -31,11 +38,22 @@ export const viewport: Viewport = {
   themeColor: "#0b0f0e",
 };
 
+// Apply the saved theme before paint to avoid a flash of the wrong theme.
+const themeScript = `(function(){try{var t=localStorage.getItem("ul.theme");if(!t)t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t;}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={amiri.variable}>
+    <html lang="en" className={`${amiri.variable} ${nastaliq.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
-        <div className="container">{children}</div>
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
+        <div className="container" id="main">
+          {children}
+        </div>
         <ServiceWorkerRegister />
       </body>
     </html>

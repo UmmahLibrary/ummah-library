@@ -1,4 +1,5 @@
-:root {
+:root,
+:root[data-theme="dark"] {
   --bg: #0b0f0e;
   --bg-elev: #121817;
   --border: #1f2a27;
@@ -7,14 +8,50 @@
   --faint: #5b6b61;
   --accent: #3fae7d;
   --accent-soft: #16241d;
+  --reading-scale: 1;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f7faf8;
+  --bg-elev: #ffffff;
+  --border: #dde7e2;
+  --fg: #12201b;
+  --muted: #4a5a52;
+  --faint: #839388;
+  --accent: #1f8a5b;
+  --accent-soft: #e4f3ec;
+  color-scheme: light;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html {
-  color-scheme: dark;
+/* Accessibility: visible focus + skip link */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: var(--bg);
+  padding: 0.5rem 1rem;
+  z-index: 10;
+}
+.skip-link:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+}
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
 }
 
 body {
@@ -149,7 +186,7 @@ a {
   border-bottom: 1px solid var(--border);
 }
 .ayah-ar {
-  font-size: 1.9rem;
+  font-size: calc(1.9rem * var(--reading-scale, 1));
   line-height: 2.1;
   text-align: right;
 }
@@ -176,6 +213,43 @@ a {
   display: flex;
   gap: 1rem;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.surah-search {
+  width: 100%;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.reader-controls-left {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+.size-control {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.ayah--target {
+  animation: ayah-flash 2.2s ease-out;
+  border-radius: 10px;
+}
+@keyframes ayah-flash {
+  0% {
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
 }
 .head-link {
   color: var(--accent);
@@ -377,7 +451,12 @@ a {
 }
 .ayah-tr {
   color: var(--muted);
-  font-size: 1rem;
+  font-size: calc(1rem * var(--reading-scale, 1));
+}
+.ayah-tr[lang="ur"] {
+  font-family: var(--font-nastaliq), var(--font-amiri), serif;
+  line-height: 2.6;
+  font-size: calc(1.35rem * var(--reading-scale, 1));
 }
 .ayah-tr .n {
   color: var(--faint);
@@ -416,7 +495,6 @@ a {
 /* ---- Translation blocks (multiple editions) ---- */
 .ayah-tr[dir="rtl"] {
   text-align: right;
-  font-size: 1.2rem;
 }
 .tr-name {
   display: block;

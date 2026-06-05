@@ -7,6 +7,8 @@ import { ReaderControls } from "../../../components/ReaderControls";
 import { SurahAudio } from "../../../components/SurahAudio";
 import { AyahTafsir } from "../../../components/AyahTafsir";
 import { HifzButton } from "../../../components/HifzButton";
+import { AyahActions } from "../../../components/AyahActions";
+import { HashHighlighter } from "../../../components/HashHighlighter";
 
 const RECITERS = pluginRegistry.byKind("reciter");
 const TAFSIR = pluginRegistry.byKind("tafsir")[0] ?? null;
@@ -64,6 +66,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
 
   return (
     <>
+      <HashHighlighter />
       <Link href="/" className="back-link">
         ← All surahs
       </Link>
@@ -122,6 +125,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
             })}
             <div className="ayah-actions">
               <HifzButton surah={surah.number} aya={ayah.aya} />
+              <AyahActions surah={surah.number} aya={ayah.aya} />
             </div>
             {TAFSIR && (
               <AyahTafsir

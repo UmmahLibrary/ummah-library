@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { quranRepository } from "@ummahlibrary/api";
 import { ReadingShelf } from "../components/ReadingShelf";
+import { SurahIndex } from "../components/SurahIndex";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 export default async function HomePage() {
   const surahs = await quranRepository.listSurahs();
@@ -13,12 +15,16 @@ export default async function HomePage() {
           <p>Read the Quran — {surahs.length} surahs, open source.</p>
         </div>
         <nav className="head-nav">
+          <Link href="/juz" className="head-link">
+            Juzʾ
+          </Link>
           <Link href="/hadith" className="head-link">
             Hadith
           </Link>
           <Link href="/hifz" className="head-link">
             Hifz review →
           </Link>
+          <ThemeToggle />
         </nav>
       </header>
 
@@ -30,21 +36,15 @@ export default async function HomePage() {
         }))}
       />
 
-      <nav className="surah-grid">
-        {surahs.map((surah) => (
-          <Link key={surah.number} href={`/surah/${surah.number}`} className="surah-card">
-            <span className="surah-num">{surah.number}</span>
-            <span className="meta">
-              <span className="name-en">{surah.transliteration}</span>
-              <br />
-              <span className="sub">
-                {surah.englishName} · {surah.ayahCount} āyāt
-              </span>
-            </span>
-            <span className="name-ar arabic">{surah.name}</span>
-          </Link>
-        ))}
-      </nav>
+      <SurahIndex
+        surahs={surahs.map((s) => ({
+          number: s.number,
+          name: s.name,
+          transliteration: s.transliteration,
+          englishName: s.englishName,
+          ayahCount: s.ayahCount,
+        }))}
+      />
 
       <p className="foot">Sadaqah Jariyah · AGPL-3.0</p>
     </>
