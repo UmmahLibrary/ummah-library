@@ -48,6 +48,11 @@ export interface ReciterPlugin extends PluginBase {
   style?: string;
   /** URL with `{surah}` / `{ayah}` (often `{surah:3}{ayah:3}`). */
   audioUrlTemplate: string;
+  /**
+   * quran.com recitation id, when this reciter has word-by-word timing there.
+   * Enables word highlighting (audio + segments are fetched from quran.com).
+   */
+  quranComId?: number;
 }
 
 /** A hadith collection edition, fetched per-section at runtime. */

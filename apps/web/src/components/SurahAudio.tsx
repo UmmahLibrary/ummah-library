@@ -5,6 +5,40 @@ import { type ReciterPlugin, reciterAudioUrl } from "@ummahlibrary/core";
 
 const RECITER_KEY = "ul.reciter";
 
+type Segment = [wordIndex: number, position: number, startMs: number, endMs: number];
+interface Timing {
+  url: string;
+  segments: Segment[];
+}
+
+// One fetch per (reciter, verse) for the quran.com audio + word segments.
+const timingCache = new Map<string, Promise<Timing | null>>();
+function fetchTiming(recitationId: number, verseKey: string): Promise<Timing | null> {
+  const key = `${recitationId}:${verseKey}`;
+  let pending = timingCache.get(key);
+  if (!pending) {
+    pending = (async () => {
+      try {
+        const res = await fetch(
+          `https://api.quran.com/api/v4/verses/by_key/${verseKey}?audio=${recitationId}`,
+        );
+        if (!res.ok) return null;
+        const data = (await res.json()) as {
+          verse?: { audio?: { url: string; segments: Segment[] } };
+        };
+        const audio = data.verse?.audio;
+        return audio
+          ? { url: `https://verses.quran.com/${audio.url}`, segments: audio.segments }
+          : null;
+      } catch {
+        return null;
+      }
+    })();
+    timingCache.set(key, pending);
+  }
+  return pending;
+}
+
 export function SurahAudio({
   surah,
   ayahCount,
@@ -18,13 +52,25 @@ export function SurahAudio({
   const [current, setCurrent] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const tokenRef = useRef(0);
+  // The currently-playing ayah's word segments + last-highlighted word.
+  const wordRef = useRef<{ block: HTMLElement | null; segments: Segment[] | null; last: number }>({
+    block: null,
+    segments: null,
+    last: -1,
+  });
 
   useEffect(() => {
     const saved = localStorage.getItem(RECITER_KEY);
     if (saved && reciters.some((r) => r.id === saved)) setReciterId(saved);
   }, [reciters]);
 
-  function highlight(aya: number | null) {
+  function clearWordHighlight() {
+    document.querySelectorAll(".w--active").forEach((el) => el.classList.remove("w--active"));
+    wordRef.current = { block: null, segments: null, last: -1 };
+  }
+
+  function highlightAyah(aya: number | null) {
     document
       .querySelectorAll(".ayah--playing")
       .forEach((el) => el.classList.remove("ayah--playing"));
@@ -34,30 +80,65 @@ export function SurahAudio({
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
+  // Highlights the word matching the audio's current time (stable handler).
+  function onTimeUpdate() {
+    const state = wordRef.current;
+    const audio = audioRef.current;
+    if (!state.block || !state.segments || !audio) return;
+    const ms = audio.currentTime * 1000;
+    let index = -1;
+    for (const seg of state.segments) {
+      if (ms >= seg[2] && ms < seg[3]) {
+        index = seg[0];
+        break;
+      }
+    }
+    if (index === state.last) return;
+    state.last = index;
+    state.block.querySelectorAll(".w--active").forEach((el) => el.classList.remove("w--active"));
+    if (index >= 0) state.block.querySelector(`.w[data-w="${index}"]`)?.classList.add("w--active");
+  }
+
   function stop() {
     audioRef.current?.pause();
     setIsPlaying(false);
     setCurrent(null);
-    highlight(null);
+    highlightAyah(null);
+    clearWordHighlight();
   }
 
-  // The reciter is read at call time so handlers stay correct after a change.
-  // `advance` continues to the next ayah on end; otherwise it plays just one.
-  function play(aya: number, advance: boolean) {
+  async function play(aya: number, advance: boolean) {
     const reciter = reciters.find((r) => r.id === reciterId) ?? reciters[0];
     if (!reciter || aya < 1 || aya > ayahCount) {
       stop();
       return;
     }
+    const token = ++tokenRef.current;
     const audio = (audioRef.current ??= new Audio());
-    audio.src = reciterAudioUrl(reciter, { sura: surah, aya });
-    audio.onended = advance ? () => play(aya + 1, true) : () => stop();
+    clearWordHighlight();
+
+    let src: string | undefined;
+    let segments: Segment[] | null = null;
+    if (reciter.quranComId) {
+      const timing = await fetchTiming(reciter.quranComId, `${surah}:${aya}`);
+      if (token !== tokenRef.current) return; // superseded by another click
+      if (timing) {
+        src = timing.url;
+        segments = timing.segments;
+      }
+    }
+    src ??= reciterAudioUrl(reciter, { sura: surah, aya });
+
+    wordRef.current = { block: document.getElementById(`${surah}:${aya}`), segments, last: -1 };
+    audio.src = src;
+    audio.ontimeupdate = segments ? onTimeUpdate : null;
+    audio.onended = advance ? () => void play(aya + 1, advance) : () => stop();
     audio.onerror = () => stop();
     void audio.play().then(
       () => {
         setCurrent(aya);
         setIsPlaying(true);
-        highlight(aya);
+        highlightAyah(aya);
       },
       () => stop(),
     );
@@ -72,25 +153,24 @@ export function SurahAudio({
       void audio.play();
       setIsPlaying(true);
     } else {
-      play(1, true);
+      void play(1, true);
     }
   }
 
-  // Delegate clicks on per-ayah play buttons: `data-play-single` plays just that
-  // ayah; `data-play-aya` plays from there onward.
+  // Delegate clicks: `data-play-single` plays one ayah; `data-play-aya` from there.
   useEffect(() => {
     function onClick(event: MouseEvent) {
       const node = event.target as HTMLElement;
       const single = node.closest<HTMLElement>("[data-play-single]");
       if (single) {
         event.preventDefault();
-        play(Number(single.dataset.playSingle), false);
+        void play(Number(single.dataset.playSingle), false);
         return;
       }
       const from = node.closest<HTMLElement>("[data-play-aya]");
       if (!from) return;
       event.preventDefault();
-      play(Number(from.dataset.playAya), true);
+      void play(Number(from.dataset.playAya), true);
     }
     document.addEventListener("click", onClick);
     return () => {

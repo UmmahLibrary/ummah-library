@@ -96,7 +96,12 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
         {ayahs.map((ayah) => (
           <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
             <p className="ayah-ar arabic">
-              {ayah.text}
+              {ayah.text.split(" ").flatMap((word, i) => [
+                <span key={i} className="w" data-w={i}>
+                  {word}
+                </span>,
+                " ",
+              ])}
               <button
                 type="button"
                 className="ayah-marker"

@@ -208,6 +208,16 @@ a {
   border-radius: 10px;
   box-shadow: 0 0 0 1px var(--accent);
 }
+.w {
+  transition:
+    color 0.1s ease,
+    background 0.1s ease;
+  border-radius: 6px;
+}
+.w--active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
 
 .head-nav {
   display: flex;

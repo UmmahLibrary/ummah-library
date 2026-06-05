@@ -4,5 +4,6 @@
   "name": "Mishary Rashid Alafasy",
   "language": "ar",
   "style": "Murattal",
-  "audioUrlTemplate": "https://everyayah.com/data/Alafasy_128kbps/{surah:3}{ayah:3}.mp3"
+  "audioUrlTemplate": "https://everyayah.com/data/Alafasy_128kbps/{surah:3}{ayah:3}.mp3",
+  "quranComId": 7
 }
