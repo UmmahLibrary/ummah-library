@@ -157,6 +157,53 @@ a {
   font-size: 1rem;
   color: var(--accent);
   margin-inline-start: 0.4rem;
+  font-family: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.ayah-marker:hover {
+  opacity: 0.7;
+}
+.ayah--playing {
+  background: var(--accent-soft);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* ---- Audio bar ---- */
+.audio-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.audio-play {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+.audio-status {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.audio-reciter {
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--fg);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.3rem 0.5rem;
+  margin-inline-start: auto;
 }
 .ayah-tr {
   color: var(--muted);

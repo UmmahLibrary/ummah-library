@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TOTAL_SURAHS, isValidSurahNumber } from "@ummahlibrary/core";
-import { quranRepository, translationRepository } from "@ummahlibrary/api";
+import { pluginRegistry, quranRepository, translationRepository } from "@ummahlibrary/api";
 import { ReaderControls } from "../../../components/ReaderControls";
+import { SurahAudio } from "../../../components/SurahAudio";
+
+const RECITERS = pluginRegistry.byKind("reciter");
 
 const DEFAULT_EDITION = "eng-khattab";
 
@@ -78,15 +81,24 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
         editions={editions.map((e) => ({ id: e.id, name: e.name, language: e.language }))}
       />
 
+      <SurahAudio surah={surah.number} ayahCount={surah.ayahCount} reciters={RECITERS} />
+
       {/* Surah 1's Basmala is ayah 1 itself; others show it as a header. */}
       {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
 
       <div>
         {ayahs.map((ayah) => (
-          <div key={ayah.aya} className="ayah">
+          <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
             <p className="ayah-ar arabic">
               {ayah.text}
-              <span className="ayah-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>
+              <button
+                type="button"
+                className="ayah-marker"
+                data-play-aya={ayah.aya}
+                aria-label={`Play āyah ${ayah.aya}`}
+              >
+                ﴿{toArabicDigits(ayah.aya)}﴾
+              </button>
             </p>
             {byEdition.map(({ edition, text }) => {
               const line = text.get(ayah.aya);
