@@ -40,8 +40,12 @@ packages/
 
 **The one rule that protects everything:** dependencies point inward.
 `apps → packages` is allowed; `packages → apps` is forbidden; **`core` depends
-on nothing**. Enforced by `eslint-plugin-boundaries` in CI. See
-[`docs/adr/0001-modular-monolith.md`](docs/adr/0001-modular-monolith.md).
+on nothing**. Enforced by `eslint-plugin-boundaries` in CI.
+
+**Why the codebase looks the way it does** is documented in the
+[Architecture Decision Records](docs/adr/) — start there before contributing. The
+index ([`docs/adr/README.md`](docs/adr/README.md)) is a one-screen overview of
+every major decision.
 
 ## Quick start
 

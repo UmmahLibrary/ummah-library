@@ -37,8 +37,16 @@ This repo enforces a dependency direction so it can scale without rewrites:
 - `packages/core` depends on **nothing** — no Next.js, no Expo, no DB driver.
 - Every external tool (DB, AI, audio, storage) sits behind an **adapter**.
 
-PRs that violate these will be asked to refactor. See
-[`docs/adr/0001-modular-monolith.md`](docs/adr/0001-modular-monolith.md).
+PRs that violate these will be asked to refactor.
+
+## Understand the architecture first
+
+Before a non-trivial change, read the **[Architecture Decision Records](docs/adr/)**
+— they are the canonical explanation of _why_ the codebase is shaped the way it
+is (data sourcing, static-first delivery, the plugin system, local-first state,
+audio timing, mobile wiring…). The [index](docs/adr/README.md) is a one-screen
+overview. If your change makes or overturns an architectural decision, add or
+supersede an ADR in the same PR.
 
 ## Branches & commits
 
