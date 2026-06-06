@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type SearchEntry, normalizeForSearch, searchVerses } from "./search";
+import { type SearchEntry, normalizeForSearch, searchText, searchVerses } from "./search";
 
 const entries: SearchEntry[] = [
   { key: "1:1", sura: 1, aya: 1, source: "en", text: "In the name of Allah, the Most Merciful" },
@@ -51,5 +51,29 @@ describe("searchVerses", () => {
 
   it("honours the limit", () => {
     expect(searchVerses(entries, "allah", 2)).toHaveLength(2);
+  });
+});
+
+describe("searchText", () => {
+  const items = [
+    { id: 1, text: "Whoever is patient, Allah will grant him patience" },
+    { id: 2, text: "Cleanliness is half of faith" },
+    { id: 3, text: "Actions are judged by intentions" },
+  ];
+
+  it("returns [] for a blank query", () => {
+    expect(searchText(items, "")).toEqual([]);
+  });
+
+  it("matches and carries the original fields plus a score", () => {
+    const r = searchText(items, "patient");
+    expect(r).toHaveLength(1);
+    expect(r[0]!.id).toBe(1);
+    expect(r[0]!.score).toBeGreaterThan(0);
+  });
+
+  it("requires all tokens (AND match)", () => {
+    expect(searchText(items, "faith cleanliness")).toHaveLength(1);
+    expect(searchText(items, "faith missing")).toHaveLength(0);
   });
 });

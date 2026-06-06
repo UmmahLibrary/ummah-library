@@ -30,39 +30,65 @@ export function normalizeForSearch(value: string): string {
 }
 
 /**
- * Rank verses against a free-text query. All whitespace-separated tokens must
- * be present in an entry (AND match); entries are scored by token coverage, a
- * whole-phrase bonus, and word-boundary hits, then sorted high-to-low. Ties
- * break on verse order so results are stable. A blank query returns `[]`.
+ * Score one text against pre-tokenised query terms. Returns `null` unless every
+ * token is present (AND match). The score rewards token coverage, word-boundary
+ * hits, and a whole-phrase occurrence so the most relevant rows sort first.
+ */
+function scoreText(text: string, tokens: readonly string[], phrase: string): number | null {
+  const hay = normalizeForSearch(text);
+  let score = 0;
+  for (const token of tokens) {
+    if (hay.indexOf(token) === -1) return null;
+    score += 1;
+    if (new RegExp(`(^|\\s)${escapeRegExp(token)}`).test(hay)) score += 1;
+  }
+  if (tokens.length > 1 && hay.includes(phrase)) score += tokens.length;
+  return score;
+}
+
+function tokenize(query: string): { tokens: string[]; phrase: string } {
+  const phrase = normalizeForSearch(query);
+  return { phrase, tokens: phrase.split(/\s+/).filter(Boolean) };
+}
+
+/**
+ * Generic free-text ranking over any items carrying a `text` field. All
+ * whitespace-separated tokens must be present (AND match); results are sorted
+ * by score high-to-low. A blank query returns `[]`. Sort is stable for equal
+ * scores, preserving input order.
+ */
+export function searchText<T extends { text: string }>(
+  items: readonly T[],
+  query: string,
+  limit = 50,
+): (T & { score: number })[] {
+  const { tokens, phrase } = tokenize(query);
+  if (tokens.length === 0) return [];
+  const results: (T & { score: number })[] = [];
+  for (const item of items) {
+    const score = scoreText(item.text, tokens, phrase);
+    if (score !== null) results.push({ ...item, score });
+  }
+  results.sort((a, b) => b.score - a.score);
+  return results.slice(0, limit);
+}
+
+/**
+ * Rank verses against a free-text query (see {@link searchText}). Ties break on
+ * verse order then source so results are stable. A blank query returns `[]`.
  */
 export function searchVerses(
   entries: readonly SearchEntry[],
   query: string,
   limit = 50,
 ): SearchResult[] {
-  const q = normalizeForSearch(query);
-  if (!q) return [];
-  const tokens = q.split(/\s+/).filter(Boolean);
+  const { tokens, phrase } = tokenize(query);
   if (tokens.length === 0) return [];
 
   const results: SearchResult[] = [];
   for (const entry of entries) {
-    const hay = normalizeForSearch(entry.text);
-    let score = 0;
-    let matchedAll = true;
-    for (const token of tokens) {
-      const idx = hay.indexOf(token);
-      if (idx === -1) {
-        matchedAll = false;
-        break;
-      }
-      score += 1;
-      // Word-boundary occurrence is a stronger signal than a substring.
-      if (new RegExp(`(^|\\s)${escapeRegExp(token)}`).test(hay)) score += 1;
-    }
-    if (!matchedAll) continue;
-    if (tokens.length > 1 && hay.includes(q)) score += tokens.length; // whole-phrase bonus
-    results.push({ ...entry, score });
+    const score = scoreText(entry.text, tokens, phrase);
+    if (score !== null) results.push({ ...entry, score });
   }
 
   results.sort(

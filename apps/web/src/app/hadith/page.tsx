@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { pluginRegistry } from "@ummahlibrary/api";
 import { HadithBrowser } from "../../components/HadithBrowser";
+import { HadithSearch } from "../../components/HadithSearch";
 
 export const metadata = { title: "Hadith" };
 
@@ -18,6 +19,7 @@ export default function HadithPage() {
           <p>Browse hadith collections, book by book.</p>
         </div>
       </header>
+      <HadithSearch collections={COLLECTIONS} />
       <HadithBrowser collections={COLLECTIONS} />
       <p className="foot">Source: fawazahmed0/hadith-api</p>
     </>
