@@ -2,13 +2,24 @@
   "expo": {
     "name": "Ummah Library",
     "slug": "ummah-library",
-    "version": "0.0.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "ummahlibrary",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
+    "backgroundColor": "#0b0f0e",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0b0f0e"
+    },
     "android": {
-      "package": "org.ummahlibrary.app"
+      "package": "org.ummahlibrary.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0b0f0e"
+      }
     },
     "ios": {
       "bundleIdentifier": "org.ummahlibrary.app"

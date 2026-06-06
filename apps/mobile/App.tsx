@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,10 +9,32 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { TOTAL_SURAHS, type Ayah, type Surah, type TranslatedAyah } from "@ummahlibrary/core";
+import { Audio } from "expo-av";
+import {
+  TOTAL_SURAHS,
+  reciterAudioUrl,
+  type Ayah,
+  type ReciterPlugin,
+  type Surah,
+  type TranslatedAyah,
+} from "@ummahlibrary/core";
 
 const API = "https://app.ummahlibrary.org/api/v1";
 const TRANSLATION = "eng-khattab";
+
+// The single bundled reciter. Mobile only depends on `core`, so rather than
+// reach into the data-package plugin registry we carry the manifest here and
+// build URLs with the pure `reciterAudioUrl` helper (the same logic the web
+// reader uses). Mirrors packages/data/plugins/reciters/alafasy.json.
+const RECITER: ReciterPlugin = {
+  kind: "reciter",
+  id: "alafasy",
+  name: "Mishary Rashid Alafasy",
+  language: "ar",
+  style: "Murattal",
+  audioUrlTemplate: "https://everyayah.com/data/Alafasy_128kbps/{surah:3}{ayah:3}.mp3",
+  quranComId: 7,
+};
 
 type Screen = { kind: "list" } | { kind: "reader"; surah: number };
 
@@ -84,6 +106,12 @@ function SurahReader({ surah, onBack }: { surah: number; onBack: () => void }) {
   const [meta, setMeta] = useState<Surah | null>(null);
   const [ayahs, setAyahs] = useState<ReaderAyah[] | null>(null);
   const [error, setError] = useState(false);
+  const [playing, setPlaying] = useState<number | null>(null);
+
+  // Token cancels a stale playback sequence; the current sound is unloaded on
+  // every transition so only one ayah ever plays at a time.
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const tokenRef = useRef(0);
 
   useEffect(() => {
     Promise.all([
@@ -100,6 +128,67 @@ function SurahReader({ surah, onBack }: { surah: number; onBack: () => void }) {
       .catch(() => setError(true));
   }, [surah]);
 
+  useEffect(() => {
+    // Keep audio audible when the iOS ringer is silenced.
+    Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
+  }, []);
+
+  const stop = useCallback(async () => {
+    tokenRef.current += 1;
+    setPlaying(null);
+    const sound = soundRef.current;
+    soundRef.current = null;
+    if (sound) await sound.unloadAsync().catch(() => {});
+  }, []);
+
+  // Stop playback when the surah changes or the screen unmounts.
+  useEffect(() => {
+    return () => {
+      void stop();
+    };
+  }, [surah, stop]);
+
+  const playFrom = useCallback(
+    async (startAya: number) => {
+      const list = ayahs;
+      if (!list) return;
+      const token = ++tokenRef.current;
+      const previous = soundRef.current;
+      soundRef.current = null;
+      if (previous) await previous.unloadAsync().catch(() => {});
+
+      for (const a of list.filter((x) => x.aya >= startAya)) {
+        if (tokenRef.current !== token) return;
+        setPlaying(a.aya);
+        try {
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: reciterAudioUrl(RECITER, { sura: surah, aya: a.aya }) },
+            { shouldPlay: true },
+          );
+          if (tokenRef.current !== token) {
+            await sound.unloadAsync().catch(() => {});
+            return;
+          }
+          soundRef.current = sound;
+          await new Promise<void>((resolve) => {
+            sound.setOnPlaybackStatusUpdate((st) => {
+              if (st.isLoaded && st.didJustFinish) resolve();
+              else if (!st.isLoaded && st.error) resolve();
+            });
+          });
+          await sound.unloadAsync().catch(() => {});
+        } catch {
+          return;
+        }
+        if (tokenRef.current !== token) return;
+      }
+      if (tokenRef.current === token) setPlaying(null);
+    },
+    [ayahs, surah],
+  );
+
+  const isPlaying = playing !== null;
+
   return (
     <View style={styles.screen}>
       <Pressable onPress={onBack} style={styles.back}>
@@ -111,18 +200,32 @@ function SurahReader({ surah, onBack }: { surah: number; onBack: () => void }) {
           <Text style={styles.readerTitle}>
             {meta.transliteration} · {meta.englishName}
           </Text>
+          {ayahs && (
+            <Pressable
+              style={styles.playSurah}
+              onPress={() => (isPlaying ? stop() : playFrom(ayahs[0]?.aya ?? 1))}
+            >
+              <Text style={styles.playSurahText}>
+                {isPlaying ? "■ Stop" : "▶ Play surah"} · {RECITER.name}
+              </Text>
+            </Pressable>
+          )}
         </View>
       )}
       {error && <Text style={styles.error}>Couldn’t load this surah.</Text>}
       {!ayahs && !error && <ActivityIndicator color="#3fae7d" style={styles.spinner} />}
       <ScrollView>
         {(ayahs ?? []).map((a) => (
-          <View key={a.aya} style={styles.ayah}>
+          <Pressable
+            key={a.aya}
+            style={[styles.ayah, playing === a.aya && styles.ayahActive]}
+            onPress={() => (playing === a.aya ? stop() : playFrom(a.aya))}
+          >
             <Text style={styles.ayahArabic}>
               {a.arabic} <Text style={styles.ayahMark}>﴿{a.aya}﴾</Text>
             </Text>
             {a.english ? <Text style={styles.ayahEn}>{a.english}</Text> : null}
-          </View>
+          </Pressable>
         ))}
         <View style={styles.foot} />
       </ScrollView>
@@ -163,7 +266,23 @@ const styles = StyleSheet.create({
   readerHead: { alignItems: "center", paddingVertical: 16 },
   readerArabic: { color: "#e7efe9", fontSize: 34, writingDirection: "rtl" },
   readerTitle: { color: "#9fb3a6", fontSize: 14, marginTop: 4 },
-  ayah: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: "#1f2a27" },
+  playSurah: {
+    marginTop: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: "#16241d",
+  },
+  playSurahText: { color: "#3fae7d", fontSize: 13, fontWeight: "600" },
+  ayah: {
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    marginHorizontal: -10,
+    borderRadius: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1f2a27",
+  },
+  ayahActive: { backgroundColor: "#16241d", borderBottomColor: "transparent" },
   ayahArabic: {
     color: "#e7efe9",
     fontSize: 26,

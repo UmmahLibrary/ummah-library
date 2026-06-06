@@ -24,10 +24,21 @@ must build inside this pnpm monorepo.
     where Metro looks).
 - Build/submit use **EAS** (`apps/mobile/eas.json`); the bundle is verified with
   `expo export`.
+- **Recitation audio** uses `expo-av`, playing per-ayah MP3s. The URL is built
+  with the pure `reciterAudioUrl` helper from `core`; because mobile may not
+  depend on `data`, the reciter **manifest** (currently a single reciter,
+  Alafasy) is carried as a constant in the app mirroring
+  `packages/data/plugins/reciters/`. When a second reciter is needed, expose the
+  reciter list via the public REST API (like `/editions`) rather than growing the
+  constant.
+- **Brand assets** (launcher icon, Android adaptive foreground, splash) are
+  generated from one vector mark by `scripts/gen-assets.mjs` (`pnpm assets`) so
+  they stay reproducible rather than hand-edited binaries.
 
 ## Consequences
 
 - Real code sharing across web and mobile; the same `core` and API types.
-- Mobile is **online-only** until offline data lands (its own follow-up).
+- Mobile is **online-only** until offline data lands (its own follow-up); audio
+  streams from the reciter CDN.
 - An EAS build + store submission needs the maintainer's Expo/Google accounts; UI
   verification needs a device/Expo Go (CI only type-checks and bundle-builds).

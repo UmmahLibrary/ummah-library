@@ -1,6 +1,6 @@
 {
   "name": "@ummahlibrary/mobile",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "main": "index.ts",
@@ -9,12 +9,15 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "typecheck": "tsc --noEmit",
+    "assets": "node scripts/gen-assets.mjs",
+    "bundle": "expo export --platform android",
     "clean": "rm -rf .turbo .expo node_modules"
   },
   "dependencies": {
     "@babel/runtime": "^7.25.0",
     "@ummahlibrary/core": "workspace:*",
     "expo": "~52.0.0",
+    "expo-av": "~15.0.0",
     "expo-status-bar": "~2.0.0",
     "react": "18.3.1",
     "react-native": "0.76.5"
