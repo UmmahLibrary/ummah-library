@@ -16,6 +16,9 @@ export default async function HomePage() {
           <p>Read the Quran — {surahs.length} surahs, open source.</p>
         </div>
         <nav className="head-nav">
+          <Link href="/search" className="head-link">
+            Search
+          </Link>
           <Link href="/juz" className="head-link">
             Juzʾ
           </Link>

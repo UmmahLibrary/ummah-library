@@ -457,6 +457,75 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-weight: 600;
   line-height: 1;
 }
+/* ---- Search ---- */
+.search-input {
+  width: 100%;
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+  color: var(--fg);
+  margin-bottom: 1rem;
+}
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.search-history {
+  margin-bottom: 1rem;
+}
+.search-count {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+}
+.search-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.search-result {
+  border-bottom: 1px solid var(--border);
+}
+.search-result-link {
+  display: block;
+  padding: 0.9rem 0.25rem;
+  text-decoration: none;
+  color: inherit;
+}
+.search-result-link:hover {
+  background: var(--bg-elev);
+}
+.search-result-ref {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+.search-tag {
+  font-size: 0.68rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--faint);
+}
+.search-tag--ar {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.search-result-text {
+  display: block;
+  line-height: 1.7;
+}
+.search-result-text.arabic {
+  font-size: 1.4rem;
+  text-align: right;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
