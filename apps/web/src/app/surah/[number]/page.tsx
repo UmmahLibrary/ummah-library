@@ -6,6 +6,7 @@ import { pluginRegistry, quranRepository, translationRepository } from "@ummahli
 import { ReaderControls } from "../../../components/ReaderControls";
 import { ReadingAudio } from "../../../components/ReadingAudio";
 import { AyahTafsir } from "../../../components/AyahTafsir";
+import { TafsirPicker } from "../../../components/TafsirPicker";
 import { HifzButton } from "../../../components/HifzButton";
 import { AyahActions } from "../../../components/AyahActions";
 import { HashHighlighter } from "../../../components/HashHighlighter";
@@ -13,7 +14,7 @@ import { ReadingModeToggle } from "../../../components/ReadingModeToggle";
 import { ReadingTranslationPicker } from "../../../components/ReadingTranslationPicker";
 
 const RECITERS = pluginRegistry.byKind("reciter");
-const TAFSIR = pluginRegistry.byKind("tafsir")[0] ?? null;
+const TAFSIRS = pluginRegistry.byKind("tafsir").map((t) => ({ id: t.id, name: t.name }));
 
 const DEFAULT_EDITION = "eng-khattab";
 
@@ -101,6 +102,8 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
           reciters={RECITERS}
         />
 
+        {TAFSIRS.length > 1 && <TafsirPicker tafsirs={TAFSIRS} />}
+
         {/* Surah 1's Basmala is ayah 1 itself; others show it as a header. */}
         {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
 
@@ -152,13 +155,8 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
                 <HifzButton surah={surah.number} aya={ayah.aya} />
                 <AyahActions surah={surah.number} aya={ayah.aya} />
               </div>
-              {TAFSIR && (
-                <AyahTafsir
-                  surah={surah.number}
-                  aya={ayah.aya}
-                  tafsirId={TAFSIR.id}
-                  tafsirName={TAFSIR.name}
-                />
+              {TAFSIRS.length > 0 && (
+                <AyahTafsir surah={surah.number} aya={ayah.aya} tafsirs={TAFSIRS} />
               )}
             </div>
           ))}

@@ -8,11 +8,21 @@ import type {
   HadithSection,
   Surah,
   TafsirEntry,
+  TextDirection,
   TranslatedAyah,
   Translation,
 } from "@ummahlibrary/core";
 
 const BASE = "https://app.ummahlibrary.org/api/v1";
+
+/** A tafsir edition as listed by `/tafsirs`. */
+export interface TafsirMeta {
+  id: string;
+  name: string;
+  author: string;
+  language: string;
+  direction: TextDirection;
+}
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -29,6 +39,7 @@ export const api = {
     ),
   listEditions: () =>
     getJson<{ editions: Translation[] }>(`${BASE}/editions`).then((d) => d.editions),
+  listTafsirs: () => getJson<{ tafsirs: TafsirMeta[] }>(`${BASE}/tafsirs`).then((d) => d.tafsirs),
   getTafsir: (n: number, edition: string) =>
     getJson<{ entries: TafsirEntry[] }>(`${BASE}/surahs/${n}/tafsirs/${edition}`).then(
       (d) => d.entries,

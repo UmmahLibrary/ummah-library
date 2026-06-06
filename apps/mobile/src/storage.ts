@@ -9,6 +9,7 @@ export const KEYS = {
   editions: "ul.editions",
   readingMode: "ul.readingMode",
   readingTranslation: "ul.readingTranslation",
+  tafsir: "ul.tafsir",
   reciter: "ul.reciter",
   scale: "ul.scale",
   theme: "ul.theme",

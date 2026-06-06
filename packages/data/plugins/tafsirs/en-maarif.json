@@ -1,0 +1,9 @@
+{
+  "kind": "tafsir",
+  "id": "en-maarif",
+  "name": "Maarif-ul-Quran",
+  "author": "Mufti Muhammad Shafi",
+  "language": "en",
+  "direction": "ltr",
+  "surahUrlTemplate": "https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/en-tafsir-maarif-ul-quran/{surah}.json"
+}

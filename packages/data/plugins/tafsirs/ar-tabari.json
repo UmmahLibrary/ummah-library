@@ -1,0 +1,9 @@
+{
+  "kind": "tafsir",
+  "id": "ar-tabari",
+  "name": "Tafsir al-Tabari",
+  "author": "Ibn Jarir al-Tabari",
+  "language": "ar",
+  "direction": "rtl",
+  "surahUrlTemplate": "https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/ar-tafsir-al-tabari/{surah}.json"
+}

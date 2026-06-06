@@ -8,7 +8,7 @@ import { MAX_SCALE, MIN_SCALE } from "../types";
 export function SettingsScreen() {
   const { colors, mode, toggle } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { scale, setScale, reciterId } = useSettings();
+  const { scale, setScale, reciterId, tafsirId, tafsirs, setTafsirId } = useSettings();
   const reciter = RECITERS.find((r) => r.id === reciterId) ?? RECITER;
 
   return (
@@ -51,6 +51,21 @@ export function SettingsScreen() {
         <Text style={styles.value}>{reciter.name}</Text>
       </View>
 
+      <Text style={styles.section}>Tafsir</Text>
+      {tafsirs.length === 0 ? (
+        <Text style={styles.muted}>Loading tafsir editions…</Text>
+      ) : (
+        tafsirs.map((t) => (
+          <Pressable key={t.id} style={styles.pickRow} onPress={() => setTafsirId(t.id)}>
+            <Text style={[styles.pickText, t.id === tafsirId && styles.pickTextOn]}>
+              {t.id === tafsirId ? "● " : "○ "}
+              {t.name}
+            </Text>
+            <Text style={styles.pickSub}>{t.author}</Text>
+          </Pressable>
+        ))
+      )}
+
       <Text style={styles.section}>About</Text>
       <Text style={styles.muted}>
         Arabic text: Tanzil (CC-BY 3.0). Translations, tafsir, and hadith via Ummah Library
@@ -90,6 +105,10 @@ function makeStyles(c: Palette) {
     scaleValue: { color: c.muted, fontSize: 14, minWidth: 44, textAlign: "center" },
     section: { color: c.fg, fontSize: 16, fontWeight: "700", marginTop: 28, marginBottom: 8 },
     muted: { color: c.muted, fontSize: 14, lineHeight: 22 },
+    pickRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border },
+    pickText: { color: c.fg, fontSize: 15 },
+    pickTextOn: { color: c.accent, fontWeight: "600" },
+    pickSub: { color: c.muted, fontSize: 12, marginTop: 2, marginLeft: 18 },
     version: { color: c.muted, fontSize: 13, marginTop: 16 },
   });
 }

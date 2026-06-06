@@ -3,17 +3,16 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { api } from "../api";
 import { TAFSIRS } from "../plugins";
 import { useTheme, type Palette } from "../theme";
-
-const TAFSIR = TAFSIRS[0];
+import { useSettings } from "../state/SettingsContext";
 
 // One shared fetch per (tafsir, surah); every ayah toggle reuses it.
 const cache = new Map<string, Promise<Map<number, string>>>();
-function loadSurahTafsir(surah: number): Promise<Map<number, string>> {
-  const key = `${TAFSIR.id}:${surah}`;
+function loadSurahTafsir(tafsirId: string, surah: number): Promise<Map<number, string>> {
+  const key = `${tafsirId}:${surah}`;
   let pending = cache.get(key);
   if (!pending) {
     pending = api
-      .getTafsir(surah, TAFSIR.id)
+      .getTafsir(surah, tafsirId)
       .then((entries) => new Map(entries.map((e) => [e.aya, e.text])))
       .catch(() => new Map<number, string>());
     cache.set(key, pending);
@@ -21,10 +20,15 @@ function loadSurahTafsir(surah: number): Promise<Map<number, string>> {
   return pending;
 }
 
-/** Collapsible per-ayah tafsir (commentary), fetched on first open. */
+/** Collapsible per-ayah tafsir (commentary) in the selected edition. */
 export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { tafsirId, tafsirs } = useSettings();
+  const tafsirName =
+    tafsirs.find((t) => t.id === tafsirId)?.name ??
+    TAFSIRS.find((t) => t.id === tafsirId)?.name ??
+    "Tafsir";
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "empty">("idle");
   const [text, setText] = useState("");
@@ -35,20 +39,18 @@ export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
       return;
     }
     setOpen(true);
-    if (state === "idle") {
-      setState("loading");
-      const byAya = await loadSurahTafsir(sura);
-      const entry = byAya.get(aya);
-      setText(entry ?? "");
-      setState(entry ? "ready" : "empty");
-    }
+    setState("loading");
+    const byAya = await loadSurahTafsir(tafsirId, sura);
+    const entry = byAya.get(aya);
+    setText(entry ?? "");
+    setState(entry ? "ready" : "empty");
   }
 
   return (
     <View style={styles.wrap}>
       <Pressable onPress={toggle}>
         <Text style={styles.toggle}>
-          {open ? "▾" : "▸"} Tafsir · {TAFSIR.name}
+          {open ? "▾" : "▸"} Tafsir · {tafsirName}
         </Text>
       </Pressable>
       {open && (

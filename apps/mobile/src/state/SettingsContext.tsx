@@ -14,9 +14,9 @@ import {
   type ReactNode,
 } from "react";
 import type { Translation } from "@ummahlibrary/core";
-import { api } from "../api";
+import { api, type TafsirMeta } from "../api";
 import { KEYS, getJSON, getString, setJSON, setString } from "../storage";
-import { RECITER } from "../plugins";
+import { RECITER, TAFSIRS } from "../plugins";
 import { DEFAULT_EDITIONS, MAX_SCALE, MIN_SCALE, type ReadingMode } from "../types";
 
 interface SettingsValue {
@@ -24,12 +24,15 @@ interface SettingsValue {
   readingMode: ReadingMode;
   readingTranslation: string | null;
   reciterId: string;
+  tafsirId: string;
   scale: number;
   catalogue: Translation[];
+  tafsirs: TafsirMeta[];
   setEditions: (ids: string[]) => void;
   setReadingMode: (mode: ReadingMode) => void;
   setReadingTranslation: (id: string) => void;
   setReciterId: (id: string) => void;
+  setTafsirId: (id: string) => void;
   setScale: (scale: number) => void;
 }
 
@@ -42,16 +45,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [readingMode, setReadingModeState] = useState<ReadingMode>("translation");
   const [readingTranslation, setReadingTranslationState] = useState<string | null>(null);
   const [reciterId, setReciterIdState] = useState<string>(RECITER.id);
+  const [tafsirId, setTafsirIdState] = useState<string>(TAFSIRS[0].id);
   const [scale, setScaleState] = useState<number>(1);
   const [catalogue, setCatalogue] = useState<Translation[]>([]);
+  const [tafsirs, setTafsirs] = useState<TafsirMeta[]>([]);
 
   useEffect(() => {
     void (async () => {
-      const [ed, mode, rtr, reciter, sc] = await Promise.all([
+      const [ed, mode, rtr, reciter, tafsir, sc] = await Promise.all([
         getJSON<string[]>(KEYS.editions, DEFAULT_EDITIONS),
         getString(KEYS.readingMode),
         getString(KEYS.readingTranslation),
         getString(KEYS.reciter),
+        getString(KEYS.tafsir),
         getJSON<number>(KEYS.scale, 1),
       ]);
       setEditionsState(ed.length > 0 ? ed : DEFAULT_EDITIONS);
@@ -59,12 +65,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setReadingModeState(mode);
       if (rtr) setReadingTranslationState(rtr);
       if (reciter) setReciterIdState(reciter);
+      if (tafsir) setTafsirIdState(tafsir);
       setScaleState(clampScale(sc));
     })();
     void api
       .listEditions()
       .then(setCatalogue)
       .catch(() => setCatalogue([]));
+    void api
+      .listTafsirs()
+      .then(setTafsirs)
+      .catch(() => setTafsirs([]));
   }, []);
 
   const setEditions = useCallback((ids: string[]) => {
@@ -88,6 +99,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     void setString(KEYS.reciter, id);
   }, []);
 
+  const setTafsirId = useCallback((id: string) => {
+    setTafsirIdState(id);
+    void setString(KEYS.tafsir, id);
+  }, []);
+
   const setScale = useCallback((next: number) => {
     const clamped = clampScale(next);
     setScaleState(clamped);
@@ -100,12 +116,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       readingMode,
       readingTranslation,
       reciterId,
+      tafsirId,
       scale,
       catalogue,
+      tafsirs,
       setEditions,
       setReadingMode,
       setReadingTranslation,
       setReciterId,
+      setTafsirId,
       setScale,
     }),
     [
@@ -113,12 +132,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       readingMode,
       readingTranslation,
       reciterId,
+      tafsirId,
       scale,
       catalogue,
+      tafsirs,
       setEditions,
       setReadingMode,
       setReadingTranslation,
       setReciterId,
+      setTafsirId,
       setScale,
     ],
   );

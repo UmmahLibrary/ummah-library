@@ -1,0 +1,9 @@
+{
+  "kind": "tafsir",
+  "id": "ar-muyassar",
+  "name": "Tafsir Muyassar",
+  "author": "King Fahd Complex",
+  "language": "ar",
+  "direction": "rtl",
+  "surahUrlTemplate": "https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/ar-tafsir-muyassar/{surah}.json"
+}

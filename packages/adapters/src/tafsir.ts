@@ -1,10 +1,13 @@
 import type { PluginRegistry, TafsirEntry, TafsirRepository, VerseKey } from "@ummahlibrary/core";
 import { tafsirSurahUrl } from "@ummahlibrary/core";
 
-/** The spa5k tafsir_api per-surah entry shape. */
+/**
+ * The spa5k tafsir_api per-surah entry shape. `surah`/`ayah` are plain numbers
+ * in some editions and numeric strings in others, so they are coerced on read.
+ */
 interface SpaTafsirEntry {
-  surah: number;
-  ayah: number;
+  surah: number | string;
+  ayah: number | string;
   text: string;
 }
 
@@ -30,7 +33,12 @@ export class HttpTafsirRepository implements TafsirRepository {
     const response = await this.#fetch(tafsirSurahUrl(plugin, surahNumber));
     if (!response.ok) return [];
     const entries = (await response.json()) as SpaTafsirEntry[];
-    return entries.map((e) => ({ sura: e.surah, aya: e.ayah, tafsirId, text: e.text }));
+    return entries.map((e) => ({
+      sura: Number(e.surah),
+      aya: Number(e.ayah),
+      tafsirId,
+      text: e.text,
+    }));
   }
 
   async getAyahTafsir(tafsirId: string, ref: VerseKey): Promise<TafsirEntry | null> {

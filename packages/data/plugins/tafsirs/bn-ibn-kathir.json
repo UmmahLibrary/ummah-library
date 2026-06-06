@@ -1,0 +1,9 @@
+{
+  "kind": "tafsir",
+  "id": "bn-ibn-kathir",
+  "name": "Tafseer ibn Kathir (Bengali)",
+  "author": "Tawheed Publication",
+  "language": "bn",
+  "direction": "ltr",
+  "surahUrlTemplate": "https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/bn-tafseer-ibn-e-kaseer/{surah}.json"
+}

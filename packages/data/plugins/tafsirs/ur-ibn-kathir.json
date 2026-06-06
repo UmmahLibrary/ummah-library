@@ -1,0 +1,9 @@
+{
+  "kind": "tafsir",
+  "id": "ur-ibn-kathir",
+  "name": "Tafsir Ibn Kathir (Urdu)",
+  "author": "Hafiz Ibn Kathir",
+  "language": "ur",
+  "direction": "rtl",
+  "surahUrlTemplate": "https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/ur-tafseer-ibn-e-kaseer/{surah}.json"
+}

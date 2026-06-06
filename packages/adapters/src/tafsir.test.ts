@@ -54,4 +54,12 @@ describe("HttpTafsirRepository", () => {
     const repo = new HttpTafsirRepository(new PluginRegistry([ibnKathir]), fn);
     expect(await repo.getSurahTafsir("nope", 1)).toEqual([]);
   });
+
+  it("coerces numeric-string surah/ayah (some editions return strings)", async () => {
+    const { fn } = fakeFetch([{ surah: "1", ayah: "1", text: "Commentary on 1:1" }]);
+    const repo = new HttpTafsirRepository(new PluginRegistry([ibnKathir]), fn);
+    expect(await repo.getSurahTafsir("en-ibn-kathir", 1)).toEqual([
+      { sura: 1, aya: 1, tafsirId: "en-ibn-kathir", text: "Commentary on 1:1" },
+    ]);
+  });
 });
