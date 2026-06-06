@@ -457,6 +457,24 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-weight: 600;
   line-height: 1;
 }
+/* ---- Reader progress + keyboard focus ---- */
+.read-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--accent);
+  z-index: 50;
+  transition: width 0.1s linear;
+  pointer-events: none;
+}
+.ayah--focus {
+  scroll-margin-top: 80px;
+  box-shadow: -3px 0 0 0 var(--accent);
+  padding-left: 0.6rem;
+  transition: box-shadow 0.2s ease;
+}
+
 /* ---- Search ---- */
 .search-input {
   width: 100%;

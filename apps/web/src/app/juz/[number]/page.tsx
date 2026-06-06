@@ -15,6 +15,7 @@ import { EditionManager } from "../../../components/EditionManager";
 import { ReadingTranslationPicker } from "../../../components/ReadingTranslationPicker";
 import { AyahTranslations } from "../../../components/AyahTranslations";
 import { ReadingTranslationFlow } from "../../../components/ReadingTranslationFlow";
+import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
 
 const RECITERS = pluginRegistry.byKind("reciter");
 
@@ -114,6 +115,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <ReaderShortcuts storageKey={`juz:${n}`} />
       <Link href="/juz" className="back-link">
         ← All juzʾ
       </Link>
