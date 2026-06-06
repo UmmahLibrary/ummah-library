@@ -22,6 +22,10 @@ import {
 const API = "https://app.ummahlibrary.org/api/v1";
 const TRANSLATION = "eng-khattab";
 
+// If an ayah's audio makes no progress for this long (slow load or a stalled
+// stream on a flaky connection), skip to the next one instead of hanging.
+const STALL_MS = 8000;
+
 // The single bundled reciter. Mobile only depends on `core`, so rather than
 // reach into the data-package plugin registry we carry the manifest here and
 // build URLs with the pure `reciterAudioUrl` helper (the same logic the web
@@ -107,11 +111,14 @@ function SurahReader({ surah, onBack }: { surah: number; onBack: () => void }) {
   const [ayahs, setAyahs] = useState<ReaderAyah[] | null>(null);
   const [error, setError] = useState(false);
   const [playing, setPlaying] = useState<number | null>(null);
+  const [buffering, setBuffering] = useState(false);
 
   // Token cancels a stale playback sequence; the current player is released on
-  // every transition so only one ayah ever plays at a time.
+  // every transition so only one ayah ever plays at a time. settleRef lets stop()
+  // resolve the in-flight ayah promise immediately instead of waiting it out.
   const playerRef = useRef<AudioPlayer | null>(null);
   const tokenRef = useRef(0);
+  const settleRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -146,6 +153,8 @@ function SurahReader({ surah, onBack }: { surah: number; onBack: () => void }) {
   const stop = useCallback(() => {
     tokenRef.current += 1;
     setPlaying(null);
+    setBuffering(false);
+    settleRef.current?.();
     const player = playerRef.current;
     playerRef.current = null;
     release(player);
@@ -169,23 +178,55 @@ function SurahReader({ surah, onBack }: { surah: number; onBack: () => void }) {
       for (const a of list.filter((x) => x.aya >= startAya)) {
         if (tokenRef.current !== token) return;
         setPlaying(a.aya);
+        setBuffering(true);
         const player = createAudioPlayer({
           uri: reciterAudioUrl(RECITER, { sura: surah, aya: a.aya }),
         });
         playerRef.current = player;
         player.play();
+
+        // Resolve when the ayah finishes, when the stall watchdog fires (no
+        // audio progress within STALL_MS), or when stop() cancels it.
         await new Promise<void>((resolve) => {
+          let settled = false;
+          let lastTime = -1;
+          let timer: ReturnType<typeof setTimeout>;
+          const done = () => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            sub.remove();
+            settleRef.current = null;
+            resolve();
+          };
+          const arm = () => {
+            clearTimeout(timer);
+            timer = setTimeout(done, STALL_MS);
+          };
           const sub = player.addListener("playbackStatusUpdate", (status) => {
             if (status.didJustFinish) {
-              sub.remove();
-              resolve();
+              done();
+              return;
+            }
+            // Real audio progress: clear the spinner and reset the watchdog.
+            if (status.playing && status.currentTime > 0) {
+              setBuffering(false);
+              if (status.currentTime !== lastTime) {
+                lastTime = status.currentTime;
+                arm();
+              }
             }
           });
+          settleRef.current = done;
+          arm();
         });
         release(player);
         if (tokenRef.current !== token) return;
       }
-      if (tokenRef.current === token) setPlaying(null);
+      if (tokenRef.current === token) {
+        setPlaying(null);
+        setBuffering(false);
+      }
     },
     [ayahs, surah, release],
   );
@@ -209,7 +250,8 @@ function SurahReader({ surah, onBack }: { surah: number; onBack: () => void }) {
               onPress={() => (isPlaying ? stop() : playFrom(ayahs[0]?.aya ?? 1))}
             >
               <Text style={styles.playSurahText}>
-                {isPlaying ? "■ Stop" : "▶ Play surah"} · {RECITER.name}
+                {!isPlaying ? "▶ Play surah" : buffering ? "■ Loading…" : "■ Stop"} ·{" "}
+                {RECITER.name}
               </Text>
             </Pressable>
           )}
@@ -228,6 +270,12 @@ function SurahReader({ surah, onBack }: { surah: number; onBack: () => void }) {
               {a.arabic} <Text style={styles.ayahMark}>﴿{a.aya}﴾</Text>
             </Text>
             {a.english ? <Text style={styles.ayahEn}>{a.english}</Text> : null}
+            {playing === a.aya && buffering ? (
+              <View style={styles.bufferRow}>
+                <ActivityIndicator size="small" color="#3fae7d" />
+                <Text style={styles.bufferText}>Buffering…</Text>
+              </View>
+            ) : null}
           </Pressable>
         ))}
         <View style={styles.foot} />
@@ -286,6 +334,8 @@ const styles = StyleSheet.create({
     borderBottomColor: "#1f2a27",
   },
   ayahActive: { backgroundColor: "#16241d", borderBottomColor: "transparent" },
+  bufferRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
+  bufferText: { color: "#9fb3a6", fontSize: 13 },
   ayahArabic: {
     color: "#e7efe9",
     fontSize: 26,
