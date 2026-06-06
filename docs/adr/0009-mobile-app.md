@@ -11,9 +11,10 @@ must build inside this pnpm monorepo.
 
 ## Decision
 
-- `apps/mobile` is an **Expo** app that imports `@ummahlibrary/core` and reads from
-  the **public REST API** (0004) — **online-first** for now; offline data
-  (bundled assets or `expo-sqlite`) is deferred.
+- `apps/mobile` is an **Expo** app (SDK 54) that imports `@ummahlibrary/core` and
+  reads from the **public REST API** (0004) — **online-first** for now; offline
+  data (bundled assets or `expo-sqlite`) is deferred. We track the **latest Expo
+  SDK** so the published Expo Go can run the project during development.
 - **Metro monorepo config** (`metro.config.js`) is the load-bearing part:
   - `watchFolders` = workspace root, `nodeModulesPaths` = app + root.
   - **Hierarchical lookup stays ON.** Expo's npm/yarn guide says to disable it,
@@ -24,9 +25,10 @@ must build inside this pnpm monorepo.
     where Metro looks).
 - Build/submit use **EAS** (`apps/mobile/eas.json`); the bundle is verified with
   `expo export`.
-- **Recitation audio** uses `expo-av`, playing per-ayah MP3s. The URL is built
-  with the pure `reciterAudioUrl` helper from `core`; because mobile may not
-  depend on `data`, the reciter **manifest** (currently a single reciter,
+- **Recitation audio** uses `expo-audio` (SDK 54 replaced the removed `expo-av`),
+  playing per-ayah MP3s. The URL is built with the pure `reciterAudioUrl` helper
+  from `core`; because mobile may not depend on `data`, the reciter **manifest**
+  (currently a single reciter,
   Alafasy) is carried as a constant in the app mirroring
   `packages/data/plugins/reciters/`. When a second reciter is needed, expose the
   reciter list via the public REST API (like `/editions`) rather than growing the

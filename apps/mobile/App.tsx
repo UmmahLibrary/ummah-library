@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { Audio } from "expo-av";
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import {
   TOTAL_SURAHS,
   reciterAudioUrl,
@@ -108,9 +108,9 @@ function SurahReader({ surah, onBack }: { surah: number; onBack: () => void }) {
   const [error, setError] = useState(false);
   const [playing, setPlaying] = useState<number | null>(null);
 
-  // Token cancels a stale playback sequence; the current sound is unloaded on
+  // Token cancels a stale playback sequence; the current player is released on
   // every transition so only one ayah ever plays at a time.
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
   const tokenRef = useRef(0);
 
   useEffect(() => {
@@ -130,21 +130,31 @@ function SurahReader({ surah, onBack }: { surah: number; onBack: () => void }) {
 
   useEffect(() => {
     // Keep audio audible when the iOS ringer is silenced.
-    Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
   }, []);
 
-  const stop = useCallback(async () => {
+  const release = useCallback((player: AudioPlayer | null) => {
+    if (player) {
+      try {
+        player.remove();
+      } catch {
+        /* already released */
+      }
+    }
+  }, []);
+
+  const stop = useCallback(() => {
     tokenRef.current += 1;
     setPlaying(null);
-    const sound = soundRef.current;
-    soundRef.current = null;
-    if (sound) await sound.unloadAsync().catch(() => {});
-  }, []);
+    const player = playerRef.current;
+    playerRef.current = null;
+    release(player);
+  }, [release]);
 
   // Stop playback when the surah changes or the screen unmounts.
   useEffect(() => {
     return () => {
-      void stop();
+      stop();
     };
   }, [surah, stop]);
 
@@ -153,38 +163,31 @@ function SurahReader({ surah, onBack }: { surah: number; onBack: () => void }) {
       const list = ayahs;
       if (!list) return;
       const token = ++tokenRef.current;
-      const previous = soundRef.current;
-      soundRef.current = null;
-      if (previous) await previous.unloadAsync().catch(() => {});
+      release(playerRef.current);
+      playerRef.current = null;
 
       for (const a of list.filter((x) => x.aya >= startAya)) {
         if (tokenRef.current !== token) return;
         setPlaying(a.aya);
-        try {
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: reciterAudioUrl(RECITER, { sura: surah, aya: a.aya }) },
-            { shouldPlay: true },
-          );
-          if (tokenRef.current !== token) {
-            await sound.unloadAsync().catch(() => {});
-            return;
-          }
-          soundRef.current = sound;
-          await new Promise<void>((resolve) => {
-            sound.setOnPlaybackStatusUpdate((st) => {
-              if (st.isLoaded && st.didJustFinish) resolve();
-              else if (!st.isLoaded && st.error) resolve();
-            });
+        const player = createAudioPlayer({
+          uri: reciterAudioUrl(RECITER, { sura: surah, aya: a.aya }),
+        });
+        playerRef.current = player;
+        player.play();
+        await new Promise<void>((resolve) => {
+          const sub = player.addListener("playbackStatusUpdate", (status) => {
+            if (status.didJustFinish) {
+              sub.remove();
+              resolve();
+            }
           });
-          await sound.unloadAsync().catch(() => {});
-        } catch {
-          return;
-        }
+        });
+        release(player);
         if (tokenRef.current !== token) return;
       }
       if (tokenRef.current === token) setPlaying(null);
     },
-    [ayahs, surah],
+    [ayahs, surah, release],
   );
 
   const isPlaying = playing !== null;

@@ -10,7 +10,9 @@ const workspaceRoot = path.resolve(projectRoot, "../..");
 const config = getDefaultConfig(projectRoot);
 
 // 1. Watch the whole monorepo so changes in packages/* are picked up.
-config.watchFolders = [workspaceRoot];
+//    Append to (don't replace) Expo's defaults so the bundler keeps watching
+//    everything it expects to.
+config.watchFolders = [...(config.watchFolders ?? []), workspaceRoot];
 
 // 2. Resolve modules from the app first, then the workspace root.
 //    Hierarchical lookup stays ON: pnpm's isolated store relies on each

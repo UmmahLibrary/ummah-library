@@ -23,6 +23,10 @@
     },
     "ios": {
       "bundleIdentifier": "org.ummahlibrary.app"
-    }
+    },
+    "plugins": [
+      "expo-audio",
+      "expo-asset"
+    ]
   }
 }
