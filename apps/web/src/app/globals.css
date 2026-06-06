@@ -178,6 +178,38 @@ a {
   margin: 1.75rem 0 2.25rem;
 }
 
+/* ---- Reading mode (continuous mushaf) vs translation mode ---- */
+.mode-reading {
+  display: none;
+}
+html[data-reading-mode="reading"] .mode-translation {
+  display: none;
+}
+html[data-reading-mode="reading"] .mode-reading {
+  display: block;
+}
+.mode-toggle {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  margin: 0.5rem 0 1.5rem;
+}
+.mushaf {
+  font-family: var(--font-amiri), serif;
+  direction: rtl;
+  text-align: justify;
+  text-align-last: center;
+  font-size: calc(2rem * var(--reading-scale, 1));
+  line-height: 2.5;
+  margin: 1.5rem 0;
+}
+.end-marker {
+  color: var(--accent);
+  font-size: 0.62em;
+  margin: 0 0.35rem;
+  white-space: nowrap;
+}
+
 /* Per-surah header inside the juzʾ reader */
 .juz-surah-head {
   display: flex;

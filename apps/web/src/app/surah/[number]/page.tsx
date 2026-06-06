@@ -9,6 +9,7 @@ import { AyahTafsir } from "../../../components/AyahTafsir";
 import { HifzButton } from "../../../components/HifzButton";
 import { AyahActions } from "../../../components/AyahActions";
 import { HashHighlighter } from "../../../components/HashHighlighter";
+import { ReadingModeToggle } from "../../../components/ReadingModeToggle";
 
 const RECITERS = pluginRegistry.byKind("reciter");
 const TAFSIR = pluginRegistry.byKind("tafsir")[0] ?? null;
@@ -82,77 +83,93 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
         </div>
       </header>
 
-      <ReaderControls
-        surahNumber={surah.number}
-        editions={editions.map((e) => ({ id: e.id, name: e.name, language: e.language }))}
-      />
+      <ReadingModeToggle />
 
-      <ReadingAudio
-        verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
-        reciters={RECITERS}
-      />
+      <div className="mode-translation">
+        <ReaderControls
+          surahNumber={surah.number}
+          editions={editions.map((e) => ({ id: e.id, name: e.name, language: e.language }))}
+        />
 
-      {/* Surah 1's Basmala is ayah 1 itself; others show it as a header. */}
-      {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
+        <ReadingAudio
+          verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
+          reciters={RECITERS}
+        />
 
-      <div>
-        {ayahs.map((ayah) => (
-          <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
-            <p className="ayah-ar arabic">
-              {ayah.text.split(" ").flatMap((word, i) => [
-                <span key={i} className="w" data-w={i}>
-                  {word}
-                </span>,
-                " ",
-              ])}
-              <button
-                type="button"
-                className="ayah-marker"
-                data-play-key={`${surah.number}:${ayah.aya}`}
-                aria-label={`Play from āyah ${ayah.aya}`}
-              >
-                ﴿{toArabicDigits(ayah.aya)}﴾
-              </button>
-            </p>
-            {byEdition.map(({ edition, text }) => {
-              const line = text.get(ayah.aya);
-              if (!line) return null;
-              const off = edition.id !== DEFAULT_EDITION ? " tr--off" : "";
-              return (
-                <p
-                  key={edition.id}
-                  className={`ayah-tr${off}`}
-                  data-edition={edition.id}
-                  lang={edition.language}
-                  dir={edition.direction}
+        {/* Surah 1's Basmala is ayah 1 itself; others show it as a header. */}
+        {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
+
+        <div>
+          {ayahs.map((ayah) => (
+            <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
+              <p className="ayah-ar arabic">
+                {ayah.text.split(" ").flatMap((word, i) => [
+                  <span key={i} className="w" data-w={i}>
+                    {word}
+                  </span>,
+                  " ",
+                ])}
+                <button
+                  type="button"
+                  className="ayah-marker"
+                  data-play-key={`${surah.number}:${ayah.aya}`}
+                  aria-label={`Play from āyah ${ayah.aya}`}
                 >
-                  <span className="tr-name">{edition.name}</span>
-                  {line}
-                </p>
-              );
-            })}
-            <div className="ayah-actions">
-              <button
-                type="button"
-                className="hifz-btn"
-                data-play-one={`${surah.number}:${ayah.aya}`}
-                aria-label={`Play āyah ${ayah.aya}`}
-              >
-                ▶ Play
-              </button>
-              <HifzButton surah={surah.number} aya={ayah.aya} />
-              <AyahActions surah={surah.number} aya={ayah.aya} />
+                  ﴿{toArabicDigits(ayah.aya)}﴾
+                </button>
+              </p>
+              {byEdition.map(({ edition, text }) => {
+                const line = text.get(ayah.aya);
+                if (!line) return null;
+                const off = edition.id !== DEFAULT_EDITION ? " tr--off" : "";
+                return (
+                  <p
+                    key={edition.id}
+                    className={`ayah-tr${off}`}
+                    data-edition={edition.id}
+                    lang={edition.language}
+                    dir={edition.direction}
+                  >
+                    <span className="tr-name">{edition.name}</span>
+                    {line}
+                  </p>
+                );
+              })}
+              <div className="ayah-actions">
+                <button
+                  type="button"
+                  className="hifz-btn"
+                  data-play-one={`${surah.number}:${ayah.aya}`}
+                  aria-label={`Play āyah ${ayah.aya}`}
+                >
+                  ▶ Play
+                </button>
+                <HifzButton surah={surah.number} aya={ayah.aya} />
+                <AyahActions surah={surah.number} aya={ayah.aya} />
+              </div>
+              {TAFSIR && (
+                <AyahTafsir
+                  surah={surah.number}
+                  aya={ayah.aya}
+                  tafsirId={TAFSIR.id}
+                  tafsirName={TAFSIR.name}
+                />
+              )}
             </div>
-            {TAFSIR && (
-              <AyahTafsir
-                surah={surah.number}
-                aya={ayah.aya}
-                tafsirId={TAFSIR.id}
-                tafsirName={TAFSIR.name}
-              />
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      <div className="mode-reading">
+        {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
+        <p className="mushaf arabic">
+          {ayahs.map((ayah) => (
+            <span key={ayah.aya}>
+              {ayah.text}
+              <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>{" "}
+            </span>
+          ))}
+        </p>
       </div>
 
       <nav className="reader-nav">

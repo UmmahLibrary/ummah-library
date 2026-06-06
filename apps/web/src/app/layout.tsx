@@ -38,8 +38,8 @@ export const viewport: Viewport = {
   themeColor: "#0b0f0e",
 };
 
-// Apply the saved theme before paint to avoid a flash of the wrong theme.
-const themeScript = `(function(){try{var t=localStorage.getItem("ul.theme");if(!t)t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t;}catch(e){}})();`;
+// Apply the saved theme + reading mode before paint to avoid a flash.
+const themeScript = `(function(){try{var d=document.documentElement.dataset;var t=localStorage.getItem("ul.theme");if(!t)t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";d.theme=t;d.readingMode=localStorage.getItem("ul.readingMode")||"translation";}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
