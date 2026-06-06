@@ -472,6 +472,42 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-weight: 600;
   line-height: 1;
 }
+/* ---- Word by word ---- */
+.wbw-on .ayah-ar .w {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.12s ease;
+}
+.wbw-on .ayah-ar .w:hover {
+  background: var(--accent-soft);
+}
+.wbw-popover {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 8rem;
+  max-width: 15rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+.wbw-arabic {
+  font-size: 1.5rem;
+  text-align: right;
+}
+.wbw-translit {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+.wbw-translation {
+  font-size: 0.95rem;
+}
+
 /* ---- Reader progress + keyboard focus ---- */
 .read-progress {
   position: fixed;

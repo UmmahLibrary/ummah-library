@@ -13,6 +13,7 @@ import { HifzButton } from "../../../components/HifzButton";
 import { AyahActions } from "../../../components/AyahActions";
 import { HashHighlighter } from "../../../components/HashHighlighter";
 import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
+import { WordByWord } from "../../../components/WordByWord";
 import { ReadingModeToggle } from "../../../components/ReadingModeToggle";
 import { ReadingTranslationPicker } from "../../../components/ReadingTranslationPicker";
 
@@ -117,6 +118,8 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
           verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
           reciters={RECITERS}
         />
+
+        <WordByWord />
 
         {TAFSIRS.length > 1 && <TafsirPicker tafsirs={TAFSIRS} />}
 

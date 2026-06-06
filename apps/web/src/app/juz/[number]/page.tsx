@@ -16,6 +16,7 @@ import { ReadingTranslationPicker } from "../../../components/ReadingTranslation
 import { AyahTranslations } from "../../../components/AyahTranslations";
 import { ReadingTranslationFlow } from "../../../components/ReadingTranslationFlow";
 import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
+import { WordByWord } from "../../../components/WordByWord";
 
 const RECITERS = pluginRegistry.byKind("reciter");
 
@@ -128,6 +129,8 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
 
       <div className="mode-translation">
         <EditionManager />
+
+        <WordByWord />
 
         <ReadingAudio verses={verses} reciters={RECITERS} />
 
