@@ -181,8 +181,8 @@ a {
 /* ---- Reading modes ----
    translation : verse-by-verse (default, .mode-translation visible)
    reading     : continuous mushaf, Arabic only (.mode-reading)
-   reading-tr  : reading typography with translations flowing underneath each
-                 āyah, no card chrome (.mode-reading-tr) */
+   reading-tr  : a single chosen translation in a continuous, chrome-free flow,
+                 no Arabic (.mode-reading-tr) */
 .mode-reading,
 .mode-reading-tr {
   display: none;
@@ -198,26 +198,26 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   display: block;
 }
 
-/* reading-tr layout: mushaf-style Arabic per āyah + chrome-free translations. */
-.read-ayah {
-  margin: 0 0 1.6rem;
-}
-.read-ar {
-  font-family: var(--font-amiri), serif;
-  direction: rtl;
-  text-align: justify;
-  text-align-last: right;
-  font-size: calc(2rem * var(--reading-scale, 1));
-  line-height: 2.6;
-  margin: 0 0 0.5rem;
-}
-.read-tr {
-  line-height: 1.85;
-  margin: 0.3rem 0;
+/* reading-tr layout: one translation in a continuous, chrome-free flow. */
+.read-flow {
+  font-size: calc(1.15rem * var(--reading-scale, 1));
+  line-height: 2;
   color: var(--fg);
+  margin: 1.5rem 0;
+  text-align: justify;
 }
-.read-tr[dir="rtl"] {
+.read-flow[dir="rtl"] {
   text-align: right;
+}
+.read-num {
+  color: var(--accent);
+  font-size: 0.62em;
+  font-weight: 600;
+  vertical-align: super;
+  margin-inline-end: 0.15rem;
+}
+.rtr--off {
+  display: none;
 }
 
 .mode-toggle-wrap {
@@ -631,6 +631,73 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
 .edition-summary-names {
   color: var(--fg);
   max-width: 22rem;
+}
+
+/* ---- Reading → Translations single-translation picker ---- */
+.rtr-bar {
+  display: flex;
+  justify-content: center;
+  margin: 0.25rem 0 1.25rem;
+}
+.rtr-picker {
+  position: relative;
+}
+.rtr-trigger {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--fg);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+.rtr-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  min-width: 15rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0.35rem;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.25);
+}
+.rtr-menu-head {
+  margin: 0.25rem 0.6rem 0.4rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.rtr-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--fg);
+  background: transparent;
+  border: 0;
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+}
+.rtr-item:hover {
+  background: var(--accent-soft);
+}
+.rtr-item--on {
+  color: var(--accent);
+  font-weight: 600;
+}
+.rtr-manage {
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
 }
 .chip {
   font: inherit;

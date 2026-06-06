@@ -71,3 +71,18 @@ export function filterTranslations(translations: Translation[], query: string): 
     return haystack.includes(q);
   });
 }
+
+/**
+ * Resolve which single edition the "Reading → Translations" view should show.
+ * The saved choice wins when it is still among the shortlisted editions;
+ * otherwise fall back to the first shortlisted edition, and finally to the
+ * given default when nothing is shortlisted. Pure so it can be unit-tested.
+ */
+export function resolveActiveTranslation(
+  selected: readonly string[],
+  saved: string | null | undefined,
+  fallback: string,
+): string {
+  if (saved && selected.includes(saved)) return saved;
+  return selected[0] ?? fallback;
+}

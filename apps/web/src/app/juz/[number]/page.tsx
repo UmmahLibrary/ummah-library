@@ -12,6 +12,7 @@ import { pluginRegistry, quranRepository, translationRepository } from "@ummahli
 import { ReadingAudio } from "../../../components/ReadingAudio";
 import { ReadingModeToggle } from "../../../components/ReadingModeToggle";
 import { EditionManager } from "../../../components/EditionManager";
+import { ReadingTranslationPicker } from "../../../components/ReadingTranslationPicker";
 import { DEFAULT_EDITIONS } from "../../../lib/editions";
 
 const RECITERS = pluginRegistry.byKind("reciter");
@@ -91,6 +92,13 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
   const data = await loadJuz(number);
   if (!data) notFound();
   const { n, sections, verses, bismillah, editions } = data;
+  const editionChoices = editions.map((e) => ({
+    id: e.id,
+    name: e.name,
+    author: e.author,
+    language: e.language,
+    direction: e.direction,
+  }));
 
   return (
     <>
@@ -105,15 +113,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
       <ReadingModeToggle />
 
       <div className="mode-translation">
-        <EditionManager
-          editions={editions.map((e) => ({
-            id: e.id,
-            name: e.name,
-            author: e.author,
-            language: e.language,
-            direction: e.direction,
-          }))}
-        />
+        <EditionManager editions={editionChoices} />
 
         <ReadingAudio verses={verses} reciters={RECITERS} />
 
@@ -199,7 +199,10 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
         ))}
       </div>
 
+      {/* Reading → Translations: a single chosen translation per surah section
+          in a continuous, chrome-free flow (no per-āyah Arabic). */}
       <div className="mode-reading-tr">
+        <ReadingTranslationPicker editions={editionChoices} />
         {sections.map((section) => (
           <section key={section.surah.number}>
             <header className="juz-surah-head">
@@ -209,30 +212,26 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
               </span>
             </header>
             {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
-            {section.ayahs.map((ayah) => (
-              <div key={ayah.aya} className="read-ayah">
-                <p className="read-ar arabic">
-                  {ayah.text}
-                  <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>
-                </p>
-                {section.byEdition.map(({ edition, text }) => {
+            <div className="read-flow">
+              {section.ayahs.flatMap((ayah) =>
+                section.byEdition.map(({ edition, text }) => {
                   const line = text.get(ayah.aya);
                   if (!line) return null;
-                  const off = edition.id !== DEFAULT_EDITION ? " tr--off" : "";
+                  const off = edition.id !== DEFAULT_EDITION ? " tr--off rtr--off" : "";
                   return (
-                    <p
-                      key={edition.id}
+                    <span
+                      key={`${ayah.aya}:${edition.id}`}
                       className={`read-tr${off}`}
                       data-edition={edition.id}
                       lang={edition.language}
                       dir={edition.direction}
                     >
-                      {line}
-                    </p>
+                      <sup className="read-num">{ayah.aya}</sup> {line}{" "}
+                    </span>
                   );
-                })}
-              </div>
-            ))}
+                }),
+              )}
+            </div>
           </section>
         ))}
       </div>

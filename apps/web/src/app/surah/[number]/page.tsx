@@ -10,6 +10,7 @@ import { HifzButton } from "../../../components/HifzButton";
 import { AyahActions } from "../../../components/AyahActions";
 import { HashHighlighter } from "../../../components/HashHighlighter";
 import { ReadingModeToggle } from "../../../components/ReadingModeToggle";
+import { ReadingTranslationPicker } from "../../../components/ReadingTranslationPicker";
 
 const RECITERS = pluginRegistry.byKind("reciter");
 const TAFSIR = pluginRegistry.byKind("tafsir")[0] ?? null;
@@ -64,6 +65,13 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
   const data = await loadSurah(numberParam);
   if (!data) notFound();
   const { number, surah, ayahs, editions, byEdition, bismillah } = data;
+  const editionChoices = editions.map((e) => ({
+    id: e.id,
+    name: e.name,
+    author: e.author,
+    language: e.language,
+    direction: e.direction,
+  }));
 
   return (
     <>
@@ -86,16 +94,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
       <ReadingModeToggle />
 
       <div className="mode-translation">
-        <ReaderControls
-          surahNumber={surah.number}
-          editions={editions.map((e) => ({
-            id: e.id,
-            name: e.name,
-            author: e.author,
-            language: e.language,
-            direction: e.direction,
-          }))}
-        />
+        <ReaderControls surahNumber={surah.number} editions={editionChoices} />
 
         <ReadingAudio
           verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
@@ -178,34 +177,31 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
         </p>
       </div>
 
-      {/* Reading layout with translations: mushaf typography, no card chrome,
-          each āyah's translation(s) flowing underneath. */}
+      {/* Reading → Translations: a single chosen translation in a continuous,
+          chrome-free flow (no per-āyah Arabic), matching Quran.com. */}
       <div className="mode-reading-tr">
+        <ReadingTranslationPicker editions={editionChoices} />
         {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
-        {ayahs.map((ayah) => (
-          <div key={ayah.aya} id={`r-${surah.number}:${ayah.aya}`} className="read-ayah">
-            <p className="read-ar arabic">
-              {ayah.text}
-              <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>
-            </p>
-            {byEdition.map(({ edition, text }) => {
+        <div className="read-flow">
+          {ayahs.flatMap((ayah) =>
+            byEdition.map(({ edition, text }) => {
               const line = text.get(ayah.aya);
               if (!line) return null;
-              const off = edition.id !== DEFAULT_EDITION ? " tr--off" : "";
+              const off = edition.id !== DEFAULT_EDITION ? " tr--off rtr--off" : "";
               return (
-                <p
-                  key={edition.id}
+                <span
+                  key={`${ayah.aya}:${edition.id}`}
                   className={`read-tr${off}`}
                   data-edition={edition.id}
                   lang={edition.language}
                   dir={edition.direction}
                 >
-                  {line}
-                </p>
+                  <sup className="read-num">{ayah.aya}</sup> {line}{" "}
+                </span>
               );
-            })}
-          </div>
-        ))}
+            }),
+          )}
+        </div>
       </div>
 
       <nav className="reader-nav">

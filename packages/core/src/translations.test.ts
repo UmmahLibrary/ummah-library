@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Translation } from "./entities";
-import { filterTranslations, groupTranslationsByLanguage, normalize } from "./translations";
+import {
+  filterTranslations,
+  groupTranslationsByLanguage,
+  normalize,
+  resolveActiveTranslation,
+} from "./translations";
 
 const khattab: Translation = {
   id: "eng-khattab",
@@ -98,5 +103,28 @@ describe("filterTranslations", () => {
 
   it("returns nothing when no edition matches", () => {
     expect(filterTranslations(all, "zzzz")).toEqual([]);
+  });
+});
+
+describe("resolveActiveTranslation", () => {
+  it("keeps the saved choice when it is still shortlisted", () => {
+    expect(resolveActiveTranslation(["eng-khattab", "urd-jalandhry"], "urd-jalandhry", "x")).toBe(
+      "urd-jalandhry",
+    );
+  });
+
+  it("falls back to the first shortlisted edition when the saved one is gone", () => {
+    expect(resolveActiveTranslation(["eng-khattab", "urd-jalandhry"], "ben-removed", "x")).toBe(
+      "eng-khattab",
+    );
+  });
+
+  it("falls back to the first shortlisted edition when nothing is saved", () => {
+    expect(resolveActiveTranslation(["eng-khattab"], null, "x")).toBe("eng-khattab");
+  });
+
+  it("falls back to the default when nothing is shortlisted", () => {
+    expect(resolveActiveTranslation([], "anything", "eng-khattab")).toBe("eng-khattab");
+    expect(resolveActiveTranslation([], null, "eng-khattab")).toBe("eng-khattab");
   });
 });

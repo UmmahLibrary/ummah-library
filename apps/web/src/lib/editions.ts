@@ -18,6 +18,9 @@ export type EditionChoice = Pick<
 export const EDITIONS_KEY = "ul.editions";
 export const DEFAULT_EDITIONS = ["eng-khattab"];
 
+/** The single edition shown in the "Reading → Translations" view. */
+export const READING_TR_KEY = "ul.readingTranslation";
+
 export function readEditions(): string[] {
   try {
     const raw = localStorage.getItem(EDITIONS_KEY);
@@ -43,4 +46,39 @@ export function applyEditionVisibility(selected: Set<string>, all: EditionChoice
       .querySelectorAll<HTMLElement>(`[data-edition="${e.id}"]`)
       .forEach((node) => node.classList.toggle("tr--off", !visible));
   }
+}
+
+export function readReadingTranslation(): string | null {
+  try {
+    return localStorage.getItem(READING_TR_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function writeReadingTranslation(id: string): void {
+  try {
+    localStorage.setItem(READING_TR_KEY, id);
+  } catch {
+    /* storage unavailable — ignore */
+  }
+}
+
+/**
+ * In the "Reading → Translations" view, show only the single active edition:
+ * every other `.read-tr` run gets `.rtr--off`, and the flow container takes the
+ * active edition's direction so RTL translations read right-to-left.
+ */
+export function applyReadingTranslation(activeId: string, all: EditionChoice[]): void {
+  document
+    .querySelectorAll<HTMLElement>(".mode-reading-tr .read-tr")
+    .forEach((node) => node.classList.toggle("rtr--off", node.dataset.edition !== activeId));
+
+  const active = all.find((e) => e.id === activeId);
+  if (!active) return;
+  document
+    .querySelectorAll<HTMLElement>(".mode-reading-tr .read-flow")
+    .forEach((flow) => {
+      flow.dir = active.direction;
+    });
 }
