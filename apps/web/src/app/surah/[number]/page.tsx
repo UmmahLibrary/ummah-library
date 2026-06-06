@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { TOTAL_SURAHS, isValidSurahNumber } from "@ummahlibrary/core";
 import { pluginRegistry, quranRepository, translationRepository } from "@ummahlibrary/api";
 import { ReaderControls } from "../../../components/ReaderControls";
-import { SurahAudio } from "../../../components/SurahAudio";
+import { ReadingAudio } from "../../../components/ReadingAudio";
 import { AyahTafsir } from "../../../components/AyahTafsir";
 import { HifzButton } from "../../../components/HifzButton";
 import { AyahActions } from "../../../components/AyahActions";
@@ -87,7 +87,10 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
         editions={editions.map((e) => ({ id: e.id, name: e.name, language: e.language }))}
       />
 
-      <SurahAudio surah={surah.number} ayahCount={surah.ayahCount} reciters={RECITERS} />
+      <ReadingAudio
+        verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
+        reciters={RECITERS}
+      />
 
       {/* Surah 1's Basmala is ayah 1 itself; others show it as a header. */}
       {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
@@ -105,8 +108,8 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
               <button
                 type="button"
                 className="ayah-marker"
-                data-play-aya={ayah.aya}
-                aria-label={`Play āyah ${ayah.aya}`}
+                data-play-key={`${surah.number}:${ayah.aya}`}
+                aria-label={`Play from āyah ${ayah.aya}`}
               >
                 ﴿{toArabicDigits(ayah.aya)}﴾
               </button>
@@ -132,7 +135,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
               <button
                 type="button"
                 className="hifz-btn"
-                data-play-single={ayah.aya}
+                data-play-one={`${surah.number}:${ayah.aya}`}
                 aria-label={`Play āyah ${ayah.aya}`}
               >
                 ▶ Play

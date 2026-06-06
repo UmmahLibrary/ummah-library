@@ -178,6 +178,20 @@ a {
   margin: 1.75rem 0 2.25rem;
 }
 
+/* Per-surah header inside the juzʾ reader */
+.juz-surah-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: center;
+  margin: 2.5rem 0 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.juz-surah-head .name-ar {
+  font-size: 2rem;
+}
+
 .ayah {
   display: flex;
   flex-direction: column;

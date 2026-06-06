@@ -1,10 +1,18 @@
 import Link from "next/link";
-import { JUZ_STARTS } from "@ummahlibrary/core";
+import { JUZ_STARTS, TOTAL_JUZ } from "@ummahlibrary/core";
 import { quranRepository } from "@ummahlibrary/api";
 
 export const metadata = { title: "Juzʾ" };
 
-export default async function JuzPage() {
+/** The last surah a juzʾ touches (the next juzʾ starts at aya 1 of a new surah,
+ * or mid-surah). */
+function juzEndSura(n: number): number {
+  if (n >= TOTAL_JUZ) return 114;
+  const next = JUZ_STARTS[n]!;
+  return next.aya > 1 ? next.sura : next.sura - 1;
+}
+
+export default async function JuzIndexPage() {
   const surahs = await quranRepository.listSurahs();
   const byNumber = new Map(surahs.map((s) => [s.number, s]));
 
@@ -16,28 +24,29 @@ export default async function JuzPage() {
       <header className="site-head">
         <div>
           <h1>Juzʾ</h1>
-          <p>Jump to the start of any of the 30 ajzāʾ.</p>
+          <p>Read by juzʾ — each spans one or more surahs.</p>
         </div>
       </header>
 
       <nav className="surah-grid">
         {JUZ_STARTS.map((start, i) => {
-          const surah = byNumber.get(start.sura);
+          const n = i + 1;
+          const first = byNumber.get(start.sura);
+          const lastSura = juzEndSura(n);
+          const last = byNumber.get(lastSura);
+          const span =
+            lastSura === start.sura
+              ? first?.transliteration
+              : `${first?.transliteration} – ${last?.transliteration}`;
           return (
-            <Link
-              key={i}
-              href={`/surah/${start.sura}#${start.sura}:${start.aya}`}
-              className="surah-card"
-            >
-              <span className="surah-num">{i + 1}</span>
+            <Link key={n} href={`/juz/${n}`} className="surah-card">
+              <span className="surah-num">{n}</span>
               <span className="meta">
-                <span className="name-en">Juzʾ {i + 1}</span>
+                <span className="name-en">Juzʾ {n}</span>
                 <br />
-                <span className="sub">
-                  {surah?.transliteration} {start.sura}:{start.aya}
-                </span>
+                <span className="sub">{span}</span>
               </span>
-              <span className="name-ar arabic">{surah?.name}</span>
+              <span className="name-ar arabic">{first?.name}</span>
             </Link>
           );
         })}
