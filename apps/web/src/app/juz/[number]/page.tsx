@@ -76,7 +76,19 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { number } = await params;
   const n = Number(number);
-  return { title: isValidJuzNumber(n) ? `Juzʾ ${n}` : "Not found" };
+  if (!isValidJuzNumber(n)) return { title: "Not found" };
+  const title = `Juzʾ ${n}`;
+  const description =
+    `Read Juzʾ ${n} of ${TOTAL_JUZ} — the Quran divided into thirty parts for ` +
+    `daily reading. Uthmani Arabic with translations, tafsir and recitation on Ummah Library.`;
+  const url = `/juz/${n}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: "article" },
+    twitter: { card: "summary", title, description },
+  };
 }
 
 export default async function JuzReaderPage({ params }: { params: Promise<{ number: string }> }) {
@@ -85,8 +97,23 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
   if (!data) notFound();
   const { n, sections, verses, bismillah } = data;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: `Juzʾ ${n}`,
+    inLanguage: "ar",
+    position: n,
+    isPartOf: { "@type": "Book", name: "The Holy Quran" },
+    url: `https://app.ummahlibrary.org/juz/${n}`,
+    license: "https://www.gnu.org/licenses/agpl-3.0.html",
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Link href="/juz" className="back-link">
         ← All juzʾ
       </Link>

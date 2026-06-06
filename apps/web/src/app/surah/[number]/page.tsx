@@ -49,7 +49,21 @@ export async function generateMetadata({
   const { number } = await params;
   const data = await loadSurah(number);
   if (!data) return { title: "Not found" };
-  return { title: `${data.surah.transliteration} — ${data.surah.englishName}` };
+  const { surah } = data;
+  const place = surah.revelationPlace === "meccan" ? "Mecca" : "Medina";
+  const title = `${surah.transliteration} — ${surah.englishName}`;
+  const description =
+    `Read Surah ${surah.transliteration} (${surah.englishName}), chapter ${surah.number} of ` +
+    `the Quran — ${surah.ayahCount} āyāt, revealed in ${place}. Uthmani Arabic with ` +
+    `translations, tafsir and recitation on Ummah Library.`;
+  const url = `/surah/${surah.number}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: "article" },
+    twitter: { card: "summary", title, description },
+  };
 }
 
 export default async function SurahPage({ params }: { params: Promise<{ number: string }> }) {
@@ -58,8 +72,24 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
   if (!data) notFound();
   const { number, surah, ayahs, bismillah } = data;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: `Surah ${surah.transliteration} — ${surah.englishName}`,
+    alternateName: surah.name,
+    inLanguage: "ar",
+    position: surah.number,
+    isPartOf: { "@type": "Book", name: "The Holy Quran" },
+    url: `https://app.ummahlibrary.org/surah/${surah.number}`,
+    license: "https://www.gnu.org/licenses/agpl-3.0.html",
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <HashHighlighter />
       <Link href="/" className="back-link">
         ← All surahs
