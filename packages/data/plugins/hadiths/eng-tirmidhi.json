@@ -1,0 +1,9 @@
+{
+  "kind": "hadith",
+  "id": "eng-tirmidhi",
+  "name": "Jami at-Tirmidhi",
+  "language": "en",
+  "direction": "ltr",
+  "collection": "eng-tirmidhi",
+  "sectionUrlTemplate": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-tirmidhi/sections/{section}.min.json"
+}

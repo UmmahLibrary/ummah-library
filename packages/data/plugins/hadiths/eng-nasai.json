@@ -1,0 +1,9 @@
+{
+  "kind": "hadith",
+  "id": "eng-nasai",
+  "name": "Sunan an-Nasa'i",
+  "language": "en",
+  "direction": "ltr",
+  "collection": "eng-nasai",
+  "sectionUrlTemplate": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-nasai/sections/{section}.min.json"
+}

@@ -1,0 +1,9 @@
+{
+  "kind": "hadith",
+  "id": "eng-ibnmajah",
+  "name": "Sunan Ibn Majah",
+  "language": "en",
+  "direction": "ltr",
+  "collection": "eng-ibnmajah",
+  "sectionUrlTemplate": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-ibnmajah/sections/{section}.min.json"
+}

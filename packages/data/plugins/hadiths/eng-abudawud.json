@@ -1,0 +1,9 @@
+{
+  "kind": "hadith",
+  "id": "eng-abudawud",
+  "name": "Sunan Abi Dawud",
+  "language": "en",
+  "direction": "ltr",
+  "collection": "eng-abudawud",
+  "sectionUrlTemplate": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-abudawud/sections/{section}.min.json"
+}
