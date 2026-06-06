@@ -411,6 +411,56 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   margin: 0;
   line-height: 1.7;
 }
+
+/* Skeleton placeholder so loading never looks broken. */
+@keyframes ul-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.skeleton-line {
+  height: 0.8rem;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-elev) 25%,
+    var(--border) 37%,
+    var(--bg-elev) 63%
+  );
+  background-size: 200% 100%;
+  animation: ul-shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line {
+    animation: none;
+  }
+}
+.hadith-skeleton .hadith-meta .skeleton-line {
+  width: 6rem;
+  height: 0.7rem;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.hadith-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  color: var(--muted);
+}
+
 .chip:disabled {
   opacity: 0.4;
   cursor: default;

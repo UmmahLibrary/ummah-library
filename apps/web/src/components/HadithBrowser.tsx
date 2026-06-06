@@ -26,6 +26,8 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
   const [section, setSection] = useState(1);
   const [data, setData] = useState<Section | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  // Bump to re-run the fetch effect when the user retries after an error.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!collectionId) return;
@@ -45,7 +47,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
     return () => {
       active = false;
     };
-  }, [collectionId, section]);
+  }, [collectionId, section, attempt]);
 
   if (collections.length === 0) return null;
 
@@ -85,11 +87,33 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
         </div>
       </div>
 
-      {status === "loading" && <p className="hifz-muted">Loading…</p>}
+      {status === "loading" &&
+        Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="hadith hadith-skeleton" aria-hidden="true">
+            <div className="hadith-meta">
+              <span className="skeleton-line" />
+            </div>
+            <p className="hadith-text">
+              <span className="skeleton-line" style={{ width: "92%", display: "block" }} />
+              <span
+                className="skeleton-line"
+                style={{ width: "78%", display: "block", marginTop: "0.5rem" }}
+              />
+            </p>
+          </div>
+        ))}
+      {status === "loading" && (
+        <span className="sr-only" role="status">
+          Loading hadith…
+        </span>
+      )}
       {status === "error" && (
-        <p className="hifz-muted">
-          Couldn’t load this book. You may have reached the end of the collection.
-        </p>
+        <div className="hadith-error" role="alert">
+          <span>Couldn’t load this book. You may have reached the end of the collection.</span>
+          <button type="button" className="chip" onClick={() => setAttempt((a) => a + 1)}>
+            Retry
+          </button>
+        </div>
       )}
       {status === "ready" &&
         data?.hadiths.map((h) => (
