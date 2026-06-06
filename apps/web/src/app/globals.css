@@ -272,8 +272,14 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  padding: 1.25rem 0;
+  padding: 1.25rem 0.75rem;
+  margin: 0 -0.75rem;
   border-bottom: 1px solid var(--border);
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+.ayah:hover {
+  background: var(--accent-soft);
 }
 .ayah-ar {
   font-size: calc(1.9rem * var(--reading-scale, 1));
@@ -303,6 +309,9 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
     color 0.1s ease,
     background 0.1s ease;
   border-radius: 6px;
+}
+.w:hover {
+  color: var(--accent);
 }
 .w--active {
   color: var(--accent);
