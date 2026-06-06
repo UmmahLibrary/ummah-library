@@ -18,13 +18,12 @@ export function AyahActions({ surah, aya }: { surah: number; aya: number }) {
       ?.cloneNode(true) as HTMLElement | null;
     arEl?.querySelector(".ayah-marker")?.remove();
     const arabic = arEl?.textContent?.trim() ?? "";
-    const translations = [...block.querySelectorAll<HTMLElement>(".ayah-tr:not(.tr--off)")].map(
-      (node) => {
-        const clone = node.cloneNode(true) as HTMLElement;
-        clone.querySelector(".tr-name")?.remove();
-        return clone.textContent?.trim() ?? "";
-      },
-    );
+    // Only selected editions are rendered now (ADR 0011), so every .ayah-tr counts.
+    const translations = [...block.querySelectorAll<HTMLElement>(".ayah-tr")].map((node) => {
+      const clone = node.cloneNode(true) as HTMLElement;
+      clone.querySelector(".tr-name")?.remove();
+      return clone.textContent?.trim() ?? "";
+    });
     const text = [arabic, ...translations, `— ${surah}:${aya}`].filter(Boolean).join("\n");
     try {
       await navigator.clipboard.writeText(text);

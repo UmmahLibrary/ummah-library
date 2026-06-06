@@ -216,9 +216,6 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   vertical-align: super;
   margin-inline-end: 0.15rem;
 }
-.rtr--off {
-  display: none;
-}
 
 /* Per-verse hover highlight in the continuous reading views. These are inline
    runs, so `box-decoration-break: clone` keeps the rounded background intact
@@ -627,9 +624,6 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   letter-spacing: 0.04em;
   color: var(--faint);
   margin-bottom: 0.15rem;
-}
-.tr--off {
-  display: none;
 }
 
 /* ---- Reader controls (picker + bookmark) ---- */
