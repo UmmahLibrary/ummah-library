@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { type ReciterPlugin, reciterAudioUrl } from "@ummahlibrary/core";
 
 const RECITER_KEY = "ul.reciter";
+const LOOP_KEY = "ul.loop";
 
 interface Verse {
   sura: number;
@@ -58,8 +59,11 @@ export function ReadingAudio({ verses, reciters }: { verses: Verse[]; reciters: 
   const [reciterId, setReciterId] = useState(reciters[0]?.id ?? "");
   const [current, setCurrent] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [loop, setLoop] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const tokenRef = useRef(0);
+  // Read live inside the playback `onended` closure, not a stale capture.
+  const loopRef = useRef(false);
   const versesRef = useRef(verses);
   versesRef.current = verses;
   const wordRef = useRef<{ block: HTMLElement | null; segments: Segment[] | null; last: number }>({
@@ -71,7 +75,17 @@ export function ReadingAudio({ verses, reciters }: { verses: Verse[]; reciters: 
   useEffect(() => {
     const saved = localStorage.getItem(RECITER_KEY);
     if (saved && reciters.some((r) => r.id === saved)) setReciterId(saved);
+    const savedLoop = localStorage.getItem(LOOP_KEY) === "1";
+    setLoop(savedLoop);
+    loopRef.current = savedLoop;
   }, [reciters]);
+
+  function toggleLoop() {
+    const next = !loopRef.current;
+    loopRef.current = next;
+    setLoop(next);
+    localStorage.setItem(LOOP_KEY, next ? "1" : "0");
+  }
 
   function clearWord() {
     document.querySelectorAll(".w--active").forEach((el) => el.classList.remove("w--active"));
@@ -146,6 +160,8 @@ export function ReadingAudio({ verses, reciters }: { verses: Verse[]; reciters: 
       const idx = list.findIndex((v) => v.sura === verse.sura && v.aya === verse.aya);
       const next = idx >= 0 ? list[idx + 1] : undefined;
       if (next) void play(next, true);
+      // End of the surah/juzʾ: repeat from the top when looping.
+      else if (loopRef.current && list[0]) void play(list[0], true);
       else stop();
     };
     audio.onerror = () => stop();
@@ -199,6 +215,15 @@ export function ReadingAudio({ verses, reciters }: { verses: Verse[]; reciters: 
     <div className="audio-bar">
       <button type="button" className="audio-play" onClick={toggle} aria-pressed={isPlaying}>
         {isPlaying ? "❚❚ Pause" : "▶ Play"}
+      </button>
+      <button
+        type="button"
+        className={loop ? "chip chip--on" : "chip"}
+        onClick={toggleLoop}
+        aria-pressed={loop}
+        title="Repeat the surah continuously"
+      >
+        🔁 Loop
       </button>
       <span className="audio-status">
         {current ? `Playing ${current}` : "Tap ▶ to play one āyah, or its number to play on"}
