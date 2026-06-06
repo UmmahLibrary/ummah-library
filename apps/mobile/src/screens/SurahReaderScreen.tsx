@@ -86,7 +86,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     Promise.all(
       editions.map((id) =>
         api
-          .getTranslation(n, id)
+          .getCatalogTranslation(id, n)
           .then((rows) => [id, new Map(rows.map((t) => [t.aya, t.text]))] as const)
           .catch(() => [id, new Map<number, string>()] as const),
       ),

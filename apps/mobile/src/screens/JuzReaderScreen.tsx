@@ -57,7 +57,7 @@ export function JuzReaderScreen({ route }: Props) {
       parts.map(async (p) => {
         const [surah, tr] = await Promise.all([
           api.getSurah(p.sura),
-          api.getTranslation(p.sura, edition).catch(() => []),
+          api.getCatalogTranslation(edition, p.sura).catch(() => []),
         ]);
         const trByAya = new Map(tr.map((t) => [t.aya, t.text]));
         const inRange = surah.ayahs.filter(

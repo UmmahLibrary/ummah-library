@@ -19,6 +19,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0008](0008-recitation-audio-highlighting.md) | Recitation audio + word-by-word highlighting                | Accepted |
 | [0009](0009-mobile-app.md)                    | Mobile app (Expo) sharing the monorepo                      | Accepted |
 | [0010](0010-translation-selection.md)         | Translation selection: grouped, searchable, local-first     | Accepted |
+| [0011](0011-translation-catalog-runtime.md)   | Full translation catalogue + multi-tafsir, runtime-fetched  | Accepted |
 
 ## Writing a new ADR
 

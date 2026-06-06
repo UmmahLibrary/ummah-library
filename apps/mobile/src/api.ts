@@ -39,6 +39,14 @@ export const api = {
     ),
   listEditions: () =>
     getJson<{ editions: Translation[] }>(`${BASE}/editions`).then((d) => d.editions),
+  /** The full runtime translation catalogue (~490 editions — ADR 0011). */
+  listTranslationCatalog: () =>
+    getJson<{ translations: Translation[] }>(`${BASE}/translations`).then((d) => d.translations),
+  /** A catalogue edition's text for one surah, fetched at runtime. */
+  getCatalogTranslation: (edition: string, n: number) =>
+    getJson<{ ayahs: TranslatedAyah[] }>(`${BASE}/translations/${edition}/surahs/${n}`).then(
+      (d) => d.ayahs,
+    ),
   listTafsirs: () => getJson<{ tafsirs: TafsirMeta[] }>(`${BASE}/tafsirs`).then((d) => d.tafsirs),
   getTafsir: (n: number, edition: string) =>
     getJson<{ entries: TafsirEntry[] }>(`${BASE}/surahs/${n}/tafsirs/${edition}`).then(

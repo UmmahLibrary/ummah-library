@@ -1,6 +1,6 @@
 # ADR 0010 — Translation selection: grouped, searchable, local-first
 
-- **Status:** Accepted
+- **Status:** Accepted (delivery §3 superseded by [0011](0011-translation-catalog-runtime.md))
 - **Date:** 2026-06-06
 
 ## Context

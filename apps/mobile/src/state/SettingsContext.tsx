@@ -69,7 +69,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setScaleState(clampScale(sc));
     })();
     void api
-      .listEditions()
+      .listTranslationCatalog()
       .then(setCatalogue)
       .catch(() => setCatalogue([]));
     void api
