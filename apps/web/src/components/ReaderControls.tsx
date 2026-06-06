@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { EditionChoice } from "../lib/editions";
 import { EditionManager } from "./EditionManager";
-
-export type { EditionChoice };
 
 const BOOKMARKS_KEY = "ul.bookmarks";
 const LAST_READ_KEY = "ul.lastRead";
@@ -29,13 +26,7 @@ function write(key: string, value: unknown): void {
   }
 }
 
-export function ReaderControls({
-  surahNumber,
-  editions,
-}: {
-  surahNumber: number;
-  editions: EditionChoice[];
-}) {
+export function ReaderControls({ surahNumber }: { surahNumber: number }) {
   const [bookmarked, setBookmarked] = useState(false);
   const [scale, setScale] = useState(1);
 
@@ -98,7 +89,7 @@ export function ReaderControls({
         </div>
       </div>
 
-      <EditionManager editions={editions} />
+      <EditionManager />
     </div>
   );
 }

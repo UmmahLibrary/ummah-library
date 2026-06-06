@@ -6,12 +6,7 @@ import {
   filterTranslations,
   groupTranslationsByLanguage,
 } from "@ummahlibrary/core";
-import {
-  type EditionChoice,
-  DEFAULT_EDITIONS,
-  applyEditionVisibility,
-  writeEditions,
-} from "../lib/editions";
+import { type EditionChoice, DEFAULT_EDITIONS, writeEditions } from "../lib/editions";
 
 /**
  * "Manage translations" modal: search + language-grouped checklist + a "My
@@ -55,8 +50,7 @@ export function TranslationSettings({
   function commit(next: Set<string>): void {
     if (next.size === 0) next.add(DEFAULT_EDITIONS[0]!); // never hide everything
     onChange(next);
-    writeEditions([...next]);
-    applyEditionVisibility(next, editions);
+    writeEditions([...next]); // persists + broadcasts `ul.editions`
   }
 
   function toggle(id: string): void {

@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TOTAL_SURAHS, isValidSurahNumber } from "@ummahlibrary/core";
-import { pluginRegistry, quranRepository, translationRepository } from "@ummahlibrary/api";
+import { pluginRegistry, quranRepository } from "@ummahlibrary/api";
 import { ReaderControls } from "../../../components/ReaderControls";
 import { ReadingAudio } from "../../../components/ReadingAudio";
 import { AyahTafsir } from "../../../components/AyahTafsir";
 import { TafsirPicker } from "../../../components/TafsirPicker";
+import { AyahTranslations } from "../../../components/AyahTranslations";
+import { ReadingTranslationFlow } from "../../../components/ReadingTranslationFlow";
 import { HifzButton } from "../../../components/HifzButton";
 import { AyahActions } from "../../../components/AyahActions";
 import { HashHighlighter } from "../../../components/HashHighlighter";
@@ -15,8 +17,6 @@ import { ReadingTranslationPicker } from "../../../components/ReadingTranslation
 
 const RECITERS = pluginRegistry.byKind("reciter");
 const TAFSIRS = pluginRegistry.byKind("tafsir").map((t) => ({ id: t.id, name: t.name }));
-
-const DEFAULT_EDITION = "eng-khattab";
 
 // Render all 114 surahs at build time — no data access at runtime.
 export const dynamicParams = false;
@@ -31,23 +31,14 @@ const toArabicDigits = (n: number): string =>
 async function loadSurah(numberParam: string) {
   const number = Number(numberParam);
   if (!isValidSurahNumber(number)) return null;
-  const [surah, ayahs, editions, bismillah] = await Promise.all([
+  const [surah, ayahs, bismillah] = await Promise.all([
     quranRepository.getSurah(number),
     quranRepository.getSurahAyahs(number),
-    translationRepository.listTranslations(),
     quranRepository.getBismillah(),
   ]);
   if (!surah) return null;
-
-  const translations = await Promise.all(
-    editions.map((e) => translationRepository.getSurahTranslation(e.id, number)),
-  );
-  const byEdition = editions.map((edition, i) => ({
-    edition,
-    text: new Map(translations[i]!.map((t) => [t.aya, t.text])),
-  }));
-
-  return { number, surah, ayahs, editions, byEdition, bismillah };
+  // Translations are fetched client-side from the runtime catalogue (ADR 0011).
+  return { number, surah, ayahs, bismillah };
 }
 
 export async function generateMetadata({
@@ -65,14 +56,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
   const { number: numberParam } = await params;
   const data = await loadSurah(numberParam);
   if (!data) notFound();
-  const { number, surah, ayahs, editions, byEdition, bismillah } = data;
-  const editionChoices = editions.map((e) => ({
-    id: e.id,
-    name: e.name,
-    author: e.author,
-    language: e.language,
-    direction: e.direction,
-  }));
+  const { number, surah, ayahs, bismillah } = data;
 
   return (
     <>
@@ -95,7 +79,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
       <ReadingModeToggle />
 
       <div className="mode-translation">
-        <ReaderControls surahNumber={surah.number} editions={editionChoices} />
+        <ReaderControls surahNumber={surah.number} />
 
         <ReadingAudio
           verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
@@ -126,23 +110,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
                   ﴿{toArabicDigits(ayah.aya)}﴾
                 </button>
               </p>
-              {byEdition.map(({ edition, text }) => {
-                const line = text.get(ayah.aya);
-                if (!line) return null;
-                const off = edition.id !== DEFAULT_EDITION ? " tr--off" : "";
-                return (
-                  <p
-                    key={edition.id}
-                    className={`ayah-tr${off}`}
-                    data-edition={edition.id}
-                    lang={edition.language}
-                    dir={edition.direction}
-                  >
-                    <span className="tr-name">{edition.name}</span>
-                    {line}
-                  </p>
-                );
-              })}
+              <AyahTranslations surah={surah.number} aya={ayah.aya} />
               <div className="ayah-actions">
                 <button
                   type="button"
@@ -178,28 +146,9 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
       {/* Reading → Translations: a single chosen translation in a continuous,
           chrome-free flow (no per-āyah Arabic), matching Quran.com. */}
       <div className="mode-reading-tr">
-        <ReadingTranslationPicker editions={editionChoices} />
+        <ReadingTranslationPicker />
         {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
-        <div className="read-flow">
-          {ayahs.flatMap((ayah) =>
-            byEdition.map(({ edition, text }) => {
-              const line = text.get(ayah.aya);
-              if (!line) return null;
-              const off = edition.id !== DEFAULT_EDITION ? " tr--off rtr--off" : "";
-              return (
-                <span
-                  key={`${ayah.aya}:${edition.id}`}
-                  className={`read-tr${off}`}
-                  data-edition={edition.id}
-                  lang={edition.language}
-                  dir={edition.direction}
-                >
-                  <sup className="read-num">{ayah.aya}</sup> {line}{" "}
-                </span>
-              );
-            }),
-          )}
-        </div>
+        <ReadingTranslationFlow surah={surah.number} ayat={ayahs.map((a) => a.aya)} />
       </div>
 
       <nav className="reader-nav">

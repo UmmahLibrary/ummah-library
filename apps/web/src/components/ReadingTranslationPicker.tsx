@@ -5,22 +5,23 @@ import { resolveActiveTranslation } from "@ummahlibrary/core";
 import {
   type EditionChoice,
   DEFAULT_EDITIONS,
-  applyReadingTranslation,
   readEditions,
   readReadingTranslation,
   writeReadingTranslation,
 } from "../lib/editions";
+import { fetchCatalogue } from "../lib/catalogue";
 import { TranslationSettings } from "./TranslationSettings";
 
 /**
  * The single-translation picker for the "Reading → Translations" view, mirroring
  * Quran.com: a "Translation: …" dropdown listing the user's shortlisted editions
  * (single choice) plus a "Select Translations" entry that opens the full
- * {@link TranslationSettings} manager. Selecting one shows only that edition in
- * the reading flow via `applyReadingTranslation`; the choice persists in
- * `ul.readingTranslation`.
+ * {@link TranslationSettings} manager over the runtime catalogue (ADR 0011). The
+ * choice persists in `ul.readingTranslation` and is broadcast to
+ * {@link ReadingTranslationFlow}; no DOM is toggled here.
  */
-export function ReadingTranslationPicker({ editions }: { editions: EditionChoice[] }) {
+export function ReadingTranslationPicker() {
+  const [catalogue, setCatalogue] = useState<EditionChoice[]>([]);
   const [selected, setSelected] = useState<string[]>(DEFAULT_EDITIONS);
   const [active, setActive] = useState<string>(DEFAULT_EDITIONS[0]!);
   const [open, setOpen] = useState(false);
@@ -29,11 +30,10 @@ export function ReadingTranslationPicker({ editions }: { editions: EditionChoice
 
   useEffect(() => {
     const ids = readEditions();
-    const next = resolveActiveTranslation(ids, readReadingTranslation(), DEFAULT_EDITIONS[0]!);
     setSelected(ids);
-    setActive(next);
-    applyReadingTranslation(next, editions);
-  }, [editions]);
+    setActive(resolveActiveTranslation(ids, readReadingTranslation(), DEFAULT_EDITIONS[0]!));
+    void fetchCatalogue().then(setCatalogue);
+  }, []);
 
   // Close the dropdown on outside click or Escape.
   useEffect(() => {
@@ -52,13 +52,12 @@ export function ReadingTranslationPicker({ editions }: { editions: EditionChoice
     };
   }, [open]);
 
-  const chosen = editions.filter((e) => selected.includes(e.id));
-  const activeEdition = editions.find((e) => e.id === active);
+  const chosen = selected.map((id) => catalogue.find((e) => e.id === id) ?? { id, name: id });
+  const activeName = catalogue.find((e) => e.id === active)?.name ?? active;
 
   function pick(id: string): void {
     setActive(id);
     writeReadingTranslation(id);
-    applyReadingTranslation(id, editions);
     setOpen(false);
   }
 
@@ -69,7 +68,6 @@ export function ReadingTranslationPicker({ editions }: { editions: EditionChoice
     setSelected(ids);
     setActive(nextActive);
     writeReadingTranslation(nextActive);
-    applyReadingTranslation(nextActive, editions);
   }
 
   return (
@@ -82,7 +80,7 @@ export function ReadingTranslationPicker({ editions }: { editions: EditionChoice
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
         >
-          Translation: {activeEdition?.name ?? "—"} <span aria-hidden="true">▾</span>
+          Translation: {activeName} <span aria-hidden="true">▾</span>
         </button>
 
         {open && (
@@ -116,7 +114,7 @@ export function ReadingTranslationPicker({ editions }: { editions: EditionChoice
 
       {managing && (
         <TranslationSettings
-          editions={editions}
+          editions={catalogue}
           selected={new Set(selected)}
           onChange={onManagerChange}
           onClose={() => setManaging(false)}
