@@ -1,7 +1,17 @@
 # Ummah Library
 
+[![CI](https://github.com/UmmahLibrary/ummah-library/actions/workflows/ci.yml/badge.svg)](https://github.com/UmmahLibrary/ummah-library/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![Live app](https://img.shields.io/badge/live-app.ummahlibrary.org-1f9d55.svg)](https://app.ummahlibrary.org)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-7057ff.svg)](CONTRIBUTING.md)
+[![good first issues](https://img.shields.io/github/issues/UmmahLibrary/ummah-library/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/UmmahLibrary/ummah-library/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+
 An **open-source Quran platform and Islamic knowledge ecosystem** — a Quran
 reader first, growing into Hifz, Tafsir, Hadith, and more, all under one roof.
+
+> **New here?** This is a community **Sadaqah Jariyah** and contributions are
+> welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and pick up a
+> [good first issue](https://github.com/UmmahLibrary/ummah-library/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
 Built as a community **Sadaqah Jariyah** (ongoing charity): freely usable,
 freely improvable, and owned by no one. Licensed under **AGPL-3.0** so it stays
