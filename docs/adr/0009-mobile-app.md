@@ -36,11 +36,27 @@ must build inside this pnpm monorepo.
 - **Brand assets** (launcher icon, Android adaptive foreground, splash) are
   generated from one vector mark by `scripts/gen-assets.mjs` (`pnpm assets`) so
   they stay reproducible rather than hand-edited binaries.
+- **Feature parity with the web reader.** Navigation is **React Navigation**
+  (bottom tabs Read / Hifz / Hadith / Settings + a native stack for surah and
+  juzʾ). The app reaches parity: multiple translations with a grouped, searchable
+  **manager**; the three reading modes (verse-by-verse / Arabic / single
+  translation); per-ayah **tafsir**; **word-by-word** audio highlighting (quran.com
+  segment timings paired with quran.com audio, falling back to the reciter MP3);
+  **Hifz** marking + SM-2 review; **bookmarks** and **continue reading**; a **juzʾ**
+  reader; a **hadith** browser; **light/dark** theme; and **font scale**.
+- **Local-first state via AsyncStorage.** Mobile has no `localStorage`, so
+  `@react-native-async-storage/async-storage` backs the same `ul.*` keys the web
+  uses (ADR 0006); all reader logic — translation grouping, the single-translation
+  resolver, SM-2 — is the shared pure `core`. Tafsir editions and hadith
+  collections are carried as app constants (like the reciter) until a list endpoint
+  exists.
 
 ## Consequences
 
-- Real code sharing across web and mobile; the same `core` and API types.
-- Mobile is **online-only** until offline data lands (its own follow-up); audio
-  streams from the reciter CDN.
+- Real code sharing across web and mobile; the same `core` and API types, and the
+  same local-first `ul.*` state model.
+- Mobile is **online-only** until offline data lands (its own follow-up); text,
+  translations, tafsir, hadith, and audio all stream from the API/CDNs.
 - An EAS build + store submission needs the maintainer's Expo/Google accounts; UI
-  verification needs a device/Expo Go (CI only type-checks and bundle-builds).
+  verification needs a device/Expo Go (CI only type-checks and bundle-builds), so
+  the full feature set still needs a device pass before release.

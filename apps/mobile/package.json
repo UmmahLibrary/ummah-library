@@ -15,13 +15,20 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.25.0",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/bottom-tabs": "^7.16.2",
+    "@react-navigation/native": "^7.2.5",
+    "@react-navigation/native-stack": "^7.16.0",
     "@ummahlibrary/core": "workspace:*",
     "expo": "~54.0.0",
     "expo-asset": "~12.0.13",
     "expo-audio": "~1.1.1",
+    "expo-clipboard": "~8.0.8",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
@@ -32,7 +39,9 @@
   "expo": {
     "install": {
       "//": "react-native 0.81 peer-requires @types/react 19.2.x, newer than the SDK's pin.",
-      "exclude": ["@types/react"]
+      "exclude": [
+        "@types/react"
+      ]
     }
   }
 }
