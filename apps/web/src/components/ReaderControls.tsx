@@ -1,17 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { EditionChoice } from "../lib/editions";
+import { EditionManager } from "./EditionManager";
 
-export interface EditionChoice {
-  id: string;
-  name: string;
-  language: string;
-}
+export type { EditionChoice };
 
-const EDITIONS_KEY = "ul.editions";
 const BOOKMARKS_KEY = "ul.bookmarks";
 const LAST_READ_KEY = "ul.lastRead";
-const DEFAULT_EDITIONS = ["eng-khattab"];
 const SCALE_KEY = "ul.scale";
 const SCALE_MIN = 0.8;
 const SCALE_MAX = 1.8;
@@ -33,16 +29,6 @@ function write(key: string, value: unknown): void {
   }
 }
 
-/** Show/hide a translation edition across the page by toggling `.tr--off`. */
-function applyEditionVisibility(selected: Set<string>, all: EditionChoice[]): void {
-  for (const e of all) {
-    const visible = selected.has(e.id);
-    document
-      .querySelectorAll<HTMLElement>(`[data-edition="${e.id}"]`)
-      .forEach((node) => node.classList.toggle("tr--off", !visible));
-  }
-}
-
 export function ReaderControls({
   surahNumber,
   editions,
@@ -50,39 +36,24 @@ export function ReaderControls({
   surahNumber: number;
   editions: EditionChoice[];
 }) {
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(DEFAULT_EDITIONS));
   const [bookmarked, setBookmarked] = useState(false);
   const [scale, setScale] = useState(1);
 
   // Hydrate from localStorage and record this surah as last-read.
   useEffect(() => {
-    const saved = new Set(read<string[]>(EDITIONS_KEY, DEFAULT_EDITIONS));
-    setSelected(saved);
-    applyEditionVisibility(saved, editions);
-
     setBookmarked(read<number[]>(BOOKMARKS_KEY, []).includes(surahNumber));
     write(LAST_READ_KEY, { surah: surahNumber });
 
     const savedScale = read<number>(SCALE_KEY, 1);
     setScale(savedScale);
     document.documentElement.style.setProperty("--reading-scale", String(savedScale));
-  }, [surahNumber, editions]);
+  }, [surahNumber]);
 
   function changeScale(delta: number): void {
     const next = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((scale + delta) * 10) / 10));
     setScale(next);
     write(SCALE_KEY, next);
     document.documentElement.style.setProperty("--reading-scale", String(next));
-  }
-
-  function toggleEdition(id: string): void {
-    const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    if (next.size === 0) next.add(DEFAULT_EDITIONS[0]!); // never hide everything
-    setSelected(next);
-    write(EDITIONS_KEY, [...next]);
-    applyEditionVisibility(next, editions);
   }
 
   function toggleBookmark(): void {
@@ -126,19 +97,8 @@ export function ReaderControls({
           </button>
         </div>
       </div>
-      <div className="edition-chips">
-        {editions.map((e) => (
-          <button
-            key={e.id}
-            type="button"
-            className={selected.has(e.id) ? "chip chip--on" : "chip"}
-            aria-pressed={selected.has(e.id)}
-            onClick={() => toggleEdition(e.id)}
-          >
-            {e.name}
-          </button>
-        ))}
-      </div>
+
+      <EditionManager editions={editions} />
     </div>
   );
 }

@@ -54,6 +54,7 @@ flowchart TD
 - `quran-structure.ts` — invariants (`TOTAL_AYAHS`, `AYAH_COUNTS`, `JUZ_STARTS`, `HIZB_STARTS`) + utils (`isValidVerseRef`, `juzNumberOf`, …).
 - `hifz.ts` — pure SM-2 scheduler ([ADR 0007](docs/adr/0007-hifz-spaced-repetition.md)).
 - `plugins.ts` — the content-plugin contract + `PluginRegistry` ([ADR 0005](docs/adr/0005-content-plugin-system.md)).
+- `languages.ts` / `translations.ts` — ISO-639 display names + pure grouping/filtering for the translation picker ([ADR 0010](docs/adr/0010-translation-selection.md)).
 - `ports.ts` — **the interfaces** everything implements: `QuranRepository`, `TranslationRepository`, `TafsirRepository`, `HadithRepository`, `HifzRepository`.
 
 ## Data flow
