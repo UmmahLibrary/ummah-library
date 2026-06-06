@@ -19,17 +19,23 @@ open for everyone who comes after.
 
 ### 🕮 Read it now: **[app.ummahlibrary.org](https://app.ummahlibrary.org)**
 
-Read the full Quran (Uthmani Arabic) with translations in **4 languages**,
-installable as an app, and **fully readable offline**.
+Read the full Quran (Uthmani Arabic) with translations in **dozens of
+languages**, installable as an app, and **fully readable offline**.
 
 ## Features
 
 - **All 114 surahs** in Uthmani Arabic (Tanzil, CC-BY 3.0), with the Amiri font and proper RTL.
-- **6 translations across 4 languages** — English (The Clear Quran), Urdu ×4, Bengali — toggle any combination.
-- **Bookmarks & continue-reading**, stored locally (no account needed).
+- **Three reading surfaces** — verse-by-verse, continuous reading, and a **Madani Mushaf page view** (all 604 pages).
+- **A runtime catalogue of ~490 translations across ~98 languages** ([ADR 0011](docs/adr/0011-translation-catalog-runtime.md)) — grouped, searchable, toggle any combination; 6 are bundled for offline + the REST API. Urdu locales default to an Urdu translation.
+- **Multiple Tafsirs** (Ibn Kathir, Muyassar, Tabari, Maarif-ul-Quran …) fetched on demand.
+- **Full-text search** across the Arabic and English — instant, client-side ([`/search`](https://app.ummahlibrary.org/search)) — plus **Hadith search**.
+- **Recitation audio** with multiple reciters, surah **loop/repeat**, and word-by-word highlighting; tap any word for a **word-by-word gloss**.
+- **Hadith** — 6 collections (Bukhari, Muslim, Abu Dawud, Tirmidhi, Ibn Majah, Nasa'i), book by book.
+- **Hifz** spaced-repetition review (SM-2) with a due-count badge.
+- **Bookmarks, continue-reading, scroll memory & keyboard shortcuts** (`j`/`k`/`Space`), stored locally — no account needed.
 - **Installable PWA** with offline reading — opened surahs stay available without a connection.
 - **Public API** — REST + OpenAPI and a typed tRPC router (see [docs/API.md](docs/API.md)).
-- **Dark, fast, static** — every surah is prerendered.
+- **Dark, fast, static** — every surah, juzʾ and Mushaf page is prerendered.
 
 ## Architecture
 
@@ -66,7 +72,7 @@ pnpm install      # install the workspace
 pnpm dev          # run the dev server (http://localhost:3000)
 pnpm lint         # eslint + module-boundary checks
 pnpm typecheck    # tsc across every package
-pnpm test         # vitest (core + data)
+pnpm test         # vitest (core, data, adapters)
 pnpm build        # production build
 ```
 

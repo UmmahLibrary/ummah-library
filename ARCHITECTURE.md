@@ -51,10 +51,11 @@ flowchart TD
 ### `core` — the heart
 
 - `entities.ts` — `Surah`, `Ayah`, `VerseKey`, `Translation`, `TafsirEntry`, `Hadith`, …
-- `quran-structure.ts` — invariants (`TOTAL_AYAHS`, `AYAH_COUNTS`, `JUZ_STARTS`, `HIZB_STARTS`) + utils (`isValidVerseRef`, `juzNumberOf`, …).
+- `quran-structure.ts` — invariants (`TOTAL_AYAHS`, `AYAH_COUNTS`, `JUZ_STARTS`, `HIZB_STARTS`, `PAGE_STARTS`) + utils (`isValidVerseRef`, `juzNumberOf`, `pageNumberOf`, `pageRange`, …).
 - `hifz.ts` — pure SM-2 scheduler ([ADR 0007](docs/adr/0007-hifz-spaced-repetition.md)).
 - `plugins.ts` — the content-plugin contract + `PluginRegistry` ([ADR 0005](docs/adr/0005-content-plugin-system.md)).
 - `languages.ts` / `translations.ts` — ISO-639 display names + pure grouping/filtering for the translation picker ([ADR 0010](docs/adr/0010-translation-selection.md)).
+- `search.ts` — pure full-text ranking (`searchVerses`, `searchText`) with tashkeel-insensitive Arabic normalisation, powering Quran and Hadith search.
 - `ports.ts` — **the interfaces** everything implements: `QuranRepository`, `TranslationRepository`, `TafsirRepository`, `HadithRepository`, `HifzRepository`.
 
 ## Data flow
@@ -115,13 +116,17 @@ flowchart LR
   registry -->|runtime-audio| audio["audio URL template (reciters)"]
 ```
 
+Translations have **both** modes: a small ingested set (offline + REST API) and
+the full runtime catalogue of ~490 editions fetched on demand from the
+`fawazahmed0/quran-api` CDN ([ADR 0011](docs/adr/0011-translation-catalog-runtime.md)).
+
 ## Build & deploy
 
 Push → GitHub Actions (lint · typecheck · test · build, Node 24) with module
-boundaries enforced → Vercel deploys on merge to `main`. The output is ~950
-static pages on the CDN plus a handful of dynamic serverless functions (tRPC,
-single-ayah, tafsir/hadith) that ship the datasets they need via
-`outputFileTracingIncludes`.
+boundaries enforced → Vercel deploys on merge to `main`. The output is ~1,560
+static pages on the CDN (114 surahs, 30 juzʾ, 604 Mushaf pages, search, …) plus
+a handful of dynamic serverless functions (tRPC, single-ayah, tafsir/hadith)
+that ship the datasets they need via `outputFileTracingIncludes`.
 
 ## Where to put things
 
