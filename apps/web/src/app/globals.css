@@ -220,6 +220,21 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   display: none;
 }
 
+/* Per-verse hover highlight in the continuous reading views. These are inline
+   runs, so `box-decoration-break: clone` keeps the rounded background intact
+   when a verse wraps across lines. */
+.mushaf > span,
+.read-flow .read-tr {
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.mushaf > span:hover,
+.read-flow .read-tr:hover {
+  background: var(--accent-soft);
+}
+
 .mode-toggle-wrap {
   display: flex;
   flex-direction: column;
