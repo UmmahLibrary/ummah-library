@@ -42,10 +42,10 @@ packages/
 `apps → packages` is allowed; `packages → apps` is forbidden; **`core` depends
 on nothing**. Enforced by `eslint-plugin-boundaries` in CI.
 
-**Why the codebase looks the way it does** is documented in the
-[Architecture Decision Records](docs/adr/) — start there before contributing. The
-index ([`docs/adr/README.md`](docs/adr/README.md)) is a one-screen overview of
-every major decision.
+**Before contributing**, read [`ARCHITECTURE.md`](ARCHITECTURE.md) (the map +
+data-flow diagrams), [`AGENTS.md`](AGENTS.md) (where things go + the do/don't
+rules, for humans and AI agents), and the
+[Architecture Decision Records](docs/adr/) (the _why_ behind each decision).
 
 ## Quick start
 
