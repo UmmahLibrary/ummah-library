@@ -3,6 +3,7 @@ import { quranRepository } from "@ummahlibrary/api";
 import { ReadingShelf } from "../components/ReadingShelf";
 import { SurahIndex } from "../components/SurahIndex";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { HifzNavLink } from "../components/HifzNavLink";
 
 export default async function HomePage() {
   const surahs = await quranRepository.listSurahs();
@@ -21,9 +22,7 @@ export default async function HomePage() {
           <Link href="/hadith" className="head-link">
             Hadith
           </Link>
-          <Link href="/hifz" className="head-link">
-            Hifz review →
-          </Link>
+          <HifzNavLink />
           <ThemeToggle />
         </nav>
       </header>

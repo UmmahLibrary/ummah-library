@@ -442,6 +442,21 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   width: 6rem;
   height: 0.7rem;
 }
+.hifz-due-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  margin: 0 0.15rem 0 0.3rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+}
 .sr-only {
   position: absolute;
   width: 1px;
