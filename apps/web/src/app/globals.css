@@ -266,8 +266,9 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   white-space: nowrap;
 }
 
-/* Per-surah header inside the juzʾ reader */
-.juz-surah-head {
+/* Per-surah header inside the juzʾ and Mushaf readers */
+.juz-surah-head,
+.mushaf-surah-head {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -276,8 +277,22 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   padding-top: 1.5rem;
   border-top: 1px solid var(--border);
 }
-.juz-surah-head .name-ar {
+.juz-surah-head .name-ar,
+.mushaf-surah-head .name-ar {
   font-size: 2rem;
+}
+
+/* Madani Mushaf page frame */
+.mushaf-page {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem 0.5rem;
+  background: var(--bg-elev);
+}
+.mushaf-page .mushaf-surah-head:first-child {
+  margin-top: 0.5rem;
+  border-top: none;
+  padding-top: 0;
 }
 
 .ayah {

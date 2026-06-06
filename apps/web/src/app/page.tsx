@@ -22,6 +22,9 @@ export default async function HomePage() {
           <Link href="/juz" className="head-link">
             Juzʾ
           </Link>
+          <Link href="/page/1" className="head-link">
+            Mushaf
+          </Link>
           <Link href="/hadith" className="head-link">
             Hadith
           </Link>

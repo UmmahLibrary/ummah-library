@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { TOTAL_JUZ, TOTAL_SURAHS } from "@ummahlibrary/core";
+import { TOTAL_JUZ, TOTAL_PAGES_MADANI, TOTAL_SURAHS } from "@ummahlibrary/core";
 
 const BASE = "https://app.ummahlibrary.org";
 
@@ -22,5 +22,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...staticRoutes, ...surahs, ...juz];
+  const pages = Array.from({ length: TOTAL_PAGES_MADANI }, (_, i) => ({
+    url: `${BASE}/page/${i + 1}`,
+    changeFrequency: "yearly" as const,
+    priority: 0.5,
+  }));
+
+  return [...staticRoutes, ...surahs, ...juz, ...pages];
 }

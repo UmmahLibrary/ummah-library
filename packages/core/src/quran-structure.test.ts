@@ -17,6 +17,9 @@ import {
   isValidSurahNumber,
   isValidVerseRef,
   juzNumberOf,
+  PAGE_STARTS,
+  pageNumberOf,
+  pageRange,
 } from "./quran-structure";
 
 describe("constants", () => {
@@ -35,6 +38,34 @@ describe("constants", () => {
   it("has 30 juzʾ starts beginning at 1:1", () => {
     expect(JUZ_STARTS).toHaveLength(TOTAL_JUZ);
     expect(JUZ_STARTS[0]).toEqual({ sura: 1, aya: 1 });
+  });
+
+  it("has 604 ascending page starts, beginning at 1:1 and ending at al-Ikhlās", () => {
+    expect(PAGE_STARTS).toHaveLength(TOTAL_PAGES_MADANI);
+    expect(PAGE_STARTS[0]).toEqual({ sura: 1, aya: 1 });
+    expect(PAGE_STARTS[1]).toEqual({ sura: 2, aya: 1 });
+    expect(PAGE_STARTS[603]).toEqual({ sura: 112, aya: 1 });
+    for (let i = 1; i < PAGE_STARTS.length; i++) {
+      expect(compareVerseKeys(PAGE_STARTS[i - 1]!, PAGE_STARTS[i]!)).toBeLessThan(0);
+    }
+  });
+
+  it("maps verses to their Madani page and back to a verse range", () => {
+    expect(pageNumberOf({ sura: 1, aya: 1 })).toBe(1);
+    expect(pageNumberOf({ sura: 2, aya: 255 })).toBe(42);
+    expect(pageNumberOf({ sura: 114, aya: 6 })).toBe(604);
+    expect(pageRange(1)).toEqual({ start: { sura: 1, aya: 1 }, end: { sura: 1, aya: 7 } });
+    expect(pageRange(604).end).toEqual({ sura: 114, aya: 6 });
+    // Every page's start maps back to that page.
+    for (let p = 1; p <= TOTAL_PAGES_MADANI; p++) {
+      expect(pageNumberOf(pageRange(p).start)).toBe(p);
+    }
+  });
+
+  it("rejects out-of-range page numbers", () => {
+    expect(isValidPageNumber(0)).toBe(false);
+    expect(isValidPageNumber(605)).toBe(false);
+    expect(() => pageRange(605)).toThrow();
   });
 
   it("has 60 hizb starts, ascending, beginning at 1:1", () => {
