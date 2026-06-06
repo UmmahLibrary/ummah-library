@@ -52,6 +52,8 @@ export interface SurahAudio {
   playingKey: string | null;
   buffering: boolean;
   activeWord: number;
+  loop: boolean;
+  setLoop: (on: boolean) => void;
   playFrom: (verses: VerseKey[], start: VerseKey, advance: boolean) => void;
   stop: () => void;
 }
@@ -60,10 +62,18 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [buffering, setBuffering] = useState(false);
   const [activeWord, setActiveWord] = useState(-1);
+  const [loop, setLoopState] = useState(false);
 
   const playerRef = useRef<AudioPlayer | null>(null);
   const tokenRef = useRef(0);
   const settleRef = useRef<(() => void) | null>(null);
+  // A ref so the running playback loop reads the latest value, not a stale closure.
+  const loopRef = useRef(false);
+
+  const setLoop = useCallback((on: boolean) => {
+    loopRef.current = on;
+    setLoopState(on);
+  }, []);
 
   const release = useCallback((player: AudioPlayer | null) => {
     if (player) {
@@ -98,6 +108,7 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
         release(playerRef.current);
         playerRef.current = null;
 
+        do {
         for (const v of queue) {
           if (tokenRef.current !== token) return;
           const key = verseKeyOf(v);
@@ -172,6 +183,8 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
           release(player);
           if (tokenRef.current !== token) return;
         }
+        // Repeat the whole range while loop is on (read live via the ref).
+        } while (loopRef.current && tokenRef.current === token);
         if (tokenRef.current === token) {
           setPlayingKey(null);
           setBuffering(false);
@@ -182,5 +195,5 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
     [reciter, release],
   );
 
-  return { playingKey, buffering, activeWord, playFrom, stop };
+  return { playingKey, buffering, activeWord, loop, setLoop, playFrom, stop };
 }

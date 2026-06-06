@@ -118,6 +118,12 @@ export function JuzReaderScreen({ route }: Props) {
         <Text style={styles.audioStatus} numberOfLines={1}>
           {audio.playingKey ? `Playing ${audio.playingKey}` : reciter.name}
         </Text>
+        <Pressable
+          style={[styles.loopBtn, audio.loop && styles.loopBtnOn]}
+          onPress={() => audio.setLoop(!audio.loop)}
+        >
+          <Text style={[styles.loopText, audio.loop && styles.loopTextOn]}>🔁 Loop</Text>
+        </Pressable>
       </View>
 
       {lines.map((l) => {
@@ -163,6 +169,17 @@ function makeStyles(c: Palette) {
     },
     audioPlayText: { color: c.accent, fontSize: 14, fontWeight: "700" },
     audioStatus: { color: c.muted, fontSize: 13, flex: 1 },
+    loopBtn: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.bgElev,
+    },
+    loopBtnOn: { borderColor: c.accent, backgroundColor: c.accentSoft },
+    loopText: { color: c.muted, fontSize: 13, fontWeight: "600" },
+    loopTextOn: { color: c.accent },
     surahHeader: {
       color: c.accent,
       fontSize: 15,
