@@ -88,7 +88,13 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
       <div className="mode-translation">
         <ReaderControls
           surahNumber={surah.number}
-          editions={editions.map((e) => ({ id: e.id, name: e.name, language: e.language }))}
+          editions={editions.map((e) => ({
+            id: e.id,
+            name: e.name,
+            author: e.author,
+            language: e.language,
+            direction: e.direction,
+          }))}
         />
 
         <ReadingAudio
@@ -170,6 +176,36 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
             </span>
           ))}
         </p>
+      </div>
+
+      {/* Reading layout with translations: mushaf typography, no card chrome,
+          each āyah's translation(s) flowing underneath. */}
+      <div className="mode-reading-tr">
+        {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
+        {ayahs.map((ayah) => (
+          <div key={ayah.aya} id={`r-${surah.number}:${ayah.aya}`} className="read-ayah">
+            <p className="read-ar arabic">
+              {ayah.text}
+              <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>
+            </p>
+            {byEdition.map(({ edition, text }) => {
+              const line = text.get(ayah.aya);
+              if (!line) return null;
+              const off = edition.id !== DEFAULT_EDITION ? " tr--off" : "";
+              return (
+                <p
+                  key={edition.id}
+                  className={`read-tr${off}`}
+                  data-edition={edition.id}
+                  lang={edition.language}
+                  dir={edition.direction}
+                >
+                  {line}
+                </p>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       <nav className="reader-nav">

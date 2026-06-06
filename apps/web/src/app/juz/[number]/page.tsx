@@ -11,9 +11,11 @@ import {
 import { pluginRegistry, quranRepository, translationRepository } from "@ummahlibrary/api";
 import { ReadingAudio } from "../../../components/ReadingAudio";
 import { ReadingModeToggle } from "../../../components/ReadingModeToggle";
+import { EditionManager } from "../../../components/EditionManager";
+import { DEFAULT_EDITIONS } from "../../../lib/editions";
 
 const RECITERS = pluginRegistry.byKind("reciter");
-const TRANSLATION = "eng-khattab";
+const DEFAULT_EDITION = DEFAULT_EDITIONS[0]!;
 
 export const dynamicParams = false;
 
@@ -40,31 +42,38 @@ async function loadJuz(numberParam: string) {
   const n = Number(numberParam);
   if (!isValidJuzNumber(n)) return null;
   const { start, end } = juzRange(n);
-  const bismillah = await quranRepository.getBismillah();
+  const [bismillah, editions] = await Promise.all([
+    quranRepository.getBismillah(),
+    translationRepository.listTranslations(),
+  ]);
 
   const sections = [];
   const verses: VerseKey[] = [];
   for (let sura = start.sura; sura <= end.sura; sura++) {
     const ayaStart = sura === start.sura ? start.aya : 1;
     const ayaEnd = sura === end.sura ? end.aya : ayahCountOf(sura);
-    const [surah, allAyahs, translation] = await Promise.all([
+    const [surah, allAyahs, translations] = await Promise.all([
       quranRepository.getSurah(sura),
       quranRepository.getSurahAyahs(sura),
-      translationRepository.getSurahTranslation(TRANSLATION, sura),
+      Promise.all(editions.map((e) => translationRepository.getSurahTranslation(e.id, sura))),
     ]);
     if (!surah) continue;
-    const tr = new Map(translation.map((t) => [t.aya, t.text]));
+    const byEdition = editions.map((edition, i) => ({
+      edition,
+      text: new Map(translations[i]!.map((t) => [t.aya, t.text])),
+    }));
     const ayahs = allAyahs
       .filter((a) => a.aya >= ayaStart && a.aya <= ayaEnd)
-      .map((a) => ({ aya: a.aya, text: a.text, english: tr.get(a.aya) ?? "" }));
+      .map((a) => ({ aya: a.aya, text: a.text }));
     for (const a of ayahs) verses.push({ sura, aya: a.aya });
     sections.push({
       surah,
       ayahs,
+      byEdition,
       showBismillah: ayaStart === 1 && surah.hasBismillah && surah.number !== 1,
     });
   }
-  return { n, sections, verses, bismillah };
+  return { n, sections, verses, bismillah, editions };
 }
 
 export async function generateMetadata({
@@ -81,7 +90,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
   const { number } = await params;
   const data = await loadJuz(number);
   if (!data) notFound();
-  const { n, sections, verses, bismillah } = data;
+  const { n, sections, verses, bismillah, editions } = data;
 
   return (
     <>
@@ -96,6 +105,16 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
       <ReadingModeToggle />
 
       <div className="mode-translation">
+        <EditionManager
+          editions={editions.map((e) => ({
+            id: e.id,
+            name: e.name,
+            author: e.author,
+            language: e.language,
+            direction: e.direction,
+          }))}
+        />
+
         <ReadingAudio verses={verses} reciters={RECITERS} />
 
         {sections.map((section) => (
@@ -125,7 +144,23 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
                     ﴿{toArabicDigits(ayah.aya)}﴾
                   </button>
                 </p>
-                {ayah.english && <p className="ayah-tr">{ayah.english}</p>}
+                {section.byEdition.map(({ edition, text }) => {
+                  const line = text.get(ayah.aya);
+                  if (!line) return null;
+                  const off = edition.id !== DEFAULT_EDITION ? " tr--off" : "";
+                  return (
+                    <p
+                      key={edition.id}
+                      className={`ayah-tr${off}`}
+                      data-edition={edition.id}
+                      lang={edition.language}
+                      dir={edition.direction}
+                    >
+                      <span className="tr-name">{edition.name}</span>
+                      {line}
+                    </p>
+                  );
+                })}
                 <div className="ayah-actions">
                   <button
                     type="button"
@@ -164,11 +199,49 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
         ))}
       </div>
 
+      <div className="mode-reading-tr">
+        {sections.map((section) => (
+          <section key={section.surah.number}>
+            <header className="juz-surah-head">
+              <span className="name-ar arabic">{section.surah.name}</span>
+              <span className="sub">
+                {section.surah.transliteration} · {section.surah.englishName}
+              </span>
+            </header>
+            {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
+            {section.ayahs.map((ayah) => (
+              <div key={ayah.aya} className="read-ayah">
+                <p className="read-ar arabic">
+                  {ayah.text}
+                  <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>
+                </p>
+                {section.byEdition.map(({ edition, text }) => {
+                  const line = text.get(ayah.aya);
+                  if (!line) return null;
+                  const off = edition.id !== DEFAULT_EDITION ? " tr--off" : "";
+                  return (
+                    <p
+                      key={edition.id}
+                      className={`read-tr${off}`}
+                      data-edition={edition.id}
+                      lang={edition.language}
+                      dir={edition.direction}
+                    >
+                      {line}
+                    </p>
+                  );
+                })}
+              </div>
+            ))}
+          </section>
+        ))}
+      </div>
+
       <nav className="reader-nav">
         {n > 1 ? <Link href={`/juz/${n - 1}`}>← Previous juzʾ</Link> : <span />}
         {n < TOTAL_JUZ ? <Link href={`/juz/${n + 1}`}>Next juzʾ →</Link> : <span />}
       </nav>
-      <p className="foot">Arabic: Tanzil (CC-BY 3.0) · Translation: The Clear Quran</p>
+      <p className="foot">Arabic: Tanzil (CC-BY 3.0) · Translations via Ummah Library datasets</p>
     </>
   );
 }

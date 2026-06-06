@@ -178,21 +178,65 @@ a {
   margin: 1.75rem 0 2.25rem;
 }
 
-/* ---- Reading mode (continuous mushaf) vs translation mode ---- */
-.mode-reading {
+/* ---- Reading modes ----
+   translation : verse-by-verse (default, .mode-translation visible)
+   reading     : continuous mushaf, Arabic only (.mode-reading)
+   reading-tr  : reading typography with translations flowing underneath each
+                 āyah, no card chrome (.mode-reading-tr) */
+.mode-reading,
+.mode-reading-tr {
   display: none;
 }
-html[data-reading-mode="reading"] .mode-translation {
+html[data-reading-mode="reading"] .mode-translation,
+html[data-reading-mode="reading-tr"] .mode-translation {
   display: none;
 }
 html[data-reading-mode="reading"] .mode-reading {
   display: block;
 }
+html[data-reading-mode="reading-tr"] .mode-reading-tr {
+  display: block;
+}
+
+/* reading-tr layout: mushaf-style Arabic per āyah + chrome-free translations. */
+.read-ayah {
+  margin: 0 0 1.6rem;
+}
+.read-ar {
+  font-family: var(--font-amiri), serif;
+  direction: rtl;
+  text-align: justify;
+  text-align-last: right;
+  font-size: calc(2rem * var(--reading-scale, 1));
+  line-height: 2.6;
+  margin: 0 0 0.5rem;
+}
+.read-tr {
+  line-height: 1.85;
+  margin: 0.3rem 0;
+  color: var(--fg);
+}
+.read-tr[dir="rtl"] {
+  text-align: right;
+}
+
+.mode-toggle-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.5rem 0 1.5rem;
+}
 .mode-toggle {
   display: flex;
   gap: 0.4rem;
   justify-content: center;
-  margin: 0.5rem 0 1.5rem;
+}
+.mode-toggle-wrap .mode-toggle {
+  margin: 0;
+}
+.mode-toggle--sub {
+  font-size: 0.85em;
 }
 .mushaf {
   font-family: var(--font-amiri), serif;
@@ -574,10 +618,19 @@ html[data-reading-mode="reading"] .mode-reading {
   padding: 0.85rem 0 1.25rem;
   border-bottom: 1px solid var(--border);
 }
-.edition-chips {
+.edition-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  align-items: baseline;
+  gap: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+}
+.edition-summary-label {
+  color: var(--muted);
+}
+.edition-summary-names {
+  color: var(--fg);
+  max-width: 22rem;
 }
 .chip {
   font: inherit;
@@ -644,4 +697,117 @@ html[data-reading-mode="reading"] .mode-reading {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+}
+
+/* ---- Translation settings modal ---- */
+.ts-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 5vh 1rem;
+  background: rgba(0, 0, 0, 0.55);
+  overflow-y: auto;
+}
+.ts-panel {
+  width: 100%;
+  max-width: 32rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+.ts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+}
+.ts-title {
+  font-size: 1.1rem;
+  margin: 0;
+}
+.ts-close {
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+}
+.ts-search {
+  width: 100%;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+}
+.ts-section {
+  margin-bottom: 1.1rem;
+}
+.ts-group-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+.ts-native {
+  color: var(--faint);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.ts-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.ts-pill {
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+}
+.ts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.ts-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.ts-row:hover {
+  background: var(--bg);
+}
+.ts-row input {
+  accent-color: var(--accent);
+}
+.ts-name {
+  color: var(--fg);
+}
+.ts-author {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.ts-empty {
+  color: var(--muted);
 }

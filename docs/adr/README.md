@@ -18,6 +18,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0007](0007-hifz-spaced-repetition.md)        | Hifz scheduling: SM-2 in core behind a port                 | Accepted |
 | [0008](0008-recitation-audio-highlighting.md) | Recitation audio + word-by-word highlighting                | Accepted |
 | [0009](0009-mobile-app.md)                    | Mobile app (Expo) sharing the monorepo                      | Accepted |
+| [0010](0010-translation-selection.md)         | Translation selection: grouped, searchable, local-first     | Accepted |
 
 ## Writing a new ADR
 
