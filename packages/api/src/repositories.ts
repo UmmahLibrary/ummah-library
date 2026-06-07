@@ -1,5 +1,6 @@
 import type {
   AdhkarRepository,
+  AsmaRepository,
   HadithRepository,
   PluginRegistry,
   PrayerTimesCalculator,
@@ -9,6 +10,7 @@ import type {
 } from "@ummahlibrary/core";
 import {
   FileAdhkarRepository,
+  FileAsmaRepository,
   FileQuranRepository,
   FileTranslationRepository,
   loadPluginRegistry,
@@ -48,3 +50,6 @@ export const prayerTimes: PrayerTimesCalculator = new AdhanPrayerTimes();
 
 /** The bundled adhkar collection (morning & evening) — see ADR 0016. */
 export const adhkarRepository: AdhkarRepository = new FileAdhkarRepository();
+
+/** The bundled 99 Names of Allah. */
+export const asmaRepository: AsmaRepository = new FileAsmaRepository();

@@ -17,8 +17,10 @@ import { fileURLToPath } from "node:url";
 import type {
   AdhkarOccasion,
   AdhkarRepository,
+  AsmaRepository,
   Ayah,
   Dhikr,
+  DivineName,
   QuranRepository,
   Surah,
   TranslatedAyah,
@@ -36,6 +38,7 @@ import {
 import surahsData from "../datasets/surahs.json";
 import pluginsData from "../datasets/plugins.json";
 import adhkarData from "../datasets/adhkar.json";
+import asmaData from "../datasets/asma.json";
 
 const SURAHS = surahsData.surahs as readonly Surah[];
 
@@ -169,5 +172,14 @@ export class FileAdhkarRepository implements AdhkarRepository {
   }
   byOccasion(occasion: AdhkarOccasion): Promise<readonly Dhikr[]> {
     return Promise.resolve(filterByOccasion(ADHKAR, occasion));
+  }
+}
+
+const ASMA = asmaData.names as readonly DivineName[];
+
+/** Serves the bundled 99 Names of Allah. */
+export class FileAsmaRepository implements AsmaRepository {
+  all(): Promise<readonly DivineName[]> {
+    return Promise.resolve(ASMA);
   }
 }

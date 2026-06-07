@@ -89,6 +89,17 @@ export interface HadithSection {
   hadiths: Hadith[];
 }
 
+/** One of the 99 Names of Allah (Asmāʾ al-Ḥusná). */
+export interface DivineName {
+  number: number;
+  arabic: string;
+  transliteration: string;
+  meaning: string;
+  description: string;
+  /** Quranic verse references where the name appears, e.g. ["1:3", "17:110"]. */
+  references: string[];
+}
+
 /** When a remembrance is said. */
 export type AdhkarOccasion = "morning" | "evening";
 

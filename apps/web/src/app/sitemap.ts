@@ -13,6 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/hadith",
     "/adhkar",
     "/tasbih",
+    "/names",
     "/hifz",
     "/prayer-times",
     "/qibla",

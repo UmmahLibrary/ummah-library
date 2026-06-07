@@ -7,6 +7,7 @@ import type {
   AdhkarOccasion,
   Ayah,
   Dhikr,
+  DivineName,
   HadithSection,
   Surah,
   TafsirEntry,
@@ -75,6 +76,11 @@ export interface PrayerTimesCalculator {
 export interface HadithRepository {
   /** One section (book/chapter) of a collection, or `null` if unavailable. */
   getSection(collectionId: string, section: number): Promise<HadithSection | null>;
+}
+
+/** Access to the 99 Names of Allah. */
+export interface AsmaRepository {
+  all(): Promise<readonly DivineName[]>;
 }
 
 /** Access to the adhkar (remembrances) collection. */

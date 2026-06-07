@@ -59,6 +59,16 @@ of its author/publisher and is included under the upstream terms.
 > guardrail). To swap or add a translation, edit the `TRANSLATIONS` list in
 > `scripts/ingest.ts` — no other code changes required.
 
+## 99 Names of Allah — `asma.json`
+
+- **Source:** the Names are from the **Qurʾān and Sunnah**; the transliteration
+  and English meanings/descriptions are compiled from
+  [KabDeveloper/99-Names-Of-Allah](https://github.com/KabDeveloper/99-Names-Of-Allah).
+- The Names themselves are not subject to copyright; each entry keeps its Quranic
+  `references`. **Pending (maintainers):** confirm the compiler's licence terms and
+  have a scholar review the transliteration/meaning wording before a production
+  launch (see ADR 0019). To re-source, change the asma step in `scripts/ingest.ts`.
+
 ## Adhkar — `adhkar.json`
 
 - **Source:** [Seen-Arabic/Morning-And-Evening-Adhkar-DB](https://github.com/Seen-Arabic/Morning-And-Evening-Adhkar-DB)

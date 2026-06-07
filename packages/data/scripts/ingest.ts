@@ -17,7 +17,13 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AdhkarOccasion, ContentPlugin, Dhikr, TranslationPlugin } from "@ummahlibrary/core";
+import type {
+  AdhkarOccasion,
+  ContentPlugin,
+  Dhikr,
+  DivineName,
+  TranslationPlugin,
+} from "@ummahlibrary/core";
 import { validatePlugin } from "@ummahlibrary/core";
 
 const DATA_VERSION = "1.0.0";
@@ -36,6 +42,9 @@ const FAWAZ_BASE = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1";
 // (Arabic + translation + transliteration + graded source). See ADR 0016.
 const ADHKAR_SRC =
   "https://cdn.jsdelivr.net/gh/Seen-Arabic/Morning-And-Evening-Adhkar-DB@main/en.json";
+// The 99 Names of Allah — canonical names from the Quran/Sunnah; this compiles
+// transliteration + English meaning/description. See ATTRIBUTION.md / ADR 0019.
+const ASMA_SRC = "https://cdn.jsdelivr.net/gh/KabDeveloper/99-Names-Of-Allah@master/99_Names_Of_Allah.json";
 
 /** Load + validate the content plugin manifests in a subdirectory. */
 function readPlugins(subdir: string): ContentPlugin[] {
@@ -324,8 +333,37 @@ async function main(): Promise<void> {
     adhkar,
   });
 
+  // 6) The 99 Names of Allah — bundled content.
+  console.log("• Asmāʾ al-Ḥusná (99 Names)");
+  const asmaDoc = await getJson<{
+    data: {
+      name: string;
+      transliteration: string;
+      number: number;
+      found?: string;
+      en?: { meaning?: string; desc?: string };
+    }[];
+  }>(ASMA_SRC);
+  const names: DivineName[] = asmaDoc.data.map((n, i) => ({
+    number: n.number ?? i + 1,
+    arabic: n.name.trim(),
+    transliteration: n.transliteration.trim(),
+    meaning: n.en?.meaning?.trim() ?? "",
+    description: n.en?.desc?.trim() ?? "",
+    references: (n.found ?? "").match(/\d+\s*:\s*\d+/g)?.map((r) => r.replace(/\s+/g, "")) ?? [],
+  }));
+  if (names.length !== 99 || !names.every((n) => n.arabic && n.transliteration && n.meaning)) {
+    throw new Error(`Asma ingest looks wrong: ${names.length} names`);
+  }
+  await writeJson("asma.json", {
+    version: DATA_VERSION,
+    source:
+      "Names from the Qurʾān & Sunnah; transliteration/meanings compiled by KabDeveloper/99-Names-Of-Allah",
+    names,
+  });
+
   console.log(
-    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs, ${translationPlugins.length} translations, ${allPlugins.length} plugins, ${adhkar.length} adhkar.`,
+    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs, ${translationPlugins.length} translations, ${allPlugins.length} plugins, ${adhkar.length} adhkar, ${names.length} names.`,
   );
 }
 

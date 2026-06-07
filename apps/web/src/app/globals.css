@@ -1360,6 +1360,78 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   justify-content: center;
 }
 
+/* ---- 99 Names ---- */
+.asma-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+}
+.asma-progress-text {
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.asma-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+.asma-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+  color: var(--fg);
+  cursor: pointer;
+}
+.asma-card--done {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.asma-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.asma-num {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.asma-ar {
+  font-family: var(--font-amiri), serif;
+  font-size: 1.7rem;
+}
+.asma-translit {
+  font-weight: 600;
+}
+.asma-meaning {
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+.asma-desc {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+.asma-refs {
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---- Reader progress + keyboard focus ---- */
 .read-progress {
   position: fixed;

@@ -37,6 +37,7 @@ languages**, installable as an app, and **fully readable offline**.
 - **Qibla** direction to the Kaaba with a live compass — pure, offline, and computed on your device ([ADR 0013](docs/adr/0013-qibla.md)).
 - **Hijri calendar** with a Gregorian cross-reference and a ±day adjustment to match your local sighting; today's Hijri date shows across the app ([ADR 0014](docs/adr/0014-hijri-calendar.md)).
 - **Zakat calculator** for monetary wealth — the agreed Sunni method (2.5% above the niṣāb) with a gold/silver threshold toggle; an educational estimate computed entirely on your device ([ADR 0015](docs/adr/0015-zakat.md)).
+- **99 Names of Allah** — Asmāʾ al-Ḥusná with transliteration, meaning and Quranic references; mark the ones you’ve learned.
 - **Tasbih counter** — a simple digital counter for your dhikr, with presets and round tracking.
 - **Adhkar** — the morning & evening remembrances from Ḥiṣn al-Muslim, with Arabic, transliteration, translation, graded sources and a tap counter that resets daily; works offline ([ADR 0016](docs/adr/0016-adhkar.md)). Optional **reminders** nudge you after Fajr and ʿAṣr, derived from your prayer times ([ADR 0017](docs/adr/0017-adhkar-reminders.md)).
 - **Bookmarks, continue-reading, scroll memory & keyboard shortcuts** (`j`/`k`/`Space`), stored locally — no account needed.
