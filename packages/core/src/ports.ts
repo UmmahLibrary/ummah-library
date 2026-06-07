@@ -13,6 +13,7 @@ import type {
   VerseKey,
 } from "./entities";
 import type { HifzCard } from "./hifz";
+import type { Coordinates, Madhab, PrayerTimings } from "./prayer";
 
 /** Access to the Arabic Quran text and surah structure. */
 export interface QuranRepository {
@@ -47,6 +48,25 @@ export interface TafsirRepository {
   getSurahTafsir(tafsirId: string, surahNumber: number): Promise<readonly TafsirEntry[]>;
   /** A single ayah's tafsir, or `null` if the edition or reference is unknown. */
   getAyahTafsir(tafsirId: string, ref: VerseKey): Promise<TafsirEntry | null>;
+}
+
+/** A request for one day's prayer times at a location. */
+export interface PrayerTimesQuery {
+  coordinates: Coordinates;
+  /** The calendar date to compute, as `YYYY-MM-DD`. */
+  date: string;
+  /** A calculation-method id (see `CALCULATION_METHODS`). */
+  method: string;
+  madhab: Madhab;
+}
+
+/**
+ * Computes prayer times from coordinates, a date and a method. The astronomy is
+ * an external concern (the `adhan` library) kept behind this port so the app
+ * depends only on the contract — see ADR 0012.
+ */
+export interface PrayerTimesCalculator {
+  calculate(query: PrayerTimesQuery): Promise<PrayerTimings>;
 }
 
 /** Access to hadith collections. */

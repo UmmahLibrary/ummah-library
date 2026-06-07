@@ -508,6 +508,84 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-size: 0.95rem;
 }
 
+/* ---- Prayer times ---- */
+.prayer-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+}
+.prayer-next {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1.1rem 1.25rem;
+  margin: 1rem 0;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+}
+.prayer-next-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.prayer-next-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.prayer-next-in {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.prayer-list {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+}
+.prayer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.85rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.prayer-row--next {
+  background: var(--accent-soft);
+  border-radius: 8px;
+  border-bottom-color: transparent;
+}
+.prayer-name {
+  font-size: 1.05rem;
+}
+.prayer-time {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+  color: var(--muted);
+}
+.prayer-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin: 1.5rem 0 0.5rem;
+}
+.prayer-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.prayer-control-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 /* ---- Reader progress + keyboard focus ---- */
 .read-progress {
   position: fixed;

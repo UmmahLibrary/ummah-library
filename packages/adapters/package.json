@@ -16,7 +16,8 @@
     "clean": "rm -rf .turbo node_modules"
   },
   "dependencies": {
-    "@ummahlibrary/core": "workspace:*"
+    "@ummahlibrary/core": "workspace:*",
+    "adhan": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

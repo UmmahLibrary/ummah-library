@@ -15,5 +15,6 @@ export * from "./plugins";
 export * from "./languages";
 export * from "./translations";
 export * from "./search";
+export * from "./prayer";
 export type * from "./entities";
 export type * from "./ports";
