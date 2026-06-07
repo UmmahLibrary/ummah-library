@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Amiri, Noto_Nastaliq_Urdu } from "next/font/google";
 import { ServiceWorkerRegister } from "../components/ServiceWorkerRegister";
+import { AdhkarReminderBanner } from "../components/AdhkarReminderBanner";
 import "./globals.css";
 
 const amiri = Amiri({
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <a href="#main" className="skip-link">
           Skip to content
         </a>
+        <AdhkarReminderBanner />
         <div className="container" id="main">
           {children}
         </div>

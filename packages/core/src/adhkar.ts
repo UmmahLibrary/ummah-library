@@ -6,6 +6,7 @@
  */
 
 import type { AdhkarOccasion, Dhikr } from "./entities";
+import type { PrayerTimings } from "./prayer";
 
 export interface AdhkarOccasionInfo {
   id: AdhkarOccasion;
@@ -51,4 +52,46 @@ export function sessionProgress(
     if (isDhikrComplete(counts[d.id] ?? 0, d.repeat)) completed++;
   }
   return { completed, total: items.length };
+}
+
+export interface AdhkarReminderWindow {
+  occasion: AdhkarOccasion;
+  /** ISO instant the window opens (a prayer time). */
+  start: string;
+  /** ISO instant it closes (the next prayer that bounds it). */
+  end: string;
+}
+
+/**
+ * The two daily reminder windows, derived from prayer timings: morning adhkar
+ * run from **Fajr to Dhuhr**, evening adhkar from **ʿAṣr to Maghrib** — so a
+ * reminder is wired off the prayer-times module, not a fixed clock time.
+ */
+export function adhkarReminderWindows(timings: PrayerTimings): AdhkarReminderWindow[] {
+  return [
+    { occasion: "morning", start: timings.fajr, end: timings.dhuhr },
+    { occasion: "evening", start: timings.asr, end: timings.maghrib },
+  ];
+}
+
+/** Which adhkar window `now` currently falls inside, or `null`. */
+export function activeAdhkarReminder(timings: PrayerTimings, now: Date): AdhkarOccasion | null {
+  const t = now.getTime();
+  for (const w of adhkarReminderWindows(timings)) {
+    if (t >= Date.parse(w.start) && t < Date.parse(w.end)) return w.occasion;
+  }
+  return null;
+}
+
+/** The next reminder (a window's opening) at or after `now` among today's timings. */
+export function nextAdhkarReminder(
+  timings: PrayerTimings,
+  now: Date,
+): { occasion: AdhkarOccasion; at: Date } | null {
+  const t = now.getTime();
+  const upcoming = adhkarReminderWindows(timings)
+    .map((w) => ({ occasion: w.occasion, at: new Date(w.start) }))
+    .filter((w) => w.at.getTime() >= t)
+    .sort((a, b) => a.at.getTime() - b.at.getTime());
+  return upcoming[0] ?? null;
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { adhkarRepository } from "@ummahlibrary/api";
 import { AdhkarView } from "../../components/AdhkarView";
+import { AdhkarReminderToggle } from "../../components/AdhkarReminderToggle";
 import { HijriToday } from "../../components/HijriToday";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default async function AdhkarPage() {
         <div className="sub">Morning &amp; evening remembrances</div>
         <HijriToday />
       </header>
+      <AdhkarReminderToggle />
       <AdhkarView dhikr={dhikr} />
     </>
   );

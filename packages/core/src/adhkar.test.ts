@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import type { Dhikr } from "./entities";
 import {
   ADHKAR_OCCASIONS,
+  activeAdhkarReminder,
+  adhkarReminderWindows,
   filterByOccasion,
   isDhikrComplete,
+  nextAdhkarReminder,
   nextTally,
   sessionProgress,
 } from "./adhkar";
+import type { PrayerTimings } from "./prayer";
 
 function dhikr(id: string, order: number, occasions: Dhikr["occasions"], repeat = 1): Dhikr {
   return {
@@ -65,5 +69,37 @@ describe("sessionProgress", () => {
     expect(sessionProgress(morning, {})).toEqual({ completed: 0, total: 2 });
     expect(sessionProgress(morning, { a: 1 })).toEqual({ completed: 1, total: 2 });
     expect(sessionProgress(morning, { a: 1, c: 3 })).toEqual({ completed: 2, total: 2 });
+  });
+});
+
+describe("adhkar reminders (wired off prayer timings)", () => {
+  // 2026-06-07, UTC for determinism.
+  const timings: PrayerTimings = {
+    fajr: "2026-06-07T02:30:00.000Z",
+    sunrise: "2026-06-07T04:00:00.000Z",
+    dhuhr: "2026-06-07T11:00:00.000Z",
+    asr: "2026-06-07T15:00:00.000Z",
+    maghrib: "2026-06-07T18:30:00.000Z",
+    isha: "2026-06-07T20:00:00.000Z",
+  };
+
+  it("derives morning Fajr→Dhuhr and evening ʿAṣr→Maghrib windows", () => {
+    expect(adhkarReminderWindows(timings)).toEqual([
+      { occasion: "morning", start: timings.fajr, end: timings.dhuhr },
+      { occasion: "evening", start: timings.asr, end: timings.maghrib },
+    ]);
+  });
+
+  it("reports the active window, or null between/after them", () => {
+    expect(activeAdhkarReminder(timings, new Date("2026-06-07T03:00:00Z"))).toBe("morning");
+    expect(activeAdhkarReminder(timings, new Date("2026-06-07T16:00:00Z"))).toBe("evening");
+    expect(activeAdhkarReminder(timings, new Date("2026-06-07T12:00:00Z"))).toBeNull(); // between
+    expect(activeAdhkarReminder(timings, new Date("2026-06-07T19:00:00Z"))).toBeNull(); // after maghrib
+  });
+
+  it("finds the next reminder by time of day", () => {
+    expect(nextAdhkarReminder(timings, new Date("2026-06-07T00:00:00Z"))?.occasion).toBe("morning");
+    expect(nextAdhkarReminder(timings, new Date("2026-06-07T12:00:00Z"))?.occasion).toBe("evening");
+    expect(nextAdhkarReminder(timings, new Date("2026-06-07T19:00:00Z"))).toBeNull();
   });
 });

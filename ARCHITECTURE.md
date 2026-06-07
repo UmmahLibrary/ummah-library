@@ -60,7 +60,7 @@ flowchart TD
 - `qibla.ts` — pure great-circle bearing to the Kaaba (`qiblaDirection`, `compassPoint`); no vendor, no port ([ADR 0013](docs/adr/0013-qibla.md)).
 - `hijri.ts` — pure tabular Hijri↔Gregorian conversion (`gregorianToHijri`, `hijriToGregorian`, `HIJRI_MONTHS`, `formatHijri`) with a caller-supplied day adjustment ([ADR 0014](docs/adr/0014-hijri-calendar.md)).
 - `zakat.ts` — pure zakat al-māl on monetary wealth (`calculateZakat`, `nisabValue`, `ZAKAT_ASSET_CATEGORIES`) with the niṣāb basis as a parameter ([ADR 0015](docs/adr/0015-zakat.md)).
-- `adhkar.ts` — adhkar occasion catalogue + pure session-counter helpers (`filterByOccasion`, `nextTally`, `sessionProgress`); the `Dhikr` text is bundled content ([ADR 0016](docs/adr/0016-adhkar.md)).
+- `adhkar.ts` — adhkar occasion catalogue + pure session-counter helpers (`filterByOccasion`, `nextTally`, `sessionProgress`), plus reminder windows derived from prayer timings (`adhkarReminderWindows`, `activeAdhkarReminder`, `nextAdhkarReminder`) ([ADR 0016](docs/adr/0016-adhkar.md), [0017](docs/adr/0017-adhkar-reminders.md)); the `Dhikr` text is bundled content.
 - `ports.ts` — **the interfaces** everything implements: `QuranRepository`, `TranslationRepository`, `TafsirRepository`, `HadithRepository`, `HifzRepository`, `PrayerTimesCalculator`, `AdhkarRepository`.
 
 ## Data flow
