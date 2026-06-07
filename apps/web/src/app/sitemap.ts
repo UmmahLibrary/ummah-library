@@ -9,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/search",
     "/juz",
     "/hadith",
+    "/adhkar",
     "/hifz",
     "/prayer-times",
     "/qibla",

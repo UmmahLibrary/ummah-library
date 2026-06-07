@@ -4,7 +4,9 @@
  * JSON file, a SQLite database, or a remote API all satisfy the same contract.
  */
 import type {
+  AdhkarOccasion,
   Ayah,
+  Dhikr,
   HadithSection,
   Surah,
   TafsirEntry,
@@ -73,6 +75,14 @@ export interface PrayerTimesCalculator {
 export interface HadithRepository {
   /** One section (book/chapter) of a collection, or `null` if unavailable. */
   getSection(collectionId: string, section: number): Promise<HadithSection | null>;
+}
+
+/** Access to the adhkar (remembrances) collection. */
+export interface AdhkarRepository {
+  /** Every dhikr, in display order. */
+  all(): Promise<readonly Dhikr[]>;
+  /** The dhikrs said at a given occasion (morning/evening), in display order. */
+  byOccasion(occasion: AdhkarOccasion): Promise<readonly Dhikr[]>;
 }
 
 /** One tracked memorization item: which ayah, and its SM-2 state. */

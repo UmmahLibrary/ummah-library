@@ -15,7 +15,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
+  AdhkarOccasion,
+  AdhkarRepository,
   Ayah,
+  Dhikr,
   QuranRepository,
   Surah,
   TranslatedAyah,
@@ -24,9 +27,15 @@ import type {
   VerseKey,
 } from "@ummahlibrary/core";
 import type { ContentPlugin } from "@ummahlibrary/core";
-import { PluginRegistry, isValidSurahNumber, isValidVerseRef } from "@ummahlibrary/core";
+import {
+  PluginRegistry,
+  filterByOccasion,
+  isValidSurahNumber,
+  isValidVerseRef,
+} from "@ummahlibrary/core";
 import surahsData from "../datasets/surahs.json";
 import pluginsData from "../datasets/plugins.json";
+import adhkarData from "../datasets/adhkar.json";
 
 const SURAHS = surahsData.surahs as readonly Surah[];
 
@@ -148,5 +157,17 @@ export class FileTranslationRepository implements TranslationRepository {
     if (!verses || !isValidVerseRef(ref.sura, ref.aya)) return Promise.resolve(null);
     const verse = verses.find((v) => v.sura === ref.sura && v.aya === ref.aya);
     return Promise.resolve(verse ? { ...verse, translationId } : null);
+  }
+}
+
+const ADHKAR = adhkarData.adhkar as readonly Dhikr[];
+
+/** Serves the bundled adhkar collection (ingested from Ḥiṣn al-Muslim). */
+export class FileAdhkarRepository implements AdhkarRepository {
+  all(): Promise<readonly Dhikr[]> {
+    return Promise.resolve(ADHKAR);
+  }
+  byOccasion(occasion: AdhkarOccasion): Promise<readonly Dhikr[]> {
+    return Promise.resolve(filterByOccasion(ADHKAR, occasion));
   }
 }

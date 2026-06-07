@@ -17,7 +17,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ContentPlugin, TranslationPlugin } from "@ummahlibrary/core";
+import type { AdhkarOccasion, ContentPlugin, Dhikr, TranslationPlugin } from "@ummahlibrary/core";
 import { validatePlugin } from "@ummahlibrary/core";
 
 const DATA_VERSION = "1.0.0";
@@ -32,6 +32,10 @@ const TANZIL_UTHMANI =
   "https://tanzil.net/pub/download/index.php?quranType=uthmani&outType=txt&agree=true";
 const TANZIL_METADATA = "https://tanzil.net/res/text/metadata/quran-data.xml";
 const FAWAZ_BASE = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1";
+// Morning & evening adhkar from Ḥiṣn al-Muslim, MIT-licensed and pre-structured
+// (Arabic + translation + transliteration + graded source). See ADR 0016.
+const ADHKAR_SRC =
+  "https://cdn.jsdelivr.net/gh/Seen-Arabic/Morning-And-Evening-Adhkar-DB@main/en.json";
 
 /** Load + validate the content plugin manifests in a subdirectory. */
 function readPlugins(subdir: string): ContentPlugin[] {
@@ -279,8 +283,49 @@ async function main(): Promise<void> {
   ];
   await writeJson("plugins.json", { version: DATA_VERSION, plugins: allPlugins });
 
+  // 5) Adhkar (morning & evening) — bundled content, small enough to ship.
+  console.log("• Adhkar (Ḥiṣn al-Muslim — morning & evening)");
+  const occasionsOf = (type: number): AdhkarOccasion[] =>
+    type === 1 ? ["morning"] : type === 2 ? ["evening"] : ["morning", "evening"];
+  const seen = await getJson<
+    {
+      content: string;
+      translation: string;
+      transliteration: string;
+      count: number;
+      count_description?: string;
+      fadl?: string;
+      source?: string;
+      type: number;
+    }[]
+  >(ADHKAR_SRC);
+  const adhkar: Dhikr[] = seen.map((it, i) => {
+    const repeat = Number.isFinite(it.count) && it.count > 0 ? Math.floor(it.count) : 1;
+    return {
+      id: `me-${i + 1}`,
+      order: i + 1,
+      occasions: occasionsOf(it.type),
+      arabic: it.content.trim(),
+      translation: it.translation.trim(),
+      transliteration: it.transliteration.trim(),
+      repeat,
+      repeatLabel: it.count_description?.trim() || (repeat > 1 ? `${repeat}×` : "Once"),
+      virtue: it.fadl?.trim() || undefined,
+      source: it.source?.trim() || undefined,
+    };
+  });
+  if (adhkar.length < 30 || !adhkar.every((d) => d.arabic && d.translation)) {
+    throw new Error(`Adhkar ingest looks wrong: ${adhkar.length} items`);
+  }
+  await writeJson("adhkar.json", {
+    version: DATA_VERSION,
+    source:
+      "Seen-Arabic/Morning-And-Evening-Adhkar-DB (MIT), derived from Ḥiṣn al-Muslim by Saʿīd al-Qaḥṭānī",
+    adhkar,
+  });
+
   console.log(
-    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs, ${translationPlugins.length} translations, ${allPlugins.length} plugins total.`,
+    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs, ${translationPlugins.length} translations, ${allPlugins.length} plugins, ${adhkar.length} adhkar.`,
   );
 }
 

@@ -58,3 +58,15 @@ of its author/publisher and is included under the upstream terms.
 > of each translation above (per the project's scholar-/licensing-review
 > guardrail). To swap or add a translation, edit the `TRANSLATIONS` list in
 > `scripts/ingest.ts` — no other code changes required.
+
+## Adhkar — `adhkar.json`
+
+- **Source:** [Seen-Arabic/Morning-And-Evening-Adhkar-DB](https://github.com/Seen-Arabic/Morning-And-Evening-Adhkar-DB)
+  (`en.json`), itself derived from **Ḥiṣn al-Muslim** (_Fortress of the Muslim_)
+  by Saʿīd ibn ʿAlī al-Qaḥṭānī.
+- **License:** **MIT** (compatible with AGPL-3.0; attribution retained).
+- Each dhikr keeps its `source` (hadith/Quranic reference, with grading where the
+  upstream provides it) and its `repeat` count. To add the other Ḥiṣn al-Muslim
+  sets (after-salah, sleep, travel, …) grow the adhkar step in `scripts/ingest.ts`.
+- **Pending:** a scholar should verify the Arabic vocalisation, translations, and
+  gradings before any production launch (see ADR 0016).

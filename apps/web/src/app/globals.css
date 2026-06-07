@@ -854,6 +854,152 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- Adhkar ---- */
+.adhkar-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.adhkar-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elev);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 1rem;
+}
+.adhkar-tab--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.adhkar-tab-ar {
+  font-family: var(--font-amiri), serif;
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+.adhkar-tab--active .adhkar-tab-ar {
+  color: var(--accent);
+}
+.adhkar-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.adhkar-progress-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.adhkar-progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+.adhkar-progress-text {
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.adhkar-progress--done .adhkar-progress-text {
+  color: var(--accent);
+}
+.adhkar-list {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.adhkar-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+  color: var(--fg);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.adhkar-card:hover {
+  border-color: var(--accent);
+}
+.adhkar-card--done {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.adhkar-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.adhkar-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--border);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.adhkar-counter {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+.adhkar-check {
+  color: var(--accent);
+}
+.adhkar-arabic {
+  font-family: var(--font-amiri), serif;
+  font-size: 1.6rem;
+  line-height: 2.2;
+  margin: 0.25rem 0 0.6rem;
+}
+.adhkar-translit {
+  font-style: italic;
+  color: var(--muted);
+  margin: 0 0 0.4rem;
+}
+.adhkar-translation {
+  margin: 0;
+  line-height: 1.6;
+}
+.adhkar-meta {
+  margin: 0.35rem 0.25rem 0;
+  font-size: 0.85rem;
+}
+.adhkar-meta summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.adhkar-virtue,
+.adhkar-source {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.adhkar-source {
+  font-size: 0.8rem;
+}
+
 /* ---- Reader progress + keyboard focus ---- */
 .read-progress {
   position: fixed;

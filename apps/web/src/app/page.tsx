@@ -30,6 +30,9 @@ export default async function HomePage() {
           <Link href="/hadith" className="head-link">
             Hadith
           </Link>
+          <Link href="/adhkar" className="head-link">
+            Adhkar
+          </Link>
           <Link href="/prayer-times" className="head-link">
             Prayer times
           </Link>

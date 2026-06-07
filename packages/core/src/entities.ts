@@ -88,3 +88,26 @@ export interface HadithSection {
   name: string;
   hadiths: Hadith[];
 }
+
+/** When a remembrance is said. */
+export type AdhkarOccasion = "morning" | "evening";
+
+/** A single remembrance (dhikr) from the adhkar collection. */
+export interface Dhikr {
+  id: string;
+  /** Display order within the collection. */
+  order: number;
+  /** The occasions this dhikr belongs to (a dhikr may be said morning and evening). */
+  occasions: AdhkarOccasion[];
+  arabic: string;
+  translation: string;
+  transliteration: string;
+  /** Recommended number of repetitions. */
+  repeat: number;
+  /** Human label for the repetition (e.g. "Once", "3×"). */
+  repeatLabel: string;
+  /** The virtue/benefit of saying it, where given. */
+  virtue?: string;
+  /** The hadith or Quranic reference, where given. */
+  source?: string;
+}

@@ -19,5 +19,6 @@ export * from "./prayer";
 export * from "./qibla";
 export * from "./hijri";
 export * from "./zakat";
+export * from "./adhkar";
 export type * from "./entities";
 export type * from "./ports";
