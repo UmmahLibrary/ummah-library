@@ -39,6 +39,9 @@ export default async function HomePage() {
           <Link href="/calendar" className="head-link">
             Calendar
           </Link>
+          <Link href="/zakat" className="head-link">
+            Zakat
+          </Link>
           <HifzNavLink />
           <ThemeToggle />
         </nav>

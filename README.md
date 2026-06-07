@@ -35,6 +35,7 @@ languages**, installable as an app, and **fully readable offline**.
 - **Prayer times** for your location — six prayers, multiple calculation methods and both madhabs, with a live next-prayer countdown ([ADR 0012](docs/adr/0012-prayer-times.md)); coordinates stay on your device.
 - **Qibla** direction to the Kaaba with a live compass — pure, offline, and computed on your device ([ADR 0013](docs/adr/0013-qibla.md)).
 - **Hijri calendar** with a Gregorian cross-reference and a ±day adjustment to match your local sighting; today's Hijri date shows across the app ([ADR 0014](docs/adr/0014-hijri-calendar.md)).
+- **Zakat calculator** for monetary wealth — the agreed Sunni method (2.5% above the niṣāb) with a gold/silver threshold toggle; an educational estimate computed entirely on your device ([ADR 0015](docs/adr/0015-zakat.md)).
 - **Bookmarks, continue-reading, scroll memory & keyboard shortcuts** (`j`/`k`/`Space`), stored locally — no account needed.
 - **Installable PWA** with offline reading — opened surahs stay available without a connection.
 - **Public API** — REST + OpenAPI and a typed tRPC router (see [docs/API.md](docs/API.md)).

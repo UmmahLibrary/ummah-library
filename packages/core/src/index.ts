@@ -18,5 +18,6 @@ export * from "./search";
 export * from "./prayer";
 export * from "./qibla";
 export * from "./hijri";
+export * from "./zakat";
 export type * from "./entities";
 export type * from "./ports";

@@ -23,6 +23,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0012](0012-prayer-times.md)                  | Prayer times: adhan behind a port, computed on demand       | Accepted |
 | [0013](0013-qibla.md)                         | Qibla: a pure great-circle bearing in `core`, no port       | Accepted |
 | [0014](0014-hijri-calendar.md)                | Hijri calendar: tabular arithmetic in `core` + adjustment   | Accepted |
+| [0015](0015-zakat.md)                         | Zakat: agreed monetary core in `core`, choice-points exposed | Accepted |
 
 ## Writing a new ADR
 

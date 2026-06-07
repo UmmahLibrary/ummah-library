@@ -741,6 +741,119 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   max-width: 46ch;
 }
 
+/* ---- Zakat calculator ---- */
+.zakat-note {
+  padding: 1rem 1.1rem;
+  margin: 1rem 0 1.5rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--bg-elev);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 62ch;
+}
+.zakat-note strong {
+  color: var(--fg);
+}
+.zakat-group {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem 1.25rem;
+  margin: 0 0 1.25rem;
+}
+.zakat-group legend {
+  padding: 0 0.5rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.zakat-prices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.zakat-prices label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.zakat-basis {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.zakat-basis-note,
+.zakat-row-label .zakat-hint {
+  max-width: 52ch;
+}
+.zakat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.zakat-row:last-child {
+  border-bottom: none;
+}
+.zakat-row-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.zakat-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.zakat-input {
+  width: 9rem;
+  max-width: 38vw;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 1rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.zakat-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.zakat-result .prayer-next-name {
+  font-size: 1.8rem;
+}
+.zakat-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.zakat-summary div {
+  flex: 1 1 8rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elev);
+}
+.zakat-summary dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.zakat-summary dd {
+  margin: 0.25rem 0 0;
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---- Reader progress + keyboard focus ---- */
 .read-progress {
   position: fixed;

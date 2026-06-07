@@ -4,7 +4,17 @@ import { TOTAL_JUZ, TOTAL_PAGES_MADANI, TOTAL_SURAHS } from "@ummahlibrary/core"
 const BASE = "https://app.ummahlibrary.org";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const staticRoutes = ["", "/search", "/juz", "/hadith", "/hifz", "/prayer-times", "/qibla", "/calendar"].map((path) => ({
+  const staticRoutes = [
+    "",
+    "/search",
+    "/juz",
+    "/hadith",
+    "/hifz",
+    "/prayer-times",
+    "/qibla",
+    "/calendar",
+    "/zakat",
+  ].map((path) => ({
     url: `${BASE}${path}`,
     changeFrequency: "monthly" as const,
     priority: path === "" ? 1 : 0.7,
