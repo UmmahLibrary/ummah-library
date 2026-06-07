@@ -52,6 +52,9 @@ tracking, no stored history.
 - **Trade-off:** anchoring on noon UTC can pick the neighbouring calendar day
   within a few hours of midnight at extreme longitudes; the effect on times is
   negligible because the solar position barely moves across that window.
-- This sets the template for the rest of Phase 6 (Qibla — already available via
-  `adhan` — Hijri calendar, Adhkar, Zakat): a pure core surface + a port, with any
-  vendor maths in an adapter.
+- This sets the template for Phase 6 modules **that wrap a genuinely external
+  concern** (a vendor library, I/O, a clock): a pure `core` surface + a port,
+  with the vendor maths in an adapter. **Revised by [ADR 0013](0013-qibla.md):**
+  a module whose maths is closed-form (e.g. the qibla bearing) is domain logic
+  and lives in `core` directly — no port. Add a port when something is external,
+  not to mirror a sibling feature.
