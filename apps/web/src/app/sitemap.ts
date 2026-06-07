@@ -7,6 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = [
     "",
     "/search",
+    "/goals",
     "/juz",
     "/hadith",
     "/adhkar",

@@ -9,6 +9,7 @@ import {
   pageRange,
 } from "@ummahlibrary/core";
 import { quranRepository } from "@ummahlibrary/api";
+import { ReadingTracker } from "../../../components/ReadingTracker";
 
 // Render all 604 Madani-Mushaf pages at build time.
 export const dynamicParams = false;
@@ -84,6 +85,7 @@ export default async function MushafPage({ params }: { params: Promise<{ number:
         </div>
       </header>
 
+      <ReadingTracker page={n} />
       <div className="mushaf-page">
         {sections.map((section) => (
           <section key={section.surah.number}>

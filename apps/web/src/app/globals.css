@@ -1048,6 +1048,82 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- Reading goals ---- */
+.reading-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.reading-badge:hover {
+  color: var(--accent);
+}
+.reading-badge-streak {
+  font-weight: 600;
+}
+.reading-badge-goal--done {
+  color: var(--accent);
+}
+.goal-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+}
+.goal-hero--done {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.goal-streak {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.goal-streak-num {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+.goal-streak-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.goal-today {
+  flex: 1;
+}
+.goal-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+.goal-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+.goal-today-label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.goal-note {
+  margin: 0.6rem 0 0;
+  max-width: 52ch;
+}
+.khatma-stat {
+  margin: 0.6rem 0;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---- Reader progress + keyboard focus ---- */
 .read-progress {
   position: fixed;

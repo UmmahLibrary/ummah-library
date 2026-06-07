@@ -31,6 +31,7 @@ languages**, installable as an app, and **fully readable offline**.
 - **Full-text search** across the Arabic and English — instant, client-side ([`/search`](https://app.ummahlibrary.org/search)) — plus **Hadith search**.
 - **Recitation audio** with multiple reciters, surah **loop/repeat**, and word-by-word highlighting; tap any word for a **word-by-word gloss**.
 - **Hadith** — 6 collections (Bukhari, Muslim, Abu Dawud, Tirmidhi, Ibn Majah, Nasa'i), book by book.
+- **Reading goals** — a daily page goal, a reading **streak**, and a **khatma planner** that paces you to finish by a date; all tracked privately on your device.
 - **Hifz** spaced-repetition review (SM-2) with a due-count badge.
 - **Prayer times** for your location — six prayers, multiple calculation methods and both madhabs, with a live next-prayer countdown ([ADR 0012](docs/adr/0012-prayer-times.md)); coordinates stay on your device.
 - **Qibla** direction to the Kaaba with a live compass — pure, offline, and computed on your device ([ADR 0013](docs/adr/0013-qibla.md)).

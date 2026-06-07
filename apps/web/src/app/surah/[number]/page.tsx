@@ -13,6 +13,7 @@ import { HifzButton } from "../../../components/HifzButton";
 import { AyahActions } from "../../../components/AyahActions";
 import { HashHighlighter } from "../../../components/HashHighlighter";
 import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
+import { ReadingTracker } from "../../../components/ReadingTracker";
 import { WordByWord } from "../../../components/WordByWord";
 import { ReadingModeToggle } from "../../../components/ReadingModeToggle";
 import { ReadingTranslationPicker } from "../../../components/ReadingTranslationPicker";
@@ -93,6 +94,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <ReaderShortcuts storageKey={`surah:${surah.number}`} />
+      <ReadingTracker />
       <HashHighlighter />
       <Link href="/" className="back-link">
         ← All surahs
