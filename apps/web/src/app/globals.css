@@ -1299,6 +1299,67 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   color: var(--accent);
 }
 
+/* ---- Tasbih ---- */
+.tasbih {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  margin: 1.5rem 0;
+}
+.tasbih-phrase {
+  text-align: center;
+}
+.tasbih-ar {
+  display: block;
+  font-family: var(--font-amiri), serif;
+  font-size: 2rem;
+  margin-bottom: 0.3rem;
+}
+.tasbih-meaning {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.tasbih-dial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--fg);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.tasbih-dial:active {
+  transform: scale(0.97);
+}
+.tasbih-dial--lap {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.tasbih-count {
+  font-size: 4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.tasbih-target {
+  color: var(--muted);
+}
+.tasbih-rounds {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+.tasbih-controls {
+  justify-content: center;
+}
+
 /* ---- Reader progress + keyboard focus ---- */
 .read-progress {
   position: fixed;

@@ -42,6 +42,9 @@ export default async function HomePage() {
           <Link href="/adhkar" className="head-link">
             Adhkar
           </Link>
+          <Link href="/tasbih" className="head-link">
+            Tasbih
+          </Link>
           <Link href="/prayer-times" className="head-link">
             Prayer times
           </Link>

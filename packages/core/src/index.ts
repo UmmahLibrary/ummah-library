@@ -23,5 +23,6 @@ export * from "./adhkar";
 export * from "./reading-goals";
 export * from "./backup";
 export * from "./collections";
+export * from "./tasbih";
 export type * from "./entities";
 export type * from "./ports";
