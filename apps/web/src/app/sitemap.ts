@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/qibla",
     "/calendar",
     "/zakat",
+    "/settings",
   ].map((path) => ({
     url: `${BASE}${path}`,
     changeFrequency: "monthly" as const,

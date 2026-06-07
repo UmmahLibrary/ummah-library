@@ -21,5 +21,6 @@ export * from "./hijri";
 export * from "./zakat";
 export * from "./adhkar";
 export * from "./reading-goals";
+export * from "./backup";
 export type * from "./entities";
 export type * from "./ports";

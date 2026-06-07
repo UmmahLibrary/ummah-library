@@ -26,6 +26,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0015](0015-zakat.md)                         | Zakat: agreed monetary core in `core`, choice-points exposed | Accepted |
 | [0016](0016-adhkar.md)                        | Adhkar: bundled Ḥiṣn al-Muslim content + a pure counter      | Accepted |
 | [0017](0017-adhkar-reminders.md)              | Adhkar reminders: pure windows off prayer times, in-app reach | Accepted |
+| [0018](0018-local-data-backup.md)             | Local data backup: file export/import as the sync substitute | Accepted |
 
 ## Writing a new ADR
 

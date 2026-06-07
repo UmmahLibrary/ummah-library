@@ -1124,6 +1124,49 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- Data backup ---- */
+.foot-link {
+  color: var(--muted);
+  text-decoration: underline;
+}
+.foot-link:hover {
+  color: var(--accent);
+}
+.backup-intro {
+  max-width: 60ch;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 1rem 0 1.25rem;
+}
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.backup-note {
+  margin: 0.5rem 0 0;
+  max-width: 52ch;
+}
+.backup-status {
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+.backup-status--ok {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.backup-status--err {
+  background: color-mix(in srgb, crimson 12%, var(--bg-elev));
+  color: crimson;
+}
+.backup-danger {
+  margin-top: 0.5rem;
+  border-color: color-mix(in srgb, crimson 40%, var(--border));
+  color: crimson;
+}
+
 /* ---- Reader progress + keyboard focus ---- */
 .read-progress {
   position: fixed;

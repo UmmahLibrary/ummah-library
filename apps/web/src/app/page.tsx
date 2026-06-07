@@ -73,7 +73,12 @@ export default async function HomePage() {
         }))}
       />
 
-      <p className="foot">Sadaqah Jariyah · AGPL-3.0</p>
+      <p className="foot">
+        <Link href="/settings" className="foot-link">
+          Your data
+        </Link>{" "}
+        · Sadaqah Jariyah · AGPL-3.0
+      </p>
     </>
   );
 }
