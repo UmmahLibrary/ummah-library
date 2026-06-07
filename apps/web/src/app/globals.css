@@ -586,6 +586,68 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   color: var(--muted);
 }
 
+/* ---- Qibla compass ---- */
+.qibla-dial-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+.qibla-dial {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg-elev);
+  transition: transform 0.15s linear;
+}
+.qibla-aligned .qibla-dial {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+.qibla-cardinal {
+  position: absolute;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.qibla-n {
+  top: 0.6rem;
+  color: var(--accent);
+}
+.qibla-s {
+  top: auto;
+  bottom: 0.6rem;
+  transform: translate(-50%, 0);
+}
+.qibla-e {
+  left: auto;
+  right: 0.6rem;
+  top: 50%;
+  transform: translate(0, -50%);
+}
+.qibla-w {
+  left: 0.6rem;
+  top: 50%;
+  transform: translate(0, -50%);
+}
+.qibla-needle {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.15s linear;
+}
+.qibla-kaaba {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
 /* ---- Reader progress + keyboard focus ---- */
 .read-progress {
   position: fixed;

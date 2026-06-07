@@ -21,6 +21,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0010](0010-translation-selection.md)         | Translation selection: grouped, searchable, local-first     | Accepted |
 | [0011](0011-translation-catalog-runtime.md)   | Full translation catalogue + multi-tafsir, runtime-fetched  | Accepted |
 | [0012](0012-prayer-times.md)                  | Prayer times: adhan behind a port, computed on demand       | Accepted |
+| [0013](0013-qibla.md)                         | Qibla: a pure great-circle bearing in `core`, no port       | Accepted |
 
 ## Writing a new ADR
 

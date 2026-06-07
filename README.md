@@ -33,6 +33,7 @@ languages**, installable as an app, and **fully readable offline**.
 - **Hadith** — 6 collections (Bukhari, Muslim, Abu Dawud, Tirmidhi, Ibn Majah, Nasa'i), book by book.
 - **Hifz** spaced-repetition review (SM-2) with a due-count badge.
 - **Prayer times** for your location — six prayers, multiple calculation methods and both madhabs, with a live next-prayer countdown ([ADR 0012](docs/adr/0012-prayer-times.md)); coordinates stay on your device.
+- **Qibla** direction to the Kaaba with a live compass — pure, offline, and computed on your device ([ADR 0013](docs/adr/0013-qibla.md)).
 - **Bookmarks, continue-reading, scroll memory & keyboard shortcuts** (`j`/`k`/`Space`), stored locally — no account needed.
 - **Installable PWA** with offline reading — opened surahs stay available without a connection.
 - **Public API** — REST + OpenAPI and a typed tRPC router (see [docs/API.md](docs/API.md)).

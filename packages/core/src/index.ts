@@ -16,5 +16,6 @@ export * from "./languages";
 export * from "./translations";
 export * from "./search";
 export * from "./prayer";
+export * from "./qibla";
 export type * from "./entities";
 export type * from "./ports";

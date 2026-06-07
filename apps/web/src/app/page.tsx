@@ -31,6 +31,9 @@ export default async function HomePage() {
           <Link href="/prayer-times" className="head-link">
             Prayer times
           </Link>
+          <Link href="/qibla" className="head-link">
+            Qibla
+          </Link>
           <HifzNavLink />
           <ThemeToggle />
         </nav>
