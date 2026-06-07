@@ -810,6 +810,27 @@ export function pageNumberOf(ref: VerseKey): number {
   return segmentOf(PAGE_STARTS, ref);
 }
 
+/** The ayah at a 1-based ordinal position (1…6236) in mushaf order. */
+export function ordinalToRef(ordinal: number): VerseKey {
+  let n = Math.min(TOTAL_AYAHS, Math.max(1, Math.floor(ordinal)));
+  for (let s = 0; s < AYAH_COUNTS.length; s++) {
+    if (n <= AYAH_COUNTS[s]!) return { sura: s + 1, aya: n };
+    n -= AYAH_COUNTS[s]!;
+  }
+  return { sura: TOTAL_SURAHS, aya: AYAH_COUNTS[TOTAL_SURAHS - 1]! };
+}
+
+/**
+ * A deterministic "verse of the day" for a YYYY-MM-DD date — the same date
+ * always yields the same ayah, spread across the whole Quran (Knuth multiplicative
+ * hash over the day number). Pure: no clock, the date is supplied.
+ */
+export function verseOfDay(date: string): VerseKey {
+  const days = Math.floor(Date.parse(`${date}T00:00:00Z`) / 86_400_000);
+  const idx = (((days * 2654435761) % TOTAL_AYAHS) + TOTAL_AYAHS) % TOTAL_AYAHS;
+  return ordinalToRef(idx + 1);
+}
+
 /** The first and last verse of a Madani-Mushaf page. Throws for an invalid page. */
 export function pageRange(page: number): { start: VerseKey; end: VerseKey } {
   if (!isValidPageNumber(page)) throw new RangeError(`Invalid page number: ${page}`);

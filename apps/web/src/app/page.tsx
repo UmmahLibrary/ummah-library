@@ -6,6 +6,7 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { HifzNavLink } from "../components/HifzNavLink";
 import { HijriToday } from "../components/HijriToday";
 import { ReadingGoalBadge } from "../components/ReadingGoalBadge";
+import { VerseOfDay } from "../components/VerseOfDay";
 
 export default async function HomePage() {
   const surahs = await quranRepository.listSurahs();
@@ -57,6 +58,8 @@ export default async function HomePage() {
           <ThemeToggle />
         </nav>
       </header>
+
+      <VerseOfDay />
 
       <ReadingShelf
         surahs={surahs.map((s) => ({

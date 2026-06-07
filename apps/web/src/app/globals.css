@@ -1264,6 +1264,41 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-size: 0.9rem;
 }
 
+/* ---- Verse of the day ---- */
+.votd {
+  margin: 1.5rem 0;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+}
+.votd-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+.votd-link {
+  text-decoration: none;
+  color: inherit;
+}
+.votd-ar {
+  font-family: var(--font-amiri), serif;
+  font-size: 1.7rem;
+  line-height: 2.2;
+  margin: 0 0 0.5rem;
+}
+.votd-tr {
+  margin: 0 0 0.5rem;
+  line-height: 1.6;
+}
+.votd-ref {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 /* ---- Reader progress + keyboard focus ---- */
 .read-progress {
   position: fixed;
