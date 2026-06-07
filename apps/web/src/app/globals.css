@@ -648,6 +648,99 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   line-height: 1;
 }
 
+/* ---- Hijri calendar ---- */
+.hijri-today {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.hijri-today:hover {
+  color: var(--accent);
+}
+.hijri-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.hijri-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-align: center;
+}
+.hijri-month-en {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.hijri-month-ar {
+  font-family: var(--font-amiri), serif;
+  font-size: 1.4rem;
+  color: var(--muted);
+}
+.hijri-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.hijri-weekday {
+  text-align: center;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 0.4rem 0;
+}
+.hijri-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-height: 3.2rem;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elev);
+}
+.hijri-cell--empty {
+  border: none;
+  background: transparent;
+}
+.hijri-cell--today {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.hijri-day {
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.hijri-greg {
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+.hijri-adjust {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1.5rem 0 0.5rem;
+}
+.hijri-adjust-row {
+  display: flex;
+  gap: 0.4rem;
+}
+.chip--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.hijri-note {
+  max-width: 46ch;
+}
+
 /* ---- Reader progress + keyboard focus ---- */
 .read-progress {
   position: fixed;

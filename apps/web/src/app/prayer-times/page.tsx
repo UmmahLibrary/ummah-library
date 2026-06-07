@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PrayerTimesView } from "../../components/PrayerTimesView";
+import { HijriToday } from "../../components/HijriToday";
 
 export const metadata: Metadata = {
   title: "Prayer times",
@@ -18,6 +19,7 @@ export default function PrayerTimesPage() {
       <header className="reader-head">
         <div className="name-en">Prayer times</div>
         <div className="sub">Salah times for your location</div>
+        <HijriToday />
       </header>
       <PrayerTimesView />
     </>

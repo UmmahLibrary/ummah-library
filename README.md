@@ -34,6 +34,7 @@ languages**, installable as an app, and **fully readable offline**.
 - **Hifz** spaced-repetition review (SM-2) with a due-count badge.
 - **Prayer times** for your location — six prayers, multiple calculation methods and both madhabs, with a live next-prayer countdown ([ADR 0012](docs/adr/0012-prayer-times.md)); coordinates stay on your device.
 - **Qibla** direction to the Kaaba with a live compass — pure, offline, and computed on your device ([ADR 0013](docs/adr/0013-qibla.md)).
+- **Hijri calendar** with a Gregorian cross-reference and a ±day adjustment to match your local sighting; today's Hijri date shows across the app ([ADR 0014](docs/adr/0014-hijri-calendar.md)).
 - **Bookmarks, continue-reading, scroll memory & keyboard shortcuts** (`j`/`k`/`Space`), stored locally — no account needed.
 - **Installable PWA** with offline reading — opened surahs stay available without a connection.
 - **Public API** — REST + OpenAPI and a typed tRPC router (see [docs/API.md](docs/API.md)).

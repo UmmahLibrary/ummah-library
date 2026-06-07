@@ -58,6 +58,7 @@ flowchart TD
 - `search.ts` — pure full-text ranking (`searchVerses`, `searchText`) with tashkeel-insensitive Arabic normalisation, powering Quran and Hadith search.
 - `prayer.ts` — prayer-time domain: method/madhab catalogues (`CALCULATION_METHODS`, `MADHABS`), labels, and the pure clock-injected `nextPrayer(timings, now)` ([ADR 0012](docs/adr/0012-prayer-times.md)).
 - `qibla.ts` — pure great-circle bearing to the Kaaba (`qiblaDirection`, `compassPoint`); no vendor, no port ([ADR 0013](docs/adr/0013-qibla.md)).
+- `hijri.ts` — pure tabular Hijri↔Gregorian conversion (`gregorianToHijri`, `hijriToGregorian`, `HIJRI_MONTHS`, `formatHijri`) with a caller-supplied day adjustment ([ADR 0014](docs/adr/0014-hijri-calendar.md)).
 - `ports.ts` — **the interfaces** everything implements: `QuranRepository`, `TranslationRepository`, `TafsirRepository`, `HadithRepository`, `HifzRepository`, `PrayerTimesCalculator`.
 
 ## Data flow

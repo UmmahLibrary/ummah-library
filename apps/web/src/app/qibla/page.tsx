@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { QiblaCompass } from "../../components/QiblaCompass";
+import { HijriToday } from "../../components/HijriToday";
 
 export const metadata: Metadata = {
   title: "Qibla direction",
@@ -18,6 +19,7 @@ export default function QiblaPage() {
       <header className="reader-head">
         <div className="name-en">Qibla</div>
         <div className="sub">Direction of the Kaaba from your location</div>
+        <HijriToday />
       </header>
       <QiblaCompass />
     </>

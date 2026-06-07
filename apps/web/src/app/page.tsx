@@ -4,6 +4,7 @@ import { ReadingShelf } from "../components/ReadingShelf";
 import { SurahIndex } from "../components/SurahIndex";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { HifzNavLink } from "../components/HifzNavLink";
+import { HijriToday } from "../components/HijriToday";
 
 export default async function HomePage() {
   const surahs = await quranRepository.listSurahs();
@@ -14,6 +15,7 @@ export default async function HomePage() {
         <div>
           <h1>Ummah Library</h1>
           <p>Read the Quran — {surahs.length} surahs, open source.</p>
+          <HijriToday />
         </div>
         <nav className="head-nav">
           <Link href="/search" className="head-link">
@@ -33,6 +35,9 @@ export default async function HomePage() {
           </Link>
           <Link href="/qibla" className="head-link">
             Qibla
+          </Link>
+          <Link href="/calendar" className="head-link">
+            Calendar
           </Link>
           <HifzNavLink />
           <ThemeToggle />
