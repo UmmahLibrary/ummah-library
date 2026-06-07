@@ -61,13 +61,15 @@ of its author/publisher and is included under the upstream terms.
 
 ## 99 Names of Allah — `asma.json`
 
-- **Source:** the Names are from the **Qurʾān and Sunnah**; the transliteration
-  and English meanings/descriptions are compiled from
-  [KabDeveloper/99-Names-Of-Allah](https://github.com/KabDeveloper/99-Names-Of-Allah).
-- The Names themselves are not subject to copyright; each entry keeps its Quranic
-  `references`. **Pending (maintainers):** confirm the compiler's licence terms and
-  have a scholar review the transliteration/meaning wording before a production
-  launch (see ADR 0019). To re-source, change the asma step in `scripts/ingest.ts`.
+- **Source:** the Names are from the **Qurʾān and Sunnah** (public domain). The
+  Arabic, transliteration and English meaning are extracted at ingest time from
+  the **[my-prayers/muslim-data](https://github.com/my-prayers/muslim-data-flutter)**
+  dataset (`muslim_db` SQLite asset).
+- **License:** **Apache-2.0** (compatible with AGPL-3.0; attribution retained).
+- To re-source or add fields, change the asma step in `scripts/ingest.ts` (it
+  downloads the SQLite asset and queries the `name` / `name_translation` tables).
+- **Pending (maintainers):** a scholar may review the English meaning wording
+  before a production launch, as with the other content datasets.
 
 ## Adhkar — `adhkar.json`
 

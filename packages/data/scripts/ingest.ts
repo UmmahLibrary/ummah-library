@@ -15,6 +15,8 @@
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
@@ -42,9 +44,11 @@ const FAWAZ_BASE = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1";
 // (Arabic + translation + transliteration + graded source). See ADR 0016.
 const ADHKAR_SRC =
   "https://cdn.jsdelivr.net/gh/Seen-Arabic/Morning-And-Evening-Adhkar-DB@main/en.json";
-// The 99 Names of Allah — canonical names from the Quran/Sunnah; this compiles
-// transliteration + English meaning/description. See ATTRIBUTION.md / ADR 0019.
-const ASMA_SRC = "https://cdn.jsdelivr.net/gh/KabDeveloper/99-Names-Of-Allah@master/99_Names_Of_Allah.json";
+// The 99 Names of Allah — Arabic from the Quran/Sunnah with transliteration +
+// English meaning, from the Apache-2.0 muslim-data project (verified licence).
+// See ATTRIBUTION.md. The data ships inside a SQLite asset.
+const ASMA_DB =
+  "https://raw.githubusercontent.com/my-prayers/muslim-data-flutter/main/assets/db/muslim_db_v2.7.0.db";
 
 /** Load + validate the content plugin manifests in a subdirectory. */
 function readPlugins(subdir: string): ContentPlugin[] {
@@ -89,6 +93,23 @@ async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`GET ${url} -> ${res.status} ${res.statusText}`);
   return res.json() as Promise<T>;
+}
+
+interface SqliteDb {
+  prepare(sql: string): { all(): Record<string, unknown>[] };
+  close(): void;
+}
+
+/** Download a SQLite asset and open it read-only via Node's built-in `node:sqlite`. */
+async function getSqlite(url: string): Promise<SqliteDb> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`GET ${url} -> ${res.status} ${res.statusText}`);
+  const file = join(tmpdir(), `ul-ingest-${Date.now()}.db`);
+  await writeFile(file, Buffer.from(await res.arrayBuffer()));
+  const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite") as {
+    DatabaseSync: new (path: string, opts?: { readOnly?: boolean }) => SqliteDb;
+  };
+  return new DatabaseSync(file, { readOnly: true });
 }
 
 /** Extract `key="value"` attributes from a single flat XML tag. */
@@ -333,24 +354,24 @@ async function main(): Promise<void> {
     adhkar,
   });
 
-  // 6) The 99 Names of Allah — bundled content.
+  // 6) The 99 Names of Allah — bundled content from the muslim-data SQLite.
   console.log("• Asmāʾ al-Ḥusná (99 Names)");
-  const asmaDoc = await getJson<{
-    data: {
-      name: string;
-      transliteration: string;
-      number: number;
-      found?: string;
-      en?: { meaning?: string; desc?: string };
-    }[];
-  }>(ASMA_SRC);
-  const names: DivineName[] = asmaDoc.data.map((n, i) => ({
-    number: n.number ?? i + 1,
-    arabic: n.name.trim(),
+  const asmaDb = await getSqlite(ASMA_DB);
+  const asmaRows = asmaDb
+    .prepare(
+      `SELECT n._id AS number, n.name AS arabic, t.transliteration, t.translation AS meaning
+       FROM name n JOIN name_translation t ON t.name_id = n._id
+       WHERE t.language = 'en' ORDER BY n._id`,
+    )
+    .all() as { number: number; arabic: string; transliteration: string; meaning: string }[];
+  asmaDb.close();
+  const names: DivineName[] = asmaRows.map((n) => ({
+    number: n.number,
+    arabic: n.arabic.trim(),
     transliteration: n.transliteration.trim(),
-    meaning: n.en?.meaning?.trim() ?? "",
-    description: n.en?.desc?.trim() ?? "",
-    references: (n.found ?? "").match(/\d+\s*:\s*\d+/g)?.map((r) => r.replace(/\s+/g, "")) ?? [],
+    meaning: n.meaning.trim(),
+    description: "",
+    references: [],
   }));
   if (names.length !== 99 || !names.every((n) => n.arabic && n.transliteration && n.meaning)) {
     throw new Error(`Asma ingest looks wrong: ${names.length} names`);
@@ -358,7 +379,7 @@ async function main(): Promise<void> {
   await writeJson("asma.json", {
     version: DATA_VERSION,
     source:
-      "Names from the Qurʾān & Sunnah; transliteration/meanings compiled by KabDeveloper/99-Names-Of-Allah",
+      "The Names are from the Qurʾān & Sunnah; Arabic + transliteration + English meaning from my-prayers/muslim-data (Apache-2.0)",
     names,
   });
 
