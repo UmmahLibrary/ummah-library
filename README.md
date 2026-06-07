@@ -39,6 +39,7 @@ languages**, installable as an app, and **fully readable offline**.
 - **Zakat calculator** for monetary wealth — the agreed Sunni method (2.5% above the niṣāb) with a gold/silver threshold toggle; an educational estimate computed entirely on your device ([ADR 0015](docs/adr/0015-zakat.md)).
 - **Adhkar** — the morning & evening remembrances from Ḥiṣn al-Muslim, with Arabic, transliteration, translation, graded sources and a tap counter that resets daily; works offline ([ADR 0016](docs/adr/0016-adhkar.md)). Optional **reminders** nudge you after Fajr and ʿAṣr, derived from your prayer times ([ADR 0017](docs/adr/0017-adhkar-reminders.md)).
 - **Bookmarks, continue-reading, scroll memory & keyboard shortcuts** (`j`/`k`/`Space`), stored locally — no account needed.
+- **Collections & notes** — save ayahs into named collections and attach personal reflections, all kept locally.
 - **Export & import your data** — back up bookmarks, Hifz, goals and settings to a file and restore them on another device, with no account or server ([ADR 0018](docs/adr/0018-local-data-backup.md)).
 - **Installable PWA** with offline reading — opened surahs stay available without a connection.
 - **Public API** — REST + OpenAPI and a typed tRPC router (see [docs/API.md](docs/API.md)).

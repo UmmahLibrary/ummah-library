@@ -26,6 +26,9 @@ export default async function HomePage() {
           <Link href="/goals" className="head-link">
             Goals
           </Link>
+          <Link href="/collections" className="head-link">
+            Collections
+          </Link>
           <Link href="/juz" className="head-link">
             Juzʾ
           </Link>

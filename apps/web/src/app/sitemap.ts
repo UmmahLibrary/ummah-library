@@ -8,6 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "",
     "/search",
     "/goals",
+    "/collections",
     "/juz",
     "/hadith",
     "/adhkar",
