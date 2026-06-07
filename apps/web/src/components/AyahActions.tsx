@@ -9,9 +9,11 @@ import {
   writeCollections,
   writeNote,
 } from "../lib/collections";
+import { renderAyahImage, shareOrDownload } from "../lib/share-image";
 
 export function AyahActions({ surah, aya }: { surah: number; aya: number }) {
   const [copied, setCopied] = useState<"text" | "link" | null>(null);
+  const [imaging, setImaging] = useState(false);
   const [open, setOpen] = useState(false);
   const [collections, setCollections] = useState(() => [] as ReturnType<typeof readCollections>);
   const [note, setNote] = useState("");
@@ -49,9 +51,10 @@ export function AyahActions({ surah, aya }: { surah: number; aya: number }) {
     setTimeout(() => setCopied(null), 1200);
   }
 
-  async function copyText() {
+  /** Read the rendered Arabic + translations for this ayah out of the DOM. */
+  function readAyahText(): { arabic: string; translations: string[] } {
     const block = document.getElementById(`${surah}:${aya}`);
-    if (!block) return;
+    if (!block) return { arabic: "", translations: [] };
     const arEl = block
       .querySelector<HTMLElement>(".ayah-ar")
       ?.cloneNode(true) as HTMLElement | null;
@@ -63,6 +66,24 @@ export function AyahActions({ surah, aya }: { surah: number; aya: number }) {
       clone.querySelector(".tr-name")?.remove();
       return clone.textContent?.trim() ?? "";
     });
+    return { arabic, translations: translations.filter(Boolean) };
+  }
+
+  async function shareImage() {
+    setImaging(true);
+    try {
+      const { arabic, translations } = readAyahText();
+      if (!arabic) return;
+      const blob = await renderAyahImage({ arabic, translations, reference: `${surah}:${aya}` });
+      if (blob) await shareOrDownload(blob, `${surah}:${aya}`);
+    } finally {
+      setImaging(false);
+    }
+  }
+
+  async function copyText() {
+    const { arabic, translations } = readAyahText();
+    if (!arabic) return;
     const text = [arabic, ...translations, `— ${surah}:${aya}`].filter(Boolean).join("\n");
     try {
       await navigator.clipboard.writeText(text);
@@ -95,6 +116,9 @@ export function AyahActions({ surah, aya }: { surah: number; aya: number }) {
         aria-label={`Copy link to ayah ${surah}:${aya}`}
       >
         {copied === "link" ? "Link ✓" : "🔗 Link"}
+      </button>
+      <button type="button" className="hifz-btn" onClick={shareImage} disabled={imaging}>
+        {imaging ? "…" : "🖼️ Image"}
       </button>
       <button
         type="button"
