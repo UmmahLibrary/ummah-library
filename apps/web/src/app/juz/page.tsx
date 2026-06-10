@@ -19,7 +19,7 @@ export default async function JuzIndexPage() {
   return (
     <>
       <Link href="/" className="back-link">
-        ← All surahs
+        ← Home
       </Link>
       <header className="site-head">
         <div>

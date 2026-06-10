@@ -7,7 +7,7 @@ export default function HifzPage() {
   return (
     <>
       <Link href="/" className="back-link">
-        ← All surahs
+        ← Home
       </Link>
       <header className="site-head">
         <div>

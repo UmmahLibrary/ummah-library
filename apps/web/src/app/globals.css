@@ -488,6 +488,9 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   color: var(--faint);
   font-size: 0.78rem;
   margin-bottom: 0.4rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .hadith-text {
   margin: 0;
