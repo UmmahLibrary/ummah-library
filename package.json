@@ -11,6 +11,9 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:web": "node scripts/dev-local.mjs --web-only",
+    "dev:mobile": "node scripts/dev-local.mjs --mobile-only",
+    "dev:local": "node scripts/dev-local.mjs",
     "lint": "eslint .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
