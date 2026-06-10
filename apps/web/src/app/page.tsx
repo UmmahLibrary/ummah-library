@@ -16,20 +16,15 @@ export default async function HomePage() {
       <header className="site-head">
         <div>
           <h1>Ummah Library</h1>
-          <p>Read the Quran — {surahs.length} surahs, open source.</p>
+          <p>Quran, Hadith, Adhkar &amp; Islamic tools — open source.</p>
           <HijriToday />
           <ReadingGoalBadge />
         </div>
         <nav className="head-nav">
-          <Link href="/search" className="head-link">
-            Search
+          <Link href="/search" className="head-link head-link--search">
+            🔍 Search
           </Link>
-          <Link href="/goals" className="head-link">
-            Goals
-          </Link>
-          <Link href="/collections" className="head-link">
-            Collections
-          </Link>
+          <span className="nav-divider" aria-hidden="true" />
           <Link href="/juz" className="head-link">
             Juzʾ
           </Link>
@@ -39,6 +34,14 @@ export default async function HomePage() {
           <Link href="/hadith" className="head-link">
             Hadith
           </Link>
+          <HifzNavLink />
+          <Link href="/goals" className="head-link">
+            Goals
+          </Link>
+          <Link href="/collections" className="head-link">
+            Collections
+          </Link>
+          <span className="nav-divider" aria-hidden="true" />
           <Link href="/adhkar" className="head-link">
             Adhkar
           </Link>
@@ -60,7 +63,7 @@ export default async function HomePage() {
           <Link href="/zakat" className="head-link">
             Zakat
           </Link>
-          <HifzNavLink />
+          <span className="nav-divider" aria-hidden="true" />
           <ThemeToggle />
         </nav>
       </header>
@@ -87,9 +90,21 @@ export default async function HomePage() {
 
       <p className="foot">
         <Link href="/settings" className="foot-link">
-          Your data
+          Your data &amp; settings
         </Link>{" "}
-        · Sadaqah Jariyah · AGPL-3.0
+        ·{" "}
+        <Link href="/offline" className="foot-link">
+          Offline
+        </Link>{" "}
+        · Sadaqah Jariyah ·{" "}
+        <a
+          href="https://github.com/UmmahLibrary/ummah-library"
+          className="foot-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          AGPL-3.0 on GitHub
+        </a>
       </p>
     </>
   );

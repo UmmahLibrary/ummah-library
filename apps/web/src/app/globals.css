@@ -89,6 +89,12 @@ a {
   border-bottom: 1px solid var(--border);
   padding-bottom: 1.25rem;
   margin-bottom: 2rem;
+  /* Stick at top so navigation is always reachable while scrolling */
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--bg);
+  padding-top: 0.75rem;
 }
 .site-head h1 {
   font-size: 1.5rem;
@@ -98,6 +104,52 @@ a {
   margin: 0;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+/* Visual divider between nav link groups */
+.nav-divider {
+  width: 1px;
+  height: 1em;
+  background: var(--border);
+  align-self: center;
+  flex-shrink: 0;
+}
+
+/* Search as a distinct chip so it stands out from plain text links */
+.head-link--search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  transition: border-color 0.15s ease;
+  flex-shrink: 0;
+}
+.head-link--search:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* On narrow screens the nav becomes a horizontally scrollable strip */
+@media (max-width: 680px) {
+  .site-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .head-nav {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    width: 100%;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .head-nav::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* ---- Surah index ---- */
@@ -1762,6 +1814,11 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   gap: 0.6rem;
   padding: 0.85rem 0 1.25rem;
   border-bottom: 1px solid var(--border);
+  /* Stick below the progress bar so bookmark/font controls stay accessible */
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--bg);
 }
 .edition-summary {
   display: flex;

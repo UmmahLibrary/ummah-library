@@ -40,7 +40,21 @@ export function VerseOfDay() {
     };
   }, []);
 
-  if (!v) return null;
+  if (!v)
+    return (
+      <section className="votd">
+        <div className="votd-label">Verse of the day</div>
+        <div
+          className="skeleton-line"
+          style={{ height: "2rem", borderRadius: "6px", marginBottom: "0.75rem" }}
+        />
+        <div
+          className="skeleton-line"
+          style={{ height: "1rem", width: "78%", marginBottom: "0.5rem" }}
+        />
+        <div className="skeleton-line" style={{ height: "0.85rem", width: "22%" }} />
+      </section>
+    );
   const key = ayahKey({ sura: v.sura, aya: v.aya });
 
   return (
