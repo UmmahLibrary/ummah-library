@@ -115,6 +115,13 @@ a {
   flex-shrink: 0;
 }
 
+.head-nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 /* Search as a distinct chip so it stands out from plain text links */
 .head-link--search {
   display: inline-flex;
@@ -138,6 +145,21 @@ a {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.6rem;
+  }
+  /* Wrap nav in a container that fades the right edge to hint at scrollability */
+  .head-nav-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .head-nav-wrap::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 2rem;
+    background: linear-gradient(to right, transparent, var(--bg));
+    pointer-events: none;
   }
   .head-nav {
     overflow-x: auto;
@@ -395,13 +417,6 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
 .w--active {
   color: var(--accent);
   background: var(--accent-soft);
-}
-
-.head-nav {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  flex-wrap: wrap;
 }
 
 .surah-search {

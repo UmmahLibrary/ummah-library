@@ -29,7 +29,7 @@ export function ThemeToggle() {
       onClick={toggle}
       aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
     >
-      {theme === "dark" ? "☀" : "☾"}
+      {theme === "dark" ? "☀️" : "🌙"}
     </button>
   );
 }

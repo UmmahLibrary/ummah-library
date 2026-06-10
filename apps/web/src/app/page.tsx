@@ -20,6 +20,7 @@ export default async function HomePage() {
           <HijriToday />
           <ReadingGoalBadge />
         </div>
+        <div className="head-nav-wrap">
         <nav className="head-nav">
           <Link href="/search" className="head-link head-link--search">
             🔍 Search
@@ -66,6 +67,7 @@ export default async function HomePage() {
           <span className="nav-divider" aria-hidden="true" />
           <ThemeToggle />
         </nav>
+        </div>
       </header>
 
       <VerseOfDay />
