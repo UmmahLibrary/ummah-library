@@ -16,6 +16,7 @@ export const KEYS = {
   bookmarks: "ul.bookmarks",
   hifz: "ul.hifz",
   lastRead: "ul.lastRead",
+  asmaLearned: "ul.asmaLearned",
 } as const;
 
 export async function getJSON<T>(key: string, fallback: T): Promise<T> {

@@ -5,6 +5,7 @@
  */
 import type {
   Ayah,
+  DivineName,
   HadithSection,
   Surah,
   TafsirEntry,
@@ -54,4 +55,5 @@ export const api = {
     ),
   getHadithSection: (collection: string, section: number) =>
     getJson<HadithSection>(`${BASE}/hadith/${collection}/sections/${section}`),
+  listNames: () => getJson<{ names: DivineName[] }>(`${BASE}/names`).then((d) => d.names),
 };

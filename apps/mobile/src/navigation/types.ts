@@ -11,6 +11,7 @@ export type ReadStackParamList = {
 export type RootTabParamList = {
   Read: NavigatorScreenParams<ReadStackParamList> | undefined;
   Hifz: undefined;
+  Names: undefined;
   Hadith: undefined;
   Settings: undefined;
 };

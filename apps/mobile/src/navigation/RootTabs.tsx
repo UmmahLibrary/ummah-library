@@ -4,6 +4,7 @@ import { useTheme } from "../theme";
 import { ReadStack } from "./ReadStack";
 import { HifzScreen } from "../screens/HifzScreen";
 import { HadithScreen } from "../screens/HadithScreen";
+import { NamesScreen } from "../screens/NamesScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import type { RootTabParamList } from "./types";
 
@@ -12,6 +13,7 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 const ICONS: Record<keyof RootTabParamList, string> = {
   Read: "📖",
   Hifz: "🧠",
+  Names: "✨",
   Hadith: "📜",
   Settings: "⚙️",
 };
@@ -31,6 +33,7 @@ export function RootTabs() {
     >
       <Tab.Screen name="Read" component={ReadStack} options={{ headerShown: false }} />
       <Tab.Screen name="Hifz" component={HifzScreen} />
+      <Tab.Screen name="Names" component={NamesScreen} options={{ title: "99 Names" }} />
       <Tab.Screen name="Hadith" component={HadithScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
