@@ -1799,6 +1799,14 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   display: inline-block;
   margin-bottom: 1.5rem;
 }
+/* Compact variant used inside sticky reader controls */
+.back-link--inline {
+  margin-bottom: 0;
+  white-space: nowrap;
+  padding-right: 0.5rem;
+  border-right: 1px solid var(--border);
+  margin-right: 0.25rem;
+}
 
 .foot {
   margin-top: 3rem;

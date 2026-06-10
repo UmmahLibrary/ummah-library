@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EditionManager } from "./EditionManager";
 
@@ -26,7 +27,15 @@ function write(key: string, value: unknown): void {
   }
 }
 
-export function ReaderControls({ surahNumber }: { surahNumber: number }) {
+export function ReaderControls({
+  surahNumber,
+  backHref,
+  backLabel,
+}: {
+  surahNumber: number;
+  backHref?: string;
+  backLabel?: string;
+}) {
   const [bookmarked, setBookmarked] = useState(false);
   const [scale, setScale] = useState(1);
 
@@ -59,6 +68,11 @@ export function ReaderControls({ surahNumber }: { surahNumber: number }) {
   return (
     <div className="reader-controls">
       <div className="reader-controls-left">
+        {backHref && (
+          <Link href={backHref} className="back-link back-link--inline">
+            ← {backLabel ?? "Back"}
+          </Link>
+        )}
         <button
           type="button"
           className="bookmark-btn"

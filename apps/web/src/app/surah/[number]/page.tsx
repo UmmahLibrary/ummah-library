@@ -114,7 +114,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
       <ReadingModeToggle />
 
       <div className="mode-translation">
-        <ReaderControls surahNumber={surah.number} />
+        <ReaderControls surahNumber={surah.number} backHref="/" backLabel="Surahs" />
 
         <ReadingAudio
           verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
