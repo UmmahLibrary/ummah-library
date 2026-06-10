@@ -34,14 +34,16 @@ const toArabicDigits = (n: number): string =>
 async function loadSurah(numberParam: string) {
   const number = Number(numberParam);
   if (!isValidSurahNumber(number)) return null;
-  const [surah, ayahs, bismillah] = await Promise.all([
+  const [surah, ayahs, bismillah, prevSurah, nextSurah] = await Promise.all([
     quranRepository.getSurah(number),
     quranRepository.getSurahAyahs(number),
     quranRepository.getBismillah(),
+    number > 1 ? quranRepository.getSurah(number - 1) : Promise.resolve(null),
+    number < TOTAL_SURAHS ? quranRepository.getSurah(number + 1) : Promise.resolve(null),
   ]);
   if (!surah) return null;
   // Translations are fetched client-side from the runtime catalogue (ADR 0011).
-  return { number, surah, ayahs, bismillah };
+  return { number, surah, ayahs, bismillah, prevSurah, nextSurah };
 }
 
 export async function generateMetadata({
@@ -73,7 +75,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
   const { number: numberParam } = await params;
   const data = await loadSurah(numberParam);
   if (!data) notFound();
-  const { number, surah, ayahs, bismillah } = data;
+  const { surah, ayahs, bismillah, prevSurah, nextSurah } = data;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -189,8 +191,22 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
       </div>
 
       <nav className="reader-nav">
-        {number > 1 ? <Link href={`/surah/${number - 1}`}>← Previous surah</Link> : <span />}
-        {number < TOTAL_SURAHS ? <Link href={`/surah/${number + 1}`}>Next surah →</Link> : <span />}
+        {prevSurah ? (
+          <Link href={`/surah/${prevSurah.number}`} className="reader-nav-btn">
+            <span className="reader-nav-dir">←</span>
+            <span className="reader-nav-name">{prevSurah.transliteration}</span>
+          </Link>
+        ) : (
+          <span />
+        )}
+        {nextSurah ? (
+          <Link href={`/surah/${nextSurah.number}`} className="reader-nav-btn">
+            <span className="reader-nav-name">{nextSurah.transliteration}</span>
+            <span className="reader-nav-dir">→</span>
+          </Link>
+        ) : (
+          <span />
+        )}
       </nav>
 
       <p className="foot">Arabic: Tanzil (CC-BY 3.0) · Translations via Ummah Library datasets</p>

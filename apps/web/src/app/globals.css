@@ -1786,6 +1786,31 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   margin-top: 2rem;
   gap: 1rem;
 }
+.reader-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease;
+  max-width: 45%;
+}
+.reader-nav-btn:hover {
+  border-color: var(--accent);
+}
+.reader-nav-dir {
+  flex-shrink: 0;
+  color: var(--faint);
+}
+.reader-nav-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .reader-nav a,
 .back-link {
   color: var(--accent);
