@@ -96,9 +96,14 @@ a {
   background: var(--bg);
   padding-top: 0.75rem;
 }
+.site-head > div:first-child {
+  flex-shrink: 0;
+  min-width: 0;
+}
 .site-head h1 {
   font-size: 1.5rem;
   margin: 0;
+  white-space: nowrap;
 }
 .site-head p {
   margin: 0;
