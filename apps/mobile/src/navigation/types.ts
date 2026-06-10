@@ -7,11 +7,23 @@ export type ReadStackParamList = {
   JuzReader: { juz: number };
 };
 
+/** The Tools tab's stack: tool list → individual tool screens. */
+export type ToolsStackParamList = {
+  ToolsList: undefined;
+  Tasbih: undefined;
+  Adhkar: undefined;
+  PrayerTimes: undefined;
+  Qibla: undefined;
+  HijriCalendar: undefined;
+  Zakat: undefined;
+};
+
 /** The bottom tabs. */
 export type RootTabParamList = {
   Read: NavigatorScreenParams<ReadStackParamList> | undefined;
   Hifz: undefined;
   Names: undefined;
   Hadith: undefined;
+  Tools: NavigatorScreenParams<ToolsStackParamList> | undefined;
   Settings: undefined;
 };

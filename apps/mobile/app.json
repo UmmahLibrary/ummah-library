@@ -26,7 +26,13 @@
     },
     "plugins": [
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Ummah Library to use your location to calculate prayer times and find the qibla direction."
+        }
+      ]
     ]
   }
 }

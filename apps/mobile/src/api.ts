@@ -6,6 +6,7 @@
 import type {
   Ayah,
   DivineName,
+  Dhikr,
   HadithSection,
   Surah,
   TafsirEntry,
@@ -14,7 +15,11 @@ import type {
   Translation,
 } from "@ummahlibrary/core";
 
-const BASE = "https://app.ummahlibrary.org/api/v1";
+const BASE =
+  (process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://app.ummahlibrary.org/api/v1").replace(
+    /\/$/,
+    "",
+  );
 
 /** A tafsir edition as listed by `/tafsirs`. */
 export interface TafsirMeta {
@@ -56,4 +61,17 @@ export const api = {
   getHadithSection: (collection: string, section: number) =>
     getJson<HadithSection>(`${BASE}/hadith/${collection}/sections/${section}`),
   listNames: () => getJson<{ names: DivineName[] }>(`${BASE}/names`).then((d) => d.names),
+  listAdhkar: () => getJson<{ dhikr: Dhikr[] }>(`${BASE}/adhkar`).then((d) => d.dhikr),
+  getPrayerTimes: (params: { lat: number; lng: number; date: string; method: string; madhab: string }) => {
+    const q = new URLSearchParams({
+      lat: String(params.lat),
+      lng: String(params.lng),
+      date: params.date,
+      method: params.method,
+      madhab: params.madhab,
+    });
+    return getJson<{ timings: Record<string, string> }>(`${BASE}/prayer-times?${q}`).then(
+      (d) => d.timings,
+    );
+  },
 };

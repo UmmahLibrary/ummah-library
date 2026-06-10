@@ -6,6 +6,7 @@ import { HifzScreen } from "../screens/HifzScreen";
 import { HadithScreen } from "../screens/HadithScreen";
 import { NamesScreen } from "../screens/NamesScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
+import { ToolsStack } from "./ToolsStack";
 import type { RootTabParamList } from "./types";
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -15,6 +16,7 @@ const ICONS: Record<keyof RootTabParamList, string> = {
   Hifz: "🧠",
   Names: "✨",
   Hadith: "📜",
+  Tools: "🛠️",
   Settings: "⚙️",
 };
 
@@ -35,6 +37,7 @@ export function RootTabs() {
       <Tab.Screen name="Hifz" component={HifzScreen} />
       <Tab.Screen name="Names" component={NamesScreen} options={{ title: "99 Names" }} />
       <Tab.Screen name="Hadith" component={HadithScreen} />
+      <Tab.Screen name="Tools" component={ToolsStack} options={{ headerShown: false }} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );

@@ -8,6 +8,8 @@
     "dev": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "assets": "node scripts/gen-assets.mjs",
     "bundle": "expo export --platform android",
@@ -24,6 +26,8 @@
     "expo-asset": "~12.0.13",
     "expo-audio": "~1.1.1",
     "expo-clipboard": "~8.0.8",
+    "expo-location": "^56.0.16",
+    "expo-sensors": "^56.0.5",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",
     "react-native": "0.81.5",
@@ -34,7 +38,8 @@
     "@babel/core": "^7.25.0",
     "@expo/ngrok": "^4.1.0",
     "@types/react": "~19.2.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^2.1.8"
   },
   "expo": {
     "install": {

@@ -17,6 +17,13 @@ export const KEYS = {
   hifz: "ul.hifz",
   lastRead: "ul.lastRead",
   asmaLearned: "ul.asmaLearned",
+  tasbih: "ul.tasbih",
+  adhkar: "ul.adhkar",
+  prayerMethod: "ul.prayerMethod",
+  prayerMadhab: "ul.prayerMadhab",
+  prayerCoords: "ul.prayerCoords",
+  hijriAdjust: "ul.hijriAdjust",
+  zakat: "ul.zakat",
 } as const;
 
 export async function getJSON<T>(key: string, fallback: T): Promise<T> {
