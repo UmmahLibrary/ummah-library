@@ -6,9 +6,10 @@ import {
   JUZ_STARTS,
   TOTAL_AYAHS,
   TOTAL_SURAHS,
+  validatePlugin,
 } from "@ummahlibrary/core";
 import { describe, expect, it } from "vitest";
-import { FileQuranRepository, FileTranslationRepository } from "./index";
+import { FileQuranRepository, FileTranslationRepository, loadPluginRegistry } from "./index";
 import surahsData from "../datasets/surahs.json";
 
 const quran = new FileQuranRepository();
@@ -98,5 +99,36 @@ describe("datasets agree with the core structural invariants", () => {
   it("ingested hizb starts match core HIZB_STARTS", () => {
     const starts = structure.hizb.map((h) => ({ sura: h.sura, aya: h.aya }));
     expect(starts).toEqual([...HIZB_STARTS]);
+  });
+});
+
+describe("reciter plugins", () => {
+  const reciters = loadPluginRegistry().byKind("reciter");
+
+  it("ships the expected reciters with Alafasy as the default", () => {
+    expect(reciters.length).toBeGreaterThanOrEqual(8);
+    // Index 0 is the default the reader falls back to — keep it Alafasy.
+    expect(reciters[0]?.id).toBe("alafasy");
+    const ids = reciters.map((r) => r.id);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "alafasy",
+        "abdulbasit",
+        "sudais",
+        "shuraym",
+        "husary",
+        "minshawi",
+        "shatri",
+        "ghamdi",
+      ]),
+    );
+    expect(new Set(ids).size).toBe(ids.length); // ids are unique
+  });
+
+  it("every reciter manifest is valid with a templatable audio url", () => {
+    for (const r of reciters) {
+      expect(validatePlugin(r)).toEqual([]);
+      expect(r.audioUrlTemplate).toMatch(/\{surah/);
+    }
   });
 });

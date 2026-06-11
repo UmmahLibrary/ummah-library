@@ -7,6 +7,7 @@ import {
   type TranslationPlugin,
   fillVerseTemplate,
   hadithSectionUrl,
+  quranComAudioUrl,
   reciterAudioUrl,
   tafsirSurahUrl,
   validatePlugin,
@@ -60,6 +61,18 @@ describe("url helpers", () => {
     expect(reciterAudioUrl(alafasy, { sura: 1, aya: 1 })).toBe(
       "https://everyayah.com/data/Alafasy_128kbps/001001.mp3",
     );
+  });
+  it("resolves quran.com timing audio paths (relative, protocol-relative, absolute)", () => {
+    // Relative path → resolved against the CDN host.
+    expect(quranComAudioUrl("Alafasy/mp3/001001.mp3")).toBe(
+      "https://verses.quran.com/Alafasy/mp3/001001.mp3",
+    );
+    // Protocol-relative (as Husary returns) → keeps its own host, not verses.quran.com.
+    expect(quranComAudioUrl("//mirrors.quranicaudio.com/everyayah/Husary_128kbps/001001.mp3")).toBe(
+      "https://mirrors.quranicaudio.com/everyayah/Husary_128kbps/001001.mp3",
+    );
+    // Already-absolute → unchanged.
+    expect(quranComAudioUrl("https://cdn.example/x.mp3")).toBe("https://cdn.example/x.mp3");
   });
   it("builds tafsir surah urls", () => {
     expect(tafsirSurahUrl(ibnKathir, 2)).toBe("https://cdn.example/tafsir/ibn-kathir/2.json");

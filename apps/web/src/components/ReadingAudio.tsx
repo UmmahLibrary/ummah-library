@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { type ReciterPlugin, reciterAudioUrl } from "@ummahlibrary/core";
+import { type ReciterPlugin, quranComAudioUrl, reciterAudioUrl } from "@ummahlibrary/core";
 import { N, Icon } from "./noor";
 
 const RECITER_KEY = "ul.reciter";
@@ -38,11 +38,8 @@ function fetchTiming(recitationId: number, verseKey: string): Promise<Timing | n
           verse?: { audio?: { url: string; segments: Segment[] } };
         };
         const audio = data.verse?.audio;
-        // `audio.url` may be a relative path (e.g. "Alafasy/mp3/001001.mp3"),
-        // a protocol-relative URL (e.g. "//mirrors…/001001.mp3", as Husary
-        // returns), or absolute — resolve all three against the CDN host.
         return audio
-          ? { url: new URL(audio.url, "https://verses.quran.com/").href, segments: audio.segments }
+          ? { url: quranComAudioUrl(audio.url), segments: audio.segments }
           : null;
       } catch {
         return null;
