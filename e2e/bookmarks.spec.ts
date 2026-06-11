@@ -14,8 +14,8 @@ test.describe("Bookmarks", () => {
     await page.goto("/bookmarks");
 
     // The seeded collection + its āyah + note render.
-    const nameInput = page.getByDisplayValue("Favourites");
-    await expect(nameInput).toBeVisible();
+    const nameInput = page.locator("input.collection-name");
+    await expect(nameInput).toHaveValue("Favourites");
     await expect(page.getByText("1:1")).toBeVisible();
     await expect(page.getByText("The opening")).toBeVisible();
 
