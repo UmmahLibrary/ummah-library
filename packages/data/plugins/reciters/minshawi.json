@@ -1,0 +1,9 @@
+{
+  "kind": "reciter",
+  "id": "minshawi",
+  "name": "Mohamed Siddiq Al-Minshawi",
+  "language": "ar",
+  "style": "Murattal",
+  "audioUrlTemplate": "https://everyayah.com/data/Minshawy_Murattal_128kbps/{surah:3}{ayah:3}.mp3",
+  "quranComId": 9
+}

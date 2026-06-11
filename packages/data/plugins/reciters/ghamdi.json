@@ -1,0 +1,8 @@
+{
+  "kind": "reciter",
+  "id": "ghamdi",
+  "name": "Saad Al-Ghamdi",
+  "language": "ar",
+  "style": "Murattal",
+  "audioUrlTemplate": "https://everyayah.com/data/Ghamadi_40kbps/{surah:3}{ayah:3}.mp3"
+}

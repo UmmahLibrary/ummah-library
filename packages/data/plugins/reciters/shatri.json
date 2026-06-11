@@ -1,0 +1,9 @@
+{
+  "kind": "reciter",
+  "id": "shatri",
+  "name": "Abu Bakr Al-Shatri",
+  "language": "ar",
+  "style": "Murattal",
+  "audioUrlTemplate": "https://everyayah.com/data/Abu_Bakr_Ash-Shaatree_128kbps/{surah:3}{ayah:3}.mp3",
+  "quranComId": 4
+}

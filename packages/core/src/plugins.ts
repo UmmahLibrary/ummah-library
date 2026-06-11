@@ -88,6 +88,19 @@ export function reciterAudioUrl(reciter: ReciterPlugin, ref: VerseKey): string {
   return fillVerseTemplate(reciter.audioUrlTemplate, ref);
 }
 
+/** quran.com's word-timing audio CDN — the base for resolving timing paths. */
+const QURAN_COM_AUDIO_BASE = "https://verses.quran.com/";
+
+/**
+ * Resolve a quran.com per-verse timing-audio reference to an absolute URL. The
+ * API returns a relative path (`"Alafasy/mp3/001001.mp3"`), a protocol-relative
+ * URL (`"//mirrors…/001001.mp3"`, as Husary does), or an already-absolute URL —
+ * all three resolve correctly against the CDN base.
+ */
+export function quranComAudioUrl(path: string): string {
+  return new URL(path, QURAN_COM_AUDIO_BASE).href;
+}
+
 /** The URL for a surah's tafsir (only `{surah}` is used). */
 export function tafsirSurahUrl(tafsir: TafsirPlugin, surah: number): string {
   return fillTemplate(tafsir.surahUrlTemplate, { surah });

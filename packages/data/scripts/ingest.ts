@@ -64,6 +64,28 @@ function readPlugins(subdir: string): ContentPlugin[] {
     });
 }
 
+/**
+ * Assemble + write the runtime plugin registry from the manifests. Pure (no
+ * network), so it can be regenerated on its own via `--plugins-only`. Reciters
+ * are ordered with Alafasy (the reference reciter, word-by-word timed) first,
+ * then alphabetically — a stable, predictable default and dropdown order.
+ */
+async function writePluginRegistry(): Promise<void> {
+  const translations = readPlugins("translations").filter(
+    (p): p is TranslationPlugin => p.kind === "translation",
+  );
+  const reciters = readPlugins("reciters").sort((a, b) =>
+    a.id === "alafasy" ? -1 : b.id === "alafasy" ? 1 : a.name.localeCompare(b.name),
+  );
+  const allPlugins = [
+    ...translations,
+    ...reciters,
+    ...readPlugins("tafsirs"),
+    ...readPlugins("hadiths"),
+  ];
+  await writeJson("plugins.json", { version: DATA_VERSION, plugins: allPlugins });
+}
+
 interface Verse {
   sura: number;
   aya: number;
@@ -175,6 +197,14 @@ interface EditionMeta {
 
 async function main(): Promise<void> {
   console.log("Ingesting Quran data → datasets/\n");
+
+  // Fast path: regenerate only plugins.json from the manifests (no network) —
+  // used when adding a translation/reciter/tafsir/hadith manifest.
+  if (process.argv.includes("--plugins-only")) {
+    await writePluginRegistry();
+    console.log("Regenerated plugins.json from manifests.\n");
+    return;
+  }
 
   // 1) Structure metadata (surahs, juz, pages) from Tanzil XML.
   console.log("• Tanzil structure metadata");
@@ -305,13 +335,7 @@ async function main(): Promise<void> {
   });
 
   // 4) The full plugin registry (all kinds) for the app to load at runtime.
-  const allPlugins = [
-    ...translationPlugins,
-    ...readPlugins("reciters"),
-    ...readPlugins("tafsirs"),
-    ...readPlugins("hadiths"),
-  ];
-  await writeJson("plugins.json", { version: DATA_VERSION, plugins: allPlugins });
+  await writePluginRegistry();
 
   // 5) Adhkar (morning & evening) — bundled content, small enough to ship.
   console.log("• Adhkar (Ḥiṣn al-Muslim — morning & evening)");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { type ReciterPlugin, reciterAudioUrl } from "@ummahlibrary/core";
+import { type ReciterPlugin, quranComAudioUrl, reciterAudioUrl } from "@ummahlibrary/core";
 import { N, Icon } from "./noor";
 
 const RECITER_KEY = "ul.reciter";
@@ -39,7 +39,7 @@ function fetchTiming(recitationId: number, verseKey: string): Promise<Timing | n
         };
         const audio = data.verse?.audio;
         return audio
-          ? { url: `https://verses.quran.com/${audio.url}`, segments: audio.segments }
+          ? { url: quranComAudioUrl(audio.url), segments: audio.segments }
           : null;
       } catch {
         return null;
