@@ -17,12 +17,17 @@ export default defineConfig({
         "packages/core/src/**/*.ts",
         "packages/data/src/**/*.ts",
         "packages/adapters/src/**/*.ts",
+        // Web client logic — components + local-first helpers (not Next route/server files).
+        "apps/web/src/components/**/*.{ts,tsx}",
+        "apps/web/src/lib/**/*.{ts,tsx}",
       ],
       exclude: [
         "**/*.test.ts",
+        "**/*.test.tsx",
         "**/*.d.ts",
         "**/datasets/**",
         "**/scripts/**",
+        "apps/web/src/test-setup.ts",
         // Type-only modules — interfaces/types with no runtime code to cover.
         "packages/core/src/entities.ts",
         "packages/core/src/ports.ts",
