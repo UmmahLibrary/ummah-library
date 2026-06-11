@@ -33,12 +33,15 @@ export default defineConfig({
         "packages/core/src/entities.ts",
         "packages/core/src/ports.ts",
       ],
-      // Gate the logic libraries (set a little below current to absorb churn).
-      // No web/global threshold yet — that's a ratcheting baseline.
+      // Thresholds are set a little below current so they absorb churn but can
+      // only be RAISED (a ratchet). Bump the web floors as more tests land.
       thresholds: {
         "packages/core/src/**": { statements: 95, branches: 88, functions: 95, lines: 95 },
         "packages/data/src/**": { statements: 85, branches: 78, functions: 72, lines: 85 },
         "packages/adapters/src/**": { statements: 95, branches: 82, functions: 90, lines: 95 },
+        // Web client — a growing baseline.
+        "apps/web/src/lib/**": { statements: 30, branches: 70, functions: 85, lines: 30 },
+        "apps/web/src/components/**": { statements: 2, branches: 25, functions: 8, lines: 2 },
       },
     },
   },
