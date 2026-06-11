@@ -1,0 +1,9 @@
+{
+  "kind": "reciter",
+  "id": "abdulbasit",
+  "name": "Abdul Basit Abdus-Samad",
+  "language": "ar",
+  "style": "Murattal",
+  "audioUrlTemplate": "https://everyayah.com/data/Abdul_Basit_Murattal_192kbps/{surah:3}{ayah:3}.mp3",
+  "quranComId": 2
+}

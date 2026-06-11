@@ -1,0 +1,9 @@
+{
+  "kind": "reciter",
+  "id": "shuraym",
+  "name": "Saud Al-Shuraim",
+  "language": "ar",
+  "style": "Murattal",
+  "audioUrlTemplate": "https://everyayah.com/data/Saood_ash-Shuraym_128kbps/{surah:3}{ayah:3}.mp3",
+  "quranComId": 10
+}

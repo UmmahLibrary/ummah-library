@@ -1,0 +1,9 @@
+{
+  "kind": "reciter",
+  "id": "sudais",
+  "name": "Abdur-Rahman As-Sudais",
+  "language": "ar",
+  "style": "Murattal",
+  "audioUrlTemplate": "https://everyayah.com/data/Abdurrahmaan_As-Sudais_192kbps/{surah:3}{ayah:3}.mp3",
+  "quranComId": 3
+}

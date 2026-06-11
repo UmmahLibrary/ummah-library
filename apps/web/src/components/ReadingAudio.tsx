@@ -38,8 +38,11 @@ function fetchTiming(recitationId: number, verseKey: string): Promise<Timing | n
           verse?: { audio?: { url: string; segments: Segment[] } };
         };
         const audio = data.verse?.audio;
+        // `audio.url` may be a relative path (e.g. "Alafasy/mp3/001001.mp3"),
+        // a protocol-relative URL (e.g. "//mirrors…/001001.mp3", as Husary
+        // returns), or absolute — resolve all three against the CDN host.
         return audio
-          ? { url: `https://verses.quran.com/${audio.url}`, segments: audio.segments }
+          ? { url: new URL(audio.url, "https://verses.quran.com/").href, segments: audio.segments }
           : null;
       } catch {
         return null;

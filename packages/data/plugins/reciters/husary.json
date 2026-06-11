@@ -1,0 +1,9 @@
+{
+  "kind": "reciter",
+  "id": "husary",
+  "name": "Mahmoud Khalil Al-Husary",
+  "language": "ar",
+  "style": "Murattal",
+  "audioUrlTemplate": "https://everyayah.com/data/Husary_128kbps/{surah:3}{ayah:3}.mp3",
+  "quranComId": 6
+}
