@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { pluginRegistry } from "@ummahlibrary/api";
+import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { HadithBrowser } from "../../components/HadithBrowser";
-import { HadithSearch } from "../../components/HadithSearch";
 
 export const metadata = { title: "Hadith" };
 
@@ -9,19 +8,25 @@ const COLLECTIONS = pluginRegistry.byKind("hadith").map((c) => ({ id: c.id, name
 
 export default function HadithPage() {
   return (
-    <>
-      <Link href="/" className="back-link">
-        ← Home
-      </Link>
-      <header className="site-head">
-        <div>
-          <h1>Hadith</h1>
-          <p>Browse hadith collections, book by book.</p>
-        </div>
-      </header>
-      <HadithSearch collections={COLLECTIONS} />
+    <NoorPageFrame
+      title="Hadith Library"
+      sub="The major collections of prophetic tradition"
+      glyph="📖"
+      back="/"
+      maxW={900}
+    >
       <HadithBrowser collections={COLLECTIONS} />
-      <p className="foot">Source: fawazahmed0/hadith-api</p>
-    </>
+      <p
+        style={{
+          fontSize: 12,
+          color: "#5C6273",
+          textAlign: "center",
+          marginTop: 32,
+          fontFamily: "'Hanken Grotesk', system-ui, sans-serif",
+        }}
+      >
+        Source: fawazahmed0/hadith-api
+      </p>
+    </NoorPageFrame>
   );
 }

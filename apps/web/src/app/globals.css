@@ -1,27 +1,49 @@
-:root,
-:root[data-theme="dark"] {
-  --bg: #0b0f0e;
-  --bg-elev: #121817;
-  --border: #1f2a27;
-  --fg: #e7efe9;
-  --muted: #9fb3a6;
-  --faint: #5b6b61;
-  --accent: #3fae7d;
-  --accent-soft: #16241d;
+/* ── Noor — Obsidian & Gold (primary theme) ── */
+:root {
+  /* Noor palette */
+  --noor-bg: #0a0b0f;
+  --noor-bg2: #0e1017;
+  --noor-card: #14171f;
+  --noor-card-hi: #191d27;
+  --noor-border: #242a38;
+  --noor-border-soft: #1b2029;
+  --noor-fg: #f4f1ea;
+  --noor-muted: #9aa0b2;
+  --noor-faint: #5c6273;
+  --noor-gold: #e6b855;
+  --noor-gold-hi: #f4d58a;
+  --noor-gold-dim: #a98432;
+  --noor-gold-soft: rgba(230, 184, 85, 0.12);
+  --noor-gold-grad: linear-gradient(180deg, #f4d58a, #e6b855);
+  --noor-ink: #1a1404;
+  --noor-ui: var(--font-hanken, "Hanken Grotesk"), system-ui, sans-serif;
+  --noor-ar: var(--font-ibm-arabic, "IBM Plex Sans Arabic"), serif;
+  --noor-field: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cg fill='none' stroke='%23E6B855' stroke-width='0.6' opacity='0.07'%3E%3Crect x='28' y='28' width='24' height='24'/%3E%3Crect x='28' y='28' width='24' height='24' transform='rotate(45 40 40)'/%3E%3C/g%3E%3C/svg%3E");
+
+  /* Legacy semantic tokens mapped to Noor */
+  --bg: var(--noor-bg);
+  --bg-elev: var(--noor-card);
+  --border: var(--noor-border);
+  --fg: var(--noor-fg);
+  --muted: var(--noor-muted);
+  --faint: var(--noor-faint);
+  --accent: var(--noor-gold);
+  --accent-soft: var(--noor-gold-soft);
   --reading-scale: 1;
   color-scheme: dark;
 }
 
+/* Light theme also uses Noor tokens (dark-first design) */
 :root[data-theme="light"] {
-  --bg: #f7faf8;
-  --bg-elev: #ffffff;
-  --border: #dde7e2;
-  --fg: #12201b;
-  --muted: #4a5a52;
-  --faint: #839388;
-  --accent: #1f8a5b;
-  --accent-soft: #e4f3ec;
-  color-scheme: light;
+  --bg: var(--noor-bg);
+  --bg-elev: var(--noor-card);
+  --border: var(--noor-border);
+  --fg: var(--noor-fg);
+  --muted: var(--noor-muted);
+  --faint: var(--noor-faint);
+  --accent: var(--noor-gold);
+  --accent-soft: var(--noor-gold-soft);
+  color-scheme: dark;
 }
 
 * {
@@ -1836,9 +1858,12 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
 .back-link--inline {
   margin-bottom: 0;
   white-space: nowrap;
-  padding-right: 0.5rem;
-  border-right: 1px solid var(--border);
-  margin-right: 0.25rem;
+  padding: 5px 12px 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--noor-card, #14171f);
+  color: var(--muted) !important;
+  font-size: 13.5px;
 }
 
 .foot {
@@ -1868,13 +1893,15 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
-  padding: 0.85rem 0 1.25rem;
-  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--noor-border-soft);
+  border-radius: 12px;
+  background: var(--noor-bg2);
   /* Stick below the progress bar so bookmark/font controls stay accessible */
   position: sticky;
   top: 0;
   z-index: 30;
-  background: var(--bg);
+  margin-bottom: 1rem;
 }
 .edition-summary {
   display: flex;
@@ -2136,3 +2163,107 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
 .ts-empty {
   color: var(--muted);
 }
+
+/* ── Noor shell layout utilities ── */
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--noor-ui);
+  background: var(--noor-bg);
+  color: var(--noor-fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--noor-gold-soft);
+}
+
+/* Scrollbar */
+.noor-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--noor-border) transparent;
+}
+.noor-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.noor-scroll::-webkit-scrollbar-thumb {
+  background: var(--noor-border);
+  border-radius: 6px;
+  border: 3px solid var(--noor-bg);
+}
+.noor-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Arabic text */
+.noor-ar {
+  font-family: var(--noor-ar);
+  direction: rtl;
+}
+
+/* Interaction */
+.noor-press {
+  transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  cursor: pointer;
+}
+.noor-press:active {
+  transform: scale(0.97);
+}
+
+/* Entrance animation (transform-only — never gates visibility) */
+.noor-fade {
+  animation: noorFade 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes noorFade {
+  from { transform: translateY(10px); }
+  to   { transform: none; }
+}
+.noor-rise > * {
+  animation: noorRise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes noorRise {
+  from { transform: translateY(16px); }
+  to   { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .noor-fade,
+  .noor-rise > * { animation: none !important; }
+}
+
+/* Responsive show/hide */
+.noor-hide-sm { display: revert; }
+.noor-only-sm { display: none !important; }
+@media (max-width: 760px) {
+  .noor-hide-sm { display: none !important; }
+  .noor-only-sm { display: revert !important; }
+}
+.noor-hide-md { display: revert; }
+@media (max-width: 980px) {
+  .noor-hide-md { display: none !important; }
+}
+
+/* Shell sidebar/tabbar responsive */
+.noor-sidebar { display: flex; height: 100%; }
+.noor-tabbar  { display: none; }
+@media (max-width: 900px) {
+  .noor-sidebar { display: none !important; }
+  .noor-tabbar  { display: block !important; }
+}
+
+/* Landing page khatam field pattern */
+.noor-field-bg {
+  background-image: var(--noor-field);
+}
+
+/* Override the old container so it doesn't clip the shell */
+.container {
+  max-width: unset;
+  margin: 0;
+  padding: 0;
+}
+

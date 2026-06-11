@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { DivineName } from "@ummahlibrary/core";
+import { N } from "./noor";
 
 const KEY = "ul.asmaLearned";
 
@@ -36,40 +37,73 @@ export function AsmaView({ names }: { names: readonly DivineName[] }) {
   const count = Object.keys(learned).length;
 
   return (
-    <div className="asma">
-      {ready && (
-        <div className="asma-progress">
-          <div className="goal-bar">
-            <span style={{ width: `${(count / names.length) * 100}%` }} />
-          </div>
-          <span className="asma-progress-text">{count} / {names.length} marked</span>
+    <div>
+      {/* Marked progress — shown only once you start marking, so the default view stays clean */}
+      {ready && count > 0 && (
+        <div style={{ fontSize: 12.5, color: N.faint, marginBottom: 16, fontFamily: N.ui }}>
+          {count} / {names.length} marked
         </div>
       )}
-      <ol className="asma-list">
-        {names.map((n) => (
-          <li key={n.number}>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {names.map((n) => {
+          const isMarked = ready && Boolean(learned[n.number]);
+          return (
             <button
+              key={n.number}
               type="button"
-              className={ready && learned[n.number] ? "asma-card asma-card--done" : "asma-card"}
               onClick={() => toggle(n.number)}
-              aria-pressed={ready ? Boolean(learned[n.number]) : false}
+              aria-pressed={isMarked}
+              className="noor-press"
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                padding: "16px 18px",
+                borderRadius: 16,
+                border: `1px solid ${isMarked ? N.gold : N.border}`,
+                background: isMarked ? N.goldSoft : N.card,
+                cursor: "pointer",
+                transition: "border-color .15s, background .15s",
+              }}
             >
-              <div className="asma-head">
-                <span className="asma-num">{n.number}</span>
-                <span className="asma-ar" dir="rtl" lang="ar">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  marginBottom: 10,
+                }}
+              >
+                <span style={{ fontSize: 12, color: N.faint, fontWeight: 700, fontFamily: N.ui }}>
+                  {n.number}
+                </span>
+                <span
+                  className="noor-ar"
+                  dir="rtl"
+                  lang="ar"
+                  style={{ fontSize: 24, color: N.gold, lineHeight: 1.4 }}
+                >
                   {n.arabic}
                 </span>
               </div>
-              <span className="asma-translit">{n.transliteration}</span>
-              <span className="asma-meaning">{n.meaning}</span>
-              {n.description && <span className="asma-desc">{n.description}</span>}
-              {n.references.length > 0 && (
-                <span className="asma-refs">{n.references.join(" · ")}</span>
-              )}
+              <div style={{ fontSize: 15.5, fontWeight: 700, lineHeight: 1.2, color: N.fg, fontFamily: N.ui }}>
+                {n.transliteration}
+              </div>
+              <div style={{ fontSize: 12.5, color: N.faint, marginTop: 4, lineHeight: 1.45, fontFamily: N.ui }}>
+                {n.meaning}
+              </div>
             </button>
-          </li>
-        ))}
-      </ol>
+          );
+        })}
+      </div>
     </div>
   );
 }

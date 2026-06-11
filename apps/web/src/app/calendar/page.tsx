@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { HijriCalendar } from "../../components/HijriCalendar";
 
 export const metadata: Metadata = {
@@ -11,15 +11,14 @@ export const metadata: Metadata = {
 
 export default function CalendarPage() {
   return (
-    <>
-      <Link href="/" className="back-link">
-        ← Home
-      </Link>
-      <header className="reader-head">
-        <div className="name-en">Hijri calendar</div>
-        <div className="sub">Islamic months, with a Gregorian cross-reference</div>
-      </header>
+    <NoorPageFrame
+      title="Hijri Calendar"
+      sub="Islamic months with Gregorian cross-reference"
+      glyph="☾"
+      back="/"
+      maxW={820}
+    >
       <HijriCalendar />
-    </>
+    </NoorPageFrame>
   );
 }

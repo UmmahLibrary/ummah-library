@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { TasbihCounter } from "../../components/TasbihCounter";
+import { TasbihPageClient } from "../../components/TasbihPageClient";
 
 export const metadata: Metadata = {
   title: "Tasbih counter",
@@ -10,16 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function TasbihPage() {
-  return (
-    <>
-      <Link href="/" className="back-link">
-        ← Home
-      </Link>
-      <header className="reader-head">
-        <div className="name-en">Tasbih</div>
-        <div className="sub">A counter for your dhikr</div>
-      </header>
-      <TasbihCounter />
-    </>
-  );
+  return <TasbihPageClient />;
 }

@@ -1,15 +1,40 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MergeStrategy } from "@ummahlibrary/core";
 import { clearAllData, collectLocalData, exportBackup, importBackup } from "../lib/backup";
+import { N } from "./noor";
+
+const lcard = { background: N.card, border: `1px solid ${N.border}`, borderRadius: 16 } as const;
+
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        fontSize: 12,
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        color: N.faint,
+        fontWeight: 700,
+        margin: "0 0 10px",
+        fontFamily: N.ui,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function DataBackup() {
   const [strategy, setStrategy] = useState<MergeStrategy>("replace");
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
+  const [itemCount, setItemCount] = useState<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const itemCount = typeof window === "undefined" ? 0 : Object.keys(collectLocalData()).length;
+  // Read localStorage only after mount to avoid a server/client hydration mismatch.
+  useEffect(() => {
+    setItemCount(Object.keys(collectLocalData()).length);
+  }, [status]);
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -27,64 +52,129 @@ export function DataBackup() {
     setStatus({ ok: true, message: `Cleared ${n} items. Reload to start fresh.` });
   }
 
+  const pill = (active: boolean) =>
+    ({
+      padding: "8px 16px",
+      borderRadius: 999,
+      border: `1px solid ${active ? N.gold : N.border}`,
+      background: active ? N.goldSoft : "transparent",
+      color: active ? N.gold : N.muted,
+      fontSize: 13.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      fontFamily: N.ui,
+    }) as const;
+
   return (
-    <div className="backup">
-      <p className="backup-intro">
+    <div>
+      <p style={{ fontSize: 14.5, color: N.muted, lineHeight: 1.65, margin: "0 0 20px", fontFamily: N.ui }}>
         Everything you do here stays on this device — no account, no server. Export a backup file to
         move your data to another device or keep it safe; import it to restore.
       </p>
 
-      <div className="backup-actions">
-        <button type="button" className="audio-play" onClick={exportBackup}>
-          ⬇️ Export my data
-        </button>
-        <button type="button" className="chip" onClick={() => fileInput.current?.click()}>
-          ⬆️ Import a backup
-        </button>
-        <input
-          ref={fileInput}
-          type="file"
-          accept="application/json,.json"
-          onChange={onFile}
-          hidden
-        />
-      </div>
-
-      <fieldset className="zakat-group backup-strategy">
-        <legend>On import</legend>
-        <div className="hijri-adjust-row">
+      <GroupLabel>Your data</GroupLabel>
+      <div style={{ ...lcard, padding: 20, marginBottom: 22 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button
             type="button"
-            className={strategy === "replace" ? "chip chip--active" : "chip"}
-            onClick={() => setStrategy("replace")}
+            onClick={exportBackup}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "11px 20px",
+              borderRadius: 11,
+              border: "1px solid transparent",
+              background: N.goldGrad,
+              color: N.ink,
+              fontWeight: 700,
+              fontSize: 14.5,
+              cursor: "pointer",
+              fontFamily: N.ui,
+            }}
           >
-            Replace my data
+            ⬇ Export my data
           </button>
           <button
             type="button"
-            className={strategy === "keep-mine" ? "chip chip--active" : "chip"}
-            onClick={() => setStrategy("keep-mine")}
+            onClick={() => fileInput.current?.click()}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "11px 20px",
+              borderRadius: 11,
+              border: `1px solid ${N.border}`,
+              background: N.cardHi,
+              color: N.fg,
+              fontWeight: 600,
+              fontSize: 14.5,
+              cursor: "pointer",
+              fontFamily: N.ui,
+            }}
           >
+            ⬆ Import a backup
+          </button>
+          <input ref={fileInput} type="file" accept="application/json,.json" onChange={onFile} hidden />
+        </div>
+      </div>
+
+      <GroupLabel>On import</GroupLabel>
+      <div style={{ ...lcard, padding: 20, marginBottom: 22 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" style={pill(strategy === "replace")} onClick={() => setStrategy("replace")}>
+            Replace my data
+          </button>
+          <button type="button" style={pill(strategy === "keep-mine")} onClick={() => setStrategy("keep-mine")}>
             Keep mine on conflict
           </button>
         </div>
-        <p className="hifz-muted backup-note">
+        <p style={{ fontSize: 13, color: N.faint, lineHeight: 1.6, margin: "14px 0 0", fontFamily: N.ui }}>
           {strategy === "replace"
             ? "The backup fully restores your data, overwriting what’s here."
             : "The backup only fills in things you don’t already have."}
         </p>
-      </fieldset>
+      </div>
 
       {status && (
-        <p className={status.ok ? "backup-status backup-status--ok" : "backup-status backup-status--err"}>
+        <p
+          style={{
+            fontSize: 13.5,
+            fontFamily: N.ui,
+            color: status.ok ? N.gold : "#E5736B",
+            margin: "0 0 16px",
+          }}
+        >
           {status.message}
         </p>
       )}
 
-      <p className="hifz-muted">{itemCount} items stored on this device.</p>
-      <button type="button" className="chip backup-danger" onClick={onClear}>
-        Erase all data
-      </button>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13, color: N.faint, fontFamily: N.ui }}>
+          {itemCount ?? "—"} item{itemCount === 1 ? "" : "s"} stored on this device.
+        </span>
+        <button
+          type="button"
+          onClick={onClear}
+          style={{
+            padding: "8px 16px",
+            borderRadius: 999,
+            border: `1px solid ${N.border}`,
+            background: "transparent",
+            color: "#E5736B",
+            fontSize: 13.5,
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: N.ui,
+          }}
+        >
+          Erase all data
+        </button>
+      </div>
+
+      <div style={{ textAlign: "center", fontSize: 12.5, color: N.faint, marginTop: 28, fontFamily: N.ui }}>
+        Ummah Library · local-first · Free &amp; open source
+      </div>
     </div>
   );
 }

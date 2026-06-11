@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { type ReviewRating, reviewByRating } from "@ummahlibrary/core";
 import { type HifzRecord, allRecords, dueRecords, setCard } from "../lib/hifz-store";
+import { N, Khatam } from "./noor";
 
 interface SurahArabic {
   ayahs: { aya: number; text: string }[];
@@ -68,10 +69,22 @@ export function HifzReview() {
 
   if (total === 0) {
     return (
-      <p className="hifz-empty">
-        You aren’t memorizing any āyāt yet. Open a <Link href="/">surah</Link> and tap{" "}
-        <strong>＋ Hifz</strong> on an āyah to start.
-      </p>
+      <div style={{ textAlign: "center", padding: "48px 20px 30px" }}>
+        <div style={{ display: "inline-grid", placeItems: "center", marginBottom: 16, opacity: 0.5 }}>
+          <Khatam size={64} color={N.goldDim} sw={1.2} />
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: N.fg, marginBottom: 8, fontFamily: N.ui }}>
+          Begin your hifz journey
+        </div>
+        <div style={{ fontSize: 14.5, color: N.muted, maxWidth: 440, margin: "0 auto", lineHeight: 1.6, fontFamily: N.ui }}>
+          You aren’t memorizing any āyāt yet. Open a{" "}
+          <Link href="/" style={{ color: N.gold, fontWeight: 600 }}>
+            surah
+          </Link>{" "}
+          and tap <strong style={{ color: N.gold }}>＋ Hifz</strong> on an āyah — it’ll appear here on
+          a spaced-repetition schedule tuned to your recall.
+        </div>
+      </div>
     );
   }
 

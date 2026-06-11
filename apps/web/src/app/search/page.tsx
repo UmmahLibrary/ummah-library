@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { quranRepository } from "@ummahlibrary/api";
+import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { SearchView } from "../../components/SearchView";
 
 export const metadata: Metadata = {
@@ -13,14 +13,12 @@ export const metadata: Metadata = {
 export default async function SearchPage() {
   const surahs = await quranRepository.listSurahs();
   return (
-    <>
-      <Link href="/" className="back-link">
-        ← Home
-      </Link>
-      <header className="reader-head">
-        <div className="name-en">Search</div>
-        <div className="sub">Across the Arabic and the English translation</div>
-      </header>
+    <NoorPageFrame
+      title="Search"
+      sub="Find any surah, verse, or topic"
+      glyph="🔍"
+      back="/"
+    >
       <SearchView
         surahs={surahs.map((s) => ({
           number: s.number,
@@ -28,6 +26,6 @@ export default async function SearchPage() {
           englishName: s.englishName,
         }))}
       />
-    </>
+    </NoorPageFrame>
   );
 }

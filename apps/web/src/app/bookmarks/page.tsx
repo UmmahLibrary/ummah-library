@@ -3,17 +3,17 @@ import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { CollectionsView } from "../../components/CollectionsView";
 
 export const metadata: Metadata = {
-  title: "Collections",
+  title: "Bookmarks",
   description:
-    "Your saved ayahs, grouped into collections with personal notes — kept privately on your device.",
-  alternates: { canonical: "/collections" },
+    "Your saved verses and collections — kept privately on your device.",
+  alternates: { canonical: "/bookmarks" },
 };
 
-export default function CollectionsPage() {
+export default function BookmarksPage() {
   return (
     <NoorPageFrame
-      title="Collections"
-      sub="Saved ayahs & notes"
+      title="Bookmarks"
+      sub="Your saved verses and collections"
       glyph="❑"
       back="/"
     >

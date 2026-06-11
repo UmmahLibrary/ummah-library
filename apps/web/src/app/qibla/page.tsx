@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { QiblaCompass } from "../../components/QiblaCompass";
-import { HijriToday } from "../../components/HijriToday";
 
 export const metadata: Metadata = {
   title: "Qibla direction",
@@ -12,16 +11,13 @@ export const metadata: Metadata = {
 
 export default function QiblaPage() {
   return (
-    <>
-      <Link href="/" className="back-link">
-        ← Home
-      </Link>
-      <header className="reader-head">
-        <div className="name-en">Qibla</div>
-        <div className="sub">Direction of the Kaaba from your location</div>
-        <HijriToday />
-      </header>
+    <NoorPageFrame
+      title="Qibla Finder"
+      sub="Direction to the Kaʿbah from your location"
+      glyph="🧭"
+      back="/"
+    >
       <QiblaCompass />
-    </>
+    </NoorPageFrame>
   );
 }

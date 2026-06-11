@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { ZakatCalculator } from "../../components/ZakatCalculator";
 
 export const metadata: Metadata = {
@@ -11,15 +11,13 @@ export const metadata: Metadata = {
 
 export default function ZakatPage() {
   return (
-    <>
-      <Link href="/" className="back-link">
-        ← Home
-      </Link>
-      <header className="reader-head">
-        <div className="name-en">Zakat calculator</div>
-        <div className="sub">Zakat al-māl on monetary wealth</div>
-      </header>
+    <NoorPageFrame
+      title="Zakat Calculator"
+      sub="2.5% on wealth held above niṣāb for one lunar year"
+      glyph="⊜"
+      back="/"
+    >
       <ZakatCalculator />
-    </>
+    </NoorPageFrame>
   );
 }

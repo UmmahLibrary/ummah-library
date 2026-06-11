@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { type SearchEntry, type SearchResult, searchVerses } from "@ummahlibrary/core";
+import { N, Icon, Khatam } from "./noor";
+
+const SUGGESTIONS = ["Mercy", "Patience", "Forgiveness", "Light", "Al-Mulk", "Ar-Raḥmān", "Yā Sīn"];
 
 const ENGLISH_EDITION = "eng-mustafakhattaba";
 const ENGLISH_URL = `https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/${ENGLISH_EDITION}.min.json`;
@@ -104,62 +107,177 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
     return s ? `${s.transliteration} · ${s.englishName}` : `Surah ${n}`;
   };
 
-  return (
-    <div className="search">
-      <input
-        type="search"
-        className="search-input"
-        placeholder="Search the Quran — e.g. mercy, patience, الرحمن"
-        value={query}
-        onChange={(e) => run(e.target.value)}
-        onBlur={() => remember(query)}
-        autoFocus
-        aria-label="Search the Quran"
-      />
+  const chip = {
+    background: N.card,
+    border: `1px solid ${N.border}`,
+    borderRadius: 999,
+    padding: "10px 18px",
+    color: N.fg,
+    fontFamily: N.ui,
+    fontSize: 14,
+    cursor: "pointer",
+  } as const;
 
-      {status === "loading" && <p className="hifz-muted">Building the search index…</p>}
+  const showSuggest = status === "ready" && query.trim() === "";
+
+  return (
+    <div>
+      {/* Search input */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          background: N.card,
+          border: `1px solid ${N.border}`,
+          borderRadius: 16,
+          padding: "0 18px",
+          height: 56,
+          marginBottom: 22,
+        }}
+      >
+        <Icon name="search" size={22} color={N.muted} />
+        <input
+          type="search"
+          placeholder="Try “Mulk”, “mercy”, or a surah number…"
+          value={query}
+          onChange={(e) => run(e.target.value)}
+          onBlur={() => remember(query)}
+          autoFocus
+          aria-label="Search the Quran"
+          style={{
+            flex: 1,
+            background: "none",
+            border: "none",
+            outline: "none",
+            color: N.fg,
+            fontFamily: N.ui,
+            fontSize: 17,
+          }}
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => run("")}
+            aria-label="Clear search"
+            style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 0, color: N.faint }}
+          >
+            <Icon name="close" size={18} color={N.faint} />
+          </button>
+        )}
+      </div>
+
+      {status === "loading" && (
+        <p style={{ color: N.muted, fontFamily: N.ui }}>Building the search index…</p>
+      )}
       {status === "error" && (
-        <p className="hifz-muted">Couldn’t load the search index. Check your connection.</p>
+        <p style={{ color: N.muted, fontFamily: N.ui }}>
+          Couldn’t load the search index. Check your connection.
+        </p>
       )}
 
-      {status === "ready" && query.trim() === "" && history.length > 0 && (
-        <div className="search-history">
-          <span className="shelf-label">Recent searches</span>
-          <div className="shelf-chips">
-            {history.map((h) => (
-              <button key={h} type="button" className="chip" onClick={() => run(h)}>
-                {h}
+      {/* Suggestions / recent (empty query) */}
+      {showSuggest && (
+        <div>
+          {history.length > 0 && (
+            <>
+              <div style={{ fontSize: 13, color: N.faint, marginBottom: 12, fontFamily: N.ui }}>
+                Recent searches
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 22 }}>
+                {history.map((h) => (
+                  <button key={h} type="button" style={chip} onClick={() => run(h)}>
+                    {h}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          <div style={{ fontSize: 13, color: N.faint, marginBottom: 12, fontFamily: N.ui }}>Suggested</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {SUGGESTIONS.map((s) => (
+              <button key={s} type="button" style={chip} onClick={() => run(s)}>
+                {s}
               </button>
             ))}
           </div>
         </div>
       )}
 
+      {/* Results */}
       {status === "ready" && query.trim() !== "" && (
-        <p className="search-count">
-          {results.length === 0
-            ? "No matches"
-            : `${results.length} result${results.length === 1 ? "" : "s"}`}
-        </p>
+        <>
+          <p style={{ fontSize: 13, color: N.faint, marginBottom: 12, fontFamily: N.ui }}>
+            {results.length === 0
+              ? `No matches for “${query.trim()}”.`
+              : `${results.length} result${results.length === 1 ? "" : "s"}`}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {results.map((r) => (
+              <Link
+                key={`${r.key}:${r.source}`}
+                href={`/surah/${r.sura}#${r.sura}:${r.aya}`}
+                style={{
+                  display: "block",
+                  background: N.card,
+                  border: `1px solid ${N.border}`,
+                  borderRadius: 14,
+                  padding: "16px 18px",
+                  textDecoration: "none",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    marginBottom: 8,
+                  }}
+                >
+                  <span
+                    style={{
+                      position: "relative",
+                      width: 28,
+                      height: 28,
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Khatam size={28} color={N.goldDim} sw={1.2} />
+                    <span style={{ position: "absolute", fontSize: 10.5, fontWeight: 700, color: N.gold, fontFamily: N.ui }}>
+                      {r.sura}
+                    </span>
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: N.gold, fontFamily: N.ui }}>
+                    {label(r.sura)} · {r.sura}:{r.aya}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      background: N.goldSoft,
+                      color: N.gold,
+                      fontWeight: 600,
+                      fontFamily: N.ui,
+                    }}
+                  >
+                    {r.source === "ar" ? "Arabic" : "English"}
+                  </span>
+                </div>
+                {r.source === "ar" ? (
+                  <div className="noor-ar" style={{ fontSize: 21, lineHeight: 1.9, color: N.fg, textAlign: "right" }}>
+                    {r.text}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 15, lineHeight: 1.65, color: N.muted, fontFamily: N.ui }}>{r.text}</div>
+                )}
+              </Link>
+            ))}
+          </div>
+        </>
       )}
-
-      <ol className="search-results">
-        {results.map((r) => (
-          <li key={`${r.key}:${r.source}`} className="search-result">
-            <Link href={`/surah/${r.sura}#${r.sura}:${r.aya}`} className="search-result-link">
-              <span className="search-result-ref">
-                {label(r.sura)} · {r.sura}:{r.aya}
-                <span className={`search-tag search-tag--${r.source}`}>
-                  {r.source === "ar" ? "Arabic" : "English"}
-                </span>
-              </span>
-              <span className={r.source === "ar" ? "search-result-text arabic" : "search-result-text"}>
-                {r.text}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ol>
     </div>
   );
 }
