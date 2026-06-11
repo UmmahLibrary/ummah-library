@@ -22,7 +22,8 @@ test.describe("Location-aware tools", () => {
     await page.goto("/qibla");
     await page.getByRole("button", { name: /Use my location/ }).click();
 
-    await expect(page.getByText("Qibla direction")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/\d+°/)).toBeVisible(); // e.g. "119° SE"
+    // `exact` avoids also matching the <title> "Qibla direction · Ummah Library".
+    await expect(page.getByText("Qibla direction", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/\d+° [NESW]/).first()).toBeVisible(); // e.g. "119° SE"
   });
 });
