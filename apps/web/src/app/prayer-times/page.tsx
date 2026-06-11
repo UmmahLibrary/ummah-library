@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { PrayerTimesView } from "../../components/PrayerTimesView";
-import { HijriToday } from "../../components/HijriToday";
 
 export const metadata: Metadata = {
   title: "Prayer times",
@@ -12,16 +11,13 @@ export const metadata: Metadata = {
 
 export default function PrayerTimesPage() {
   return (
-    <>
-      <Link href="/" className="back-link">
-        ← Home
-      </Link>
-      <header className="reader-head">
-        <div className="name-en">Prayer times</div>
-        <div className="sub">Salah times for your location</div>
-        <HijriToday />
-      </header>
+    <NoorPageFrame
+      title="Prayer Times"
+      sub="Daily salah times for your location"
+      glyph="🕌"
+      back="/"
+    >
       <PrayerTimesView />
-    </>
+    </NoorPageFrame>
   );
 }

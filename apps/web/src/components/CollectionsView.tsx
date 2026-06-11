@@ -15,6 +15,7 @@ import {
   readNotes,
   writeCollections,
 } from "../lib/collections";
+import { N, Khatam } from "./noor";
 
 export function CollectionsView() {
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -40,10 +41,27 @@ export function CollectionsView() {
   if (!ready) return null;
   if (collections.length === 0) {
     return (
-      <p className="hifz-muted">
-        No collections yet. Open any surah, tap <strong>☆ Save</strong> under an ayah, and create a
-        collection to group your favourite verses and notes.
-      </p>
+      <div style={{ textAlign: "center", padding: "48px 20px 30px" }}>
+        <div style={{ display: "inline-grid", placeItems: "center", marginBottom: 16, opacity: 0.5 }}>
+          <Khatam size={64} color={N.goldDim} sw={1.2} />
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: N.fg, marginBottom: 8, fontFamily: N.ui }}>
+          No bookmarks yet
+        </div>
+        <div
+          style={{
+            fontSize: 14.5,
+            color: N.muted,
+            maxWidth: 440,
+            margin: "0 auto",
+            lineHeight: 1.6,
+            fontFamily: N.ui,
+          }}
+        >
+          Open any surah, tap <strong style={{ color: N.gold }}>☆ Save</strong> under an āyah, and
+          group your favourite verses and notes into collections here.
+        </div>
+      </div>
     );
   }
 

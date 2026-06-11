@@ -1,22 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { N } from "../../../components/noor";
+import { SurahReaderClient } from "../../../components/SurahReaderClient";
 import { TOTAL_SURAHS, isValidSurahNumber } from "@ummahlibrary/core";
 import { pluginRegistry, quranRepository } from "@ummahlibrary/api";
-import { ReaderControls } from "../../../components/ReaderControls";
-import { ReadingAudio } from "../../../components/ReadingAudio";
-import { AyahTafsir } from "../../../components/AyahTafsir";
-import { TafsirPicker } from "../../../components/TafsirPicker";
-import { AyahTranslations } from "../../../components/AyahTranslations";
-import { ReadingTranslationFlow } from "../../../components/ReadingTranslationFlow";
-import { HifzButton } from "../../../components/HifzButton";
-import { AyahActions } from "../../../components/AyahActions";
-import { HashHighlighter } from "../../../components/HashHighlighter";
-import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
-import { ReadingTracker } from "../../../components/ReadingTracker";
-import { WordByWord } from "../../../components/WordByWord";
-import { ReadingModeToggle } from "../../../components/ReadingModeToggle";
-import { ReadingTranslationPicker } from "../../../components/ReadingTranslationPicker";
 
 const RECITERS = pluginRegistry.byKind("reciter");
 const TAFSIRS = pluginRegistry.byKind("tafsir").map((t) => ({ id: t.id, name: t.name }));
@@ -27,9 +14,6 @@ export const dynamicParams = false;
 export function generateStaticParams() {
   return Array.from({ length: TOTAL_SURAHS }, (_, i) => ({ number: String(i + 1) }));
 }
-
-const toArabicDigits = (n: number): string =>
-  String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
 
 async function loadSurah(numberParam: string) {
   const number = Number(numberParam);
@@ -42,7 +26,6 @@ async function loadSurah(numberParam: string) {
     number < TOTAL_SURAHS ? quranRepository.getSurah(number + 1) : Promise.resolve(null),
   ]);
   if (!surah) return null;
-  // Translations are fetched client-side from the runtime catalogue (ADR 0011).
   return { number, surah, ayahs, bismillah, prevSurah, nextSurah };
 }
 
@@ -90,126 +73,46 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
   };
 
   return (
-    <>
+    <div
+      style={{
+        width: "100%",
+        height: "100dvh",
+        display: "flex",
+        flexDirection: "column",
+        background: N.bg,
+        color: N.fg,
+        overflow: "hidden",
+      }}
+    >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <ReaderShortcuts storageKey={`surah:${surah.number}`} />
-      <ReadingTracker />
-      <HashHighlighter />
-      <Link href="/" className="back-link">
-        ← All surahs
-      </Link>
-
-      <header className="reader-head">
-        <div className="name-ar arabic">{surah.name}</div>
-        <div className="name-en">
-          {surah.transliteration} · {surah.englishName}
-        </div>
-        <div className="sub">
-          Surah {surah.number} · {surah.ayahCount} āyāt ·{" "}
-          {surah.revelationPlace === "meccan" ? "Meccan" : "Medinan"}
-        </div>
-      </header>
-
-      <ReadingModeToggle />
-
-      <div className="mode-translation">
-        <ReaderControls surahNumber={surah.number} backHref="/" backLabel="Surahs" />
-
-        <ReadingAudio
-          verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
-          reciters={RECITERS}
-        />
-
-        <WordByWord />
-
-        {TAFSIRS.length > 1 && <TafsirPicker tafsirs={TAFSIRS} />}
-
-        {/* Surah 1's Basmala is ayah 1 itself; others show it as a header. */}
-        {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
-
-        <div>
-          {ayahs.map((ayah) => (
-            <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
-              <p className="ayah-ar arabic">
-                {ayah.text.split(" ").flatMap((word, i) => [
-                  <span key={i} className="w" data-w={i}>
-                    {word}
-                  </span>,
-                  " ",
-                ])}
-                <button
-                  type="button"
-                  className="ayah-marker"
-                  data-play-key={`${surah.number}:${ayah.aya}`}
-                  aria-label={`Play from āyah ${ayah.aya}`}
-                >
-                  ﴿{toArabicDigits(ayah.aya)}﴾
-                </button>
-              </p>
-              <AyahTranslations surah={surah.number} aya={ayah.aya} />
-              <div className="ayah-actions">
-                <button
-                  type="button"
-                  className="hifz-btn"
-                  data-play-one={`${surah.number}:${ayah.aya}`}
-                  aria-label={`Play āyah ${ayah.aya}`}
-                >
-                  ▶ Play
-                </button>
-                <HifzButton surah={surah.number} aya={ayah.aya} />
-                <AyahActions surah={surah.number} aya={ayah.aya} />
-              </div>
-              {TAFSIRS.length > 0 && (
-                <AyahTafsir surah={surah.number} aya={ayah.aya} tafsirs={TAFSIRS} />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mode-reading">
-        {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
-        <p className="mushaf arabic">
-          {ayahs.map((ayah) => (
-            <span key={ayah.aya}>
-              {ayah.text}
-              <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>{" "}
-            </span>
-          ))}
-        </p>
-      </div>
-
-      {/* Reading → Translations: a single chosen translation in a continuous,
-          chrome-free flow (no per-āyah Arabic), matching Quran.com. */}
-      <div className="mode-reading-tr">
-        <ReadingTranslationPicker />
-        {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
-        <ReadingTranslationFlow surah={surah.number} ayat={ayahs.map((a) => a.aya)} />
-      </div>
-
-      <nav className="reader-nav">
-        {prevSurah ? (
-          <Link href={`/surah/${prevSurah.number}`} className="reader-nav-btn">
-            <span className="reader-nav-dir">←</span>
-            <span className="reader-nav-name">{prevSurah.transliteration}</span>
-          </Link>
-        ) : (
-          <span />
-        )}
-        {nextSurah ? (
-          <Link href={`/surah/${nextSurah.number}`} className="reader-nav-btn">
-            <span className="reader-nav-name">{nextSurah.transliteration}</span>
-            <span className="reader-nav-dir">→</span>
-          </Link>
-        ) : (
-          <span />
-        )}
-      </nav>
-
-      <p className="foot">Arabic: Tanzil (CC-BY 3.0) · Translations via Ummah Library datasets</p>
-    </>
+      <SurahReaderClient
+        surah={{
+          number: surah.number,
+          name: surah.name,
+          transliteration: surah.transliteration,
+          englishName: surah.englishName,
+          ayahCount: surah.ayahCount,
+          revelationPlace: surah.revelationPlace,
+          hasBismillah: surah.hasBismillah,
+        }}
+        ayahs={ayahs.map((a) => ({ aya: a.aya, text: a.text }))}
+        bismillah={bismillah}
+        prevSurah={
+          prevSurah
+            ? { number: prevSurah.number, transliteration: prevSurah.transliteration }
+            : null
+        }
+        nextSurah={
+          nextSurah
+            ? { number: nextSurah.number, transliteration: nextSurah.transliteration }
+            : null
+        }
+        reciters={RECITERS}
+        tafsirs={TAFSIRS}
+      />
+    </div>
   );
 }

@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { adhkarRepository } from "@ummahlibrary/api";
+import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { AdhkarView } from "../../components/AdhkarView";
 import { AdhkarReminderToggle } from "../../components/AdhkarReminderToggle";
-import { HijriToday } from "../../components/HijriToday";
 
 export const metadata: Metadata = {
   title: "Adhkar — morning & evening",
@@ -16,17 +15,14 @@ export default async function AdhkarPage() {
   const dhikr = await adhkarRepository.all();
 
   return (
-    <>
-      <Link href="/" className="back-link">
-        ← Home
-      </Link>
-      <header className="reader-head">
-        <div className="name-en">Adhkar</div>
-        <div className="sub">Morning &amp; evening remembrances</div>
-        <HijriToday />
-      </header>
+    <NoorPageFrame
+      title="Adhkār"
+      sub="Morning & evening remembrances"
+      glyph="☼"
+      back="/"
+    >
       <AdhkarReminderToggle />
       <AdhkarView dhikr={dhikr} />
-    </>
+    </NoorPageFrame>
   );
 }

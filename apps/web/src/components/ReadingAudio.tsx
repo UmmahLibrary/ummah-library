@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { type ReciterPlugin, reciterAudioUrl } from "@ummahlibrary/core";
+import { N, Icon } from "./noor";
 
 const RECITER_KEY = "ul.reciter";
 const LOOP_KEY = "ul.loop";
@@ -55,7 +56,16 @@ function fetchTiming(recitationId: number, verseKey: string): Promise<Timing | n
  * id="sura:aya"; play buttons use data-play-key (play from there) or
  * data-play-one (play just that ayah). Words highlight via quran.com timing.
  */
-export function ReadingAudio({ verses, reciters }: { verses: Verse[]; reciters: ReciterPlugin[] }) {
+export function ReadingAudio({
+  verses,
+  reciters,
+  variant = "inline",
+}: {
+  verses: Verse[];
+  reciters: ReciterPlugin[];
+  /** "inline" = compact bar inside content (juzʾ); "dock" = fixed bottom player (surah reader). */
+  variant?: "inline" | "dock";
+}) {
   const [reciterId, setReciterId] = useState(reciters[0]?.id ?? "");
   const [current, setCurrent] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -210,6 +220,127 @@ export function ReadingAudio({ verses, reciters }: { verses: Verse[]; reciters: 
   }, [reciterId]);
 
   if (reciters.length === 0) return null;
+
+  if (variant === "dock") {
+    const list = versesRef.current;
+    const pos = current ? list.findIndex((v) => keyOf(v) === current) : -1;
+    const pct = pos >= 0 && list.length > 0 ? ((pos + 1) / list.length) * 100 : 0;
+    const currentAya = current ? parseKey(current).aya : null;
+    const reciterName = reciters.find((r) => r.id === reciterId)?.name ?? reciters[0]?.name ?? "Reciter";
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+          padding: "10px clamp(14px, 4vw, 40px)",
+          borderTop: `1px solid ${N.border}`,
+          background: N.bg2,
+          flexShrink: 0,
+        }}
+      >
+        <button
+          type="button"
+          onClick={toggle}
+          aria-pressed={isPlaying}
+          aria-label={isPlaying ? "Pause" : "Play"}
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            background: N.goldGrad,
+            color: N.ink,
+            display: "grid",
+            placeItems: "center",
+            border: "none",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          <Icon name={isPlaying ? "pause" : "play"} size={18} color={N.ink} />
+        </button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: 12.5,
+              color: N.muted,
+              marginBottom: 6,
+              fontFamily: N.ui,
+            }}
+          >
+            <span
+              style={{
+                fontWeight: 600,
+                color: N.fg,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {reciterName}
+              {currentAya ? ` · Āyah ${currentAya}` : ""}
+            </span>
+            <span className="noor-hide-sm" style={{ flexShrink: 0, marginLeft: 10 }}>
+              {isPlaying ? "Now playing" : current ? "Paused" : "Tap ▶ on an āyah"}
+            </span>
+          </div>
+          <div style={{ height: 4, borderRadius: 2, background: N.border }}>
+            <div
+              style={{ width: `${pct}%`, height: "100%", borderRadius: 2, background: N.gold, transition: "width .3s" }}
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={toggleLoop}
+          aria-pressed={loop}
+          title="Repeat the surah continuously"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: loop ? N.gold : N.muted,
+            display: "grid",
+            placeItems: "center",
+            flexShrink: 0,
+            padding: 4,
+          }}
+        >
+          <Icon name="repeat" size={18} />
+        </button>
+        {reciters.length > 1 && (
+          <select
+            className="noor-hide-sm"
+            value={reciterId}
+            onChange={(e) => {
+              setReciterId(e.target.value);
+              localStorage.setItem(RECITER_KEY, e.target.value);
+              stop();
+            }}
+            style={{
+              flexShrink: 0,
+              background: N.card,
+              color: N.muted,
+              border: `1px solid ${N.border}`,
+              borderRadius: 9,
+              padding: "7px 10px",
+              fontFamily: N.ui,
+              fontSize: 13,
+              maxWidth: 160,
+            }}
+          >
+            {reciters.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="audio-bar">

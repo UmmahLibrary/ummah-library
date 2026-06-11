@@ -1,0 +1,20 @@
+/** Noor — Obsidian & Gold design tokens (mirrored as JS for use in components). */
+export const N = {
+  bg: "#0A0B0F",
+  bg2: "#0E1017",
+  card: "#14171F",
+  cardHi: "#191D27",
+  border: "#242A38",
+  borderSoft: "#1B2029",
+  fg: "#F4F1EA",
+  muted: "#9AA0B2",
+  faint: "#5C6273",
+  gold: "#E6B855",
+  goldHi: "#F4D58A",
+  goldDim: "#A98432",
+  goldSoft: "rgba(230,184,85,0.12)",
+  goldGrad: "linear-gradient(180deg, #F4D58A, #E6B855)",
+  ink: "#1A1404",
+  ui: "'Hanken Grotesk', system-ui, sans-serif",
+  ar: "'IBM Plex Sans Arabic', serif",
+} as const;

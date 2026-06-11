@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { ReadingGoalsView } from "../../components/ReadingGoalsView";
 
 export const metadata: Metadata = {
@@ -11,15 +11,13 @@ export const metadata: Metadata = {
 
 export default function GoalsPage() {
   return (
-    <>
-      <Link href="/" className="back-link">
-        ← Home
-      </Link>
-      <header className="reader-head">
-        <div className="name-en">Reading goals</div>
-        <div className="sub">Daily goal · streak · khatma planner</div>
-      </header>
+    <NoorPageFrame
+      title="Reading Goals"
+      sub="Build a daily habit with the Book of Allah"
+      glyph="◎"
+      back="/"
+    >
       <ReadingGoalsView />
-    </>
+    </NoorPageFrame>
   );
 }
