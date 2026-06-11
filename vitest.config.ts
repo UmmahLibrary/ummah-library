@@ -39,9 +39,9 @@ export default defineConfig({
         "packages/core/src/**": { statements: 95, branches: 88, functions: 95, lines: 95 },
         "packages/data/src/**": { statements: 85, branches: 78, functions: 72, lines: 85 },
         "packages/adapters/src/**": { statements: 95, branches: 82, functions: 90, lines: 95 },
-        // Web client — a growing baseline.
-        "apps/web/src/lib/**": { statements: 30, branches: 70, functions: 85, lines: 30 },
-        "apps/web/src/components/**": { statements: 2, branches: 25, functions: 8, lines: 2 },
+        // Web client — a growing baseline, ratcheted as tests land.
+        "apps/web/src/lib/**": { statements: 55, branches: 73, functions: 95, lines: 55 },
+        "apps/web/src/components/**": { statements: 10, branches: 50, functions: 25, lines: 10 },
       },
     },
   },
