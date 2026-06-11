@@ -2,9 +2,10 @@ import { defineConfig } from "vitest/config";
 
 /**
  * Root config — supplies the coverage settings for the workspace run
- * (`pnpm test:coverage`). Coverage is scoped to the logic libraries
- * (core / data / adapters); the UI apps are covered by manual + e2e checks,
- * not unit tests. No failing thresholds yet — this just reports the numbers.
+ * (`pnpm test:coverage`). Coverage is reported for the logic libraries
+ * (core / data / adapters) and the web client logic. Per-library thresholds
+ * lock in the well-tested logic so it can't silently regress; the web UI is
+ * reported as a growing baseline (no gate yet).
  */
 export default defineConfig({
   test: {
@@ -32,6 +33,13 @@ export default defineConfig({
         "packages/core/src/entities.ts",
         "packages/core/src/ports.ts",
       ],
+      // Gate the logic libraries (set a little below current to absorb churn).
+      // No web/global threshold yet — that's a ratcheting baseline.
+      thresholds: {
+        "packages/core/src/**": { statements: 95, branches: 88, functions: 95, lines: 95 },
+        "packages/data/src/**": { statements: 85, branches: 78, functions: 72, lines: 85 },
+        "packages/adapters/src/**": { statements: 95, branches: 82, functions: 90, lines: 95 },
+      },
     },
   },
 });
