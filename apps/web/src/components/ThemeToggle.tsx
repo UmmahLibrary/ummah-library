@@ -1,25 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  applyTheme,
+  lastThemeForMode,
+  normalizeTheme,
+  themeMode,
+  type ThemeMode,
+} from "../lib/themes";
 
-type Theme = "light" | "dark";
-
+/**
+ * Quick light↔dark switch for the top bar. Flipping a mode restores the theme
+ * last used in it (defaulting to Obsidian / Ivory); the full eight-theme picker
+ * lives in Settings.
+ */
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [mode, setMode] = useState<ThemeMode>("dark");
 
   useEffect(() => {
-    setTheme((document.documentElement.dataset.theme as Theme) || "dark");
+    setMode(themeMode(normalizeTheme(document.documentElement.dataset.theme)));
   }, []);
 
   function toggle() {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    document.documentElement.dataset.theme = next;
-    try {
-      localStorage.setItem("ul.theme", next);
-    } catch {
-      /* ignore */
-    }
+    const target: ThemeMode = mode === "dark" ? "light" : "dark";
+    applyTheme(lastThemeForMode(target));
+    setMode(target);
   }
 
   return (
@@ -27,9 +32,9 @@ export function ThemeToggle() {
       type="button"
       className="head-link theme-toggle"
       onClick={toggle}
-      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+      aria-label={`Switch to ${mode === "dark" ? "light" : "dark"} theme`}
     >
-      {theme === "dark" ? "☀️" : "🌙"}
+      {mode === "dark" ? "☀️" : "🌙"}
     </button>
   );
 }

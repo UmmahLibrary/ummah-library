@@ -2294,6 +2294,78 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   color: var(--muted);
 }
 
+/* ---- Theme picker (settings) ---- */
+.theme-picker {
+  margin: 0 0 2rem;
+}
+.theme-picker-title {
+  font-size: 1.1rem;
+  margin: 0 0 0.75rem;
+}
+.theme-group {
+  margin-bottom: 1rem;
+}
+.theme-group-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.6rem;
+}
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+  color: var(--fg);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.theme-option:hover {
+  border-color: var(--accent);
+}
+.theme-option[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.theme-swatch {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+}
+.theme-swatch-dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+}
+.theme-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.theme-option-name {
+  font-weight: 600;
+}
+.theme-option-desc {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 /* ── Noor shell layout utilities ── */
 html,
 body {

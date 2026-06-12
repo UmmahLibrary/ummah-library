@@ -54,11 +54,17 @@ export const viewport: Viewport = {
   themeColor: "#0A0B0F",
 };
 
-/* Apply saved theme before first paint to avoid flash. Defaults to dark (Noor is dark-first). */
+/* Apply saved theme before first paint to avoid flash. Defaults to Obsidian (Noor
+   is dark-first); maps the legacy "dark"/"light" values and sets data-mode. */
 const themeScript = `(function(){try{
   var d=document.documentElement;
-  var t=localStorage.getItem("ul.theme")||"dark";
+  var legacy={dark:"obsidian",light:"ivory"};
+  var light={ivory:1,sepia:1,mint:1,rose:1};
+  var dark={obsidian:1,midnight:1,emerald:1,ocean:1};
+  var raw=localStorage.getItem("ul.theme")||"obsidian";
+  var t=(dark[raw]||light[raw])?raw:(legacy[raw]||"obsidian");
   d.dataset.theme=t;
+  d.dataset.mode=light[t]?"light":"dark";
   d.dataset.readingMode=localStorage.getItem("ul.readingMode")||"translation";
   /* Noor: set CSS var font families after font vars are available */
   d.style.setProperty("--noor-ui","'Hanken Grotesk', system-ui, sans-serif");
