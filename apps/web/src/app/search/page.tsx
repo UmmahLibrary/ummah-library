@@ -18,7 +18,7 @@ export default async function SearchPage() {
       sub="Find any surah, verse, or topic"
       glyph="🔍"
       back="/"
-      maxW={760}
+      maxW={820}
     >
       <SearchView
         surahs={surahs.map((s) => ({
