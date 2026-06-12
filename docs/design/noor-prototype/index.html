@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Ummah Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  html, body, #root { height: 100%; }
+  html, body { margin: 0; padding: 0; background: var(--ul-bg, #0A0B0F); overflow: hidden; }
+</style>
+<script>
+  // Set theme background before first paint to avoid a flash of the wrong theme.
+  // (Only bg is needed pre-mount — #root is empty until React runs; full palette
+  // applies microseconds later in kit.jsx.)
+  (function () {
+    try {
+      var BG = {
+        obsidian: ["#0A0B0F", "#F4F1EA"], midnight: ["#000000", "#FFFFFF"],
+        emerald: ["#07140E", "#EFF4EE"], ocean: ["#08121A", "#ECF2F6"],
+        ivory: ["#FAF6EE", "#1F1B12"], sepia: ["#F3EAD8", "#3A2E1B"],
+        mint: ["#F0F6F3", "#16241D"], rose: ["#FAF3F1", "#271A18"],
+        dark: ["#0A0B0F", "#F4F1EA"], light: ["#FAF6EE", "#1F1B12"]
+      };
+      var t = localStorage.getItem("ul.appTheme") || "obsidian";
+      var p = BG[t] || BG.obsidian, r = document.documentElement;
+      r.style.setProperty("--ul-bg", p[0]);
+      r.style.setProperty("--ul-fg", p[1]);
+      r.style.background = p[0];
+    } catch (e) {}
+  })();
+</script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="app/quran.js"></script>
+<script src="app/extra.js"></script>
+<script src="app/tafsir-data.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#0A0B0F">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0A0B0F"/>
+    <g transform="translate(600 400)" fill="none" stroke="#E6B855" stroke-width="9">
+      <rect x="-150" y="-150" width="300" height="300"/>
+      <rect x="-150" y="-150" width="300" height="300" transform="rotate(45)"/>
+      <circle cx="0" cy="0" r="62"/>
+    </g>
+  </svg>
+</template>
+<div id="root"></div>
+<script type="text/babel" src="app/kit.jsx" data-presets="react"></script>
+<script type="text/babel" src="app/tajwid.jsx" data-presets="react"></script>
+<script type="text/babel" src="app/views.jsx" data-presets="react"></script>
+<script type="text/babel" src="app/reader.jsx" data-presets="react"></script>
+<script type="text/babel" src="app/tools.jsx" data-presets="react"></script>
+<script type="text/babel" src="app/learn.jsx" data-presets="react"></script>
+<script type="text/babel" src="app/more.jsx" data-presets="react"></script>
+<script type="text/babel" src="app/search.jsx" data-presets="react"></script>
+<script type="text/babel" src="app/onboarding.jsx" data-presets="react"></script>
+<script type="text/babel" src="app/app.jsx" data-presets="react"></script>
+</body>
+</html>
