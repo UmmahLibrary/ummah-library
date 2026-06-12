@@ -12,7 +12,13 @@ export const metadata: Metadata = {
 
 export default function SettingsPage() {
   return (
-    <NoorPageFrame title="Settings" sub="Tailor the app to your practice" glyph="⚙" back="/">
+    <NoorPageFrame
+      title="Settings"
+      sub="Tailor the app to your practice"
+      glyph="⚙"
+      back="/"
+      maxW={620}
+    >
       <ThemePicker />
       <DataBackup />
     </NoorPageFrame>
