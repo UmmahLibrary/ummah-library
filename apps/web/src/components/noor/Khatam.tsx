@@ -24,21 +24,30 @@ export function Khatam({
       width={size}
       height={size}
       viewBox="0 0 100 100"
-      style={{ display: "block", opacity, ...style }}
+      // `color` is set in CSS so a `var(--…)` stroke resolves; shapes use currentColor.
+      style={{ display: "block", opacity, color, ...style }}
       aria-hidden="true"
     >
-      <rect x="22" y="22" width="56" height="56" fill={fill} stroke={color} strokeWidth={sw} />
       <rect
         x="22"
         y="22"
         width="56"
         height="56"
         fill={fill}
-        stroke={color}
+        stroke="currentColor"
+        strokeWidth={sw}
+      />
+      <rect
+        x="22"
+        y="22"
+        width="56"
+        height="56"
+        fill={fill}
+        stroke="currentColor"
         strokeWidth={sw}
         transform="rotate(45 50 50)"
       />
-      <circle cx="50" cy="50" r="11" fill={fill} stroke={color} strokeWidth={sw} />
+      <circle cx="50" cy="50" r="11" fill={fill} stroke="currentColor" strokeWidth={sw} />
     </svg>
   );
 }

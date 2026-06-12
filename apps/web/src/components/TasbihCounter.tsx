@@ -123,18 +123,24 @@ export function TasbihCounter() {
           style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
           aria-hidden="true"
         >
-          <circle cx="150" cy="150" r={R} fill="none" stroke={N.border} strokeWidth="10" />
           <circle
             cx="150"
             cy="150"
             r={R}
             fill="none"
-            stroke={N.gold}
+            strokeWidth="10"
+            style={{ stroke: N.border }}
+          />
+          <circle
+            cx="150"
+            cy="150"
+            r={R}
+            fill="none"
             strokeWidth="10"
             strokeLinecap="round"
             strokeDasharray={C}
             strokeDashoffset={C * (1 - pct)}
-            style={{ transition: "stroke-dashoffset .3s ease" }}
+            style={{ stroke: N.gold, transition: "stroke-dashoffset .3s ease" }}
           />
         </svg>
 
@@ -177,9 +183,7 @@ export function TasbihCounter() {
           >
             {view.count}
           </div>
-          <div style={{ fontSize: 13, color: N.faint, fontFamily: N.ui }}>
-            of {state.target}
-          </div>
+          <div style={{ fontSize: 13, color: N.faint, fontFamily: N.ui }}>of {state.target}</div>
         </div>
       </div>
 
