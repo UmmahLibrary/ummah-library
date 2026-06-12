@@ -16,6 +16,7 @@ export default function QiblaPage() {
       sub="Direction to the Kaʿbah from your location"
       glyph="🧭"
       back="/"
+      maxW={560}
     >
       <QiblaCompass />
     </NoorPageFrame>

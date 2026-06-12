@@ -20,6 +20,7 @@ export default async function AdhkarPage() {
       sub="Morning & evening remembrances"
       glyph="☼"
       back="/"
+      maxW={760}
     >
       <AdhkarReminderToggle />
       <AdhkarView dhikr={dhikr} />

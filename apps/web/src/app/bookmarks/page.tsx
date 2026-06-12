@@ -4,8 +4,7 @@ import { CollectionsView } from "../../components/CollectionsView";
 
 export const metadata: Metadata = {
   title: "Bookmarks",
-  description:
-    "Your saved verses and collections — kept privately on your device.",
+  description: "Your saved verses and collections — kept privately on your device.",
   alternates: { canonical: "/bookmarks" },
 };
 
@@ -16,6 +15,7 @@ export default function BookmarksPage() {
       sub="Your saved verses and collections"
       glyph="❑"
       back="/"
+      maxW={860}
     >
       <CollectionsView />
     </NoorPageFrame>

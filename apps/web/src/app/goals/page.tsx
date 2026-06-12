@@ -16,6 +16,7 @@ export default function GoalsPage() {
       sub="Build a daily habit with the Book of Allah"
       glyph="◎"
       back="/"
+      maxW={820}
     >
       <ReadingGoalsView />
     </NoorPageFrame>
