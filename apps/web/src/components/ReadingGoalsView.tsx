@@ -144,24 +144,51 @@ export function ReadingGoalsView() {
           }}
         >
           <div style={{ position: "relative", width: 200, height: 200 }}>
-            <svg width="200" height="200" style={{ transform: "rotate(-90deg)" }} aria-hidden="true">
-              <circle cx="100" cy="100" r={R} fill="none" stroke={N.border} strokeWidth="14" />
+            <svg
+              width="200"
+              height="200"
+              style={{ transform: "rotate(-90deg)" }}
+              aria-hidden="true"
+            >
               <circle
                 cx="100"
                 cy="100"
                 r={R}
                 fill="none"
-                stroke={N.gold}
+                strokeWidth="14"
+                style={{ stroke: N.border }}
+              />
+              <circle
+                cx="100"
+                cy="100"
+                r={R}
+                fill="none"
                 strokeWidth="14"
                 strokeLinecap="round"
                 strokeDasharray={C}
                 strokeDashoffset={C * (1 - pct)}
-                style={{ transition: "stroke-dashoffset .4s ease" }}
+                style={{ stroke: N.gold, transition: "stroke-dashoffset .4s ease" }}
               />
             </svg>
-            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center" }}>
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "grid",
+                placeItems: "center",
+                textAlign: "center",
+              }}
+            >
               <div>
-                <div style={{ fontSize: 40, fontWeight: 800, color: N.gold, letterSpacing: -1.5, fontFamily: N.ui }}>
+                <div
+                  style={{
+                    fontSize: 40,
+                    fontWeight: 800,
+                    color: N.gold,
+                    letterSpacing: -1.5,
+                    fontFamily: N.ui,
+                  }}
+                >
                   {pages}
                 </div>
                 <div style={{ fontSize: 13, color: N.faint, fontFamily: N.ui }}>
@@ -170,7 +197,15 @@ export function ReadingGoalsView() {
               </div>
             </div>
           </div>
-          <div style={{ fontSize: 14, color: N.muted, marginTop: 16, textAlign: "center", fontFamily: N.ui }}>
+          <div
+            style={{
+              fontSize: 14,
+              color: N.muted,
+              marginTop: 16,
+              textAlign: "center",
+              fontFamily: N.ui,
+            }}
+          >
             {done
               ? "Today’s goal met — māshāʾAllāh ✓"
               : `${remaining} page${remaining === 1 ? "" : "s"} to reach today’s goal`}
@@ -197,7 +232,13 @@ export function ReadingGoalsView() {
               {week.map((d, i) => (
                 <div
                   key={i}
-                  style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
                 >
                   <div
                     title={`${d.pages} page${d.pages === 1 ? "" : "s"}`}
@@ -209,7 +250,13 @@ export function ReadingGoalsView() {
                       transition: "height .3s",
                     }}
                   />
-                  <span style={{ fontSize: 11.5, color: d.isToday ? N.gold : N.faint, fontFamily: N.ui }}>
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      color: d.isToday ? N.gold : N.faint,
+                      fontFamily: N.ui,
+                    }}
+                  >
                     {d.label}
                   </span>
                 </div>
@@ -230,7 +277,9 @@ export function ReadingGoalsView() {
               <div style={{ fontSize: 30, fontWeight: 800, color: N.gold, fontFamily: N.ui }}>
                 {streak} day{streak === 1 ? "" : "s"}
               </div>
-              <div style={{ fontSize: 13, color: N.faint, fontFamily: N.ui }}>Current streak 🔥</div>
+              <div style={{ fontSize: 13, color: N.faint, fontFamily: N.ui }}>
+                Current streak 🔥
+              </div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
@@ -246,7 +295,9 @@ export function ReadingGoalsView() {
 
       {/* Light controls — the design dashboard shows the goal/khatma as already set;
           we keep them adjustable here without competing with the hero. */}
-      <div style={{ marginTop: 22, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <div
+        style={{ marginTop: 22, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}
+      >
         <span style={pillLabel}>Daily goal</span>
         {[2, 4, 8, 16, 20].map((n) => (
           <button key={n} onClick={() => changeGoal(n)} style={pill(n === goal)}>
@@ -255,7 +306,9 @@ export function ReadingGoalsView() {
         ))}
       </div>
 
-      <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <div
+        style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}
+      >
         <span style={pillLabel}>Khatma</span>
         {!khatma ? (
           [30, 60, 90].map((d) => (
@@ -266,11 +319,14 @@ export function ReadingGoalsView() {
         ) : (
           <>
             <span style={{ fontSize: 13, color: N.muted, fontFamily: N.ui }}>
-              Page <strong style={{ color: N.fg }}>{khatma.currentPage}</strong>/{khatma.totalPages} ·{" "}
-              {Math.max(0, daysBetween(today(), khatma.targetDate))}d left ·{" "}
+              Page <strong style={{ color: N.fg }}>{khatma.currentPage}</strong>/{khatma.totalPages}{" "}
+              · {Math.max(0, daysBetween(today(), khatma.targetDate))}d left ·{" "}
               <strong style={{ color: N.fg }}>{khatmaDailyTarget(khatma, today())}</strong>/day
             </span>
-            <Link href={`/page/${Math.min(khatma.totalPages, khatma.currentPage + 1)}`} style={pill(true)}>
+            <Link
+              href={`/page/${Math.min(khatma.totalPages, khatma.currentPage + 1)}`}
+              style={pill(true)}
+            >
               Resume p{Math.min(khatma.totalPages, khatma.currentPage + 1)}
             </Link>
             <button onClick={() => adjustKhatma(1)} style={pill(false)}>
@@ -286,7 +342,15 @@ export function ReadingGoalsView() {
         )}
       </div>
 
-      <p style={{ fontSize: 12.5, color: N.faint, lineHeight: 1.6, margin: "16px 0 0", fontFamily: N.ui }}>
+      <p
+        style={{
+          fontSize: 12.5,
+          color: N.faint,
+          lineHeight: 1.6,
+          margin: "16px 0 0",
+          fontFamily: N.ui,
+        }}
+      >
         Pages you read in the{" "}
         <Link href="/page/1" style={{ color: N.gold, fontWeight: 600 }}>
           Mushaf view

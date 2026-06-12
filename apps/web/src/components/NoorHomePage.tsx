@@ -83,7 +83,7 @@ export function NoorHomePage({ surahs }: Props) {
           right: -120,
           width: 520,
           height: 460,
-          background: "radial-gradient(ellipse, rgba(230,184,85,0.10), transparent 65%)",
+          background: "radial-gradient(ellipse, var(--noor-gold-soft), transparent 65%)",
           pointerEvents: "none",
         }}
       />
@@ -221,7 +221,8 @@ export function NoorHomePage({ surahs }: Props) {
             className="noor-ar"
             style={{ flex: "1 1 280px", fontSize: 28, lineHeight: 2.1, color: N.fg }}
           >
-            ٱلَّذِينَ ءَامَنُوا۟ وَتَطْمَئِنُّ قُلُوبُهُم بِذِكْرِ ٱللَّهِ ۗ أَلَا بِذِكْرِ ٱللَّهِ تَطْمَئِنُّ ٱلْقُلُوبُ
+            ٱلَّذِينَ ءَامَنُوا۟ وَتَطْمَئِنُّ قُلُوبُهُم بِذِكْرِ ٱللَّهِ ۗ أَلَا بِذِكْرِ ٱللَّهِ
+            تَطْمَئِنُّ ٱلْقُلُوبُ
           </div>
           <div style={{ flex: "1 1 260px" }}>
             <div
@@ -237,11 +238,9 @@ export function NoorHomePage({ surahs }: Props) {
             >
               Verse of the day
             </div>
-            <div
-              style={{ fontSize: 15.5, lineHeight: 1.65, color: N.muted, fontFamily: N.ui }}
-            >
-              Those who believe and whose hearts find rest in the remembrance of Allah. Verily,
-              in the remembrance of Allah do hearts find rest.
+            <div style={{ fontSize: 15.5, lineHeight: 1.65, color: N.muted, fontFamily: N.ui }}>
+              Those who believe and whose hearts find rest in the remembrance of Allah. Verily, in
+              the remembrance of Allah do hearts find rest.
             </div>
             <div
               style={{

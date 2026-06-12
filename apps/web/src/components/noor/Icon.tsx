@@ -24,16 +24,14 @@ const PATHS: Record<string, string> = {
   plus: "M12 5v14M5 12h14",
   minus: "M5 12h14",
   check: "M5 12l4.5 4.5L19 7",
-  compass:
-    "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM15.5 8.5l-2 5-5 2 2-5 5-2Z",
+  compass: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM15.5 8.5l-2 5-5 2 2-5 5-2Z",
   layers: "M12 3l9 5-9 5-9-5 9-5ZM3 13l9 5 9-5",
   repeat: "M4 9V7a2 2 0 0 1 2-2h12l-3-3M20 15v2a2 2 0 0 1-2 2H6l3 3",
   download: "M12 3v12M8 11l4 4 4-4M5 21h14",
   home: "M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1v-8Z",
   star: "M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9L12 3Z",
   tafsir: "M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3 3V4ZM9 8h7M9 12h7",
-  globe:
-    "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM2 12h20M12 2c3 3 3 17 0 20M12 2c-3 3-3 17 0 20",
+  globe: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM2 12h20M12 2c3 3 3 17 0 20M12 2c-3 3-3 17 0 20",
   type: "M5 7V5h14v2M9 19h6M12 5v14",
 };
 
@@ -48,20 +46,21 @@ interface IconProps {
 }
 
 export function Icon({ name, size = 20, sw = 1.7, color = "currentColor", style }: IconProps) {
-  const base: CSSProperties = { width: size, height: size, display: "block", ...style };
+  // `color` is set in CSS so a `var(--…)` color resolves; shapes use currentColor.
+  const base: CSSProperties = { width: size, height: size, display: "block", color, ...style };
 
   if (name === "play") {
     return (
       <svg viewBox="0 0 24 24" style={base} aria-hidden="true">
-        <path d="M7 4.5v15l13-7.5-13-7.5Z" fill={color} />
+        <path d="M7 4.5v15l13-7.5-13-7.5Z" fill="currentColor" />
       </svg>
     );
   }
   if (name === "pause") {
     return (
       <svg viewBox="0 0 24 24" style={base} aria-hidden="true">
-        <rect x="6" y="4.5" width="4" height="15" rx="1" fill={color} />
-        <rect x="14" y="4.5" width="4" height="15" rx="1" fill={color} />
+        <rect x="6" y="4.5" width="4" height="15" rx="1" fill="currentColor" />
+        <rect x="14" y="4.5" width="4" height="15" rx="1" fill="currentColor" />
       </svg>
     );
   }
@@ -72,7 +71,7 @@ export function Icon({ name, size = 20, sw = 1.7, color = "currentColor", style 
       viewBox="0 0 24 24"
       style={base}
       fill="none"
-      stroke={color}
+      stroke="currentColor"
       strokeWidth={sw}
       strokeLinecap="round"
       strokeLinejoin="round"
