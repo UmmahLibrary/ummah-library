@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { NoorPageFrame } from "../../components/NoorPageFrame";
+import { ThemePicker } from "../../components/ThemePicker";
 import { DataBackup } from "../../components/DataBackup";
 
 export const metadata: Metadata = {
@@ -11,12 +12,8 @@ export const metadata: Metadata = {
 
 export default function SettingsPage() {
   return (
-    <NoorPageFrame
-      title="Settings"
-      sub="Tailor the app to your practice"
-      glyph="⚙"
-      back="/"
-    >
+    <NoorPageFrame title="Settings" sub="Tailor the app to your practice" glyph="⚙" back="/">
+      <ThemePicker />
       <DataBackup />
     </NoorPageFrame>
   );
