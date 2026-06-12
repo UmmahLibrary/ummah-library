@@ -19,6 +19,7 @@ export default function TafsirPage() {
       sub="Classical commentary on the meanings of the Quran"
       glyph="✷"
       back="/"
+      maxW={760}
     >
       <TafsirPicker tafsirs={TAFSIRS} />
       <div
@@ -38,8 +39,8 @@ export default function TafsirPage() {
         <a href="/" style={{ color: "#E6B855", textDecoration: "none" }}>
           Quran index
         </a>{" "}
-        to read tafsir commentary alongside the Arabic text. Use the display panel in the
-        reader to select your preferred tafsir source.
+        to read tafsir commentary alongside the Arabic text. Use the display panel in the reader to
+        select your preferred tafsir source.
       </div>
     </NoorPageFrame>
   );
