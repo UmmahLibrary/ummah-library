@@ -21,68 +21,18 @@ export interface ThemeMeta {
   label: string;
   mode: ThemeMode;
   desc: string;
-  /** [background, accent] preview colours for the picker swatch. */
-  swatch: [string, string];
 }
 
 /** Display order: dark palettes first, then light. */
 export const THEMES: ThemeMeta[] = [
-  {
-    key: "obsidian",
-    label: "Obsidian",
-    mode: "dark",
-    desc: "Charcoal & gold",
-    swatch: ["#0a0b0f", "#e6b855"],
-  },
-  {
-    key: "midnight",
-    label: "Midnight",
-    mode: "dark",
-    desc: "True-black, high contrast",
-    swatch: ["#000000", "#f0c868"],
-  },
-  {
-    key: "emerald",
-    label: "Emerald",
-    mode: "dark",
-    desc: "Deep green & gold",
-    swatch: ["#07140e", "#e3b756"],
-  },
-  {
-    key: "ocean",
-    label: "Ocean",
-    mode: "dark",
-    desc: "Slate & teal",
-    swatch: ["#08121a", "#45c7bd"],
-  },
-  {
-    key: "ivory",
-    label: "Ivory",
-    mode: "light",
-    desc: "Warm paper & gold",
-    swatch: ["#faf6ee", "#b0842a"],
-  },
-  {
-    key: "sepia",
-    label: "Sepia",
-    mode: "light",
-    desc: "Parchment & amber",
-    swatch: ["#f3ead8", "#a6781e"],
-  },
-  {
-    key: "mint",
-    label: "Mint",
-    mode: "light",
-    desc: "Cool light & teal",
-    swatch: ["#f0f6f3", "#13857a"],
-  },
-  {
-    key: "rose",
-    label: "Rose",
-    mode: "light",
-    desc: "Soft light & rose",
-    swatch: ["#faf3f1", "#b14a6b"],
-  },
+  { key: "obsidian", label: "Obsidian", mode: "dark", desc: "Charcoal & gold" },
+  { key: "midnight", label: "Midnight", mode: "dark", desc: "True-black, high contrast" },
+  { key: "emerald", label: "Emerald", mode: "dark", desc: "Deep green & gold" },
+  { key: "ocean", label: "Ocean", mode: "dark", desc: "Slate & teal" },
+  { key: "ivory", label: "Ivory", mode: "light", desc: "Warm paper & gold" },
+  { key: "sepia", label: "Sepia", mode: "light", desc: "Parchment & amber" },
+  { key: "mint", label: "Mint", mode: "light", desc: "Cool light & teal" },
+  { key: "rose", label: "Rose", mode: "light", desc: "Soft light & rose" },
 ];
 
 export const DEFAULT_DARK: ThemeKey = "obsidian";

@@ -34,12 +34,33 @@
 }
 
 /* ── Theme palettes ──
-   data-theme on <html> swaps the --noor-* tokens; the legacy --bg/--accent/etc.
-   above reference them, so the whole app recolours. Obsidian is the :root default.
-   Back-compat: the legacy "dark"/"light" values resolve to obsidian/ivory. */
+   data-theme swaps the --noor-* tokens; the legacy --bg/--accent/etc. above
+   reference them, so the subtree recolours. Scoped to any [data-theme] element
+   (not just :root) so the theme picker can preview each theme in its own colours.
+   :root defaults to Obsidian; the legacy "dark"/"light" values resolve to
+   Obsidian/Ivory. */
 
 /* Dark */
-:root[data-theme="midnight"] {
+[data-theme="obsidian"] {
+  --noor-bg: #0a0b0f;
+  --noor-bg2: #0e1017;
+  --noor-card: #14171f;
+  --noor-card-hi: #191d27;
+  --noor-border: #242a38;
+  --noor-border-soft: #1b2029;
+  --noor-fg: #f4f1ea;
+  --noor-muted: #9aa0b2;
+  --noor-faint: #5c6273;
+  --noor-gold: #e6b855;
+  --noor-gold-hi: #f4d58a;
+  --noor-gold-dim: #a98432;
+  --noor-gold-soft: rgba(230, 184, 85, 0.12);
+  --noor-gold-grad: linear-gradient(180deg, #f4d58a, #e6b855);
+  --noor-ink: #1a1404;
+  color-scheme: dark;
+}
+
+[data-theme="midnight"] {
   --noor-bg: #000000;
   --noor-bg2: #060608;
   --noor-card: #0c0d11;
@@ -58,7 +79,7 @@
   color-scheme: dark;
 }
 
-:root[data-theme="emerald"] {
+[data-theme="emerald"] {
   --noor-bg: #07140e;
   --noor-bg2: #0a1a12;
   --noor-card: #0e2118;
@@ -77,7 +98,7 @@
   color-scheme: dark;
 }
 
-:root[data-theme="ocean"] {
+[data-theme="ocean"] {
   --noor-bg: #08121a;
   --noor-bg2: #0c1822;
   --noor-card: #102230;
@@ -97,8 +118,8 @@
 }
 
 /* Light */
-:root[data-theme="ivory"],
-:root[data-theme="light"] {
+[data-theme="ivory"],
+[data-theme="light"] {
   --noor-bg: #faf6ee;
   --noor-bg2: #f3ecdd;
   --noor-card: #ffffff;
@@ -117,7 +138,7 @@
   color-scheme: light;
 }
 
-:root[data-theme="sepia"] {
+[data-theme="sepia"] {
   --noor-bg: #f3ead8;
   --noor-bg2: #ece0c8;
   --noor-card: #fbf4e3;
@@ -136,7 +157,7 @@
   color-scheme: light;
 }
 
-:root[data-theme="mint"] {
+[data-theme="mint"] {
   --noor-bg: #f0f6f3;
   --noor-bg2: #e4efea;
   --noor-card: #ffffff;
@@ -155,7 +176,7 @@
   color-scheme: light;
 }
 
-:root[data-theme="rose"] {
+[data-theme="rose"] {
   --noor-bg: #faf3f1;
   --noor-bg2: #f1e5e2;
   --noor-card: #ffffff;
@@ -2291,78 +2312,6 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-size: 0.85rem;
 }
 .ts-empty {
-  color: var(--muted);
-}
-
-/* ---- Theme picker (settings) ---- */
-.theme-picker {
-  margin: 0 0 2rem;
-}
-.theme-picker-title {
-  font-size: 1.1rem;
-  margin: 0 0 0.75rem;
-}
-.theme-group {
-  margin-bottom: 1rem;
-}
-.theme-group-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-  margin: 0 0 0.5rem;
-}
-.theme-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.6rem;
-}
-.theme-option {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  width: 100%;
-  text-align: left;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg-elev);
-  color: var(--fg);
-  cursor: pointer;
-  transition: border-color 0.15s ease;
-}
-.theme-option:hover {
-  border-color: var(--accent);
-}
-.theme-option[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.theme-swatch {
-  flex: none;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  display: grid;
-  place-items: center;
-}
-.theme-swatch-dot {
-  width: 0.85rem;
-  height: 0.85rem;
-  border-radius: 50%;
-}
-.theme-option-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-.theme-option-name {
-  font-weight: 600;
-}
-.theme-option-desc {
-  font-size: 0.78rem;
   color: var(--muted);
 }
 
