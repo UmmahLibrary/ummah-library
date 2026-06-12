@@ -13,6 +13,8 @@ export default tseslint.config(
       "**/.turbo/**",
       "**/.expo/**",
       "**/next-env.d.ts",
+      // Vendored design-reference snapshot — not maintained to our lint rules.
+      "docs/design/**",
     ],
   },
   eslint.configs.recommended,
