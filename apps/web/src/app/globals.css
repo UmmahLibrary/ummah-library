@@ -33,17 +33,145 @@
   color-scheme: dark;
 }
 
-/* Light theme also uses Noor tokens (dark-first design) */
-:root[data-theme="light"] {
-  --bg: var(--noor-bg);
-  --bg-elev: var(--noor-card);
-  --border: var(--noor-border);
-  --fg: var(--noor-fg);
-  --muted: var(--noor-muted);
-  --faint: var(--noor-faint);
-  --accent: var(--noor-gold);
-  --accent-soft: var(--noor-gold-soft);
+/* ── Theme palettes ──
+   data-theme on <html> swaps the --noor-* tokens; the legacy --bg/--accent/etc.
+   above reference them, so the whole app recolours. Obsidian is the :root default.
+   Back-compat: the legacy "dark"/"light" values resolve to obsidian/ivory. */
+
+/* Dark */
+:root[data-theme="midnight"] {
+  --noor-bg: #000000;
+  --noor-bg2: #060608;
+  --noor-card: #0c0d11;
+  --noor-card-hi: #14151b;
+  --noor-border: #262830;
+  --noor-border-soft: #16171d;
+  --noor-fg: #ffffff;
+  --noor-muted: #b7bbc7;
+  --noor-faint: #6b707d;
+  --noor-gold: #f0c868;
+  --noor-gold-hi: #ffe39a;
+  --noor-gold-dim: #b9933f;
+  --noor-gold-soft: rgba(240, 200, 104, 0.15);
+  --noor-gold-grad: linear-gradient(180deg, #ffe39a, #f0c868);
+  --noor-ink: #15100a;
   color-scheme: dark;
+}
+
+:root[data-theme="emerald"] {
+  --noor-bg: #07140e;
+  --noor-bg2: #0a1a12;
+  --noor-card: #0e2118;
+  --noor-card-hi: #13291e;
+  --noor-border: #1f3a2c;
+  --noor-border-soft: #16281e;
+  --noor-fg: #eff4ee;
+  --noor-muted: #94ac9f;
+  --noor-faint: #557064;
+  --noor-gold: #e3b756;
+  --noor-gold-hi: #f2d184;
+  --noor-gold-dim: #a07e32;
+  --noor-gold-soft: rgba(227, 183, 86, 0.13);
+  --noor-gold-grad: linear-gradient(180deg, #f2d184, #e3b756);
+  --noor-ink: #11200a;
+  color-scheme: dark;
+}
+
+:root[data-theme="ocean"] {
+  --noor-bg: #08121a;
+  --noor-bg2: #0c1822;
+  --noor-card: #102230;
+  --noor-card-hi: #15293a;
+  --noor-border: #21384b;
+  --noor-border-soft: #182838;
+  --noor-fg: #ecf2f6;
+  --noor-muted: #93a6b5;
+  --noor-faint: #556979;
+  --noor-gold: #45c7bd;
+  --noor-gold-hi: #74e2d9;
+  --noor-gold-dim: #2c8a83;
+  --noor-gold-soft: rgba(69, 199, 189, 0.14);
+  --noor-gold-grad: linear-gradient(180deg, #74e2d9, #45c7bd);
+  --noor-ink: #04201d;
+  color-scheme: dark;
+}
+
+/* Light */
+:root[data-theme="ivory"],
+:root[data-theme="light"] {
+  --noor-bg: #faf6ee;
+  --noor-bg2: #f3ecdd;
+  --noor-card: #ffffff;
+  --noor-card-hi: #fbf6ec;
+  --noor-border: #e7decb;
+  --noor-border-soft: #f0e9da;
+  --noor-fg: #1f1b12;
+  --noor-muted: #6e6757;
+  --noor-faint: #a99e86;
+  --noor-gold: #b0842a;
+  --noor-gold-hi: #c99a3a;
+  --noor-gold-dim: #cbb488;
+  --noor-gold-soft: rgba(176, 132, 40, 0.14);
+  --noor-gold-grad: linear-gradient(180deg, #f4d58a, #e6b855);
+  --noor-ink: #2a1f08;
+  color-scheme: light;
+}
+
+:root[data-theme="sepia"] {
+  --noor-bg: #f3ead8;
+  --noor-bg2: #ece0c8;
+  --noor-card: #fbf4e3;
+  --noor-card-hi: #f4ead3;
+  --noor-border: #decda8;
+  --noor-border-soft: #eaddc0;
+  --noor-fg: #3a2e1b;
+  --noor-muted: #6e5c3f;
+  --noor-faint: #a0895f;
+  --noor-gold: #a6781e;
+  --noor-gold-hi: #c2933a;
+  --noor-gold-dim: #c8b07a;
+  --noor-gold-soft: rgba(166, 120, 30, 0.16);
+  --noor-gold-grad: linear-gradient(180deg, #e7c572, #c99a3a);
+  --noor-ink: #2a1e08;
+  color-scheme: light;
+}
+
+:root[data-theme="mint"] {
+  --noor-bg: #f0f6f3;
+  --noor-bg2: #e4efea;
+  --noor-card: #ffffff;
+  --noor-card-hi: #f2f8f5;
+  --noor-border: #d5e5dd;
+  --noor-border-soft: #e6f0eb;
+  --noor-fg: #16241d;
+  --noor-muted: #5a6e64;
+  --noor-faint: #93a89c;
+  --noor-gold: #13857a;
+  --noor-gold-hi: #1ba192;
+  --noor-gold-dim: #7fb3a9;
+  --noor-gold-soft: rgba(19, 133, 122, 0.13);
+  --noor-gold-grad: linear-gradient(180deg, #2fb3a4, #13857a);
+  --noor-ink: #eafbf6;
+  color-scheme: light;
+}
+
+:root[data-theme="rose"] {
+  --noor-bg: #faf3f1;
+  --noor-bg2: #f1e5e2;
+  --noor-card: #ffffff;
+  --noor-card-hi: #fbf1ee;
+  --noor-border: #ecd9d3;
+  --noor-border-soft: #f4e6e2;
+  --noor-fg: #271a18;
+  --noor-muted: #6e5a56;
+  --noor-faint: #ae968f;
+  --noor-gold: #b14a6b;
+  --noor-gold-hi: #c76283;
+  --noor-gold-dim: #c99aa6;
+  --noor-gold-soft: rgba(177, 74, 107, 0.12);
+  --noor-gold-grad: linear-gradient(180deg, #ce6e8c, #b14a6b);
+  --noor-ink: #fff0f4;
+  color-scheme: light;
 }
 
 * {
@@ -80,7 +208,11 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
@@ -536,12 +668,7 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
 .skeleton-line {
   height: 0.8rem;
   border-radius: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--bg-elev) 25%,
-    var(--border) 37%,
-    var(--bg-elev) 63%
-  );
+  background: linear-gradient(90deg, var(--bg-elev) 25%, var(--border) 37%, var(--bg-elev) 63%);
   background-size: 200% 100%;
   animation: ul-shimmer 1.4s ease-in-out infinite;
 }
@@ -1430,7 +1557,10 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   color: var(--fg);
   cursor: pointer;
   user-select: none;
-  transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+  transition:
+    transform 0.08s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 .tasbih-dial:active {
   transform: scale(0.97);
@@ -2208,7 +2338,11 @@ body {
 
 /* Interaction */
 .noor-press {
-  transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.12s ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
   cursor: pointer;
 }
 .noor-press:active {
@@ -2220,39 +2354,70 @@ body {
   animation: noorFade 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 @keyframes noorFade {
-  from { transform: translateY(10px); }
-  to   { transform: none; }
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: none;
+  }
 }
 .noor-rise > * {
   animation: noorRise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 @keyframes noorRise {
-  from { transform: translateY(16px); }
-  to   { transform: none; }
+  from {
+    transform: translateY(16px);
+  }
+  to {
+    transform: none;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .noor-fade,
-  .noor-rise > * { animation: none !important; }
+  .noor-rise > * {
+    animation: none !important;
+  }
 }
 
 /* Responsive show/hide */
-.noor-hide-sm { display: revert; }
-.noor-only-sm { display: none !important; }
-@media (max-width: 760px) {
-  .noor-hide-sm { display: none !important; }
-  .noor-only-sm { display: revert !important; }
+.noor-hide-sm {
+  display: revert;
 }
-.noor-hide-md { display: revert; }
+.noor-only-sm {
+  display: none !important;
+}
+@media (max-width: 760px) {
+  .noor-hide-sm {
+    display: none !important;
+  }
+  .noor-only-sm {
+    display: revert !important;
+  }
+}
+.noor-hide-md {
+  display: revert;
+}
 @media (max-width: 980px) {
-  .noor-hide-md { display: none !important; }
+  .noor-hide-md {
+    display: none !important;
+  }
 }
 
 /* Shell sidebar/tabbar responsive */
-.noor-sidebar { display: flex; height: 100%; }
-.noor-tabbar  { display: none; }
+.noor-sidebar {
+  display: flex;
+  height: 100%;
+}
+.noor-tabbar {
+  display: none;
+}
 @media (max-width: 900px) {
-  .noor-sidebar { display: none !important; }
-  .noor-tabbar  { display: block !important; }
+  .noor-sidebar {
+    display: none !important;
+  }
+  .noor-tabbar {
+    display: block !important;
+  }
 }
 
 /* Landing page khatam field pattern */
@@ -2266,4 +2431,3 @@ body {
   margin: 0;
   padding: 0;
 }
-
