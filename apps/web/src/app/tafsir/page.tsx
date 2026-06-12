@@ -27,16 +27,16 @@ export default function TafsirPage() {
           marginTop: 32,
           padding: "24px",
           borderRadius: 14,
-          background: "#14171F",
-          border: "1px solid #242A38",
+          background: "var(--noor-card)",
+          border: "1px solid var(--noor-border)",
           fontSize: 15,
-          color: "#9AA0B2",
+          color: "var(--noor-muted)",
           lineHeight: 1.7,
-          fontFamily: "'Hanken Grotesk', system-ui, sans-serif",
+          fontFamily: "var(--noor-ui)",
         }}
       >
         Open any surah from the{" "}
-        <a href="/" style={{ color: "#E6B855", textDecoration: "none" }}>
+        <a href="/" style={{ color: "var(--noor-gold)", textDecoration: "none" }}>
           Quran index
         </a>{" "}
         to read tafsir commentary alongside the Arabic text. Use the display panel in the reader to
