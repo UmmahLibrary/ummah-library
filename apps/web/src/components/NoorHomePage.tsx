@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { JUZ_STARTS, TOTAL_JUZ } from "@ummahlibrary/core";
 import { N, Khatam } from "./noor";
 import { useSearch } from "./shell/SearchContext";
 
@@ -11,6 +12,7 @@ interface Surah {
   englishName: string;
   ayahCount: number;
   revelationPlace: "meccan" | "medinan";
+  revelationOrder: number;
 }
 
 interface Props {
@@ -38,6 +40,29 @@ export function NoorHomePage({ surahs }: Props) {
           s.name.includes(query),
       )
     : surahs;
+
+  // Surah list for the active tab: natural order, or by order of revelation.
+  const surahList =
+    tab === "rev" ? [...filtered].sort((a, b) => a.revelationOrder - b.revelationOrder) : filtered;
+
+  // Juzʾ index — each juzʾ spans one or more surahs (mirrors /juz).
+  const byNumber = new Map(surahs.map((s) => [s.number, s]));
+  const juzEndSura = (n: number): number => {
+    if (n >= TOTAL_JUZ) return 114;
+    const next = JUZ_STARTS[n]!;
+    return next.aya > 1 ? next.sura : next.sura - 1;
+  };
+  const juzList = JUZ_STARTS.map((start, i) => {
+    const n = i + 1;
+    const first = byNumber.get(start.sura);
+    const lastSura = juzEndSura(n);
+    const last = byNumber.get(lastSura);
+    const span =
+      lastSura === start.sura
+        ? (first?.transliteration ?? "")
+        : `${first?.transliteration ?? ""} – ${last?.transliteration ?? ""}`;
+    return { n, span, name: first?.name ?? "" };
+  });
 
   return (
     <div
@@ -328,87 +353,173 @@ export function NoorHomePage({ surahs }: Props) {
           </div>
         </div>
 
-        {q && (
+        {q && tab !== "juz" && (
           <div style={{ fontSize: 13, color: N.faint, marginBottom: 12, fontFamily: N.ui }}>
-            {filtered.length} result{filtered.length !== 1 ? "s" : ""} for &ldquo;{query}&rdquo;
+            {surahList.length} result{surahList.length !== 1 ? "s" : ""} for &ldquo;{query}&rdquo;
           </div>
         )}
 
-        {/* Surah grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {filtered.map((s) => (
-            <Link
-              key={s.number}
-              href={`/surah/${s.number}`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-                padding: "12px 14px",
-                borderRadius: 12,
-                background: N.card,
-                border: `1px solid ${N.border}`,
-                textDecoration: "none",
-                transition: "border-color .15s, transform .12s",
-              }}
-            >
-              {/* Number badge */}
-              <div
+        {/* Juzʾ grid */}
+        {tab === "juz" && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {juzList.map((j) => (
+              <Link
+                key={j.n}
+                href={`/juz/${j.n}`}
                 style={{
-                  width: 40,
-                  height: 40,
-                  flexShrink: 0,
-                  position: "relative",
-                  display: "grid",
-                  placeItems: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  background: N.card,
+                  border: `1px solid ${N.border}`,
+                  textDecoration: "none",
+                  transition: "border-color .15s, transform .12s",
                 }}
               >
-                <Khatam size={40} color={N.goldDim} sw={1.2} />
-                <span
-                  style={{
-                    position: "absolute",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    color: N.gold,
-                    fontFamily: N.ui,
-                  }}
-                >
-                  {s.number}
-                </span>
-              </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
+                {/* Number badge */}
                 <div
                   style={{
-                    fontSize: 15,
-                    fontWeight: 700,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    color: N.fg,
-                    fontFamily: N.ui,
+                    width: 40,
+                    height: 40,
+                    flexShrink: 0,
+                    position: "relative",
+                    display: "grid",
+                    placeItems: "center",
                   }}
                 >
-                  {s.transliteration}
+                  <Khatam size={40} color={N.goldDim} sw={1.2} />
+                  <span
+                    style={{
+                      position: "absolute",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: N.gold,
+                      fontFamily: N.ui,
+                    }}
+                  >
+                    {j.n}
+                  </span>
                 </div>
-                <div style={{ fontSize: 12.5, color: N.faint, fontFamily: N.ui }}>
-                  {s.englishName} · {s.ayahCount} ayahs ·{" "}
-                  {s.revelationPlace === "meccan" ? "Meccan" : "Medinan"}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: N.fg,
+                      fontFamily: N.ui,
+                    }}
+                  >
+                    Juzʾ {j.n}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12.5,
+                      color: N.faint,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      fontFamily: N.ui,
+                    }}
+                  >
+                    {j.span}
+                  </div>
                 </div>
-              </div>
-              <div className="noor-ar" style={{ fontSize: 22, color: N.muted, flexShrink: 0 }}>
-                {s.name}
-              </div>
-            </Link>
-          ))}
-        </div>
+                <div className="noor-ar" style={{ fontSize: 22, color: N.muted, flexShrink: 0 }}>
+                  {j.name}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
-        {filtered.length === 0 && (
+        {/* Surah grid (Surah order, or order of revelation) */}
+        {tab !== "juz" && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {surahList.map((s) => (
+              <Link
+                key={s.number}
+                href={`/surah/${s.number}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  background: N.card,
+                  border: `1px solid ${N.border}`,
+                  textDecoration: "none",
+                  transition: "border-color .15s, transform .12s",
+                }}
+              >
+                {/* Number badge */}
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    flexShrink: 0,
+                    position: "relative",
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                >
+                  <Khatam size={40} color={N.goldDim} sw={1.2} />
+                  <span
+                    style={{
+                      position: "absolute",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: N.gold,
+                      fontFamily: N.ui,
+                    }}
+                  >
+                    {tab === "rev" ? s.revelationOrder : s.number}
+                  </span>
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      color: N.fg,
+                      fontFamily: N.ui,
+                    }}
+                  >
+                    {s.transliteration}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: N.faint, fontFamily: N.ui }}>
+                    {tab === "rev"
+                      ? `Revealed #${s.revelationOrder} · ${s.englishName}`
+                      : `${s.englishName} · ${s.ayahCount} ayahs · ${
+                          s.revelationPlace === "meccan" ? "Meccan" : "Medinan"
+                        }`}
+                  </div>
+                </div>
+                <div className="noor-ar" style={{ fontSize: 22, color: N.muted, flexShrink: 0 }}>
+                  {s.name}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {tab !== "juz" && surahList.length === 0 && (
           <div
             style={{
               textAlign: "center",

@@ -13,6 +13,7 @@ export default async function HomePage() {
         englishName: s.englishName,
         ayahCount: s.ayahCount,
         revelationPlace: s.revelationPlace,
+        revelationOrder: s.revelationOrder,
       }))}
     />
   );
