@@ -11,6 +11,7 @@ import {
   nextPrayer,
 } from "@ummahlibrary/core";
 import { Khatam, N } from "./noor";
+import { HomePrayerCard } from "./HomePrayerCard";
 import { activeDates, pagesToday, readGoal, today } from "../lib/reading-goals";
 
 const COORDS_KEY = "ul.prayerCoords";
@@ -259,6 +260,9 @@ export function HomeHeroCards() {
           </div>
         </div>
       </Link>
+
+      {/* Today's prayers — quick-log tracker */}
+      <HomePrayerCard />
     </div>
   );
 }
