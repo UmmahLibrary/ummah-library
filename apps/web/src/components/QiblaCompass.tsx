@@ -1,7 +1,9 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { type Coordinates, compassPoint, qiblaDirection } from "@ummahlibrary/core";
+import { N } from "./noor";
 
 // Shared with the prayer-times page — one stored location for both.
 const COORDS_KEY = "ul.prayerCoords";
@@ -31,6 +33,20 @@ function deviceHeading(e: DeviceOrientationEvent): number | null {
   if (e.absolute && typeof e.alpha === "number") return (360 - e.alpha) % 360;
   return null;
 }
+
+const cardStyle: CSSProperties = {
+  background: N.card,
+  border: `1px solid ${N.border}`,
+  borderRadius: 16,
+};
+
+const ctaCard: CSSProperties = {
+  ...cardStyle,
+  padding: 24,
+  display: "flex",
+  flexDirection: "column",
+  gap: 14,
+};
 
 export function QiblaCompass() {
   const [coords, setCoords] = useState<Coordinates | null>(null);
@@ -109,72 +125,219 @@ export function QiblaCompass() {
   const dialRotation = heading === null ? 0 : -heading;
   const aligned = heading !== null && bearing !== null && angularGap(bearing, heading) < 5;
 
+  const ctaBtn: CSSProperties = {
+    fontFamily: N.ui,
+    fontSize: 14,
+    fontWeight: 700,
+    color: N.ink,
+    background: N.goldGrad,
+    border: "none",
+    borderRadius: 11,
+    padding: "11px 20px",
+    cursor: "pointer",
+    alignSelf: "flex-start",
+  };
+  const ghostBtn: CSSProperties = {
+    fontFamily: N.ui,
+    fontSize: 13.5,
+    color: N.muted,
+    background: N.card,
+    border: `1px solid ${N.border}`,
+    borderRadius: 10,
+    padding: "8px 14px",
+    cursor: "pointer",
+  };
+
   return (
-    <div className="qibla">
+    <div>
       {!coords && status !== "locating" && (
-        <div className="prayer-cta">
-          <p>Find the direction of the Kaaba from where you are. Your location stays on your device.</p>
-          <button type="button" className="audio-play" onClick={locate}>
+        <div style={ctaCard}>
+          <p style={{ margin: 0, color: N.muted, lineHeight: 1.6 }}>
+            Find the direction of the Kaaba from where you are. Your location stays on your device.
+          </p>
+          <button type="button" style={ctaBtn} onClick={locate}>
             📍 Use my location
           </button>
         </div>
       )}
 
-      {status === "locating" && <p className="hifz-muted">Getting your location…</p>}
+      {status === "locating" && <p style={{ color: N.muted }}>Getting your location…</p>}
       {status === "denied" && (
-        <div className="prayer-cta">
-          <p>Location permission was denied. Enable it in your browser to find the qibla.</p>
-          <button type="button" className="chip" onClick={locate}>
+        <div style={ctaCard}>
+          <p style={{ margin: 0, color: N.muted, lineHeight: 1.6 }}>
+            Location permission was denied. Enable it in your browser to find the qibla.
+          </p>
+          <button type="button" style={{ ...ghostBtn, alignSelf: "flex-start" }} onClick={locate}>
             Try again
           </button>
         </div>
       )}
       {status === "error" && (
-        <p className="hifz-muted">Couldn’t determine your location. Check your settings and retry.</p>
+        <p style={{ color: N.muted }}>
+          Couldn’t determine your location. Check your settings and retry.
+        </p>
       )}
 
       {bearing !== null && (
         <>
-          <div className={aligned ? "qibla-dial-wrap qibla-aligned" : "qibla-dial-wrap"}>
-            <div className="qibla-dial" style={{ transform: `rotate(${dialRotation}deg)` }}>
-              <span className="qibla-cardinal qibla-n">N</span>
-              <span className="qibla-cardinal qibla-e">E</span>
-              <span className="qibla-cardinal qibla-s">S</span>
-              <span className="qibla-cardinal qibla-w">W</span>
-              <div className="qibla-needle" style={{ transform: `rotate(${bearing}deg)` }}>
-                <span className="qibla-kaaba">🕋</span>
+          <div
+            style={{
+              ...cardStyle,
+              padding: 30,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ position: "relative", width: 300, height: 300, marginBottom: 8 }}>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "50%",
+                  border: `1px solid ${aligned ? N.gold : N.border}`,
+                  boxShadow: aligned ? `0 0 0 4px ${N.goldSoft}` : "none",
+                  transform: `rotate(${dialRotation}deg)`,
+                  transition: "transform .1s, border-color .2s",
+                }}
+              >
+                {[..."NESW"].map((d, i) => (
+                  <span
+                    key={d}
+                    style={{
+                      position: "absolute",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: d === "N" ? N.gold : N.faint,
+                      top: i === 0 ? 12 : i === 2 ? "auto" : "50%",
+                      bottom: i === 2 ? 12 : "auto",
+                      left: i === 3 ? 14 : i === 1 ? "auto" : "50%",
+                      right: i === 1 ? 14 : "auto",
+                      transform: i === 0 || i === 2 ? "translateX(-50%)" : "translateY(-50%)",
+                    }}
+                  >
+                    {d}
+                  </span>
+                ))}
+                {Array.from({ length: 24 }).map((_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      width: 1,
+                      height: i % 6 === 0 ? 12 : 6,
+                      background: N.border,
+                      transformOrigin: "center 138px",
+                      transform: `translate(-50%,-138px) rotate(${i * 15}deg)`,
+                    }}
+                  />
+                ))}
+                {/* qibla pointer — fixed to the compass ring at the bearing */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transformOrigin: "center bottom",
+                    transform: `translate(-50%,-100%) rotate(${bearing}deg)`,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      marginBottom: -6,
+                      display: "grid",
+                      placeItems: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        background: N.goldGrad,
+                        borderRadius: 6,
+                        display: "grid",
+                        placeItems: "center",
+                        color: N.ink,
+                        fontSize: 16,
+                        transform: `rotate(${-bearing + (heading ?? 0)}deg)`,
+                      }}
+                    >
+                      🕋
+                    </div>
+                  </div>
+                  <div style={{ width: 4, height: 118, background: N.goldGrad, borderRadius: 2 }} />
+                </div>
+              </div>
+              {/* center hub */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  width: 14,
+                  height: 14,
+                  borderRadius: 7,
+                  background: N.gold,
+                  border: `3px solid ${N.bg}`,
+                  transform: "translate(-50%,-50%)",
+                }}
+              />
+            </div>
+
+            <div style={{ textAlign: "center", marginTop: 10 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                  color: N.faint,
+                  fontWeight: 700,
+                }}
+              >
+                Qibla direction
+              </div>
+              <div
+                style={{
+                  fontSize: 30,
+                  fontWeight: 800,
+                  color: N.gold,
+                  letterSpacing: -1,
+                  margin: "4px 0 2px",
+                }}
+              >
+                {Math.round(bearing)}° {compassPoint(bearing)}
+              </div>
+              <div style={{ fontSize: 13.5, color: N.muted }}>
+                {heading === null
+                  ? "Measured clockwise from true north."
+                  : aligned
+                    ? "You’re facing the qibla 🕋"
+                    : "Turn until the 🕋 points straight up."}
               </div>
             </div>
           </div>
 
-          <div className="prayer-next">
-            <span className="prayer-next-label">Qibla direction</span>
-            <span className="prayer-next-name">
-              {Math.round(bearing)}° {compassPoint(bearing)}
-            </span>
-            <span className="prayer-next-in">
-              {heading === null
-                ? "Measured clockwise from true north."
-                : aligned
-                  ? "You’re facing the qibla 🕋"
-                  : "Turn until the 🕋 points straight up."}
-            </span>
-          </div>
-
           {needsMotionPermission && (
-            <button type="button" className="chip" onClick={enableCompass}>
+            <button type="button" style={{ ...ghostBtn, marginTop: 16 }} onClick={enableCompass}>
               🧭 Enable live compass
             </button>
           )}
           {!needsMotionPermission && heading === null && (
-            <p className="hifz-muted">
+            <p style={{ color: N.faint, fontSize: 13, lineHeight: 1.6, marginTop: 16 }}>
               Live compass needs a device with an orientation sensor. The bearing above is still
               accurate — align it with a separate compass.
             </p>
           )}
 
-          <div className="prayer-controls">
-            <button type="button" className="chip" onClick={locate}>
+          <div style={{ marginTop: 16 }}>
+            <button type="button" style={ghostBtn} onClick={locate}>
               📍 Update location
             </button>
           </div>
