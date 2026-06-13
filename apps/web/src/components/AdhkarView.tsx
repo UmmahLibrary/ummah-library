@@ -139,6 +139,7 @@ export function AdhkarView({ dhikr }: { dhikr: readonly Dhikr[] }) {
                 type="button"
                 onClick={() => tap(d)}
                 aria-label={`${d.transliteration} — tap to count, ${count} of ${d.repeat}`}
+                className={done ? "adhkar-card adhkar-card--done" : "adhkar-card"}
                 style={{
                   display: "block",
                   width: "100%",

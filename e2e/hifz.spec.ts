@@ -4,10 +4,13 @@ test.describe("Hifz memorization", () => {
   test("adding an āyah from the reader makes it due, and rating clears it", async ({ page }) => {
     await page.goto("/surah/1");
 
-    // Track the first āyah for memorization; the button flips state.
-    const add = page.getByRole("button", { name: /Hifz/ }).first();
-    await add.click();
-    await expect(page.getByRole("button", { name: /Memorizing/ }).first()).toBeVisible();
+    // Track the first āyah for memorization via the per-āyah "More" menu.
+    await page.getByRole("button", { name: "More" }).first().click();
+    await page.getByRole("button", { name: "Memorize" }).click();
+    // The action confirms, then the menu's entry flips to "Stop memorizing".
+    await expect(page.getByText("Added to Hifz")).toBeVisible();
+    await page.getByRole("button", { name: "More" }).first().click();
+    await expect(page.getByRole("button", { name: "Stop memorizing" })).toBeVisible();
 
     // It now appears on the review page, due immediately (a fresh card is due now).
     await page.goto("/hifz");
