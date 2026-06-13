@@ -6,6 +6,7 @@ import { type ReciterPlugin } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "./noor";
 import { AyahTranslations } from "./AyahTranslations";
 import { AyahActions } from "./AyahActions";
+import { AyahStar } from "./AyahStar";
 import { ReadingAudio } from "./ReadingAudio";
 import { ReadingTranslationPicker } from "./ReadingTranslationPicker";
 import { ReadingTranslationFlow } from "./ReadingTranslationFlow";
@@ -127,7 +128,7 @@ export function SurahReaderClient({
         {ayahs.map((ayah) => (
           <span key={ayah.aya}>
             {ayah.text}
-            <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>{" "}
+            <AyahStar n={ayah.aya} />{" "}
           </span>
         ))}
       </p>
@@ -346,8 +347,13 @@ export function SurahReaderClient({
             <ReadingTranslationFlow surah={surah.number} ayat={ayahs.map((a) => a.aya)} />
           </div>
 
-          {/* Mushaf mode: continuous Arabic only */}
-          <div className="mode-reading-tr">{arabicContinuous}</div>
+          {/* Mushaf mode: a bordered page with continuous Arabic only */}
+          <div className="mode-reading-tr">
+            <div className="mushaf-page">
+              {arabicContinuous}
+              <div className="mushaf-surah-name">﴿ {surah.transliteration} ﴾</div>
+            </div>
+          </div>
 
           {/* Prev/next surah pager */}
           <nav
