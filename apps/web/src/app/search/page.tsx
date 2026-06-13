@@ -4,9 +4,9 @@ import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { SearchView } from "../../components/SearchView";
 
 export const metadata: Metadata = {
-  title: "Search the Quran",
+  title: "Search",
   description:
-    "Search the full Quran across the Uthmani Arabic and the English translation — instant results as you type, on Ummah Library.",
+    "One search across the Quran (Arabic + English), the 99 Names of Allah, and the adhkār — instant results as you type, on Ummah Library.",
   alternates: { canonical: "/search" },
 };
 
@@ -15,7 +15,7 @@ export default async function SearchPage() {
   return (
     <NoorPageFrame
       title="Search"
-      sub="Find any surah, verse, or topic"
+      sub="One search across the Quran, the 99 Names, and adhkār"
       glyph="🔍"
       back="/"
       maxW={820}
@@ -23,8 +23,10 @@ export default async function SearchPage() {
       <SearchView
         surahs={surahs.map((s) => ({
           number: s.number,
+          name: s.name,
           transliteration: s.transliteration,
           englishName: s.englishName,
+          ayahCount: s.ayahCount,
         }))}
       />
     </NoorPageFrame>

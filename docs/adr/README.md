@@ -29,6 +29,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0018](0018-local-data-backup.md)             | Local data backup: file export/import as the sync substitute | Accepted |
 | [0019](0019-prayer-reminders.md)              | Per-prayer reminders behind a `Notifier` port               | Accepted |
 | [0020](0020-prayer-tracker.md)                | Prayer tracker: a pure local prayer log, no port            | Accepted |
+| [0021](0021-global-search.md)                 | Global search: one client index over several sources        | Accepted |
 
 ## Writing a new ADR
 
