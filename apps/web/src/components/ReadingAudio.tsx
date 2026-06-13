@@ -88,6 +88,17 @@ export function ReadingAudio({
     const savedLoop = localStorage.getItem(LOOP_KEY) === "1";
     setLoop(savedLoop);
     loopRef.current = savedLoop;
+
+    // The reader toolbar can change the reciter; keep the dock in sync.
+    const onReciter = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (reciters.some((r) => r.id === id)) {
+        setReciterId(id);
+        stop();
+      }
+    };
+    window.addEventListener(RECITER_KEY, onReciter as EventListener);
+    return () => window.removeEventListener(RECITER_KEY, onReciter as EventListener);
   }, [reciters]);
 
   function toggleLoop() {
