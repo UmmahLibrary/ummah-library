@@ -20,6 +20,8 @@ test.describe("Search", () => {
     // A query matching the fixture returns a result.
     await page.getByRole("searchbox").fill("Allah");
     await expect(page.getByText(/result/)).toBeVisible();
-    await expect(page.getByText(/He is Allah/)).toBeVisible();
+    // The stubbed verse links to the reader; scope to it (the same text also
+    // appears in the bundled adhkār, which would otherwise be ambiguous).
+    await expect(page.locator('a[href^="/surah/112"]')).toContainText(/He is Allah/);
   });
 });

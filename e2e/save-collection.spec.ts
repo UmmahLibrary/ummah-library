@@ -5,14 +5,14 @@ test.describe("Saving an āyah", () => {
     await page.goto("/surah/1");
 
     // Open the save panel on the first āyah.
-    await page.getByRole("button", { name: /☆ Save/ }).first().click();
+    await page.getByRole("button", { name: "Save", exact: true }).first().click();
 
     // Create a new collection — this also saves the current āyah into it.
     await page.getByPlaceholder(/New collection/).first().fill("Reflections");
     await page.getByRole("button", { name: "Add", exact: true }).first().click();
 
     // The action now reflects the saved state.
-    await expect(page.getByRole("button", { name: /★ Saved/ }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Saved", exact: true }).first()).toBeVisible();
 
     // The collection and its āyah appear on the bookmarks page.
     await page.goto("/bookmarks");
