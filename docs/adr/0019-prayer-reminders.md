@@ -49,8 +49,9 @@ are blocked/unsupported) — we don't promise closed-app delivery we can't give.
   infra, no PII, only an optional notification grant. The pure helper and the
   `Notifier` port are shared with mobile, where an Expo adapter implements the
   *same* contract; the UI and `core` never change when the delivery mechanism does.
-- **Migration:** the inline `Notification` in the 0017 adhkar banner can move onto
-  this port later for one delivery path; not done now to keep this change focused.
+- **One delivery path:** the 0017 adhkar reminder was migrated onto this same
+  port (`syncAdhkarReminder`), so `web-notifier.ts` is the only code that touches
+  the DOM Notifications API. A new delivery mechanism is added in one place.
 - **Limit & trigger to revisit:** no reminder when the browser/PWA is fully
   closed. If wanted on web, add a service-worker / Web Push adapter behind the
   **same `Notifier` port** (VAPID + a subscription store) — an accounts-adjacent,
