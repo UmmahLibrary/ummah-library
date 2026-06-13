@@ -11,13 +11,13 @@ import type {
 import {
   FileAdhkarRepository,
   FileAsmaRepository,
+  FileHadithRepository,
   FileQuranRepository,
   FileTranslationRepository,
   loadPluginRegistry,
 } from "@ummahlibrary/data";
 import {
   AdhanPrayerTimes,
-  HttpHadithRepository,
   HttpTafsirRepository,
   HttpTranslationCatalog,
 } from "@ummahlibrary/adapters";
@@ -42,8 +42,8 @@ export const pluginRegistry: PluginRegistry = loadPluginRegistry();
 /** Tafsir served at runtime from each tafsir plugin's source URL. */
 export const tafsirRepository: TafsirRepository = new HttpTafsirRepository(pluginRegistry);
 
-/** Hadith collections served at runtime from each hadith plugin's source URL. */
-export const hadithRepository: HadithRepository = new HttpHadithRepository(pluginRegistry);
+/** Hadith collections served from the ingested datasets — see ADR 0022. */
+export const hadithRepository: HadithRepository = new FileHadithRepository();
 
 /** Prayer-times calculator (adhan behind the core port) — see ADR 0012. */
 export const prayerTimes: PrayerTimesCalculator = new AdhanPrayerTimes();

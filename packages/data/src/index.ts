@@ -21,6 +21,10 @@ import type {
   Ayah,
   Dhikr,
   DivineName,
+  Hadith,
+  HadithCollection,
+  HadithRepository,
+  HadithSection,
   QuranRepository,
   Surah,
   TranslatedAyah,
@@ -181,5 +185,50 @@ const ASMA = asmaData.names as readonly DivineName[];
 export class FileAsmaRepository implements AsmaRepository {
   all(): Promise<readonly DivineName[]> {
     return Promise.resolve(ASMA);
+  }
+}
+
+interface HadithDoc {
+  collectionId: string;
+  name: string;
+  sections: Record<string, string>;
+  hadiths: Hadith[];
+}
+
+/**
+ * Serves the hadith collections from the ingested datasets (ADR 0022) — each
+ * collection's full edition is read lazily from disk and cached, replacing the
+ * previous per-section runtime fetch. `getSection` filters by book number.
+ */
+export class FileHadithRepository implements HadithRepository {
+  readonly #cache = new Map<string, HadithDoc | null>();
+
+  #load(collectionId: string): HadithDoc | null {
+    const cached = this.#cache.get(collectionId);
+    if (cached !== undefined) return cached;
+    // Restrict to plain ids so the path can't escape the datasets directory.
+    const rel = `hadiths/${collectionId}.json`;
+    const doc = /^[a-z0-9-]+$/.test(collectionId) && existsSync(join(datasetsBase(), rel))
+      ? loadJson<HadithDoc>(rel)
+      : null;
+    this.#cache.set(collectionId, doc);
+    return doc;
+  }
+
+  getCollection(collectionId: string): Promise<HadithCollection | null> {
+    return Promise.resolve(this.#load(collectionId));
+  }
+
+  getSection(collectionId: string, section: number): Promise<HadithSection | null> {
+    const doc = this.#load(collectionId);
+    if (!doc) return Promise.resolve(null);
+    const hadiths = doc.hadiths.filter((h) => h.reference.book === section);
+    if (hadiths.length === 0) return Promise.resolve(null);
+    return Promise.resolve({
+      collectionId,
+      section,
+      name: doc.sections[String(section)] ?? doc.name,
+      hadiths,
+    });
   }
 }

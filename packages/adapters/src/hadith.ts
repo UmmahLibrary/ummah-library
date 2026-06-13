@@ -1,5 +1,11 @@
-import type { Hadith, HadithRepository, HadithSection, PluginRegistry } from "@ummahlibrary/core";
-import { hadithSectionUrl } from "@ummahlibrary/core";
+import type {
+  Hadith,
+  HadithCollection,
+  HadithRepository,
+  HadithSection,
+  PluginRegistry,
+} from "@ummahlibrary/core";
+import { hadithCollectionUrl, hadithSectionUrl } from "@ummahlibrary/core";
 
 /** The fawazahmed0 hadith-api per-section shape (minified editions). */
 interface FawazHadithSection {
@@ -36,13 +42,34 @@ export class HttpHadithRepository implements HadithRepository {
     const data = (await response.json()) as FawazHadithSection;
 
     const name = data.metadata.section[String(section)] ?? data.metadata.name;
-    const hadiths: Hadith[] = data.hadiths.map((h) => ({
+    const hadiths = this.#mapHadiths(collectionId, data.hadiths);
+    return { collectionId, section, name, hadiths };
+  }
+
+  async getCollection(collectionId: string): Promise<HadithCollection | null> {
+    const plugin = this.#registry.get(collectionId);
+    if (!plugin || plugin.kind !== "hadith") return null;
+    const response = await this.#fetch(hadithCollectionUrl(plugin));
+    if (!response.ok) return null;
+    const data = (await response.json()) as {
+      metadata: { name: string; sections?: Record<string, string> };
+      hadiths: FawazHadithSection["hadiths"];
+    };
+    return {
+      collectionId,
+      name: data.metadata.name,
+      sections: data.metadata.sections ?? {},
+      hadiths: this.#mapHadiths(collectionId, data.hadiths),
+    };
+  }
+
+  #mapHadiths(collectionId: string, hadiths: FawazHadithSection["hadiths"]): Hadith[] {
+    return hadiths.map((h) => ({
       collectionId,
       number: h.hadithnumber,
       text: h.text,
       grades: (h.grades ?? []).map((g) => (typeof g === "string" ? g : `${g.name}: ${g.grade}`)),
       reference: h.reference,
     }));
-    return { collectionId, section, name, hadiths };
   }
 }

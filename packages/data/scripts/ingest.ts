@@ -24,9 +24,10 @@ import type {
   ContentPlugin,
   Dhikr,
   DivineName,
+  HadithPlugin,
   TranslationPlugin,
 } from "@ummahlibrary/core";
-import { validatePlugin } from "@ummahlibrary/core";
+import { hadithCollectionUrl, validatePlugin } from "@ummahlibrary/core";
 
 const DATA_VERSION = "1.0.0";
 const TOTAL_SURAHS = 114;
@@ -195,6 +196,55 @@ interface EditionMeta {
   link?: string;
 }
 
+/** The fawazahmed0 hadith-api full-edition shape. */
+interface FawazFullEdition {
+  metadata: { name: string; sections: Record<string, string> };
+  hadiths: {
+    hadithnumber: number;
+    text: string;
+    grades?: ({ name: string; grade: string } | string)[];
+    reference: { book: number; hadith: number };
+  }[];
+}
+
+/**
+ * Ingest the hadith collections at build time (ADR 0022). Each plugin's full
+ * English edition is downloaded once, normalized to our `Hadith` shape (keeping
+ * every grader's grade), and written to `datasets/hadiths/{id}.json` with source
+ * attribution. Returns the per-collection hadith counts for the summary.
+ */
+async function ingestHadith(): Promise<number> {
+  const plugins = readPlugins("hadiths").filter((p): p is HadithPlugin => p.kind === "hadith");
+  console.log(`• Hadith (${plugins.length} collections)`);
+  let total = 0;
+  for (const plugin of plugins) {
+    const url = hadithCollectionUrl(plugin);
+    const data = await getJson<FawazFullEdition>(url);
+    const hadiths = data.hadiths
+      .filter((h) => h.text && h.text.trim()) // drop empty/placeholder entries in the source
+      .map((h) => ({
+        collectionId: plugin.id,
+        number: h.hadithnumber,
+        text: h.text.trim(),
+        grades: (h.grades ?? []).map((g) => (typeof g === "string" ? g : `${g.name}: ${g.grade}`)),
+        reference: h.reference,
+      }));
+    if (hadiths.length < 40) {
+      throw new Error(`Hadith ingest for ${plugin.id} looks wrong: ${hadiths.length} hadiths`);
+    }
+    await writeJson(`hadiths/${plugin.id}.json`, {
+      version: DATA_VERSION,
+      collectionId: plugin.id,
+      name: plugin.name,
+      sections: data.metadata.sections ?? {},
+      source: { url, project: "fawazahmed0/hadith-api", retrieved: new Date().toISOString().slice(0, 10) },
+      hadiths,
+    });
+    total += hadiths.length;
+  }
+  return total;
+}
+
 async function main(): Promise<void> {
   console.log("Ingesting Quran data → datasets/\n");
 
@@ -203,6 +253,13 @@ async function main(): Promise<void> {
   if (process.argv.includes("--plugins-only")) {
     await writePluginRegistry();
     console.log("Regenerated plugins.json from manifests.\n");
+    return;
+  }
+
+  // Fast path: ingest only the hadith collections (ADR 0022).
+  if (process.argv.includes("--hadith-only")) {
+    const count = await ingestHadith();
+    console.log(`\nIngested ${count} hadith across the collections.\n`);
     return;
   }
 
@@ -407,8 +464,11 @@ async function main(): Promise<void> {
     names,
   });
 
+  // 7) Hadith collections — ingested from fawazahmed0/hadith-api (ADR 0022).
+  const hadithCount = await ingestHadith();
+
   console.log(
-    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs, ${translationPlugins.length} translations, ${allPlugins.length} plugins, ${adhkar.length} adhkar, ${names.length} names.`,
+    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs, ${translationPlugins.length} translations, ${adhkar.length} adhkar, ${names.length} names, ${hadithCount} hadith.`,
   );
 }
 
