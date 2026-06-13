@@ -7,6 +7,8 @@ import type { IconName } from "./noor";
 import { type EditionChoice, DEFAULT_EDITIONS, readEditions } from "../lib/editions";
 import { fetchCatalogue } from "../lib/catalogue";
 import { TranslationSettings } from "./TranslationSettings";
+import { TafsirPicker } from "./TafsirPicker";
+import { WBW_KEY } from "./WordByWord";
 
 const SCALE_KEY = "ul.scale";
 const SCALE_MIN = 0.8;
@@ -46,12 +48,14 @@ type Panel = "display" | "reciter" | null;
 export function ReaderToolbar({
   surahNumber,
   reciters,
+  tafsirs,
   segValue,
   segOptions,
   onSeg,
 }: {
   surahNumber: number;
   reciters: ReciterPlugin[];
+  tafsirs: { id: string; name: string }[];
   segValue: string;
   segOptions: SegOption[];
   onSeg: (value: string) => void;
@@ -60,6 +64,7 @@ export function ReaderToolbar({
   const [scale, setScale] = useState(1);
   const [bookmarked, setBookmarked] = useState(false);
   const [reciterId, setReciterId] = useState(reciters[0]?.id ?? "");
+  const [wbw, setWbw] = useState(false);
   const [managing, setManaging] = useState(false);
   const [catalogue, setCatalogue] = useState<EditionChoice[]>([]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(DEFAULT_EDITIONS));
@@ -72,9 +77,24 @@ export function ReaderToolbar({
     write(LAST_READ_KEY, { surah: surahNumber });
     const r = localStorage.getItem(RECITER_KEY);
     if (r && reciters.some((x) => x.id === r)) setReciterId(r);
+    const wbwOn = localStorage.getItem(WBW_KEY) === "1";
+    setWbw(wbwOn);
+    document.body.classList.toggle("wbw-on", wbwOn);
     setSelected(new Set(readEditions()));
     void fetchCatalogue().then(setCatalogue);
   }, [surahNumber, reciters]);
+
+  function toggleWbw() {
+    const next = !wbw;
+    setWbw(next);
+    document.body.classList.toggle("wbw-on", next);
+    try {
+      localStorage.setItem(WBW_KEY, next ? "1" : "0");
+      window.dispatchEvent(new CustomEvent(WBW_KEY, { detail: next }));
+    } catch {
+      /* ignore */
+    }
+  }
 
   function changeScale(delta: number) {
     const next = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((scale + delta) * 10) / 10));
@@ -166,7 +186,7 @@ export function ReaderToolbar({
           onClick={() => setPanel((p) => (p === "display" ? null : "display"))}
         />
         {panel === "display" && (
-          <div style={popover}>
+          <div style={{ ...popover, minWidth: 244 }}>
             <div style={sectionLabel}>Text size</div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <button
@@ -193,6 +213,41 @@ export function ReaderToolbar({
                 <Icon name="plus" size={16} />
               </button>
             </div>
+
+            <div style={{ height: 1, background: N.borderSoft, margin: "14px -12px" }} />
+            <button
+              type="button"
+              onClick={toggleWbw}
+              aria-pressed={wbw}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                width: "100%",
+                padding: "9px 11px",
+                borderRadius: 10,
+                border: `1px solid ${wbw ? N.gold : N.border}`,
+                background: wbw ? N.goldSoft : N.card,
+                color: wbw ? N.gold : N.fg,
+                cursor: "pointer",
+                fontFamily: N.ui,
+                fontSize: 13.5,
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <Icon name="type" size={15} color={wbw ? N.gold : N.muted} /> Word by word
+              </span>
+              {wbw && <Icon name="check" size={15} color={N.gold} />}
+            </button>
+
+            {tafsirs.length > 1 && (
+              <div style={{ marginTop: 12 }}>
+                <div style={sectionLabel}>Tafsir edition</div>
+                <TafsirPicker tafsirs={tafsirs} />
+              </div>
+            )}
           </div>
         )}
       </div>

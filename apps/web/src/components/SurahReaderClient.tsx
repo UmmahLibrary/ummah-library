@@ -11,7 +11,6 @@ import { ReadingTranslationPicker } from "./ReadingTranslationPicker";
 import { ReadingTranslationFlow } from "./ReadingTranslationFlow";
 import { ReaderToolbar } from "./ReaderToolbar";
 import { WordByWord } from "./WordByWord";
-import { TafsirPicker } from "./TafsirPicker";
 import { HashHighlighter } from "./HashHighlighter";
 import { ReaderShortcuts } from "./ReaderShortcuts";
 import { ReadingTracker } from "./ReadingTracker";
@@ -199,6 +198,7 @@ export function SurahReaderClient({
           <ReaderToolbar
             surahNumber={surah.number}
             reciters={reciters}
+            tafsirs={tafsirs}
             segValue={segValue}
             segOptions={segOptions}
             onSeg={chooseMode}
@@ -281,7 +281,6 @@ export function SurahReaderClient({
           {/* Verse mode */}
           <div className="mode-translation">
             <WordByWord />
-            {tafsirs.length > 1 && <TafsirPicker tafsirs={tafsirs} />}
 
             {surah.hasBismillah && surah.number !== 1 && (
               <p
