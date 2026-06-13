@@ -5,6 +5,7 @@ import {
   type PrayerTimings,
   isCalculationMethod,
   nextPrayer,
+  prayerReminders,
 } from "./prayer";
 
 // A fixed day's timings (UTC instants) for a deterministic clock.
@@ -51,5 +52,46 @@ describe("nextPrayer", () => {
 
   it("returns Fajr before the first prayer", () => {
     expect(nextPrayer(timings, new Date("2026-06-07T01:00:00Z"))?.name).toBe("fajr");
+  });
+});
+
+describe("prayerReminders", () => {
+  const allOn = { fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true };
+
+  it("returns only enabled prayers still ahead of now, in order", () => {
+    const r = prayerReminders(timings, allOn, new Date("2026-06-07T13:00:00Z"));
+    expect(r.map((x) => x.prayer)).toEqual(["asr", "maghrib", "isha"]);
+    expect(r[0]?.at).toBe(timings.asr);
+  });
+
+  it("excludes prayers the user has not enabled", () => {
+    const r = prayerReminders(
+      timings,
+      { fajr: true, isha: true },
+      new Date("2026-06-07T00:00:00Z"),
+    );
+    expect(r.map((x) => x.prayer)).toEqual(["fajr", "isha"]);
+  });
+
+  it("never includes sunrise (not obligatory)", () => {
+    const r = prayerReminders(
+      timings,
+      { sunrise: true } as Record<"sunrise", boolean>,
+      new Date("2026-06-07T00:00:00Z"),
+    );
+    expect(r).toEqual([]);
+  });
+
+  it("treats a prayer exactly at now as already passed", () => {
+    const r = prayerReminders(timings, allOn, new Date("2026-06-07T12:00:00Z"));
+    expect(r.map((x) => x.prayer)).toEqual(["asr", "maghrib", "isha"]);
+  });
+
+  it("returns nothing once the day's prayers have all passed", () => {
+    expect(prayerReminders(timings, allOn, new Date("2026-06-07T22:00:00Z"))).toEqual([]);
+  });
+
+  it("returns nothing when no prayers are enabled", () => {
+    expect(prayerReminders(timings, {}, new Date("2026-06-07T00:00:00Z"))).toEqual([]);
   });
 });

@@ -89,3 +89,27 @@ export function nextPrayer(
   }
   return null;
 }
+
+/** A reminder for one prayer: which prayer, and the instant it begins. */
+export interface PrayerReminder {
+  prayer: PrayerName;
+  /** ISO-8601 instant the prayer begins (its adhān time). */
+  at: string;
+}
+
+/**
+ * The prayer reminders still ahead of `now` for a single day: each obligatory
+ * prayer the user has enabled whose time has not yet passed, in chronological
+ * order. The delivery mechanism is a separate concern (the {@link Notifier}
+ * port) — this only decides *what* and *when*. Pure: the clock is injected.
+ */
+export function prayerReminders(
+  timings: PrayerTimings,
+  enabled: Partial<Record<PrayerName, boolean>>,
+  now: Date,
+): PrayerReminder[] {
+  const t = now.getTime();
+  return OBLIGATORY_PRAYERS.filter((p) => enabled[p])
+    .map((p) => ({ prayer: p, at: timings[p] }))
+    .filter((r) => new Date(r.at).getTime() > t);
+}
