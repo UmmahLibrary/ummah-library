@@ -5,6 +5,7 @@ import { ToolsPrayerCard } from "../../components/ToolsPrayerCard";
 
 const TOOLS = [
   { key: "/prayer-times", label: "Prayer Times", glyph: "🕌", note: "Daily salah times" },
+  { key: "/tracker", label: "Prayer Tracker", glyph: "📿", note: "Log & build streaks" },
   { key: "/qibla", label: "Qibla", glyph: "🧭", note: "118° SE · Direction to Makkah" },
   { key: "/hifz", label: "Hifz Review", glyph: "✦", note: "Spaced repetition" },
   { key: "/calendar", label: "Hijri Calendar", glyph: "☾", note: "Islamic dates" },
