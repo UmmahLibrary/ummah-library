@@ -319,7 +319,7 @@ export function PrayerTimesView() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: 12,
               marginBottom: 24,
             }}
@@ -334,12 +334,12 @@ export function PrayerTimesView() {
                     padding: "16px 18px",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
+                    gap: 12,
                     borderColor: isNext ? N.gold : N.border,
                     background: isNext ? N.goldSoft : N.card,
                   }}
                 >
-                  <div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{ fontSize: 14.5, fontWeight: 700, color: isNext ? N.goldHi : N.fg }}
                     >
@@ -349,17 +349,27 @@ export function PrayerTimesView() {
                       {name === "sunrise" ? "Shurūq" : "Adhān"}
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span
-                      style={{
-                        fontSize: 17,
-                        fontWeight: 700,
-                        color: isNext ? N.goldHi : N.fg,
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {fmtTime(timings[name])}
-                    </span>
+                  <span
+                    style={{
+                      fontSize: 17,
+                      fontWeight: 700,
+                      color: isNext ? N.goldHi : N.fg,
+                      fontVariantNumeric: "tabular-nums",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {fmtTime(timings[name])}
+                  </span>
+                  {/* Reserve the toggle slot on every card (incl. Sunrise) so the
+                      times line up in a column. */}
+                  <span
+                    style={{
+                      width: 18,
+                      flexShrink: 0,
+                      display: "flex",
+                      justifyContent: "center",
+                    }}
+                  >
                     {OBLIGATORY_PRAYERS.includes(name) &&
                       (() => {
                         const on = !!reminders[name];
@@ -383,7 +393,7 @@ export function PrayerTimesView() {
                           </button>
                         );
                       })()}
-                  </div>
+                  </span>
                 </div>
               );
             })}
