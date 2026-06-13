@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import { N, Icon } from "../noor";
+import { ThemeToggle } from "../ThemeToggle";
 import { useSearch } from "./SearchContext";
 import { formatHijri, gregorianToHijri } from "@ummahlibrary/core";
 import { HIJRI_ADJUST_KEY, readHijriAdjust } from "../../lib/hijri";
@@ -137,8 +138,9 @@ export function TopBar() {
         )}
       </form>
 
-      {/* Right: Hijri date + avatar */}
+      {/* Right: theme toggle + Hijri date + avatar */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <ThemeToggle />
         {hijriLabel && (
           <div style={{ textAlign: "right", flexShrink: 0 }}>
             <div style={{ fontSize: 14.5, fontWeight: 600, color: N.gold, fontFamily: N.ui }}>

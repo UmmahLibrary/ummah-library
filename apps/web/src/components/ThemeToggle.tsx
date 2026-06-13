@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Icon, N } from "./noor";
 import {
   applyTheme,
   lastThemeForMode,
@@ -27,14 +28,27 @@ export function ThemeToggle() {
     setMode(target);
   }
 
+  const next = mode === "dark" ? "light" : "dark";
   return (
     <button
       type="button"
-      className="head-link theme-toggle"
       onClick={toggle}
-      aria-label={`Switch to ${mode === "dark" ? "light" : "dark"} theme`}
+      aria-label={`Switch to ${next} theme`}
+      title={`Switch to ${next} theme`}
+      style={{
+        width: 40,
+        height: 40,
+        flexShrink: 0,
+        borderRadius: 11,
+        border: `1px solid ${N.border}`,
+        background: N.card,
+        color: N.muted,
+        display: "grid",
+        placeItems: "center",
+        cursor: "pointer",
+      }}
     >
-      {mode === "dark" ? "☀️" : "🌙"}
+      <Icon name={mode === "dark" ? "sun" : "moon"} size={19} />
     </button>
   );
 }
