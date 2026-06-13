@@ -9,11 +9,17 @@ import {
   validatePlugin,
 } from "@ummahlibrary/core";
 import { describe, expect, it } from "vitest";
-import { FileQuranRepository, FileTranslationRepository, loadPluginRegistry } from "./index";
+import {
+  FileHadithRepository,
+  FileQuranRepository,
+  FileTranslationRepository,
+  loadPluginRegistry,
+} from "./index";
 import surahsData from "../datasets/surahs.json";
 
 const quran = new FileQuranRepository();
 const translations = new FileTranslationRepository();
+const hadith = new FileHadithRepository();
 
 describe("FileQuranRepository", () => {
   it("lists all 114 surahs with full metadata", async () => {
@@ -99,6 +105,34 @@ describe("datasets agree with the core structural invariants", () => {
   it("ingested hizb starts match core HIZB_STARTS", () => {
     const starts = structure.hizb.map((h) => ({ sura: h.sura, aya: h.aya }));
     expect(starts).toEqual([...HIZB_STARTS]);
+  });
+});
+
+describe("FileHadithRepository", () => {
+  it("loads a whole collection from the ingested datasets", async () => {
+    const collection = await hadith.getCollection("eng-bukhari");
+    expect(collection?.collectionId).toBe("eng-bukhari");
+    expect(collection?.name).toMatch(/Bukh/i);
+    expect(collection?.hadiths.length).toBeGreaterThan(1000);
+    expect(Object.keys(collection?.sections ?? {}).length).toBeGreaterThan(0);
+  });
+
+  it("filters a section by its book number (reusing the cached collection)", async () => {
+    const section = await hadith.getSection("eng-bukhari", 1);
+    expect(section?.section).toBe(1);
+    expect(section?.hadiths.length).toBeGreaterThan(0);
+    expect(section?.hadiths.every((h) => h.reference.book === 1)).toBe(true);
+    expect(section?.name.length).toBeGreaterThan(0);
+  });
+
+  it("returns null for a non-existent section", async () => {
+    expect(await hadith.getSection("eng-bukhari", 99_999)).toBeNull();
+  });
+
+  it("returns null for an unknown or path-unsafe collection id", async () => {
+    expect(await hadith.getCollection("nope")).toBeNull();
+    expect(await hadith.getCollection("../secrets")).toBeNull();
+    expect(await hadith.getSection("../secrets", 1)).toBeNull();
   });
 });
 
