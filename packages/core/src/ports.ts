@@ -72,6 +72,44 @@ export interface PrayerTimesCalculator {
   calculate(query: PrayerTimesQuery): Promise<PrayerTimings>;
 }
 
+/** Platform-neutral notification permission state (no DOM dependency). */
+export type NotifyPermission = "granted" | "denied" | "default" | "unsupported";
+
+/** A local notification to deliver, optionally at a future instant. */
+export interface AppNotification {
+  /** Stable id; scheduling again with the same id replaces the pending one. */
+  id: string;
+  title: string;
+  body: string;
+  /** ISO-8601 instant to deliver at; omitted (or in the past) means immediately. */
+  at?: string;
+  /** Optional OS-level de-duplication tag (defaults to `id`). */
+  tag?: string;
+}
+
+/**
+ * Delivers local notifications, hiding the platform mechanism behind the port.
+ * The web adapter uses the Notifications API with in-page timers, so reminders
+ * fire only while a tab is open — the honest limit of a no-backend, local-first
+ * app (ADR 0017, 0019). A service-worker, Web Push or Expo adapter can later
+ * satisfy the same contract for closed-app delivery without touching the
+ * reminder logic in `core` or the UI.
+ */
+export interface Notifier {
+  /** Whether this platform can show notifications at all. */
+  isSupported(): boolean;
+  /** The current permission state. */
+  permission(): NotifyPermission;
+  /** Ask the user to grant permission; resolves with the resulting state. */
+  requestPermission(): Promise<NotifyPermission>;
+  /** Schedule (or reschedule) a notification; replaces any pending one with the same id. */
+  schedule(notification: AppNotification): Promise<void>;
+  /** Cancel a pending notification by id. */
+  cancel(id: string): Promise<void>;
+  /** Cancel every pending notification this notifier scheduled. */
+  cancelAll(): Promise<void>;
+}
+
 /** Access to hadith collections. */
 export interface HadithRepository {
   /** One section (book/chapter) of a collection, or `null` if unavailable. */

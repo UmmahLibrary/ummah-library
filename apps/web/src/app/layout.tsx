@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Hanken_Grotesk, IBM_Plex_Sans_Arabic, Amiri } from "next/font/google";
 import { ServiceWorkerRegister } from "../components/ServiceWorkerRegister";
 import { AdhkarReminderBanner } from "../components/AdhkarReminderBanner";
+import { PrayerReminderScheduler } from "../components/PrayerReminderScheduler";
 import { AppShellWrapper } from "../components/AppShellWrapper";
 import "./globals.css";
 
@@ -86,6 +87,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           Skip to content
         </a>
         <AdhkarReminderBanner />
+        <PrayerReminderScheduler />
         <AppShellWrapper>{children}</AppShellWrapper>
         <ServiceWorkerRegister />
       </body>

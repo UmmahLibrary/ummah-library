@@ -8,6 +8,7 @@ import {
   DEFAULT_CALCULATION_METHOD,
   type Madhab,
   MADHABS,
+  type NotifyPermission,
   OBLIGATORY_PRAYERS,
   PRAYER_LABELS,
   type PrayerName,
@@ -15,7 +16,13 @@ import {
   TIMING_NAMES,
   nextPrayer,
 } from "@ummahlibrary/core";
-import { Khatam, N } from "./noor";
+import { Icon, Khatam, N } from "./noor";
+import {
+  type PrayerReminderPrefs,
+  readPrayerReminderPrefs,
+  setPrayerReminder,
+} from "../lib/prayer-reminders";
+import { WebNotifier } from "../lib/web-notifier";
 
 const METHOD_KEY = "ul.prayerMethod";
 const MADHAB_KEY = "ul.prayerMadhab";
@@ -89,7 +96,11 @@ export function PrayerTimesView() {
   const [week, setWeek] = useState<WeekDay[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [now, setNow] = useState(() => new Date());
+  const [reminders, setReminders] = useState<PrayerReminderPrefs>({});
+  const [permission, setPermission] = useState<NotifyPermission>("default");
   const reqId = useRef(0);
+  const notifierRef = useRef<WebNotifier | null>(null);
+  const getNotifier = () => (notifierRef.current ??= new WebNotifier());
 
   // Fetch the whole current week in parallel; today's card is derived from it.
   const fetchTimings = useCallback(async (c: Coordinates, m: string, mad: Madhab) => {
@@ -130,6 +141,8 @@ export function PrayerTimesView() {
     const saved = read<Coordinates | null>(COORDS_KEY, null);
     setMethod(m);
     setMadhab(mad);
+    setReminders(readPrayerReminderPrefs());
+    setPermission(getNotifier().permission());
     if (saved) {
       setCoords(saved);
       void fetchTimings(saved, m, mad);
@@ -173,6 +186,16 @@ export function PrayerTimesView() {
     setMadhab(m);
     localStorage.setItem(MADHAB_KEY, m);
     if (coords) void fetchTimings(coords, method, m);
+  }
+
+  // Flip one prayer's reminder. Asking for notification permission must happen in
+  // the click; persisting the pref fires the event the layout scheduler listens to.
+  async function toggleReminder(name: PrayerName) {
+    const turningOn = !reminders[name];
+    if (turningOn && getNotifier().permission() === "default") {
+      setPermission(await getNotifier().requestPermission());
+    }
+    setReminders({ ...setPrayerReminder(name, turningOn) });
   }
 
   const upcoming = timings ? nextPrayer(timings, now) : null;
@@ -326,20 +349,54 @@ export function PrayerTimesView() {
                       {name === "sunrise" ? "Shurūq" : "Adhān"}
                     </div>
                   </div>
-                  <span
-                    style={{
-                      fontSize: 17,
-                      fontWeight: 700,
-                      color: isNext ? N.goldHi : N.fg,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {fmtTime(timings[name])}
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span
+                      style={{
+                        fontSize: 17,
+                        fontWeight: 700,
+                        color: isNext ? N.goldHi : N.fg,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {fmtTime(timings[name])}
+                    </span>
+                    {OBLIGATORY_PRAYERS.includes(name) &&
+                      (() => {
+                        const on = !!reminders[name];
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => void toggleReminder(name)}
+                            aria-pressed={on}
+                            aria-label={`${on ? "Turn off" : "Turn on"} the ${PRAYER_LABELS[name]} reminder`}
+                            title={on ? "Reminder on" : "Remind me"}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: 0,
+                              display: "flex",
+                              color: on ? N.gold : N.faint,
+                            }}
+                          >
+                            <Icon name={on ? "check" : "plus"} size={18} color={on ? N.gold : N.faint} />
+                          </button>
+                        );
+                      })()}
+                  </div>
                 </div>
               );
             })}
           </div>
+          {OBLIGATORY_PRAYERS.some((p) => reminders[p]) && (
+            <p style={{ marginTop: -10, marginBottom: 22, color: N.faint, fontSize: 13 }}>
+              {permission === "denied"
+                ? "Notifications are blocked in your browser — enable them to be reminded."
+                : permission === "unsupported"
+                  ? "This browser can’t show notifications."
+                  : "🔔 Reminders ring while Ummah Library is open in a tab."}
+            </p>
+          )}
 
           {week.length > 0 && (
             <>
