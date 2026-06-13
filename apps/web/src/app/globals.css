@@ -433,10 +433,11 @@ a {
 }
 
 /* ---- Reading modes ----
-   translation : verse-by-verse (default, .mode-translation visible)
-   reading     : continuous mushaf, Arabic only (.mode-reading)
-   reading-tr  : a single chosen translation in a continuous, chrome-free flow,
-                 no Arabic (.mode-reading-tr) */
+   translation : verse-by-verse, Arabic + translation (default, .mode-translation)
+   reading     : "Reading" — continuous Arabic then a continuous translation
+                 (.mode-reading)
+   reading-tr  : "Mushaf" — continuous Arabic only, like a printed page
+                 (.mode-reading-tr) */
 .mode-reading,
 .mode-reading-tr {
   display: none;
