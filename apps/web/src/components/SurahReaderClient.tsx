@@ -9,7 +9,7 @@ import { AyahActions } from "./AyahActions";
 import { ReadingAudio } from "./ReadingAudio";
 import { ReadingTranslationPicker } from "./ReadingTranslationPicker";
 import { ReadingTranslationFlow } from "./ReadingTranslationFlow";
-import { ReaderControls } from "./ReaderControls";
+import { ReaderToolbar } from "./ReaderToolbar";
 import { WordByWord } from "./WordByWord";
 import { TafsirPicker } from "./TafsirPicker";
 import { HashHighlighter } from "./HashHighlighter";
@@ -194,42 +194,15 @@ export function SurahReaderClient({
           </div>
         </div>
 
-        {/* Right: mode seg */}
+        {/* Right: reader controls (text size, reciter, translations, mode, bookmark) */}
         <div style={{ flexShrink: 0 }}>
-          {/* Inline seg control to avoid module boundary issues */}
-          <div
-            style={{
-              display: "flex",
-              borderRadius: 10,
-              border: `1px solid ${N.border}`,
-              overflow: "hidden",
-              background: N.card,
-            }}
-          >
-            {segOptions.map((o) => {
-              const active = o.value === segValue;
-              return (
-                <button
-                  key={o.value}
-                  onClick={() => chooseMode(o.value)}
-                  style={{
-                    padding: "6px 12px",
-                    fontSize: 13,
-                    fontFamily: N.ui,
-                    fontWeight: active ? 700 : 500,
-                    color: active ? N.ink : N.muted,
-                    background: active ? N.gold : "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    transition: "background .15s, color .15s",
-                  }}
-                >
-                  {o.label}
-                </button>
-              );
-            })}
-          </div>
+          <ReaderToolbar
+            surahNumber={surah.number}
+            reciters={reciters}
+            segValue={segValue}
+            segOptions={segOptions}
+            onSeg={chooseMode}
+          />
         </div>
       </div>
 
@@ -307,7 +280,6 @@ export function SurahReaderClient({
 
           {/* Verse mode */}
           <div className="mode-translation">
-            <ReaderControls surahNumber={surah.number} />
             <WordByWord />
             {tafsirs.length > 1 && <TafsirPicker tafsirs={tafsirs} />}
 
