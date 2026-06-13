@@ -39,9 +39,7 @@ const surahs: Surah[] = [
 ];
 
 const juzLinks = () =>
-  screen
-    .getAllByRole("link")
-    .filter((a) => /^\/juz\/\d+$/.test(a.getAttribute("href") ?? ""));
+  screen.getAllByRole("link").filter((a) => /^\/juz\/\d+$/.test(a.getAttribute("href") ?? ""));
 
 const positionOf = (re: RegExp) =>
   screen.getAllByRole("link").findIndex((a) => re.test(a.textContent ?? ""));
@@ -66,13 +64,16 @@ describe("NoorHomePage tabs", () => {
     expect(hrefs).toContain("/juz/30");
   });
 
-  it("Revelation tab re-orders surahs by order of revelation", async () => {
+  it("Revelation tab groups surahs into Meccan and Medinan", async () => {
     render(<NoorHomePage surahs={surahs} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Revelation" }));
 
-    // Al-ʿAlaq (revealed #1) now precedes Al-Fātiḥah (revealed #5).
-    expect(positionOf(/Al-ʿAlaq/)).toBeLessThan(positionOf(/Al-Fātiḥah/));
-    expect(screen.getByText(/Revealed #1\b/)).toBeInTheDocument();
+    // Both place-of-revelation sections are present.
+    expect(screen.getByText("Meccan")).toBeInTheDocument();
+    expect(screen.getByText("Medinan")).toBeInTheDocument();
+    // Within the Meccan group, surahs keep surah-number order (Al-Fātiḥah 1 before Al-ʿAlaq 96)
+    // — the opposite of the old chronological ordering, which proves the regrouping.
+    expect(positionOf(/Al-Fātiḥah/)).toBeLessThan(positionOf(/Al-ʿAlaq/));
   });
 });
