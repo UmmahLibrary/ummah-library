@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { JUZ_STARTS, TOTAL_JUZ } from "@ummahlibrary/core";
 import { N, Khatam } from "./noor";
+import { HomeHeroCards } from "./HomeHeroCards";
 import { useSearch } from "./shell/SearchContext";
 
 interface Surah {
@@ -112,6 +113,9 @@ export function NoorHomePage({ surahs }: Props) {
         >
           Welcome back.
         </h1>
+
+        {/* Next prayer + today's reading summary */}
+        <HomeHeroCards />
 
         {/* Continue reading card */}
         <Link
