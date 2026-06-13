@@ -16,6 +16,10 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/api/trpc/[trpc]": ["../../packages/data/datasets/**/*"],
     "/api/v1/surahs/[number]/ayahs/[aya]": ["../../packages/data/datasets/**/*"],
+    // The hadith section route reads the ingested collections at runtime (ADR 0022).
+    "/api/v1/hadith/[collection]/sections/[section]": [
+      "../../packages/data/datasets/hadiths/**/*",
+    ],
   },
 };
 

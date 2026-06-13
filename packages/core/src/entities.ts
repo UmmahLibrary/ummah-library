@@ -89,6 +89,15 @@ export interface HadithSection {
   hadiths: Hadith[];
 }
 
+/** A whole hadith collection: its section (book) names and every hadith. */
+export interface HadithCollection {
+  collectionId: string;
+  name: string;
+  /** Section (book) number → name, for grouping/labelling. */
+  sections: Record<string, string>;
+  hadiths: Hadith[];
+}
+
 /** One of the 99 Names of Allah (Asmāʾ al-Ḥusná). */
 export interface DivineName {
   number: number;

@@ -111,6 +111,11 @@ export function hadithSectionUrl(hadith: HadithPlugin, section: number): string 
   return fillTemplate(hadith.sectionUrlTemplate, { section });
 }
 
+/** The URL for a hadith collection's full edition (derived from the section template). */
+export function hadithCollectionUrl(hadith: HadithPlugin): string {
+  return hadith.sectionUrlTemplate.replace(/\/sections\/\{section\}(\.min)?\.json$/, "$1.json");
+}
+
 /** Validate a plugin manifest, returning a list of problems (empty = valid). */
 export function validatePlugin(plugin: ContentPlugin): string[] {
   const errors: string[] = [];

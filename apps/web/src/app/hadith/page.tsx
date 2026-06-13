@@ -2,15 +2,19 @@ import { pluginRegistry } from "@ummahlibrary/api";
 import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { HadithBrowser } from "../../components/HadithBrowser";
 
-export const metadata = { title: "Hadith" };
+export const metadata = {
+  title: "Hadith",
+  description:
+    "Search the prophetic tradition across the six major collections — Bukhārī, Muslim, Abū Dāwūd, Tirmidhī, Nasāʾī and Ibn Mājah — with grade filters, on Ummah Library.",
+};
 
 const COLLECTIONS = pluginRegistry.byKind("hadith").map((c) => ({ id: c.id, name: c.name }));
 
 export default function HadithPage() {
   return (
     <NoorPageFrame
-      title="Hadith Library"
-      sub="The major collections of prophetic tradition"
+      title="Hadith"
+      sub="Search the prophetic tradition across the major collections"
       glyph="📖"
       back="/"
       maxW={900}

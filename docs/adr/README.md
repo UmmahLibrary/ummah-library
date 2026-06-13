@@ -30,6 +30,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0019](0019-prayer-reminders.md)              | Per-prayer reminders behind a `Notifier` port               | Accepted |
 | [0020](0020-prayer-tracker.md)                | Prayer tracker: a pure local prayer log, no port            | Accepted |
 | [0021](0021-global-search.md)                 | Global search: one client index over several sources        | Accepted |
+| [0022](0022-hadith-ingested-search.md)        | Hadith ingested at build time, searched on the client       | Accepted |
 
 ## Writing a new ADR
 

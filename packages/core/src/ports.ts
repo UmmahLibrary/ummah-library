@@ -8,6 +8,7 @@ import type {
   Ayah,
   Dhikr,
   DivineName,
+  HadithCollection,
   HadithSection,
   Surah,
   TafsirEntry,
@@ -114,6 +115,8 @@ export interface Notifier {
 export interface HadithRepository {
   /** One section (book/chapter) of a collection, or `null` if unavailable. */
   getSection(collectionId: string, section: number): Promise<HadithSection | null>;
+  /** A whole collection (every hadith + section names) for client-side browse/search. */
+  getCollection(collectionId: string): Promise<HadithCollection | null>;
 }
 
 /** Access to the 99 Names of Allah. */
