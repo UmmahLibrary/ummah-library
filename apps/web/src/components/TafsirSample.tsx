@@ -92,7 +92,7 @@ export function TafsirSample({ tafsirs }: { tafsirs: TafsirMeta[] }) {
             textAlign: "center",
             fontSize: "clamp(26px, 5vw, 34px)",
             lineHeight: 1.9,
-            color: N.fg,
+            color: N.goldHi,
             marginBottom: 14,
           }}
         >
