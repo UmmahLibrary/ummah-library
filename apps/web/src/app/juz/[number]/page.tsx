@@ -14,6 +14,7 @@ import { ReadingModeToggle } from "../../../components/ReadingModeToggle";
 import { EditionManager } from "../../../components/EditionManager";
 import { ReadingTranslationPicker } from "../../../components/ReadingTranslationPicker";
 import { AyahTranslations } from "../../../components/AyahTranslations";
+import { AyahStar } from "../../../components/AyahStar";
 import { ReadingTranslationFlow } from "../../../components/ReadingTranslationFlow";
 import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
 import { WordByWord } from "../../../components/WordByWord";
@@ -194,7 +195,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
               {section.ayahs.map((ayah) => (
                 <span key={ayah.aya}>
                   {ayah.text}
-                  <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>{" "}
+                  <AyahStar n={ayah.aya} />{" "}
                 </span>
               ))}
             </p>
@@ -210,27 +211,29 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
         ))}
       </div>
 
-      {/* Mushaf: continuous Arabic only per section */}
+      {/* Mushaf: a bordered page with continuous Arabic only per section */}
       <div className="mode-reading-tr">
-        {sections.map((section) => (
-          <section key={section.surah.number}>
-            <header className="juz-surah-head">
-              <span className="name-ar arabic">{section.surah.name}</span>
-              <span className="sub">
-                {section.surah.transliteration} · {section.surah.englishName}
-              </span>
-            </header>
-            {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
-            <p className="mushaf arabic">
-              {section.ayahs.map((ayah) => (
-                <span key={ayah.aya}>
-                  {ayah.text}
-                  <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>{" "}
+        <div className="mushaf-page">
+          {sections.map((section) => (
+            <section key={section.surah.number}>
+              <header className="mushaf-surah-head">
+                <span className="name-ar arabic">{section.surah.name}</span>
+                <span className="sub">
+                  {section.surah.transliteration} · {section.surah.englishName}
                 </span>
-              ))}
-            </p>
-          </section>
-        ))}
+              </header>
+              {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
+              <p className="mushaf arabic">
+                {section.ayahs.map((ayah) => (
+                  <span key={ayah.aya}>
+                    {ayah.text}
+                    <AyahStar n={ayah.aya} />{" "}
+                  </span>
+                ))}
+              </p>
+            </section>
+          ))}
+        </div>
       </div>
 
       <nav className="reader-nav">

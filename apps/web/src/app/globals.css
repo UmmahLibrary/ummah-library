@@ -540,14 +540,26 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
 /* Madani Mushaf page frame */
 .mushaf-page {
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem 1.25rem 0.5rem;
+  border-radius: 16px;
+  padding: clamp(22px, 5vw, 44px);
   background: var(--bg-elev);
+  margin-top: 0.875rem;
+}
+.mushaf-page .mushaf {
+  margin: 0;
 }
 .mushaf-page .mushaf-surah-head:first-child {
   margin-top: 0.5rem;
   border-top: none;
   padding-top: 0;
+}
+/* Surah name centred at the foot of a Mushaf page */
+.mushaf-surah-name {
+  text-align: center;
+  margin-top: 1.6rem;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  color: var(--muted);
 }
 
 .ayah {
