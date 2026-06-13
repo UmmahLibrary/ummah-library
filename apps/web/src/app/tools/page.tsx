@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { N, Khatam, Icon } from "../../components/noor";
+import { N } from "../../components/noor";
+import { ToolsPrayerCard } from "../../components/ToolsPrayerCard";
 
 const TOOLS = [
   { key: "/prayer-times", label: "Prayer Times", glyph: "🕌", note: "Daily salah times" },
@@ -52,82 +53,7 @@ export default function ToolsPage() {
           }}
         >
           {/* Prayer times featured */}
-          <Link
-            href="/prayer-times"
-            style={{
-              borderRadius: 18,
-              padding: 24,
-              background: `linear-gradient(135deg, ${N.cardHi}, ${N.card})`,
-              border: `1px solid ${N.border}`,
-              position: "relative",
-              overflow: "hidden",
-              textDecoration: "none",
-              display: "block",
-            }}
-          >
-            <div
-              aria-hidden="true"
-              style={{ position: "absolute", right: -36, bottom: -40, pointerEvents: "none" }}
-            >
-              <Khatam size={160} color={N.gold} sw={1.1} opacity={0.08} />
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                marginBottom: 18,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 11.5,
-                    letterSpacing: 1.2,
-                    textTransform: "uppercase",
-                    color: N.faint,
-                    fontWeight: 700,
-                    fontFamily: N.ui,
-                  }}
-                >
-                  Next prayer
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 10,
-                    flexWrap: "wrap",
-                    margin: "5px 0 3px",
-                  }}
-                >
-                  <span
-                    style={{ fontSize: 30, fontWeight: 800, color: N.gold, lineHeight: 1.1, fontFamily: N.ui }}
-                  >
-                    Prayer Times
-                  </span>
-                </div>
-                <div style={{ fontSize: 13.5, color: N.muted, fontFamily: N.ui }}>
-                  Daily salah · your location
-                </div>
-              </div>
-              <div style={{ fontSize: 30, flexShrink: 0 }}>🕌</div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                color: N.gold,
-                fontSize: 13.5,
-                fontWeight: 600,
-                fontFamily: N.ui,
-              }}
-            >
-              <Icon name="arrowR" size={16} color={N.gold} />
-              View prayer times
-            </div>
-          </Link>
+          <ToolsPrayerCard />
 
           {/* Qibla featured */}
           <Link
@@ -217,9 +143,7 @@ export default function ToolsPage() {
         </div>
 
         {/* All tools grid */}
-        <div
-          style={{ fontSize: 16, fontWeight: 700, margin: "10px 0 14px", fontFamily: N.ui }}
-        >
+        <div style={{ fontSize: 16, fontWeight: 700, margin: "10px 0 14px", fontFamily: N.ui }}>
           All tools
         </div>
         <div
