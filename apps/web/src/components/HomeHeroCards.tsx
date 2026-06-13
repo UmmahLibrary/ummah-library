@@ -92,6 +92,16 @@ export function HomeHeroCards() {
       : null);
   const pct = reading.goal > 0 ? Math.min(1, reading.pages / reading.goal) : 0;
 
+  // A privacy-safe location hint from the browser timezone (no reverse geocoding /
+  // network call). e.g. "Europe/London" → "London".
+  const place = (() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone.split("/").pop()?.replace(/_/g, " ");
+    } catch {
+      return undefined;
+    }
+  })();
+
   // Keep the static markup stable until mounted (these cards are personal/local).
   if (!ready) return <div style={{ minHeight: 96, marginBottom: 16 }} />;
 
@@ -164,7 +174,10 @@ export function HomeHeroCards() {
                 {fmtTime(next.at.toISOString())}
               </span>
             </div>
-            <div style={{ fontSize: 12.5, color: N.muted }}>in {countdown(next.at, now)}</div>
+            <div style={{ fontSize: 12.5, color: N.muted }}>
+              in {countdown(next.at, now)}
+              {place ? ` · ${place}` : ""}
+            </div>
           </>
         ) : (
           <>
