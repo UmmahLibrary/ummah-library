@@ -137,26 +137,40 @@ function SurahCard({ s }: { s: Surah }) {
   );
 }
 
-function JuzGroupHeader({ n, title, note }: { n: number; title: string; note: string | null }) {
+function GroupHeader({
+  href,
+  kicker,
+  title,
+  ar,
+  note,
+}: {
+  href?: string;
+  kicker: string;
+  title: string;
+  ar?: string;
+  note?: string | null;
+}) {
+  const badge = {
+    fontSize: 12,
+    fontWeight: 800,
+    color: N.ink,
+    background: N.goldGrad,
+    borderRadius: 7,
+    padding: "3px 9px",
+    flexShrink: 0,
+    textDecoration: "none",
+    fontFamily: N.ui,
+  } as const;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "26px 0 12px" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
-        <Link
-          href={`/juz/${n}`}
-          style={{
-            fontSize: 12,
-            fontWeight: 800,
-            color: N.ink,
-            background: N.goldGrad,
-            borderRadius: 7,
-            padding: "3px 9px",
-            flexShrink: 0,
-            textDecoration: "none",
-            fontFamily: N.ui,
-          }}
-        >
-          Juzʾ {n}
-        </Link>
+        {href ? (
+          <Link href={href} style={badge}>
+            {kicker}
+          </Link>
+        ) : (
+          <span style={badge}>{kicker}</span>
+        )}
         <span
           style={{
             fontSize: 16.5,
@@ -169,6 +183,11 @@ function JuzGroupHeader({ n, title, note }: { n: number; title: string; note: st
         >
           {title}
         </span>
+        {ar && (
+          <span className="noor-ar" style={{ fontSize: 19, color: N.goldHi, flexShrink: 0 }}>
+            {ar}
+          </span>
+        )}
         {note && (
           <span
             style={{
@@ -208,8 +227,9 @@ function JuzGroups({ surahs }: { surahs: Surah[] }) {
         const cont = list.length === 0 ? byNumber.get(JUZ_STARTS[n - 1]!.sura) : null;
         return (
           <div key={n}>
-            <JuzGroupHeader
-              n={n}
+            <GroupHeader
+              href={`/juz/${n}`}
+              kicker={`Juzʾ ${n}`}
               title={JUZ_NAMES[n - 1] ?? ""}
               note={
                 list.length ? `${list.length} surah${list.length > 1 ? "s" : ""} begin here` : null
@@ -257,6 +277,47 @@ function JuzGroups({ surahs }: { surahs: Surah[] }) {
   );
 }
 
+/** Revelation index — surahs grouped by place of revelation (Meccan / Medinan). */
+function RevGroups({ surahs }: { surahs: Surah[] }) {
+  const groups = [
+    {
+      place: "meccan" as const,
+      title: "Meccan",
+      ar: "مكية",
+      desc: "Revealed in Mecca — faith, tawḥīd and the hereafter",
+    },
+    {
+      place: "medinan" as const,
+      title: "Medinan",
+      ar: "مدنية",
+      desc: "Revealed in Medina — law, community and social life",
+    },
+  ];
+  return (
+    <div>
+      {groups.map((g) => {
+        const list = surahs.filter((s) => s.revelationPlace === g.place);
+        return (
+          <div key={g.place}>
+            <GroupHeader kicker={String(list.length)} title={g.title} ar={g.ar} note={g.desc} />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {list.map((s) => (
+                <SurahCard key={s.number} s={s} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function NoorHomePage({ surahs }: Props) {
   const { query } = useSearch();
   const [tab, setTab] = useState<"surah" | "juz" | "rev">("surah");
@@ -272,9 +333,8 @@ export function NoorHomePage({ surahs }: Props) {
       )
     : surahs;
 
-  // Surah list for the active tab: natural order, or by order of revelation.
-  const surahList =
-    tab === "rev" ? [...filtered].sort((a, b) => a.revelationOrder - b.revelationOrder) : filtered;
+  // Surahs for the Surah tab (the Juzʾ and Revelation tabs group them themselves).
+  const surahList = filtered;
 
   return (
     <div
@@ -567,7 +627,7 @@ export function NoorHomePage({ surahs }: Props) {
           </div>
         </div>
 
-        {q && tab !== "juz" && (
+        {q && tab === "surah" && (
           <div style={{ fontSize: 13, color: N.faint, marginBottom: 12, fontFamily: N.ui }}>
             {surahList.length} result{surahList.length !== 1 ? "s" : ""} for &ldquo;{query}&rdquo;
           </div>
@@ -576,8 +636,11 @@ export function NoorHomePage({ surahs }: Props) {
         {/* Juzʾ index — grouped by the juzʾ each surah begins in */}
         {tab === "juz" && <JuzGroups surahs={surahs} />}
 
-        {/* Surah grid (Surah order, or order of revelation) */}
-        {tab !== "juz" && (
+        {/* Revelation index — grouped by place of revelation (Meccan / Medinan) */}
+        {tab === "rev" && <RevGroups surahs={surahs} />}
+
+        {/* Surah index */}
+        {tab === "surah" && (
           <div
             style={{
               display: "grid",
@@ -622,7 +685,7 @@ export function NoorHomePage({ surahs }: Props) {
                       fontFamily: N.ui,
                     }}
                   >
-                    {tab === "rev" ? s.revelationOrder : s.number}
+                    {s.number}
                   </span>
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
@@ -640,11 +703,9 @@ export function NoorHomePage({ surahs }: Props) {
                     {s.transliteration}
                   </div>
                   <div style={{ fontSize: 12.5, color: N.faint, fontFamily: N.ui }}>
-                    {tab === "rev"
-                      ? `Revealed #${s.revelationOrder} · ${s.englishName}`
-                      : `${s.englishName} · ${s.ayahCount} ayahs · ${
-                          s.revelationPlace === "meccan" ? "Meccan" : "Medinan"
-                        }`}
+                    {`${s.englishName} · ${s.ayahCount} ayahs · ${
+                      s.revelationPlace === "meccan" ? "Meccan" : "Medinan"
+                    }`}
                   </div>
                 </div>
                 <div className="noor-ar" style={{ fontSize: 22, color: N.muted, flexShrink: 0 }}>
@@ -655,7 +716,7 @@ export function NoorHomePage({ surahs }: Props) {
           </div>
         )}
 
-        {tab !== "juz" && surahList.length === 0 && (
+        {tab === "surah" && surahList.length === 0 && (
           <div
             style={{
               textAlign: "center",
