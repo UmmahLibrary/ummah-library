@@ -8,7 +8,7 @@ const TABS: Array<[string, string, IconName]> = [
   ["Home", "/", "home"],
   ["Read", "/search", "book"],
   ["Tools", "/tools", "grid"],
-  ["Hifz", "/hifz", "star"],
+  ["Memorize", "/hifz", "star"],
   ["More", "/settings", "menu"],
 ];
 

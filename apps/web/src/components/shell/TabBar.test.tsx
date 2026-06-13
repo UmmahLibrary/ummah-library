@@ -8,7 +8,7 @@ import { TabBar } from "./TabBar";
 describe("TabBar", () => {
   it("renders all five tabs", () => {
     render(<TabBar />);
-    for (const label of ["Home", "Read", "Tools", "Hifz", "More"]) {
+    for (const label of ["Home", "Read", "Tools", "Memorize", "More"]) {
       expect(screen.getByRole("link", { name: new RegExp(label) })).toBeInTheDocument();
     }
   });
