@@ -116,6 +116,24 @@ export function SurahReaderClient({
     { value: "mushaf", label: "Mushaf" },
   ];
 
+  // The continuous Arabic flow — shared by Reading (Arabic + translation) and
+  // Mushaf (Arabic only).
+  const arabicContinuous = (
+    <>
+      {surah.hasBismillah && surah.number !== 1 && (
+        <p className="basmala arabic">{bismillah}</p>
+      )}
+      <p className="mushaf arabic">
+        {ayahs.map((ayah) => (
+          <span key={ayah.aya}>
+            {ayah.text}
+            <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>{" "}
+          </span>
+        ))}
+      </p>
+    </>
+  );
+
   return (
     <>
       {/* Helpers that don't render UI */}
@@ -317,29 +335,19 @@ export function SurahReaderClient({
             </div>
           </div>
 
-          {/* Reading mode (continuous Arabic) */}
+          {/* Reading mode: continuous Arabic + a continuous translation */}
           <div className="mode-reading">
-            {surah.hasBismillah && surah.number !== 1 && (
-              <p className="basmala arabic">{bismillah}</p>
-            )}
-            <p className="mushaf arabic">
-              {ayahs.map((ayah) => (
-                <span key={ayah.aya}>
-                  {ayah.text}
-                  <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>{" "}
-                </span>
-              ))}
-            </p>
-          </div>
-
-          {/* Reading → Translations mode */}
-          <div className="mode-reading-tr">
+            {arabicContinuous}
+            <div
+              style={{ height: 1, background: N.borderSoft, margin: "1.75rem 0 1.5rem" }}
+              aria-hidden="true"
+            />
             <ReadingTranslationPicker />
-            {surah.hasBismillah && surah.number !== 1 && (
-              <p className="basmala arabic">{bismillah}</p>
-            )}
             <ReadingTranslationFlow surah={surah.number} ayat={ayahs.map((a) => a.aya)} />
           </div>
+
+          {/* Mushaf mode: continuous Arabic only */}
+          <div className="mode-reading-tr">{arabicContinuous}</div>
 
           {/* Prev/next surah pager */}
           <nav

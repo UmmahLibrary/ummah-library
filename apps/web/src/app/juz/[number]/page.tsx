@@ -178,7 +178,9 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
         ))}
       </div>
 
+      {/* Reading: continuous Arabic + a continuous translation per section */}
       <div className="mode-reading">
+        <ReadingTranslationPicker />
         {sections.map((section) => (
           <section key={section.surah.number}>
             <header className="juz-surah-head">
@@ -196,14 +198,20 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
                 </span>
               ))}
             </p>
+            <div
+              style={{ borderTop: "1px solid var(--noor-border-soft)", margin: "1.5rem 0" }}
+              aria-hidden="true"
+            />
+            <ReadingTranslationFlow
+              surah={section.surah.number}
+              ayat={section.ayahs.map((a) => a.aya)}
+            />
           </section>
         ))}
       </div>
 
-      {/* Reading → Translations: a single chosen translation per surah section
-          in a continuous, chrome-free flow (no per-āyah Arabic). */}
+      {/* Mushaf: continuous Arabic only per section */}
       <div className="mode-reading-tr">
-        <ReadingTranslationPicker />
         {sections.map((section) => (
           <section key={section.surah.number}>
             <header className="juz-surah-head">
@@ -213,10 +221,14 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
               </span>
             </header>
             {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
-            <ReadingTranslationFlow
-              surah={section.surah.number}
-              ayat={section.ayahs.map((a) => a.aya)}
-            />
+            <p className="mushaf arabic">
+              {section.ayahs.map((ayah) => (
+                <span key={ayah.aya}>
+                  {ayah.text}
+                  <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>{" "}
+                </span>
+              ))}
+            </p>
           </section>
         ))}
       </div>
