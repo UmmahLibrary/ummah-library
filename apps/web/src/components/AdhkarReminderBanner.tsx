@@ -2,17 +2,22 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { type AdhkarOccasion, type PrayerTimings, activeAdhkarReminder } from "@ummahlibrary/core";
 import {
-  type AdhkarOccasion,
-  type PrayerTimings,
-  activeAdhkarReminder,
-  nextAdhkarReminder,
-} from "@ummahlibrary/core";
-import { REMINDERS_KEY, ensureTodaysTimings, remindersEnabled } from "../lib/adhkar-reminders";
+  ADHKAR_EMOJI,
+  ADHKAR_LABEL,
+  REMINDERS_KEY,
+  ensureTodaysTimings,
+  remindersEnabled,
+  syncAdhkarReminder,
+} from "../lib/adhkar-reminders";
+import { WebNotifier } from "../lib/web-notifier";
 
 const SEEN_KEY = "ul.adhkarReminderSeen";
-const LABEL: Record<AdhkarOccasion, string> = { morning: "morning", evening: "evening" };
-const EMOJI: Record<AdhkarOccasion, string> = { morning: "🌅", evening: "🌆" };
+
+// This feature's own notifier — its cancelAll() must not touch prayer reminders,
+// which run on a separate WebNotifier instance.
+const notifier = new WebNotifier();
 
 function localDate(d = new Date()): string {
   const p = (n: number) => String(n).padStart(2, "0");
@@ -42,37 +47,12 @@ function dismiss(occasion: AdhkarOccasion): void {
 /**
  * Surfaces the active adhkar reminder while the app is open, and — when the user
  * has granted notification permission — fires a local notification at the next
- * window's opening. No server push (see ADR 0017); this is the in-app reach.
+ * window's opening. Delivery goes through the {@link Notifier} port via
+ * `syncAdhkarReminder` (no inline `Notification`); no server push (ADR 0017, 0019).
  */
 export function AdhkarReminderBanner() {
   const [active, setActive] = useState<AdhkarOccasion | null>(null);
   const timingsRef = useRef<PrayerTimings | null>(null);
-  const notifyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const scheduleNotification = useCallback(() => {
-    if (notifyTimer.current) clearTimeout(notifyTimer.current);
-    const timings = timingsRef.current;
-    if (!timings || typeof Notification === "undefined" || Notification.permission !== "granted") {
-      return;
-    }
-    const next = nextAdhkarReminder(timings, new Date());
-    if (!next) return;
-    const delay = next.at.getTime() - Date.now();
-    if (delay < 0 || delay > 24 * 60 * 60 * 1000) return;
-    notifyTimer.current = setTimeout(() => {
-      try {
-        new Notification(`Time for ${LABEL[next.occasion]} adhkar ${EMOJI[next.occasion]}`, {
-          body: "Tap to open your remembrances on Ummah Library.",
-          tag: `adhkar-${next.occasion}`,
-          icon: "/icons/icon-192.png",
-        });
-      } catch {
-        /* notifications unavailable */
-      }
-      recompute();
-      scheduleNotification();
-    }, delay);
-  }, []);
 
   const recompute = useCallback(() => {
     const timings = timingsRef.current;
@@ -85,19 +65,26 @@ export function AdhkarReminderBanner() {
     let tick: ReturnType<typeof setInterval> | null = null;
     let cancelled = false;
 
+    // Update the in-app banner and (re)schedule the next notification. Run on a
+    // minute tick so the schedule advances to the next window after one fires.
+    const refresh = () => {
+      recompute();
+      void syncAdhkarReminder(notifier);
+    };
+
     async function start() {
       if (!remindersEnabled()) {
         setActive(null);
         timingsRef.current = null;
+        void notifier.cancelAll();
         return;
       }
       const timings = await ensureTodaysTimings();
       if (cancelled) return;
       timingsRef.current = timings;
       if (!timings) return;
-      recompute();
-      scheduleNotification();
-      tick = setInterval(recompute, 60_000);
+      refresh();
+      tick = setInterval(refresh, 60_000);
     }
     void start();
 
@@ -109,17 +96,17 @@ export function AdhkarReminderBanner() {
     return () => {
       cancelled = true;
       if (tick) clearInterval(tick);
-      if (notifyTimer.current) clearTimeout(notifyTimer.current);
+      void notifier.cancelAll();
       window.removeEventListener(REMINDERS_KEY, onPref);
     };
-  }, [recompute, scheduleNotification]);
+  }, [recompute]);
 
   if (!active) return null;
 
   return (
     <div className="adhkar-reminder" role="status">
       <span>
-        {EMOJI[active]} It’s time for <strong>{LABEL[active]} adhkar</strong>.
+        {ADHKAR_EMOJI[active]} It’s time for <strong>{ADHKAR_LABEL[active]} adhkar</strong>.
       </span>
       <span className="adhkar-reminder-actions">
         <Link href="/adhkar" className="chip" onClick={() => setActive(null)}>

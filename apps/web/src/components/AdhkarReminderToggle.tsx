@@ -9,6 +9,9 @@ import {
   remindersEnabled,
   setRemindersEnabled,
 } from "../lib/adhkar-reminders";
+import { WebNotifier } from "../lib/web-notifier";
+
+const notifier = new WebNotifier();
 
 export function AdhkarReminderToggle() {
   const [enabled, setEnabled] = useState(false);
@@ -47,12 +50,9 @@ export function AdhkarReminderToggle() {
 
   async function toggle() {
     if (!enabled) {
-      if (typeof Notification !== "undefined" && Notification.permission === "default") {
-        try {
-          await Notification.requestPermission();
-        } catch {
-          /* permission flow unavailable — in-app banner still works */
-        }
+      if (notifier.permission() === "default") {
+        // Ask through the port; the in-app banner still works if it's declined.
+        await notifier.requestPermission();
       }
       setRemindersEnabled(true);
       setEnabled(true);

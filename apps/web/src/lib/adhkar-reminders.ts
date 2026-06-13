@@ -3,10 +3,16 @@
  * the on/off preference and a per-day cache of the day's timings live in
  * `localStorage`; the reminder logic itself is the pure core helpers. There is
  * no server push — reminders surface in-app and as a local notification while a
- * tab is open (the honest limit of a no-backend, local-first app).
+ * tab is open (the honest limit of a no-backend, local-first app). Delivery goes
+ * through the {@link Notifier} port, the same as prayer reminders (ADR 0019).
  */
 
-import type { PrayerTimings } from "@ummahlibrary/core";
+import {
+  type AdhkarOccasion,
+  type Notifier,
+  type PrayerTimings,
+  nextAdhkarReminder,
+} from "@ummahlibrary/core";
 
 export const REMINDERS_KEY = "ul.adhkarReminders";
 const TIMINGS_KEY = "ul.adhkarTimings";
@@ -104,4 +110,35 @@ export async function ensureTodaysTimings(): Promise<PrayerTimings | null> {
   } catch {
     return null;
   }
+}
+
+export const ADHKAR_LABEL: Record<AdhkarOccasion, string> = {
+  morning: "morning",
+  evening: "evening",
+};
+export const ADHKAR_EMOJI: Record<AdhkarOccasion, string> = { morning: "🌅", evening: "🌆" };
+
+/**
+ * (Re)schedule the next adhkar notification through the given notifier — the
+ * same {@link Notifier} port prayer reminders use (ADR 0019). Idempotent:
+ * cancels first, then schedules the next window's opening. A no-op when the
+ * reminder is off, permission isn't granted, or no location is stored.
+ */
+export async function syncAdhkarReminder(notifier: Notifier): Promise<void> {
+  await notifier.cancelAll();
+  if (!remindersEnabled() || notifier.permission() !== "granted") return;
+
+  const timings = await ensureTodaysTimings();
+  if (!timings) return;
+
+  const next = nextAdhkarReminder(timings, new Date());
+  if (!next) return;
+
+  await notifier.schedule({
+    id: `adhkar:${next.occasion}`,
+    title: `Time for ${ADHKAR_LABEL[next.occasion]} adhkar ${ADHKAR_EMOJI[next.occasion]}`,
+    body: "Tap to open your remembrances on Ummah Library.",
+    at: next.at.toISOString(),
+    tag: `adhkar:${next.occasion}`,
+  });
 }
