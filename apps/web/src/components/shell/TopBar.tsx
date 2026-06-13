@@ -43,7 +43,7 @@ export function TopBar() {
     const h = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        if (pathname !== "/") router.push("/");
+        if (pathname !== "/" && pathname !== "/search") router.push("/search");
         inputRef.current?.focus();
       }
     };
@@ -51,9 +51,10 @@ export function TopBar() {
     return () => window.removeEventListener("keydown", h);
   }, [pathname, router]);
 
-  // Focusing the search jumps to the Hub (where the surah list filters live).
+  // On the Hub the search filters the surah list inline; elsewhere, focusing it
+  // opens the full Search page.
   const handleFocus = () => {
-    if (pathname !== "/") router.push("/");
+    if (pathname !== "/" && pathname !== "/search") router.push("/search");
   };
 
   const handleSearch = (e: React.FormEvent) => {
