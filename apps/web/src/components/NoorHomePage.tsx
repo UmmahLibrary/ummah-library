@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { JUZ_STARTS, TOTAL_JUZ } from "@ummahlibrary/core";
-import { N, Khatam } from "./noor";
+import { N, Khatam, Icon } from "./noor";
 import { HomeHeroCards } from "./HomeHeroCards";
 import { useSearch } from "./shell/SearchContext";
 
@@ -27,6 +27,236 @@ const QUICK_TOOLS = [
   { label: "Hijri Calendar", href: "/calendar", note: "Islamic dates", glyph: "☾" },
 ];
 
+// Traditional names of the 30 ajzāʾ (by opening words).
+const JUZ_NAMES = [
+  "Alif Lām Mīm",
+  "Sayaqūl",
+  "Tilka r-Rusul",
+  "Lan Tanālū",
+  "Wa-l-Muḥṣanāt",
+  "Lā Yuḥibbu llāh",
+  "Wa-idhā Samiʿū",
+  "Wa-law Annanā",
+  "Qāla l-Malaʾ",
+  "Wa-ʿlamū",
+  "Yaʿtadhirūn",
+  "Wa-mā min Dābbah",
+  "Wa-mā Ubarriʾu",
+  "Rubamā",
+  "Subḥāna lladhī",
+  "Qāla Alam",
+  "Iqtaraba",
+  "Qad Aflaḥa",
+  "Wa-qāla lladhīna",
+  "Aman Khalaqa",
+  "Utlu Mā Ūḥiya",
+  "Wa-man Yaqnut",
+  "Wa-mā Liya",
+  "Fa-man Aẓlam",
+  "Ilayhi Yuraddu",
+  "Ḥā Mīm",
+  "Qāla Fa-mā Khaṭbukum",
+  "Qad Samiʿa llāh",
+  "Tabāraka lladhī",
+  "ʿAmma",
+];
+
+/** The juzʾ a surah begins in — the largest juzʾ whose start is at or before the surah's first ayah. */
+function startingJuz(surahNumber: number): number {
+  let juz = 1;
+  for (let i = 0; i < JUZ_STARTS.length; i++) {
+    const js = JUZ_STARTS[i]!;
+    if (js.sura < surahNumber || (js.sura === surahNumber && js.aya <= 1)) juz = i + 1;
+    else break;
+  }
+  return juz;
+}
+
+function SurahCard({ s }: { s: Surah }) {
+  return (
+    <Link
+      href={`/surah/${s.number}`}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        padding: "12px 14px",
+        borderRadius: 12,
+        background: N.card,
+        border: `1px solid ${N.border}`,
+        textDecoration: "none",
+        transition: "border-color .15s, transform .12s",
+      }}
+    >
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          flexShrink: 0,
+          position: "relative",
+          display: "grid",
+          placeItems: "center",
+        }}
+      >
+        <Khatam size={40} color={N.goldDim} sw={1.2} />
+        <span
+          style={{
+            position: "absolute",
+            fontSize: 12.5,
+            fontWeight: 700,
+            color: N.gold,
+            fontFamily: N.ui,
+          }}
+        >
+          {s.number}
+        </span>
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            color: N.fg,
+            fontFamily: N.ui,
+          }}
+        >
+          {s.transliteration}
+        </div>
+        <div style={{ fontSize: 12.5, color: N.faint, fontFamily: N.ui }}>
+          {s.englishName} · {s.ayahCount} ayahs ·{" "}
+          {s.revelationPlace === "meccan" ? "Meccan" : "Medinan"}
+        </div>
+      </div>
+      <div className="noor-ar" style={{ fontSize: 22, color: N.muted, flexShrink: 0 }}>
+        {s.name}
+      </div>
+    </Link>
+  );
+}
+
+function JuzGroupHeader({ n, title, note }: { n: number; title: string; note: string | null }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "26px 0 12px" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
+        <Link
+          href={`/juz/${n}`}
+          style={{
+            fontSize: 12,
+            fontWeight: 800,
+            color: N.ink,
+            background: N.goldGrad,
+            borderRadius: 7,
+            padding: "3px 9px",
+            flexShrink: 0,
+            textDecoration: "none",
+            fontFamily: N.ui,
+          }}
+        >
+          Juzʾ {n}
+        </Link>
+        <span
+          style={{
+            fontSize: 16.5,
+            fontWeight: 700,
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+            color: N.fg,
+            fontFamily: N.ui,
+          }}
+        >
+          {title}
+        </span>
+        {note && (
+          <span
+            style={{
+              fontSize: 13,
+              color: N.faint,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              minWidth: 0,
+              fontFamily: N.ui,
+            }}
+          >
+            {note}
+          </span>
+        )}
+      </div>
+      <div style={{ flex: 1, height: 1, background: N.borderSoft, minWidth: 16 }} />
+    </div>
+  );
+}
+
+/** Juzʾ index — the 30 ajzāʾ, surahs grouped by the juzʾ they begin in, with a
+ *  muted "continuation" row where a juzʾ opens mid-surah (mirrors the design). */
+function JuzGroups({ surahs }: { surahs: Surah[] }) {
+  const byNumber = new Map(surahs.map((s) => [s.number, s]));
+  const starters = new Map<number, Surah[]>();
+  for (const s of surahs) {
+    const j = startingJuz(s.number);
+    const arr = starters.get(j);
+    if (arr) arr.push(s);
+    else starters.set(j, [s]);
+  }
+  return (
+    <div>
+      {Array.from({ length: TOTAL_JUZ }, (_, i) => i + 1).map((n) => {
+        const list = starters.get(n) ?? [];
+        const cont = list.length === 0 ? byNumber.get(JUZ_STARTS[n - 1]!.sura) : null;
+        return (
+          <div key={n}>
+            <JuzGroupHeader
+              n={n}
+              title={JUZ_NAMES[n - 1] ?? ""}
+              note={
+                list.length ? `${list.length} surah${list.length > 1 ? "s" : ""} begin here` : null
+              }
+            />
+            {cont ? (
+              <Link
+                href={`/surah/${cont.number}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  background: "transparent",
+                  border: `1px dashed ${N.border}`,
+                  color: N.faint,
+                  textDecoration: "none",
+                }}
+              >
+                <Icon name="arrowR" size={16} color={N.goldDim} />
+                <span style={{ fontSize: 14, fontFamily: N.ui }}>
+                  Continuation of{" "}
+                  <span style={{ color: N.muted, fontWeight: 600 }}>{cont.transliteration}</span> ·{" "}
+                  {cont.englishName}
+                </span>
+              </Link>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                {list.map((s) => (
+                  <SurahCard key={s.number} s={s} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function NoorHomePage({ surahs }: Props) {
   const { query } = useSearch();
   const [tab, setTab] = useState<"surah" | "juz" | "rev">("surah");
@@ -45,25 +275,6 @@ export function NoorHomePage({ surahs }: Props) {
   // Surah list for the active tab: natural order, or by order of revelation.
   const surahList =
     tab === "rev" ? [...filtered].sort((a, b) => a.revelationOrder - b.revelationOrder) : filtered;
-
-  // Juzʾ index — each juzʾ spans one or more surahs (mirrors /juz).
-  const byNumber = new Map(surahs.map((s) => [s.number, s]));
-  const juzEndSura = (n: number): number => {
-    if (n >= TOTAL_JUZ) return 114;
-    const next = JUZ_STARTS[n]!;
-    return next.aya > 1 ? next.sura : next.sura - 1;
-  };
-  const juzList = JUZ_STARTS.map((start, i) => {
-    const n = i + 1;
-    const first = byNumber.get(start.sura);
-    const lastSura = juzEndSura(n);
-    const last = byNumber.get(lastSura);
-    const span =
-      lastSura === start.sura
-        ? (first?.transliteration ?? "")
-        : `${first?.transliteration ?? ""} – ${last?.transliteration ?? ""}`;
-    return { n, span, name: first?.name ?? "" };
-  });
 
   return (
     <div
@@ -362,86 +573,8 @@ export function NoorHomePage({ surahs }: Props) {
           </div>
         )}
 
-        {/* Juzʾ grid */}
-        {tab === "juz" && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: 12,
-            }}
-          >
-            {juzList.map((j) => (
-              <Link
-                key={j.n}
-                href={`/juz/${j.n}`}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: "12px 14px",
-                  borderRadius: 12,
-                  background: N.card,
-                  border: `1px solid ${N.border}`,
-                  textDecoration: "none",
-                  transition: "border-color .15s, transform .12s",
-                }}
-              >
-                {/* Number badge */}
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    flexShrink: 0,
-                    position: "relative",
-                    display: "grid",
-                    placeItems: "center",
-                  }}
-                >
-                  <Khatam size={40} color={N.goldDim} sw={1.2} />
-                  <span
-                    style={{
-                      position: "absolute",
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      color: N.gold,
-                      fontFamily: N.ui,
-                    }}
-                  >
-                    {j.n}
-                  </span>
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: N.fg,
-                      fontFamily: N.ui,
-                    }}
-                  >
-                    Juzʾ {j.n}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12.5,
-                      color: N.faint,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      fontFamily: N.ui,
-                    }}
-                  >
-                    {j.span}
-                  </div>
-                </div>
-                <div className="noor-ar" style={{ fontSize: 22, color: N.muted, flexShrink: 0 }}>
-                  {j.name}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        {/* Juzʾ index — grouped by the juzʾ each surah begins in */}
+        {tab === "juz" && <JuzGroups surahs={surahs} />}
 
         {/* Surah grid (Surah order, or order of revelation) */}
         {tab !== "juz" && (
