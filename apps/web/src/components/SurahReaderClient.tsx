@@ -351,7 +351,9 @@ export function SurahReaderClient({
           <div className="mode-reading-tr">
             <div className="mushaf-page">
               {arabicContinuous}
-              <div className="mushaf-surah-name">﴿ {surah.transliteration} ﴾</div>
+              <div className="mushaf-surah-name" dir="rtl">
+                ﴿ {surah.name} ﴾
+              </div>
             </div>
           </div>
 
