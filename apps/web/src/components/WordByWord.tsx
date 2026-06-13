@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-const WBW_KEY = "ul.wbw";
+export const WBW_KEY = "ul.wbw";
 
 interface Word {
   arabic: string;
@@ -10,7 +10,7 @@ interface Word {
   translation: string | null;
 }
 
-interface Popover {
+interface PopoverState {
   word: Word;
   x: number;
   y: number;
@@ -53,36 +53,20 @@ function fetchWords(verseKey: string): Promise<Word[]> {
   return pending;
 }
 
+const isOn = () => document.body.classList.contains("wbw-on");
+
 /**
- * Tap-to-reveal word-by-word gloss for the verse-by-verse reader. When enabled,
- * tapping any Arabic word shows its transliteration and English meaning in a
- * popover (data from quran.com, the same source as the audio timing). Morphology
- * (root / part of speech) is a planned follow-up from the Quranic Arabic Corpus.
+ * The word-by-word layer for the verse reader: when enabled (the `wbw-on` body
+ * class, toggled from the reader toolbar's display menu), tapping any Arabic word
+ * shows its transliteration and English meaning in a popover (data from
+ * quran.com). Renders only the popover — the on/off toggle lives in the toolbar.
  */
 export function WordByWord() {
-  const [on, setOn] = useState(false);
-  const [popover, setPopover] = useState<Popover | null>(null);
-  const onRef = useRef(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(WBW_KEY) === "1";
-    setOn(saved);
-    onRef.current = saved;
-    document.body.classList.toggle("wbw-on", saved);
-  }, []);
-
-  function toggle() {
-    const next = !onRef.current;
-    onRef.current = next;
-    setOn(next);
-    document.body.classList.toggle("wbw-on", next);
-    localStorage.setItem(WBW_KEY, next ? "1" : "0");
-    if (!next) setPopover(null);
-  }
+  const [popover, setPopover] = useState<PopoverState | null>(null);
 
   useEffect(() => {
     async function onClick(event: MouseEvent) {
-      if (!onRef.current) return;
+      if (!isOn()) return;
       const target = event.target as HTMLElement;
       const span = target.closest<HTMLElement>(".w");
       if (!span) {
@@ -98,7 +82,7 @@ export function WordByWord() {
       const rect = span.getBoundingClientRect();
       const words = await fetchWords(block.id);
       const word = words[index];
-      if (!word || !onRef.current) return;
+      if (!word || !isOn()) return;
       setPopover({
         word,
         x: Math.min(rect.left, window.innerWidth - 240),
@@ -108,37 +92,31 @@ export function WordByWord() {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setPopover(null);
     }
+    // Clear the popover when word-by-word is switched off from the toolbar.
+    function onToggle(e: Event) {
+      if (!(e as CustomEvent<boolean>).detail) setPopover(null);
+    }
     document.addEventListener("click", onClick);
     document.addEventListener("keydown", onKey);
+    window.addEventListener(WBW_KEY, onToggle);
     return () => {
       document.removeEventListener("click", onClick);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener(WBW_KEY, onToggle);
     };
   }, []);
 
+  if (!popover) return null;
   return (
-    <>
-      <button
-        type="button"
-        className={on ? "chip chip--on" : "chip"}
-        onClick={toggle}
-        aria-pressed={on}
-        title="Tap any Arabic word to see its meaning"
-      >
-        ✦ Word by word
-      </button>
-      {popover && (
-        <div
-          className="wbw-popover"
-          style={{ left: popover.x, top: popover.y }}
-          role="dialog"
-          aria-label="Word meaning"
-        >
-          <span className="wbw-arabic arabic">{popover.word.arabic}</span>
-          {popover.word.translit && <span className="wbw-translit">{popover.word.translit}</span>}
-          <span className="wbw-translation">{popover.word.translation ?? "—"}</span>
-        </div>
-      )}
-    </>
+    <div
+      className="wbw-popover"
+      style={{ left: popover.x, top: popover.y }}
+      role="dialog"
+      aria-label="Word meaning"
+    >
+      <span className="wbw-arabic arabic">{popover.word.arabic}</span>
+      {popover.word.translit && <span className="wbw-translit">{popover.word.translit}</span>}
+      <span className="wbw-translation">{popover.word.translation ?? "—"}</span>
+    </div>
   );
 }
