@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CALCULATION_METHODS,
@@ -14,6 +15,7 @@ import {
   TIMING_NAMES,
   nextPrayer,
 } from "@ummahlibrary/core";
+import { Khatam, N } from "./noor";
 
 const METHOD_KEY = "ul.prayerMethod";
 const MADHAB_KEY = "ul.prayerMadhab";
@@ -48,6 +50,12 @@ function countdown(target: Date, now: Date): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
+const cardStyle: CSSProperties = {
+  background: N.card,
+  border: `1px solid ${N.border}`,
+  borderRadius: 16,
+};
+
 export function PrayerTimesView() {
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [method, setMethod] = useState(DEFAULT_CALCULATION_METHOD);
@@ -57,30 +65,27 @@ export function PrayerTimesView() {
   const [now, setNow] = useState(() => new Date());
   const reqId = useRef(0);
 
-  const fetchTimings = useCallback(
-    async (c: Coordinates, m: string, mad: Madhab) => {
-      const id = ++reqId.current;
-      setStatus("loading");
-      try {
-        const params = new URLSearchParams({
-          lat: String(c.latitude),
-          lng: String(c.longitude),
-          date: localDate(new Date()),
-          method: m,
-          madhab: mad,
-        });
-        const res = await fetch(`/api/v1/prayer-times?${params}`);
-        if (!res.ok) throw new Error("request failed");
-        const data = (await res.json()) as { timings: PrayerTimings };
-        if (id !== reqId.current) return;
-        setTimings(data.timings);
-        setStatus("ready");
-      } catch {
-        if (id === reqId.current) setStatus("error");
-      }
-    },
-    [],
-  );
+  const fetchTimings = useCallback(async (c: Coordinates, m: string, mad: Madhab) => {
+    const id = ++reqId.current;
+    setStatus("loading");
+    try {
+      const params = new URLSearchParams({
+        lat: String(c.latitude),
+        lng: String(c.longitude),
+        date: localDate(new Date()),
+        method: m,
+        madhab: mad,
+      });
+      const res = await fetch(`/api/v1/prayer-times?${params}`);
+      if (!res.ok) throw new Error("request failed");
+      const data = (await res.json()) as { timings: PrayerTimings };
+      if (id !== reqId.current) return;
+      setTimings(data.timings);
+      setStatus("ready");
+    } catch {
+      if (id === reqId.current) setStatus("error");
+    }
+  }, []);
 
   // Restore preferences + last location, and load times if we have a location.
   useEffect(() => {
@@ -137,63 +142,176 @@ export function PrayerTimesView() {
   const upcoming = timings ? nextPrayer(timings, now) : null;
   // Once the day's prayers have passed, the next is tomorrow's Fajr.
   const next: { name: PrayerName; at: Date } | null =
-    upcoming ?? (timings ? { name: "fajr", at: new Date(new Date(timings.fajr).getTime() + 86400000) } : null);
+    upcoming ??
+    (timings ? { name: "fajr", at: new Date(new Date(timings.fajr).getTime() + 86400000) } : null);
+
+  const selectStyle: CSSProperties = {
+    fontFamily: N.ui,
+    fontSize: 13.5,
+    color: N.fg,
+    background: N.card,
+    border: `1px solid ${N.border}`,
+    borderRadius: 10,
+    padding: "8px 10px",
+  };
+  const ctaBtn: CSSProperties = {
+    fontFamily: N.ui,
+    fontSize: 14,
+    fontWeight: 700,
+    color: N.ink,
+    background: N.goldGrad,
+    border: "none",
+    borderRadius: 11,
+    padding: "11px 20px",
+    cursor: "pointer",
+  };
 
   return (
-    <div className="prayer">
+    <div>
       {!coords && status !== "locating" && (
-        <div className="prayer-cta">
-          <p>See accurate prayer times for where you are. Your location stays on your device.</p>
-          <button type="button" className="audio-play" onClick={locate}>
+        <div
+          style={{ ...cardStyle, padding: 24, display: "flex", flexDirection: "column", gap: 14 }}
+        >
+          <p style={{ margin: 0, color: N.muted, lineHeight: 1.6 }}>
+            See accurate prayer times for where you are. Your location stays on your device.
+          </p>
+          <button type="button" style={{ ...ctaBtn, alignSelf: "flex-start" }} onClick={locate}>
             📍 Use my location
           </button>
         </div>
       )}
 
-      {status === "locating" && <p className="hifz-muted">Getting your location…</p>}
+      {status === "locating" && <p style={{ color: N.muted }}>Getting your location…</p>}
       {status === "denied" && (
-        <div className="prayer-cta">
-          <p>Location permission was denied. Enable it in your browser to see local times.</p>
-          <button type="button" className="chip" onClick={locate}>
+        <div
+          style={{ ...cardStyle, padding: 24, display: "flex", flexDirection: "column", gap: 14 }}
+        >
+          <p style={{ margin: 0, color: N.muted, lineHeight: 1.6 }}>
+            Location permission was denied. Enable it in your browser to see local times.
+          </p>
+          <button
+            type="button"
+            style={{ ...selectStyle, alignSelf: "flex-start", cursor: "pointer" }}
+            onClick={locate}
+          >
             Try again
           </button>
         </div>
       )}
       {status === "error" && (
-        <p className="hifz-muted">Couldn’t load prayer times. Check your connection and retry.</p>
+        <p style={{ color: N.muted }}>
+          Couldn’t load prayer times. Check your connection and retry.
+        </p>
       )}
 
       {timings && (
         <>
           {next && (
-            <div className="prayer-next">
-              <span className="prayer-next-label">Next prayer</span>
-              <span className="prayer-next-name">{PRAYER_LABELS[next.name]}</span>
-              <span className="prayer-next-in">
-                {fmtTime(next.at.toISOString())} · in {countdown(next.at, now)}
-              </span>
+            <div
+              style={{
+                ...cardStyle,
+                padding: 26,
+                background: `linear-gradient(135deg, ${N.cardHi}, ${N.card})`,
+                position: "relative",
+                overflow: "hidden",
+                marginBottom: 18,
+              }}
+            >
+              <Khatam
+                size={170}
+                color={N.gold}
+                opacity={0.08}
+                sw={1.1}
+                style={{ position: "absolute", right: -40, top: -46 }}
+              />
+              <div
+                style={{
+                  fontSize: 12,
+                  letterSpacing: 1.2,
+                  textTransform: "uppercase",
+                  color: N.faint,
+                  fontWeight: 700,
+                }}
+              >
+                Next prayer
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 14,
+                  margin: "6px 0 2px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span style={{ fontSize: 38, fontWeight: 800, color: N.gold }}>
+                  {PRAYER_LABELS[next.name]}
+                </span>
+                <span style={{ fontSize: 26, fontWeight: 700, color: N.fg }}>
+                  {fmtTime(next.at.toISOString())}
+                </span>
+              </div>
+              <div style={{ fontSize: 14, color: N.muted }}>
+                begins in {countdown(next.at, now)}
+              </div>
             </div>
           )}
 
-          <ul className="prayer-list">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: 12,
+              marginBottom: 24,
+            }}
+          >
             {TIMING_NAMES.map((name) => {
               const isNext = upcoming?.name === name && OBLIGATORY_PRAYERS.includes(name);
               return (
-                <li key={name} className={isNext ? "prayer-row prayer-row--next" : "prayer-row"}>
-                  <span className="prayer-name">{PRAYER_LABELS[name]}</span>
-                  <span className="prayer-time">{fmtTime(timings[name])}</span>
-                </li>
+                <div
+                  key={name}
+                  style={{
+                    ...cardStyle,
+                    padding: "16px 18px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    borderColor: isNext ? N.gold : N.border,
+                    background: isNext ? N.goldSoft : N.card,
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{ fontSize: 14.5, fontWeight: 700, color: isNext ? N.goldHi : N.fg }}
+                    >
+                      {PRAYER_LABELS[name]}
+                    </div>
+                    <div style={{ fontSize: 12, color: N.faint }}>
+                      {name === "sunrise" ? "Shurūq" : "Adhān"}
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 17,
+                      fontWeight: 700,
+                      color: isNext ? N.goldHi : N.fg,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {fmtTime(timings[name])}
+                  </span>
+                </div>
               );
             })}
-          </ul>
+          </div>
 
-          <div className="prayer-controls">
-            <label>
-              <span className="prayer-control-label">Calculation method</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end" }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12.5, color: N.muted }}>Calculation method</span>
               <select
-                className="audio-reciter"
                 value={method}
                 onChange={(e) => changeMethod(e.target.value)}
+                style={selectStyle}
               >
                 {CALCULATION_METHODS.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -202,12 +320,12 @@ export function PrayerTimesView() {
                 ))}
               </select>
             </label>
-            <label>
-              <span className="prayer-control-label">Asr (madhab)</span>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12.5, color: N.muted }}>Asr (madhab)</span>
               <select
-                className="audio-reciter"
                 value={madhab}
                 onChange={(e) => changeMadhab(e.target.value as Madhab)}
+                style={selectStyle}
               >
                 {MADHABS.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -216,11 +334,13 @@ export function PrayerTimesView() {
                 ))}
               </select>
             </label>
-            <button type="button" className="chip" onClick={locate}>
+            <button type="button" style={{ ...selectStyle, cursor: "pointer" }} onClick={locate}>
               📍 Update location
             </button>
           </div>
-          <p className="foot">Times computed locally with the adhan library · {localDate(now)}</p>
+          <p style={{ marginTop: 18, color: N.faint, fontSize: 13 }}>
+            Times computed locally with the adhan library · {localDate(now)}
+          </p>
         </>
       )}
     </div>
