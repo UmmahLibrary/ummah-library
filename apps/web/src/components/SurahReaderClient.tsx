@@ -15,8 +15,6 @@ import { TafsirPicker } from "./TafsirPicker";
 import { HashHighlighter } from "./HashHighlighter";
 import { ReaderShortcuts } from "./ReaderShortcuts";
 import { ReadingTracker } from "./ReadingTracker";
-import { HifzButton } from "./HifzButton";
-import { AyahTafsir } from "./AyahTafsir";
 
 type ReadingMode = "translation" | "reading" | "reading-tr";
 
@@ -342,21 +340,7 @@ export function SurahReaderClient({
                     </button>
                   </p>
                   <AyahTranslations surah={surah.number} aya={ayah.aya} />
-                  <div className="ayah-actions">
-                    <button
-                      type="button"
-                      className="hifz-btn"
-                      data-play-one={`${surah.number}:${ayah.aya}`}
-                      aria-label={`Play āyah ${ayah.aya}`}
-                    >
-                      ▶ Play
-                    </button>
-                    <HifzButton surah={surah.number} aya={ayah.aya} />
-                    <AyahActions surah={surah.number} aya={ayah.aya} />
-                  </div>
-                  {tafsirs.length > 0 && (
-                    <AyahTafsir surah={surah.number} aya={ayah.aya} tafsirs={tafsirs} />
-                  )}
+                  <AyahActions surah={surah.number} aya={ayah.aya} tafsirs={tafsirs} />
                 </div>
               ))}
             </div>
