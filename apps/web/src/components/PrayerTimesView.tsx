@@ -50,6 +50,31 @@ function countdown(target: Date, now: Date): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
+interface WeekDay {
+  date: Date;
+  label: string;
+  isToday: boolean;
+  timings: PrayerTimings | null;
+}
+
+/** The seven days of the current week (Mon–Sun) for the "This week" table. */
+function weekDays(today: Date): Omit<WeekDay, "timings">[] {
+  const start = new Date(today);
+  const day = start.getDay(); // 0 = Sun … 6 = Sat
+  start.setDate(start.getDate() + (day === 0 ? -6 : 1 - day)); // back to Monday
+  start.setHours(0, 0, 0, 0);
+  const todayKey = localDate(today);
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    return {
+      date,
+      label: date.toLocaleDateString([], { weekday: "short" }),
+      isToday: localDate(date) === todayKey,
+    };
+  });
+}
+
 const cardStyle: CSSProperties = {
   background: N.card,
   border: `1px solid ${N.border}`,
@@ -61,26 +86,37 @@ export function PrayerTimesView() {
   const [method, setMethod] = useState(DEFAULT_CALCULATION_METHOD);
   const [madhab, setMadhab] = useState<Madhab>("shafi");
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
+  const [week, setWeek] = useState<WeekDay[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [now, setNow] = useState(() => new Date());
   const reqId = useRef(0);
 
+  // Fetch the whole current week in parallel; today's card is derived from it.
   const fetchTimings = useCallback(async (c: Coordinates, m: string, mad: Madhab) => {
     const id = ++reqId.current;
     setStatus("loading");
     try {
-      const params = new URLSearchParams({
-        lat: String(c.latitude),
-        lng: String(c.longitude),
-        date: localDate(new Date()),
-        method: m,
-        madhab: mad,
-      });
-      const res = await fetch(`/api/v1/prayer-times?${params}`);
-      if (!res.ok) throw new Error("request failed");
-      const data = (await res.json()) as { timings: PrayerTimings };
+      const days = weekDays(new Date());
+      const results = await Promise.all(
+        days.map(async (d) => {
+          const params = new URLSearchParams({
+            lat: String(c.latitude),
+            lng: String(c.longitude),
+            date: localDate(d.date),
+            method: m,
+            madhab: mad,
+          });
+          const res = await fetch(`/api/v1/prayer-times?${params}`);
+          if (!res.ok) return null;
+          return (await res.json()) as { timings: PrayerTimings };
+        }),
+      );
       if (id !== reqId.current) return;
-      setTimings(data.timings);
+      const filled: WeekDay[] = days.map((d, i) => ({ ...d, timings: results[i]?.timings ?? null }));
+      const today = filled.find((d) => d.isToday)?.timings ?? null;
+      if (!today) throw new Error("missing today");
+      setWeek(filled);
+      setTimings(today);
       setStatus("ready");
     } catch {
       if (id === reqId.current) setStatus("error");
@@ -304,6 +340,55 @@ export function PrayerTimesView() {
               );
             })}
           </div>
+
+          {week.length > 0 && (
+            <>
+              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>This week</div>
+              <div
+                className="noor-scroll"
+                style={{ ...cardStyle, padding: 6, overflowX: "auto", marginBottom: 24 }}
+              >
+                <div style={{ display: "flex", minWidth: 520 }}>
+                  {week.map((d) => (
+                    <div
+                      key={localDate(d.date)}
+                      style={{
+                        flex: 1,
+                        textAlign: "center",
+                        padding: "12px 6px",
+                        borderRadius: 11,
+                        background: d.isToday ? N.goldSoft : "transparent",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: d.isToday ? N.gold : N.faint,
+                          fontWeight: 700,
+                          marginBottom: 10,
+                        }}
+                      >
+                        {d.label}
+                      </div>
+                      {OBLIGATORY_PRAYERS.map((p) => (
+                        <div
+                          key={p}
+                          style={{
+                            fontSize: 12,
+                            color: N.muted,
+                            padding: "3px 0",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {d.timings ? fmtTime(d.timings[p]) : "—"}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end" }}>
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
