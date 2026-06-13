@@ -25,6 +25,7 @@ const NAV: Array<[string, Array<[string, string, IconName]>]> = [
     "Worship",
     [
       ["Prayer Times", "/prayer-times", "home"],
+      ["Prayer Tracker", "/tracker", "check"],
       ["Qibla", "/qibla", "compass"],
       ["Adhkār", "/adhkar", "repeat"],
       ["Tasbih", "/tasbih", "more"],
