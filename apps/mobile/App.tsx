@@ -20,9 +20,10 @@ const linking: LinkingOptions<RootTabParamList> = {
   prefixes: ["ummahlibrary://"],
   config: {
     screens: {
+      Home: { screens: { Today: "" } },
       Read: {
         screens: {
-          SurahList: "",
+          SurahList: "read",
           SurahReader: "surah/:surah",
           JuzReader: "juz/:juz",
           Search: "search",
@@ -32,11 +33,6 @@ const linking: LinkingOptions<RootTabParamList> = {
           Tafsir: "tafsir",
         },
       },
-      Hifz: {
-        screens: { HifzDashboard: "hifz", HifzReview: "hifz/review" },
-      },
-      Names: "names",
-      Hadith: "hadith",
       Tools: {
         screens: {
           ToolsList: "tools",
@@ -49,7 +45,12 @@ const linking: LinkingOptions<RootTabParamList> = {
           Zakat: "zakat",
         },
       },
-      Settings: "settings",
+      Memorize: {
+        screens: { HifzDashboard: "hifz", HifzReview: "hifz/review" },
+      },
+      More: {
+        screens: { MoreMenu: "more", Settings: "settings", Names: "names", Hadith: "hadith" },
+      },
     },
   },
 };

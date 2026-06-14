@@ -1,5 +1,10 @@
 import type { NavigatorScreenParams } from "@react-navigation/native";
 
+/** The Home tab's stack: the Today dashboard. */
+export type HomeStackParamList = {
+  Today: undefined;
+};
+
 /** The Read tab's stack: surah list → a surah, or a juzʾ. */
 export type ReadStackParamList = {
   SurahList: undefined;
@@ -30,12 +35,19 @@ export type ToolsStackParamList = {
   Zakat: undefined;
 };
 
-/** The bottom tabs. */
-export type RootTabParamList = {
-  Read: NavigatorScreenParams<ReadStackParamList> | undefined;
-  Hifz: NavigatorScreenParams<HifzStackParamList> | undefined;
+/** The "More" tab's stack: a menu → secondary sections. */
+export type MoreStackParamList = {
+  MoreMenu: undefined;
+  Settings: undefined;
   Names: undefined;
   Hadith: undefined;
+};
+
+/** The bottom tabs — Home · Read · Tools · Memorize · More (Noor mobile design). */
+export type RootTabParamList = {
+  Home: NavigatorScreenParams<HomeStackParamList> | undefined;
+  Read: NavigatorScreenParams<ReadStackParamList> | undefined;
   Tools: NavigatorScreenParams<ToolsStackParamList> | undefined;
-  Settings: undefined;
+  Memorize: NavigatorScreenParams<HifzStackParamList> | undefined;
+  More: NavigatorScreenParams<MoreStackParamList> | undefined;
 };
