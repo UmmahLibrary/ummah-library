@@ -7,6 +7,12 @@ export type ReadStackParamList = {
   JuzReader: { juz: number };
 };
 
+/** The Hifz tab's stack: memorization dashboard → review session. */
+export type HifzStackParamList = {
+  HifzDashboard: undefined;
+  HifzReview: undefined;
+};
+
 /** The Tools tab's stack: tool list → individual tool screens. */
 export type ToolsStackParamList = {
   ToolsList: undefined;
@@ -21,7 +27,7 @@ export type ToolsStackParamList = {
 /** The bottom tabs. */
 export type RootTabParamList = {
   Read: NavigatorScreenParams<ReadStackParamList> | undefined;
-  Hifz: undefined;
+  Hifz: NavigatorScreenParams<HifzStackParamList> | undefined;
   Names: undefined;
   Hadith: undefined;
   Tools: NavigatorScreenParams<ToolsStackParamList> | undefined;

@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme, type Palette } from "../theme";
+import { useLibrary } from "../state/LibraryContext";
 import { toArabicDigits } from "../format";
 import { HifzButton } from "./HifzButton";
 import { AyahActions } from "./AyahActions";
@@ -46,9 +47,16 @@ function AyahViewImpl({
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { isTracked } = useLibrary();
+  const memorized = isTracked({ sura, aya });
 
   return (
-    <View style={[styles.ayah, playing && styles.ayahPlaying]}>
+    <View style={[styles.ayah, memorized && styles.ayahMemorized, playing && styles.ayahPlaying]}>
+      {memorized && (
+        <Text style={styles.memorizedTag} accessibilityLabel="Memorizing this āyah">
+          ✦ Memorizing
+        </Text>
+      )}
       <Text style={[styles.arabic, { fontSize: 26 * scale, lineHeight: 46 * scale }]}>
         {words.map((w, i) => (
           <Text key={i} style={playing && i === activeWord ? styles.wordActive : undefined}>
@@ -101,6 +109,19 @@ function makeStyles(c: Palette) {
       borderBottomColor: c.border,
     },
     ayahPlaying: { backgroundColor: c.bgElev, borderBottomColor: "transparent" },
+    ayahMemorized: {
+      borderLeftWidth: 2,
+      borderLeftColor: c.accent,
+      backgroundColor: c.accentSoft,
+      borderBottomColor: "transparent",
+    },
+    memorizedTag: {
+      color: c.accent,
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 0.5,
+      marginBottom: 6,
+    },
     arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl" },
     wordActive: { color: c.accent },
     marker: { color: c.accent, fontSize: 18 },

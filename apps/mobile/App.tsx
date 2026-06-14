@@ -4,12 +4,47 @@ import {
   DarkTheme,
   DefaultTheme,
   NavigationContainer,
+  type LinkingOptions,
   type Theme,
 } from "@react-navigation/native";
 import { ThemeProvider, useTheme } from "./src/theme";
 import { SettingsProvider } from "./src/state/SettingsContext";
 import { LibraryProvider } from "./src/state/LibraryContext";
 import { RootTabs } from "./src/navigation/RootTabs";
+import type { RootTabParamList } from "./src/navigation/types";
+
+/** URL routes for the web build and OS deep links (ummahlibrary://). */
+const linking: LinkingOptions<RootTabParamList> = {
+  prefixes: ["ummahlibrary://"],
+  config: {
+    screens: {
+      Read: {
+        screens: {
+          SurahList: "",
+          SurahReader: "surah/:surah",
+          JuzReader: "juz/:juz",
+        },
+      },
+      Hifz: {
+        screens: { HifzDashboard: "hifz", HifzReview: "hifz/review" },
+      },
+      Names: "names",
+      Hadith: "hadith",
+      Tools: {
+        screens: {
+          ToolsList: "tools",
+          Tasbih: "tasbih",
+          Adhkar: "adhkar",
+          PrayerTimes: "prayer-times",
+          Qibla: "qibla",
+          HijriCalendar: "calendar",
+          Zakat: "zakat",
+        },
+      },
+      Settings: "settings",
+    },
+  },
+};
 
 function NavRoot() {
   const { mode, colors } = useTheme();
@@ -26,7 +61,7 @@ function NavRoot() {
     },
   };
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} linking={linking}>
       <StatusBar style={mode === "dark" ? "light" : "dark"} />
       <RootTabs />
     </NavigationContainer>

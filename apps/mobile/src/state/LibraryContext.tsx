@@ -15,6 +15,7 @@ import {
 } from "react";
 import { type HifzCard, type VerseKey, compareVerseKeys, isDue } from "@ummahlibrary/core";
 import { KEYS, getJSON, setJSON } from "../storage";
+import { EMPTY_STREAK, advanceStreak, type StreakData } from "../hifz";
 
 export interface HifzRecord {
   ref: VerseKey;
@@ -29,6 +30,8 @@ const parseKey = (key: string): VerseKey => {
 };
 
 interface LibraryValue {
+  /** False until the initial AsyncStorage load completes. */
+  ready: boolean;
   bookmarks: number[];
   lastRead: number | null;
   isBookmarked: (surah: number) => boolean;
@@ -41,6 +44,9 @@ interface LibraryValue {
   allRecords: () => HifzRecord[];
   dueRecords: (now: Date) => HifzRecord[];
   trackedCount: number;
+  /** Daily review streak. `touchStreak` records a review completed today. */
+  streak: StreakData;
+  touchStreak: () => void;
 }
 
 const LibraryContext = createContext<LibraryValue | null>(null);
@@ -49,18 +55,31 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [bookmarks, setBookmarks] = useState<number[]>([]);
   const [lastRead, setLastReadState] = useState<number | null>(null);
   const [hifz, setHifz] = useState<HifzStore>({});
+  const [streak, setStreak] = useState<StreakData>(EMPTY_STREAK);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     void (async () => {
-      const [bm, lr, hz] = await Promise.all([
+      const [bm, lr, hz, st] = await Promise.all([
         getJSON<number[]>(KEYS.bookmarks, []),
         getJSON<{ surah: number } | null>(KEYS.lastRead, null),
         getJSON<HifzStore>(KEYS.hifz, {}),
+        getJSON<StreakData>(KEYS.hifzStreak, EMPTY_STREAK),
       ]);
       setBookmarks(bm);
       setLastReadState(lr?.surah ?? null);
       setHifz(hz);
+      setStreak(st);
+      setReady(true);
     })();
+  }, []);
+
+  const touchStreak = useCallback(() => {
+    setStreak((prev) => {
+      const next = advanceStreak(prev, new Date());
+      if (next !== prev) void setJSON(KEYS.hifzStreak, next);
+      return next;
+    });
   }, []);
 
   const toggleBookmark = useCallback((surah: number) => {
@@ -103,6 +122,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<LibraryValue>(
     () => ({
+      ready,
       bookmarks,
       lastRead,
       isBookmarked: (surah) => bookmarks.includes(surah),
@@ -115,8 +135,22 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       allRecords,
       dueRecords: (now) => allRecords().filter((r) => isDue(r.card, now)),
       trackedCount: Object.keys(hifz).length,
+      streak,
+      touchStreak,
     }),
-    [bookmarks, lastRead, hifz, toggleBookmark, setLastRead, setHifzCard, removeHifzCard, allRecords],
+    [
+      ready,
+      bookmarks,
+      lastRead,
+      hifz,
+      streak,
+      toggleBookmark,
+      setLastRead,
+      setHifzCard,
+      removeHifzCard,
+      allRecords,
+      touchStreak,
+    ],
   );
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;
