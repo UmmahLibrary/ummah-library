@@ -101,22 +101,24 @@ export function MushafPageScreen({ navigation, route }: Props) {
         <Text style={styles.pageMeta}>
           Juzʾ {juz} · Page {n} / {TOTAL_PAGES_MADANI}
         </Text>
-        {sections.map((s) => (
-          <View key={s.sura} style={styles.section}>
-            <Text style={styles.surahHeader}>{s.transliteration}</Text>
-            {s.showBismillah && (
-              <Text style={[styles.basmala, { fontSize: 22 * scale }]}>{BISMILLAH}</Text>
-            )}
-            <Text style={[styles.mushaf, { fontSize: 26 * scale, lineHeight: 52 * scale }]}>
-              {s.ayahs.map((a) => (
-                <Text key={a.aya}>
-                  {a.text}
-                  <Text style={styles.endMarker}> ﴿{toArabicDigits(a.aya)}﴾ </Text>
-                </Text>
-              ))}
-            </Text>
-          </View>
-        ))}
+        <View style={styles.page}>
+          {sections.map((s, i) => (
+            <View key={s.sura} style={[styles.section, i > 0 && styles.sectionDivider]}>
+              <Text style={styles.surahHeader}>{s.transliteration}</Text>
+              {s.showBismillah && (
+                <Text style={[styles.basmala, { fontSize: 22 * scale }]}>{BISMILLAH}</Text>
+              )}
+              <Text style={[styles.mushaf, { fontSize: 26 * scale, lineHeight: 52 * scale }]}>
+                {s.ayahs.map((a) => (
+                  <Text key={a.aya}>
+                    {a.text}
+                    <Text style={styles.endMarker}> ﴿{toArabicDigits(a.aya)}﴾ </Text>
+                  </Text>
+                ))}
+              </Text>
+            </View>
+          ))}
+        </View>
 
         <View style={styles.nav}>
           {n > 1 ? (
@@ -146,7 +148,23 @@ function makeStyles(c: Palette) {
     error: { color: c.error, fontSize: 15 },
     content: { paddingHorizontal: 18, paddingBottom: 40, paddingTop: 8 },
     pageMeta: { color: c.faint, fontSize: 12.5, textAlign: "center", marginBottom: 12 },
-    section: { marginBottom: 18 },
+    // The Madani-Mushaf page frame — mirrors the web `.mushaf-page` so the
+    // printed-page look is consistent across web and mobile.
+    page: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 16,
+      backgroundColor: c.bgElev,
+      padding: 22,
+      marginTop: 4,
+    },
+    section: {},
+    sectionDivider: {
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+      marginTop: 22,
+      paddingTop: 18,
+    },
     surahHeader: {
       color: c.accent,
       fontSize: 15,
@@ -161,7 +179,7 @@ function makeStyles(c: Palette) {
       marginVertical: 10,
       fontFamily: FONT.ar,
     },
-    mushaf: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
+    mushaf: { color: c.fg, textAlign: "justify", writingDirection: "rtl", fontFamily: FONT.ar },
     endMarker: { color: c.accent, fontSize: 18, fontFamily: FONT.ar },
     nav: {
       flexDirection: "row",
