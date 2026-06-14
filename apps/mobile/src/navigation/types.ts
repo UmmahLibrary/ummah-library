@@ -15,6 +15,7 @@ export type ReadStackParamList = {
   ReadingGoals: undefined;
   MushafPage: { page: number };
   Tafsir: undefined;
+  Plans: undefined;
 };
 
 /** The Hifz tab's stack: memorization dashboard → review session. */

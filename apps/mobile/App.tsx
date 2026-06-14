@@ -34,6 +34,7 @@ const linking: LinkingOptions<RootTabParamList> = {
           ReadingGoals: "goals",
           MushafPage: "page/:page",
           Tafsir: "tafsir",
+          Plans: "plans",
         },
       },
       Tools: {

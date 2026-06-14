@@ -21,6 +21,7 @@ export function MoreMenuScreen({ navigation }: Props) {
     { icon: "tafsir", title: "Tafsir", desc: "Commentary on the Quran", onPress: () => toRead("Tafsir") },
     { icon: "bookmark", title: "Bookmarks", desc: "Saved verses & collections", onPress: () => toRead("Collections") },
     { icon: "check", title: "Reading Goals", desc: "Daily goal, streak & khatma", onPress: () => toRead("ReadingGoals") },
+    { icon: "book", title: "Reading Plans", desc: "Structured journeys through the Book", onPress: () => toRead("Plans") },
     { icon: "settings", title: "Settings", desc: "Theme, fonts, reciter & data", onPress: () => navigation.navigate("Settings") },
   ];
 
