@@ -4,6 +4,7 @@ import { useState } from "react";
 import { JUZ_STARTS, TOTAL_JUZ } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import { HomeHeroCards } from "./HomeHeroCards";
+import { HomeVerseOfDay } from "./HomeVerseOfDay";
 import { useSearch } from "./shell/SearchContext";
 
 interface Surah {
@@ -478,58 +479,10 @@ export function NoorHomePage({ surahs }: Props) {
           </div>
         </Link>
 
-        {/* Verse of the day */}
-        <div
-          style={{
-            borderRadius: 16,
-            padding: "22px 26px",
-            background: N.card,
-            border: `1px solid ${N.border}`,
-            marginBottom: 16,
-            display: "flex",
-            gap: 28,
-            alignItems: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <div
-            className="noor-ar"
-            style={{ flex: "1 1 280px", fontSize: 28, lineHeight: 2.1, color: N.fg }}
-          >
-            ٱلَّذِينَ ءَامَنُوا۟ وَتَطْمَئِنُّ قُلُوبُهُم بِذِكْرِ ٱللَّهِ ۗ أَلَا بِذِكْرِ ٱللَّهِ
-            تَطْمَئِنُّ ٱلْقُلُوبُ
-          </div>
-          <div style={{ flex: "1 1 260px" }}>
-            <div
-              style={{
-                fontSize: 11.5,
-                letterSpacing: 1.2,
-                textTransform: "uppercase",
-                color: N.gold,
-                fontWeight: 700,
-                marginBottom: 8,
-                fontFamily: N.ui,
-              }}
-            >
-              Verse of the day
-            </div>
-            <div style={{ fontSize: 15.5, lineHeight: 1.65, color: N.muted, fontFamily: N.ui }}>
-              Those who believe and whose hearts find rest in the remembrance of Allah. Verily, in
-              the remembrance of Allah do hearts find rest.
-            </div>
-            <div
-              style={{
-                fontSize: 13.5,
-                color: N.gold,
-                marginTop: 10,
-                fontWeight: 600,
-                fontFamily: N.ui,
-              }}
-            >
-              Ar-Raʿd 13:28
-            </div>
-          </div>
-        </div>
+        {/* Verse of the day — deterministic per calendar date, resolved client-side */}
+        <HomeVerseOfDay
+          nameOf={(num) => surahs.find((s) => s.number === num)?.transliteration ?? ""}
+        />
 
         {/* Quick tools strip */}
         <div
