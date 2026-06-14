@@ -21,6 +21,7 @@ export type ToolsStackParamList = {
   Tasbih: undefined;
   Adhkar: undefined;
   PrayerTimes: undefined;
+  PrayerTracker: undefined;
   Qibla: undefined;
   HijriCalendar: undefined;
   Zakat: undefined;
