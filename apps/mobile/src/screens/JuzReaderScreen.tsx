@@ -5,6 +5,7 @@ import { JUZ_STARTS, TOTAL_JUZ, resolveActiveTranslation, type VerseKey } from "
 import { api } from "../api";
 import { RECITER, RECITERS } from "../plugins";
 import { useTheme, type Palette } from "../theme";
+import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
 import { DEFAULT_EDITION } from "../types";
@@ -196,8 +197,8 @@ function makeStyles(c: Palette) {
       borderBottomColor: c.border,
     },
     ayahPlaying: { backgroundColor: c.bgElev, borderBottomColor: "transparent" },
-    arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl" },
-    marker: { color: c.accent, fontSize: 17 },
+    arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
+    marker: { color: c.accent, fontSize: 17, fontFamily: FONT.ar },
     tr: { color: c.fg, marginTop: 10 },
   });
 }

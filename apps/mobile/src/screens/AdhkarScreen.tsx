@@ -12,6 +12,7 @@ import {
 import { api } from "../api";
 import { KEYS, getJSON, setJSON } from "../storage";
 import { useTheme, type Palette } from "../theme";
+import { FONT } from "../fonts";
 import { adhkarToday } from "../utils";
 
 interface Stored {
@@ -205,7 +206,7 @@ function makeStyles(c: Palette) {
     cardNum: { color: c.muted, fontSize: 12, fontWeight: "600" },
     counter: { color: c.muted, fontSize: 12, fontWeight: "600" },
     accentText: { color: c.accent },
-    arabic: { color: c.fg, fontSize: 20, lineHeight: 34, writingDirection: "rtl" },
+    arabic: { color: c.fg, fontSize: 20, lineHeight: 34, writingDirection: "rtl", fontFamily: FONT.ar },
     translit: { color: c.fg, fontSize: 14, fontWeight: "600" },
     translation: { color: c.fg, fontSize: 13, lineHeight: 20 },
     meta: { color: c.muted, fontSize: 11, lineHeight: 16, marginTop: 2 },
