@@ -21,6 +21,7 @@ type Props = NativeStackScreenProps<ReadStackParamList, "MushafPage">;
 
 interface Section {
   sura: number;
+  name: string;
   transliteration: string;
   showBismillah: boolean;
   ayahs: Ayah[];
@@ -58,6 +59,7 @@ export function MushafPageScreen({ navigation, route }: Props) {
           const d = await api.getSurah(sura);
           result.push({
             sura,
+            name: d.surah.name,
             transliteration: d.surah.transliteration,
             showBismillah: d.surah.hasBismillah && sura !== 1 && ayaStart === 1,
             ayahs: d.ayahs.filter((a) => a.aya >= ayaStart && a.aya <= ayaEnd),
@@ -116,6 +118,7 @@ export function MushafPageScreen({ navigation, route }: Props) {
                   </Text>
                 ))}
               </Text>
+              <Text style={styles.surahNameFoot}>﴿ {s.name} ﴾</Text>
             </View>
           ))}
         </View>
@@ -181,6 +184,16 @@ function makeStyles(c: Palette) {
     },
     mushaf: { color: c.fg, textAlign: "justify", writingDirection: "rtl", fontFamily: FONT.ar },
     endMarker: { color: c.accent, fontSize: 18, fontFamily: FONT.ar },
+    // The Arabic surah name in ornamental brackets, centred at the foot of the
+    // surah's block — mirrors the web reader's `.mushaf-surah-name`.
+    surahNameFoot: {
+      color: c.muted,
+      fontSize: 19,
+      textAlign: "center",
+      writingDirection: "rtl",
+      fontFamily: FONT.ar,
+      marginTop: 22,
+    },
     nav: {
       flexDirection: "row",
       justifyContent: "space-between",
