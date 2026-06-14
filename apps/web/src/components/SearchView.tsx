@@ -202,10 +202,19 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
 
   useEffect(() => {
     setHistory(readHistory());
+    // Seed from a ?q= deep link (or a search submitted from the top bar) so the
+    // query survives navigation and refreshes. Read on the client to keep the
+    // page statically rendered (no useSearchParams Suspense bailout).
+    const urlQuery = new URLSearchParams(window.location.search).get("q")?.trim() ?? "";
+    if (urlQuery.length >= 2) {
+      setQuery(urlQuery);
+      queryRef.current = urlQuery;
+    }
     void buildIndex(surahs).then((items) => {
       indexRef.current = items;
       setIndexReady(true);
-      // If the user already typed before the index finished, search now.
+      // If the user already typed (or arrived with ?q=) before the index
+      // finished, search now.
       const pending = queryRef.current.trim();
       if (pending.length >= 2) setResults(searchText(items, pending, 60));
     });
