@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { type Surah } from "@ummahlibrary/core";
+import {
+  type Coordinates,
+  DEFAULT_CALCULATION_METHOD,
+  type Madhab,
+  PRAYER_LABELS,
+  type PrayerName,
+  type PrayerTimings,
+  type Surah,
+  nextPrayer,
+} from "@ummahlibrary/core";
 import { Icon, Khatam } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { FONT } from "../fonts";
@@ -9,6 +18,8 @@ import { useTheme, type Palette } from "../theme";
 import { useLibrary } from "../state/LibraryContext";
 import { AyahBadge } from "../components/AyahBadge";
 import { verseOfToday } from "../verses";
+import { KEYS, getJSON, getString } from "../storage";
+import { fmtCountdown, fmtTime, localISODate } from "../utils";
 import type { HomeStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<HomeStackParamList, "Today">;
@@ -18,6 +29,8 @@ export function HomeScreen({ navigation }: Props) {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { lastRead } = useLibrary();
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
+  const [timings, setTimings] = useState<PrayerTimings | null>(null);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     let active = true;
@@ -26,6 +39,42 @@ export function HomeScreen({ navigation }: Props) {
       active = false;
     };
   }, []);
+
+  // Live next-prayer for the home strip — uses the saved location only (no
+  // permission prompt here; that lives on the Prayer Times screen).
+  useEffect(() => {
+    let active = true;
+    void Promise.all([
+      getJSON<Coordinates | null>(KEYS.prayerCoords, null),
+      getString(KEYS.prayerMethod),
+      getString(KEYS.prayerMadhab),
+    ]).then(([coords, method, madhab]) => {
+      if (!active || !coords) return;
+      void api
+        .getPrayerTimes({
+          lat: coords.latitude,
+          lng: coords.longitude,
+          date: localISODate(new Date()),
+          method: method ?? DEFAULT_CALCULATION_METHOD,
+          madhab: (madhab as Madhab) || "shafi",
+        })
+        .then((t) => active && setTimings(t as PrayerTimings))
+        .catch(() => undefined);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const upcoming = timings ? nextPrayer(timings, now) : null;
+  const nextP: { name: PrayerName; at: Date } | null =
+    upcoming ??
+    (timings ? { name: "fajr", at: new Date(new Date(timings.fajr).getTime() + 86400000) } : null);
 
   const last = useMemo(
     () => (lastRead != null ? (surahs ?? []).find((s) => s.number === lastRead) : undefined),
@@ -81,14 +130,26 @@ export function HomeScreen({ navigation }: Props) {
           </Pressable>
         )}
 
-        {/* Next prayer strip */}
+        {/* Next prayer strip — live countdown if a location is saved */}
         <Pressable style={styles.prayerStrip} onPress={() => toTools("PrayerTimes")}>
           <Icon name="moon" size={22} color={colors.accent} sw={1.8} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.prayerLabel}>Prayer times</Text>
-            <Text style={styles.prayerValue}>View today’s ṣalāh times</Text>
-          </View>
-          <Icon name="chevR" size={18} color={colors.faint} sw={1.8} />
+          {nextP ? (
+            <>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.prayerLabel}>Next prayer · {PRAYER_LABELS[nextP.name]}</Text>
+                <Text style={styles.prayerValue}>in {fmtCountdown(nextP.at, now)}</Text>
+              </View>
+              <Text style={styles.prayerTime}>{fmtTime(nextP.at)}</Text>
+            </>
+          ) : (
+            <>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.prayerLabel}>Prayer times</Text>
+                <Text style={styles.prayerValue}>View today’s ṣalāh times</Text>
+              </View>
+              <Icon name="chevR" size={18} color={colors.faint} sw={1.8} />
+            </>
+          )}
         </Pressable>
 
         {/* Verse of the day */}
@@ -172,6 +233,7 @@ function makeStyles(c: Palette) {
     },
     prayerLabel: { color: c.muted, fontSize: 12 },
     prayerValue: { color: c.fg, fontSize: 16, fontFamily: FONT.bold, marginTop: 1 },
+    prayerTime: { color: c.accent, fontSize: 18, fontFamily: FONT.extrabold },
     vod: {
       backgroundColor: c.bgElev,
       borderWidth: 1,
