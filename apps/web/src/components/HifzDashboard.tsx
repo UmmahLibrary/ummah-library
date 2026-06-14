@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TOTAL_AYAHS } from "@ummahlibrary/core";
-import { N, Khatam, Icon, Btn } from "@ummahlibrary/ui";
+import { N, Khatam, Btn } from "@ummahlibrary/ui";
 import { allRecords, dueRecords, surahProgressMap, type SurahProgress } from "../lib/hifz-store";
 import { getStreak } from "../lib/hifz-streak";
 
@@ -18,6 +18,14 @@ interface QueueItem extends SurahProgress {
   name: string;
   transliteration: string;
   ayahCount: number;
+}
+
+function relativeDue(nextDue: string | null): string {
+  if (!nextDue) return "—";
+  const diff = Math.round((new Date(nextDue).getTime() - Date.now()) / 86400000);
+  if (diff <= 0) return "Today";
+  if (diff === 1) return "Tomorrow";
+  return `In ${diff}d`;
 }
 
 function StrengthBar({ value }: { value: number }) {
@@ -116,10 +124,10 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px,1fr))", gap: 12 }}>
-        <StatCard value={String(totalTracked)} label="Āyāt tracked" />
+        <StatCard value={memorizedPct} label="Quran memorized" />
         <StatCard value={String(dueCount)} label="Due today" />
         <StatCard value={streak > 0 ? `${streak} 🔥` : "—"} label="Day streak" />
-        <StatCard value={memorizedPct} label="Quran covered" />
+        <StatCard value={String(totalTracked)} label="Āyāt tracked" />
       </div>
 
       {/* CTA */}
@@ -232,7 +240,9 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
                       {item.dueCount} due
                     </span>
                   ) : (
-                    <Icon name="check" size={16} color={N.goldDim} />
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: N.faint, fontFamily: N.ui }}>
+                      {relativeDue(item.nextDue)}
+                    </span>
                   )}
                 </div>
               </div>
