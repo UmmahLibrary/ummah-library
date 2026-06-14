@@ -6,15 +6,24 @@ import {
   toggleAyah,
   type VerseKey,
 } from "@ummahlibrary/core";
+import { Icon } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { useLibrary, newCollectionId } from "../state/LibraryContext";
 
 /**
  * Per-ayah "Save" affordance: toggles the ayah into one or more bookmark
  * collections (ayah-level, separate from surah bookmarks). Mirrors the web
- * reader's ☆ Save flow.
+ * reader's ☆ Save flow. `asIcon` renders just the bookmark glyph (reader row).
  */
-export function SaveToCollection({ sura, aya }: { sura: number; aya: number }) {
+export function SaveToCollection({
+  sura,
+  aya,
+  asIcon = false,
+}: {
+  sura: number;
+  aya: number;
+  asIcon?: boolean;
+}) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { collections, updateCollections } = useLibrary();
@@ -39,9 +48,15 @@ export function SaveToCollection({ sura, aya }: { sura: number; aya: number }) {
 
   return (
     <>
-      <Pressable style={[styles.btn, saved && styles.btnOn]} onPress={() => setOpen(true)}>
-        <Text style={[styles.btnText, saved && styles.btnTextOn]}>{saved ? "★ Saved" : "☆ Save"}</Text>
-      </Pressable>
+      {asIcon ? (
+        <Pressable onPress={() => setOpen(true)} hitSlop={8} accessibilityLabel="Save āyah">
+          <Icon name="bookmark" size={18} color={saved ? colors.accent : colors.faint} sw={1.8} />
+        </Pressable>
+      ) : (
+        <Pressable style={[styles.btn, saved && styles.btnOn]} onPress={() => setOpen(true)}>
+          <Text style={[styles.btnText, saved && styles.btnTextOn]}>{saved ? "★ Saved" : "☆ Save"}</Text>
+        </Pressable>
+      )}
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
