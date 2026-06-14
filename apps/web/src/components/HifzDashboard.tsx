@@ -63,30 +63,40 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
 
   useEffect(() => {
-    const now = new Date();
-    const all = allRecords();
-    const due = dueRecords(now);
-    const streakData = getStreak();
-    const progressMap = surahProgressMap(now);
-    const surahByNum = new Map(surahs.map((s) => [s.number, s]));
+    try {
+      const now = new Date();
+      const all = allRecords();
+      const due = dueRecords(now);
+      const streakData = getStreak();
+      const progressMap = surahProgressMap(now);
+      const surahByNum = new Map(surahs.map((s) => [s.number, s]));
 
-    setTotalTracked(all.length);
-    setDueCount(due.length);
-    setStreak(streakData.count);
+      setTotalTracked(all.length);
+      setDueCount(due.length);
+      setStreak(streakData.count);
 
-    const items: QueueItem[] = [];
-    for (const [surahNum, progress] of progressMap) {
-      const meta = surahByNum.get(surahNum);
-      if (!meta) continue;
-      items.push({ ...progress, name: meta.name, transliteration: meta.transliteration, ayahCount: meta.ayahCount });
+      const items: QueueItem[] = [];
+      for (const [surahNum, progress] of progressMap) {
+        const meta = surahByNum.get(surahNum);
+        if (!meta) continue;
+        items.push({ ...progress, name: meta.name, transliteration: meta.transliteration, ayahCount: meta.ayahCount });
+      }
+      items.sort((a, b) => b.dueCount - a.dueCount || a.surahNumber - b.surahNumber);
+      setQueue(items);
+    } finally {
+      setReady(true);
     }
-    // Due surahs first, then by surah number.
-    items.sort((a, b) => b.dueCount - a.dueCount || a.surahNumber - b.surahNumber);
-    setQueue(items);
-    setReady(true);
   }, [surahs]);
 
-  if (!ready) return null;
+  if (!ready) {
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px,1fr))", gap: 12 }}>
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} style={{ background: N.card, border: `1px solid ${N.border}`, borderRadius: 14, padding: "18px 20px", height: 72, opacity: 0.4 }} />
+        ))}
+      </div>
+    );
+  }
 
   const memorizedPct = totalTracked === 0 ? "0%" : `${Math.round((totalTracked / TOTAL_AYAHS) * 100)}%`;
 
