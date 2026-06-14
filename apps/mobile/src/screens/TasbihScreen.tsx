@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, Vibration, View } from "react-
 import { DHIKR_PHRASES, TASBIH_TARGETS, tasbihState } from "@ummahlibrary/core";
 import { KEYS, getJSON, setJSON } from "../storage";
 import { useTheme, type Palette } from "../theme";
+import { FONT } from "../fonts";
 
 interface Stored {
   total: number;
@@ -108,7 +109,7 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { padding: 20, backgroundColor: c.bg, flexGrow: 1, alignItems: "center" },
     phraseBox: { alignItems: "center", marginBottom: 32, gap: 6 },
-    arabic: { color: c.fg, fontSize: 28, lineHeight: 44, writingDirection: "rtl" },
+    arabic: { color: c.fg, fontSize: 28, lineHeight: 44, writingDirection: "rtl", fontFamily: FONT.arSemibold },
     translit: { color: c.muted, fontSize: 14, textAlign: "center" },
     dial: {
       width: 200,
