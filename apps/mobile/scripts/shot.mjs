@@ -167,6 +167,21 @@ if (typeText) {
   }
 }
 
+// Scroll the tallest scrollable element (RN-web lists scroll internally, so
+// window/fullPage can't reach their rows).
+const scrollY = Number(arg("--scroll", "0"));
+if (scrollY) {
+  await page.evaluate((y) => {
+    const els = [...document.querySelectorAll("*")].filter((e) => {
+      const s = getComputedStyle(e);
+      return e.scrollHeight > e.clientHeight + 20 && /auto|scroll/.test(s.overflowY);
+    });
+    const target = els.sort((a, b) => b.scrollHeight - a.scrollHeight)[0] || document.scrollingElement;
+    if (target) target.scrollTop = y;
+  }, scrollY);
+  await page.waitForTimeout(800);
+}
+
 await page.waitForTimeout(400);
 await page.screenshot({ path: out, fullPage });
 console.log("saved " + out);
