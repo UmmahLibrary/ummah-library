@@ -5,7 +5,9 @@ import {
   ZAKAT_ASSET_CATEGORIES,
   calculateZakat,
 } from "@ummahlibrary/core";
+import { Khatam } from "@ummahlibrary/ui";
 import { KEYS, getJSON, setJSON } from "../storage";
+import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 
 interface ZakatState {
@@ -82,6 +84,29 @@ export function ZakatScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.screen}>
+        <View style={styles.hero}>
+          <View style={styles.heroWatermark} pointerEvents="none">
+            <Khatam size={150} color={colors.accent} sw={1.1} opacity={0.08} />
+          </View>
+          <Text style={styles.heroLabel}>Zakat due (2.5%)</Text>
+          <Text style={styles.heroValue}>{havePrices ? money(result.zakatDue) : "—"}</Text>
+          <Text style={styles.heroNote}>
+            {!havePrices
+              ? "Enter the current gold and silver prices to set the niṣāb."
+              : result.meetsNisab
+                ? `Net wealth ${money(result.netWealth)} is above the ${state.nisabBasis} niṣāb.`
+                : `Net wealth ${money(result.netWealth)} is below the ${state.nisabBasis} niṣāb — no zakat due.`}
+          </Text>
+          <View style={styles.heroDivider} />
+          <SummaryItem label="Total assets" value={money(result.totalAssets)} colors={colors} />
+          <SummaryItem label="Net wealth" value={money(result.netWealth)} colors={colors} strong />
+          <SummaryItem
+            label={`Niṣāb (${state.nisabBasis})`}
+            value={havePrices ? money(result.nisab) : "—"}
+            colors={colors}
+          />
+        </View>
+
         <Text style={styles.disclaimer}>
           An educational estimate, not a fatwa. Covers cash, gold, silver, investments, and business
           assets at 2.5% once above the niṣāb for a lunar year. Confirm your situation with a
@@ -166,23 +191,6 @@ export function ZakatScreen() {
           </Row>
         </View>
 
-        <View style={[styles.section, styles.resultBox]}>
-          <Text style={styles.resultLabel}>Zakat due (2.5%)</Text>
-          <Text style={styles.resultValue}>{havePrices ? money(result.zakatDue) : "—"}</Text>
-          <Text style={styles.resultNote}>
-            {!havePrices
-              ? "Enter the current gold and silver prices to set the niṣāb."
-              : result.meetsNisab
-                ? `Net wealth ${money(result.netWealth)} is above the ${state.nisabBasis} niṣāb of ${money(result.nisab)}.`
-                : `Net wealth ${money(result.netWealth)} is below the ${state.nisabBasis} niṣāb of ${money(result.nisab)} — no zakat due.`}
-          </Text>
-          <View style={styles.summaryGrid}>
-            <SummaryItem label="Total assets" value={money(result.totalAssets)} colors={colors} />
-            <SummaryItem label="Net wealth" value={money(result.netWealth)} colors={colors} />
-            <SummaryItem label={`Niṣāb (${state.nisabBasis})`} value={havePrices ? money(result.nisab) : "—"} colors={colors} />
-          </View>
-        </View>
-
         <Pressable style={styles.resetBtn} onPress={() => update({ ...DEFAULT, currency: state.currency })}>
           <Text style={styles.resetText}>Reset amounts</Text>
         </Pressable>
@@ -206,12 +214,22 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   );
 }
 
-function SummaryItem({ label, value, colors }: { label: string; value: string; colors: Palette }) {
+function SummaryItem({
+  label,
+  value,
+  colors,
+  strong,
+}: {
+  label: string;
+  value: string;
+  colors: Palette;
+  strong?: boolean;
+}) {
   const s = useMemo(() => summaryStyles(colors), [colors]);
   return (
     <View style={s.item}>
-      <Text style={s.dt}>{label}</Text>
-      <Text style={s.dd}>{value}</Text>
+      <Text style={[s.dt, strong && s.dtStrong]}>{label}</Text>
+      <Text style={[s.dd, strong && s.ddStrong]}>{value}</Text>
     </View>
   );
 }
@@ -227,9 +245,11 @@ function rowStyles(c: Palette) {
 
 function summaryStyles(c: Palette) {
   return StyleSheet.create({
-    item: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 },
-    dt: { color: c.muted, fontSize: 13 },
-    dd: { color: c.fg, fontSize: 13, fontWeight: "600" },
+    item: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
+    dt: { color: c.muted, fontSize: 14 },
+    dtStrong: { color: c.fg, fontFamily: FONT.semibold, fontSize: 15 },
+    dd: { color: c.fg, fontSize: 14, fontFamily: FONT.semibold },
+    ddStrong: { color: c.fg, fontFamily: FONT.extrabold, fontSize: 15.5 },
   });
 }
 
@@ -264,11 +284,25 @@ function makeStyles(c: Palette) {
     chipOn: { borderColor: c.accent, backgroundColor: c.accentSoft },
     chipText: { color: c.muted, fontSize: 13 },
     chipTextOn: { color: c.accent, fontWeight: "600" },
-    resultBox: { gap: 6 },
-    resultLabel: { color: c.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
-    resultValue: { color: c.accent, fontSize: 32, fontWeight: "700" },
-    resultNote: { color: c.muted, fontSize: 13, lineHeight: 18 },
-    summaryGrid: { marginTop: 8, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 8 },
+    hero: {
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 16,
+      padding: 22,
+      overflow: "hidden",
+    },
+    heroWatermark: { position: "absolute", right: -34, bottom: -40 },
+    heroLabel: {
+      color: c.faint,
+      fontSize: 11,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      fontFamily: FONT.bold,
+    },
+    heroValue: { color: c.accent, fontSize: 44, fontFamily: FONT.extrabold, letterSpacing: -1.5, marginVertical: 6 },
+    heroNote: { color: c.muted, fontSize: 13.5, lineHeight: 19 },
+    heroDivider: { height: 1, backgroundColor: c.borderSoft, marginVertical: 16 },
     resetBtn: { padding: 12, borderRadius: 10, borderWidth: 1, borderColor: c.border, alignItems: "center" },
     resetText: { color: c.fg, fontSize: 14 },
     foot: { color: c.muted, fontSize: 11, textAlign: "center" },
