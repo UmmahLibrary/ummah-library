@@ -19,6 +19,7 @@ import { api } from "../api";
 import { RECITER, RECITERS } from "../plugins";
 import { BISMILLAH, toArabicDigits } from "../format";
 import { useTheme, type Palette } from "../theme";
+import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { useLibrary } from "../state/LibraryContext";
 import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
@@ -289,8 +290,8 @@ function makeStyles(c: Palette) {
     error: { color: c.error, fontSize: 15 },
     content: { paddingHorizontal: 18, paddingBottom: 40 },
     head: { alignItems: "center", paddingVertical: 12 },
-    nameAr: { color: c.fg, fontSize: 30, writingDirection: "rtl" },
-    nameEn: { color: c.fg, fontSize: 16, fontWeight: "600", marginTop: 6 },
+    nameAr: { color: c.fg, fontSize: 30, writingDirection: "rtl", fontFamily: FONT.arSemibold },
+    nameEn: { color: c.fg, fontSize: 16, fontFamily: FONT.semibold, marginTop: 6 },
     sub: { color: c.muted, fontSize: 13, marginTop: 4 },
     bookmark: {
       marginTop: 10,
@@ -330,9 +331,15 @@ function makeStyles(c: Palette) {
     loopBtnOn: { borderColor: c.accent, backgroundColor: c.accentSoft },
     loopText: { color: c.muted, fontSize: 13, fontWeight: "600" },
     loopTextOn: { color: c.accent },
-    basmala: { color: c.fg, textAlign: "center", writingDirection: "rtl", marginVertical: 12 },
-    mushaf: { color: c.fg, textAlign: "right", writingDirection: "rtl", marginTop: 8 },
-    endMarker: { color: c.accent, fontSize: 18 },
+    basmala: {
+      color: c.fg,
+      textAlign: "center",
+      writingDirection: "rtl",
+      marginVertical: 12,
+      fontFamily: FONT.ar,
+    },
+    mushaf: { color: c.fg, textAlign: "right", writingDirection: "rtl", marginTop: 8, fontFamily: FONT.ar },
+    endMarker: { color: c.accent, fontSize: 18, fontFamily: FONT.ar },
     flow: { color: c.fg, marginTop: 4 },
     flowNum: { color: c.accent, fontWeight: "700" },
     nav: {

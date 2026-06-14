@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import type { DivineName } from "@ummahlibrary/core";
 import { api } from "../api";
 import { KEYS, getJSON, setJSON } from "../storage";
+import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 
 export function NamesScreen() {
@@ -133,6 +134,7 @@ function makeStyles(c: Palette) {
       fontSize: 22,
       lineHeight: 36,
       writingDirection: "rtl",
+      fontFamily: FONT.arSemibold,
     },
     arabicDone: { color: c.accent },
     translit: { color: c.fg, fontSize: 15, fontWeight: "600", marginBottom: 2 },

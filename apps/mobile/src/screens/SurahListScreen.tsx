@@ -11,7 +11,9 @@ import {
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { TOTAL_JUZ, TOTAL_SURAHS, type Surah } from "@ummahlibrary/core";
+import { Icon } from "@ummahlibrary/ui";
 import { api } from "../api";
+import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 import { useLibrary } from "../state/LibraryContext";
 import type { ReadStackParamList } from "../navigation/types";
@@ -63,7 +65,7 @@ export function SurahListScreen({ navigation }: Props) {
             <Text style={styles.subtitle}>Read the Quran · {TOTAL_SURAHS} surahs</Text>
 
             <Pressable style={styles.searchBar} onPress={() => navigation.navigate("Search")}>
-              <Text style={styles.searchBarIcon}>🔍</Text>
+              <Icon name="search" size={18} color={colors.muted} sw={1.8} />
               <Text style={styles.searchBarText}>Search verses, names, adhkār…</Text>
             </Pressable>
 
@@ -154,7 +156,7 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.bg },
     listContent: { paddingHorizontal: 18, paddingBottom: 32 },
-    h1: { color: c.fg, fontSize: 26, fontWeight: "700", marginTop: 8 },
+    h1: { color: c.fg, fontSize: 26, fontFamily: FONT.extrabold, marginTop: 8 },
     subtitle: { color: c.muted, fontSize: 14, marginBottom: 14 },
     searchBar: {
       flexDirection: "row",
@@ -249,8 +251,8 @@ function makeStyles(c: Palette) {
     },
     numText: { color: c.accent, fontSize: 13 },
     rowMeta: { flex: 1 },
-    rowTitle: { color: c.fg, fontSize: 16, fontWeight: "600" },
+    rowTitle: { color: c.fg, fontSize: 16, fontFamily: FONT.semibold },
     rowSub: { color: c.muted, fontSize: 12 },
-    rowArabic: { color: c.fg, fontSize: 22, writingDirection: "rtl" },
+    rowArabic: { color: c.fg, fontSize: 22, writingDirection: "rtl", fontFamily: FONT.arSemibold },
   });
 }

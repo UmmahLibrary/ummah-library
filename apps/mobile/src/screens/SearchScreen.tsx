@@ -10,8 +10,10 @@ import {
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { searchText, type Surah } from "@ummahlibrary/core";
+import { Icon } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { useTheme, type Palette } from "../theme";
+import { FONT } from "../fonts";
 import { KEYS, getJSON, setJSON } from "../storage";
 import type { ReadStackParamList } from "../navigation/types";
 
@@ -202,7 +204,7 @@ export function SearchScreen({ navigation }: Props) {
   return (
     <View style={styles.screen}>
       <View style={styles.field}>
-        <Text style={styles.fieldIcon}>🔍</Text>
+        <Icon name="search" size={20} color={colors.muted} sw={1.8} />
         <TextInput
           style={styles.input}
           placeholder="Search verses, names, adhkār…"
@@ -382,7 +384,14 @@ function makeStyles(c: Palette) {
       overflow: "hidden",
     },
     cardRef: { color: c.accent, fontSize: 12.5, fontWeight: "600", flexShrink: 1, textAlign: "right" },
-    cardAr: { color: c.fg, fontSize: 21, lineHeight: 38, textAlign: "right", writingDirection: "rtl" },
+    cardAr: {
+      color: c.fg,
+      fontSize: 21,
+      lineHeight: 38,
+      textAlign: "right",
+      writingDirection: "rtl",
+      fontFamily: FONT.ar,
+    },
     cardArName: { fontSize: 26, marginBottom: 2 },
     cardTitle: { color: c.muted, fontSize: 15, lineHeight: 23, marginTop: 8 },
     cardTitleName: { color: c.accent, fontWeight: "700", marginTop: 2 },

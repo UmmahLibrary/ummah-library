@@ -4,6 +4,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { type ReviewRating, reviewByRating } from "@ummahlibrary/core";
 import { api } from "../api";
 import { useTheme, type Palette } from "../theme";
+import { FONT } from "../fonts";
 import { useLibrary, type HifzRecord } from "../state/LibraryContext";
 import type { HifzStackParamList } from "../navigation/types";
 
@@ -204,6 +205,7 @@ function makeStyles(c: Palette) {
       lineHeight: 56,
       textAlign: "center",
       writingDirection: "rtl",
+      fontFamily: FONT.ar,
     },
     reveal: {
       paddingVertical: 13,

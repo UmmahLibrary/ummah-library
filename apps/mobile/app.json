@@ -36,7 +36,8 @@
         {
           "locationWhenInUsePermission": "Allow Ummah Library to use your location to calculate prayer times and find the qibla direction."
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

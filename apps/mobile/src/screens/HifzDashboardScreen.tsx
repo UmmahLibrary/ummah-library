@@ -5,6 +5,7 @@ import { TOTAL_AYAHS, type Surah } from "@ummahlibrary/core";
 import { Khatam } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { useTheme, type Palette } from "../theme";
+import { FONT } from "../fonts";
 import { useLibrary } from "../state/LibraryContext";
 import { relativeDue, surahProgressMap, type SurahProgress } from "../hifz";
 import type { HifzStackParamList } from "../navigation/types";
@@ -161,7 +162,7 @@ function Stat({ value, label, colors }: { value: string; label: string; colors: 
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { padding: 18, backgroundColor: c.bg, gap: 12, flexGrow: 1 },
-    h1: { color: c.fg, fontSize: 26, fontWeight: "800", letterSpacing: -0.5 },
+    h1: { color: c.fg, fontSize: 26, fontFamily: FONT.extrabold, letterSpacing: -0.5 },
     subtitle: { color: c.muted, fontSize: 14, marginTop: -6, marginBottom: 4 },
     empty: { alignItems: "center", paddingVertical: 48, gap: 14 },
     emptyTitle: { color: c.fg, fontSize: 20, fontWeight: "800" },
@@ -176,7 +177,7 @@ function makeStyles(c: Palette) {
       borderRadius: 14,
       padding: 16,
     },
-    statValue: { color: c.accent, fontSize: 24, fontWeight: "800", letterSpacing: -1 },
+    statValue: { color: c.accent, fontSize: 24, fontFamily: FONT.extrabold, letterSpacing: -1 },
     statLabel: { color: c.faint, fontSize: 12.5, marginTop: 3 },
     cta: {
       backgroundColor: c.bgElev,
@@ -188,7 +189,7 @@ function makeStyles(c: Palette) {
       marginTop: 4,
     },
     ctaText: { gap: 4 },
-    ctaTitle: { color: c.fg, fontSize: 16.5, fontWeight: "800" },
+    ctaTitle: { color: c.fg, fontSize: 16.5, fontFamily: FONT.extrabold },
     ctaSub: { color: c.muted, fontSize: 13, lineHeight: 19 },
     ctaBtn: {
       backgroundColor: c.accent,
@@ -196,7 +197,7 @@ function makeStyles(c: Palette) {
       paddingVertical: 12,
       alignItems: "center",
     },
-    ctaBtnText: { color: c.ink, fontSize: 15, fontWeight: "800" },
+    ctaBtnText: { color: c.ink, fontSize: 15, fontFamily: FONT.extrabold },
     sectionLabel: {
       color: c.faint,
       fontSize: 12,
