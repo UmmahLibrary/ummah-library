@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, Vibration, View } from "../Type";
+import Svg, { Circle } from "react-native-svg";
 import { DHIKR_PHRASES, TASBIH_TARGETS, tasbihState } from "@ummahlibrary/core";
 import { KEYS, getJSON, setJSON } from "../storage";
 import { useTheme, type Palette } from "../theme";
@@ -37,30 +38,47 @@ export function TasbihScreen() {
     Vibration.vibrate(view.count + 1 === state.target ? 60 : 12);
   }
 
+  const ringR = 118;
+  const ringC = 2 * Math.PI * ringR;
+  const pct = Math.min(1, (justLapped ? state.target : view.count) / state.target);
+
   return (
     <ScrollView contentContainerStyle={styles.screen}>
-      <View style={styles.phraseBox}>
-        <Text style={styles.arabic}>{phrase.arabic}</Text>
-        <Text style={styles.translit}>
-          {phrase.transliteration} — {phrase.meaning}
-        </Text>
+      <View style={styles.dialWrap}>
+        <Svg width={260} height={260} style={styles.ring}>
+          <Circle cx={130} cy={130} r={ringR} stroke={colors.border} strokeWidth={10} fill="none" />
+          <Circle
+            cx={130}
+            cy={130}
+            r={ringR}
+            stroke={colors.accent}
+            strokeWidth={10}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={ringC}
+            strokeDashoffset={ringC * (1 - pct)}
+            transform="rotate(-90 130 130)"
+          />
+        </Svg>
+        <Pressable style={styles.dial} onPress={tap} accessibilityRole="button" accessibilityLabel="Count">
+          <Text style={styles.dialAr}>{phrase.arabic}</Text>
+          <Text style={[styles.dialCount, justLapped && styles.dialCountLapped]}>
+            {justLapped ? state.target : view.count}
+          </Text>
+          <Text style={styles.dialTarget}>of {state.target}</Text>
+        </Pressable>
       </View>
 
-      <Pressable
-        style={[styles.dial, justLapped && styles.dialLapped]}
-        onPress={tap}
-        accessibilityRole="button"
-        accessibilityLabel="Count"
-      >
-        <Text style={[styles.dialCount, justLapped && styles.dialCountLapped]}>
-          {justLapped ? state.target : view.count}
-        </Text>
-        <Text style={styles.dialTarget}>/ {state.target}</Text>
-      </Pressable>
-
-      <Text style={styles.rounds}>
-        {view.rounds} round{view.rounds === 1 ? "" : "s"} · {view.total} total
-      </Text>
+      <View style={styles.stats}>
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>{view.rounds}</Text>
+          <Text style={styles.statLabel}>Cycles complete</Text>
+        </View>
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>{view.total}</Text>
+          <Text style={styles.statLabel}>Total today</Text>
+        </View>
+      </View>
 
       <View style={styles.controls}>
         <View style={styles.pickerRow}>
@@ -108,25 +126,32 @@ export function TasbihScreen() {
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { padding: 20, backgroundColor: c.bg, flexGrow: 1, alignItems: "center" },
-    phraseBox: { alignItems: "center", marginBottom: 32, gap: 6 },
-    arabic: { color: c.fg, fontSize: 28, lineHeight: 44, writingDirection: "rtl", fontFamily: FONT.arSemibold },
-    translit: { color: c.muted, fontSize: 14, textAlign: "center" },
+    dialWrap: { width: 260, height: 260, alignItems: "center", justifyContent: "center", marginTop: 8 },
+    ring: { position: "absolute" },
     dial: {
-      width: 200,
-      height: 200,
-      borderRadius: 100,
+      width: 208,
+      height: 208,
+      borderRadius: 104,
       backgroundColor: c.bgElev,
-      borderWidth: 3,
+      borderWidth: 1,
       borderColor: c.border,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: 16,
     },
-    dialLapped: { borderColor: c.accent, backgroundColor: c.accentSoft },
-    dialCount: { color: c.fg, fontSize: 64, fontWeight: "700" },
+    dialAr: {
+      color: c.accentHi,
+      fontSize: 24,
+      writingDirection: "rtl",
+      fontFamily: FONT.arSemibold,
+      marginBottom: 2,
+    },
+    dialCount: { color: c.fg, fontSize: 60, fontFamily: FONT.extrabold, letterSpacing: -2, lineHeight: 64 },
     dialCountLapped: { color: c.accent },
-    dialTarget: { color: c.muted, fontSize: 16 },
-    rounds: { color: c.muted, fontSize: 14, marginBottom: 32 },
+    dialTarget: { color: c.faint, fontSize: 13, marginTop: 2 },
+    stats: { flexDirection: "row", gap: 44, marginVertical: 28 },
+    stat: { alignItems: "center" },
+    statValue: { color: c.accent, fontSize: 28, fontFamily: FONT.extrabold, letterSpacing: -1 },
+    statLabel: { color: c.faint, fontSize: 12, marginTop: 2 },
     controls: { width: "100%", gap: 16 },
     pickerRow: { gap: 6 },
     label: { color: c.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
