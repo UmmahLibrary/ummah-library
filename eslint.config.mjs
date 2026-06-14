@@ -38,6 +38,15 @@ export default tseslint.config(
     },
   },
   {
+    // Playwright preview helpers (apps/*/scripts/shot.mjs) drive the web build:
+    // their addInitScript/evaluate callbacks run in the browser, so they touch
+    // localStorage, document, getComputedStyle, etc.
+    files: ["apps/*/scripts/**/*.mjs"],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       globals: {

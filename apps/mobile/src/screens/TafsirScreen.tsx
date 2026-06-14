@@ -28,7 +28,6 @@ export function TafsirScreen() {
       })
       .catch(() => undefined);
     void api.listSurahs().then(setSurahs).catch(() => undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
