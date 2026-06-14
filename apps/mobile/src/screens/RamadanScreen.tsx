@@ -79,7 +79,6 @@ export function RamadanScreen({ navigation }: Props) {
         /* leave timings null */
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function toggleFast(day: number) {

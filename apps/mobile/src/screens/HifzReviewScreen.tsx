@@ -48,7 +48,6 @@ export function HifzReviewScreen({ navigation }: Props) {
     if (!ready || queue !== null) return;
     setQueue(dueRecords(new Date()));
     setIndex(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
   const current = queue?.[index];

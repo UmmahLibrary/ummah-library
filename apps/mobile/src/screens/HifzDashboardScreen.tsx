@@ -54,7 +54,6 @@ export function HifzDashboardScreen({ navigation }: Props) {
     items.sort((a, b) => b.dueCount - a.dueCount || a.surahNumber - b.surahNumber);
     return items;
     // trackedCount changes whenever the hifz store mutates — recompute then.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [surahs, trackedCount]);
 
   const memorizedPct =

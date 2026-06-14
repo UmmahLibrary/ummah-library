@@ -122,7 +122,7 @@ export function AdhkarScreen() {
         </Pressable>
       </View>
 
-      {items.map((d, i) => {
+      {items.map((d) => {
         const count = counts[d.id] ?? 0;
         const done = isDhikrComplete(count, d.repeat);
         return (
