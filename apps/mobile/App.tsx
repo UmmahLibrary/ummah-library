@@ -46,6 +46,7 @@ const linking: LinkingOptions<RootTabParamList> = {
           Qibla: "qibla",
           HijriCalendar: "calendar",
           Zakat: "zakat",
+          Ramadan: "ramadan",
         },
       },
       Memorize: {

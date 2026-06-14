@@ -8,6 +8,7 @@ import { PrayerTrackerScreen } from "../screens/PrayerTrackerScreen";
 import { QiblaScreen } from "../screens/QiblaScreen";
 import { HijriCalendarScreen } from "../screens/HijriCalendarScreen";
 import { ZakatScreen } from "../screens/ZakatScreen";
+import { RamadanScreen } from "../screens/RamadanScreen";
 import type { ToolsStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<ToolsStackParamList>();
@@ -31,6 +32,7 @@ export function ToolsStack() {
       <Stack.Screen name="Qibla" component={QiblaScreen} options={{ title: "Qibla" }} />
       <Stack.Screen name="HijriCalendar" component={HijriCalendarScreen} options={{ title: "Hijri Calendar" }} />
       <Stack.Screen name="Zakat" component={ZakatScreen} options={{ title: "Zakat Calculator" }} />
+      <Stack.Screen name="Ramadan" component={RamadanScreen} options={{ title: "Ramadan" }} />
     </Stack.Navigator>
   );
 }
