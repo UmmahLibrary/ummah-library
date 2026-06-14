@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import type { DivineName } from "@ummahlibrary/core";
 import { api } from "../api";
 import { KEYS, getJSON, setJSON } from "../storage";

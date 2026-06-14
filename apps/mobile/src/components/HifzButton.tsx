@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, Text } from "../Type";
 import { createCard } from "@ummahlibrary/core";
 import { useTheme, type Palette } from "../theme";
 import { useLibrary } from "../state/LibraryContext";

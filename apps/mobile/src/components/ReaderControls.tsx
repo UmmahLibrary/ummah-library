@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "../Type";
 import { useTheme, type Palette } from "../theme";
 import { MAX_SCALE, MIN_SCALE, type ReadingMode } from "../types";
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, Share, StyleSheet, Text, View } from "react-native";
+import { Pressable, Share, StyleSheet, Text, View } from "../Type";
 import * as Clipboard from "expo-clipboard";
 import { useTheme, type Palette } from "../theme";
 

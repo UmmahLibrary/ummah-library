@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "../Type";
 import { api } from "../api";
 import { TAFSIRS } from "../plugins";
 import { useTheme, type Palette } from "../theme";

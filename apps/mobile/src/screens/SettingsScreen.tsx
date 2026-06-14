@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "../Type";
 import { useTheme, type Palette } from "../theme";
 import { useSettings } from "../state/SettingsContext";
 import { RECITER, RECITERS } from "../plugins";

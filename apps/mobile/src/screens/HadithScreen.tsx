@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import type { HadithSection } from "@ummahlibrary/core";
 import { api } from "../api";
 import { HADITH_COLLECTIONS } from "../plugins";
