@@ -33,6 +33,7 @@ export type ToolsStackParamList = {
   Qibla: undefined;
   HijriCalendar: undefined;
   Zakat: undefined;
+  Ramadan: undefined;
 };
 
 /** The "More" tab's stack: a menu → secondary sections. */
