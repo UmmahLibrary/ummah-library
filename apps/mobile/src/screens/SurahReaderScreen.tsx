@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,6 +10,7 @@ import {
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   TOTAL_SURAHS,
+  pageNumberOf,
   resolveActiveTranslation,
   type Ayah,
   type Surah,
@@ -34,7 +35,9 @@ import type { ReadStackParamList } from "../navigation/types";
 type Props = NativeStackScreenProps<ReadStackParamList, "SurahReader">;
 
 export function SurahReaderScreen({ navigation, route }: Props) {
-  const n = route.params.surah;
+  // Deep links (surah/:surah) deliver the param as a string; in-app navigation
+  // passes a number — coerce so core helpers (which require integers) are safe.
+  const n = Number(route.params.surah);
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const settings = useSettings();
@@ -61,9 +64,40 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   const [error, setError] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
 
+  // Track the topmost visible āyah so "open in Mushaf" lands on the right page.
+  // Per-āyah offsets are only known in translation mode (discrete rows); the
+  // continuous reading modes fall back to the surah's first āyah.
+  const offsetsRef = useRef<Map<number, number>>(new Map());
+  const scrollYRef = useRef(0);
+  useEffect(() => {
+    offsetsRef.current.clear();
+    scrollYRef.current = 0;
+  }, [n]);
+
+  const openMushaf = useCallback(() => {
+    let aya = 1;
+    let best = -1;
+    const cutoff = scrollYRef.current + 80;
+    offsetsRef.current.forEach((y, a) => {
+      if (y <= cutoff && y > best) {
+        best = y;
+        aya = a;
+      }
+    });
+    navigation.navigate("MushafPage", { page: pageNumberOf({ sura: n, aya }) });
+  }, [navigation, n]);
+
   useLayoutEffect(() => {
-    if (meta) navigation.setOptions({ title: meta.transliteration });
-  }, [navigation, meta]);
+    if (!meta) return;
+    navigation.setOptions({
+      title: meta.transliteration,
+      headerRight: () => (
+        <Pressable onPress={openMushaf} hitSlop={10} accessibilityLabel="Open in Mushaf page view">
+          <Icon name="layers" size={22} color={colors.accent} sw={1.8} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, meta, colors, openMushaf]);
 
   // Mark continue-reading and stop audio when leaving the surah.
   useEffect(() => {
@@ -153,7 +187,13 @@ export function SurahReaderScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          scrollYRef.current = e.nativeEvent.contentOffset.y;
+        }}
+      >
         <View style={styles.head}>
           <View style={styles.crest}>
             <Khatam size={94} color={colors.accent} sw={1} opacity={0.5} />
@@ -224,19 +264,23 @@ export function SurahReaderScreen({ navigation, route }: Props) {
 
         {readingMode === "translation" &&
           rows.map((r) => (
-            <AyahView
+            <View
               key={r.key}
-              sura={n}
-              aya={r.aya}
-              arabic={r.arabic}
-              words={r.words}
-              translations={r.translations}
-              activeWord={audio.playingKey === r.key ? audio.activeWord : -1}
-              playing={audio.playingKey === r.key}
-              scale={scale}
-              onPlayFrom={playFrom}
-              onPlayOne={playOne}
-            />
+              onLayout={(e) => offsetsRef.current.set(r.aya, e.nativeEvent.layout.y)}
+            >
+              <AyahView
+                sura={n}
+                aya={r.aya}
+                arabic={r.arabic}
+                words={r.words}
+                translations={r.translations}
+                activeWord={audio.playingKey === r.key ? audio.activeWord : -1}
+                playing={audio.playingKey === r.key}
+                scale={scale}
+                onPlayFrom={playFrom}
+                onPlayOne={playOne}
+              />
+            </View>
           ))}
 
         {readingMode === "reading" && (
