@@ -132,20 +132,27 @@ export function AdhkarScreen() {
             onPress={() => tap(d)}
             accessibilityLabel={`${d.transliteration}, tap to count, ${count} of ${d.repeat}`}
           >
-            <View style={styles.cardHead}>
-              <Text style={[styles.cardNum, done && styles.accentText]}>{i + 1}</Text>
-              <Text style={[styles.counter, done && styles.accentText]}>
-                {count} / {d.repeat}{done ? " ✓" : ""}
-              </Text>
-            </View>
             <Text style={styles.arabic}>{d.arabic}</Text>
             <Text style={styles.translit}>{d.transliteration}</Text>
             <Text style={styles.translation}>{d.translation}</Text>
             {(d.virtue || d.source) && (
-              <Text style={styles.meta}>
-                {[d.virtue, d.source].filter(Boolean).join(" · ")}
-              </Text>
+              <Text style={styles.meta}>{[d.virtue, d.source].filter(Boolean).join(" · ")}</Text>
             )}
+            <View style={styles.cardFoot}>
+              <View style={styles.progressWrap}>
+                <View style={styles.miniTrack}>
+                  <View
+                    style={[styles.miniFill, { width: `${Math.min(1, count / d.repeat) * 100}%` }]}
+                  />
+                </View>
+                <Text style={styles.count}>
+                  {count} / {d.repeat}
+                </Text>
+              </View>
+              <Text style={[styles.status, done && styles.statusDone]}>
+                {done ? "✓ Done" : "Tap to count"}
+              </Text>
+            </View>
           </Pressable>
         );
       })}
@@ -206,10 +213,22 @@ function makeStyles(c: Palette) {
     cardNum: { color: c.muted, fontSize: 12, fontWeight: "600" },
     counter: { color: c.muted, fontSize: 12, fontWeight: "600" },
     accentText: { color: c.accent },
-    arabic: { color: c.fg, fontSize: 20, lineHeight: 34, writingDirection: "rtl", fontFamily: FONT.ar },
-    translit: { color: c.fg, fontSize: 14, fontWeight: "600" },
-    translation: { color: c.fg, fontSize: 13, lineHeight: 20 },
-    meta: { color: c.muted, fontSize: 11, lineHeight: 16, marginTop: 2 },
-    foot: { color: c.muted, fontSize: 11, textAlign: "center", marginTop: 8 },
+    arabic: { color: c.fg, fontSize: 22, lineHeight: 38, writingDirection: "rtl", fontFamily: FONT.ar },
+    translit: { color: c.accent, fontSize: 13.5, fontStyle: "italic" },
+    translation: { color: c.muted, fontSize: 14, lineHeight: 21 },
+    meta: { color: c.faint, fontSize: 11, lineHeight: 16, marginTop: 2 },
+    cardFoot: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 8,
+    },
+    progressWrap: { flexDirection: "row", alignItems: "center", gap: 10 },
+    miniTrack: { width: 90, height: 6, borderRadius: 3, backgroundColor: c.border, overflow: "hidden" },
+    miniFill: { height: 6, borderRadius: 3, backgroundColor: c.accent },
+    count: { color: c.faint, fontSize: 12.5 },
+    status: { color: c.faint, fontSize: 12.5, fontFamily: FONT.bold },
+    statusDone: { color: c.accent },
+    foot: { color: c.faint, fontSize: 11, textAlign: "center", marginTop: 8 },
   });
 }
