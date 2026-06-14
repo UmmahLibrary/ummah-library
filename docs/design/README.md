@@ -50,6 +50,15 @@ global across Quran, hadith, duʿās, names, and tools.
 Like the app itself, the prototype is local‑first — theme, last screen, and reading
 position persist in the browser.
 
+## The mobile design
+
+`noor-prototype-mobile/` is the companion snapshot for the **React Native (Expo)**
+mobile app: 24 screens across every section, drawn 1:1 against the same **Noor**
+design language and annotated with redlines (tokens, spacing, fonts, icons) ready
+to implement in `StyleSheet`. It is the design `apps/mobile` is restyled toward,
+screen by screen. Same in‑browser format — `index.html` loads the readable
+`mobile/*.jsx` modules and compiles them with Babel.
+
 ## How to view
 
 The prototype compiles its modules in the browser, and Babel loads them over
@@ -61,7 +70,8 @@ Serve the folder with any static server and open the URL it prints, e.g. from th
 repo root:
 
 ```bash
-npx serve docs/design/noor-prototype
+npx serve docs/design/noor-prototype          # web design
+npx serve docs/design/noor-prototype-mobile   # mobile design
 ```
 
 Then open the printed `http://localhost:…` address. It also **needs internet** —
