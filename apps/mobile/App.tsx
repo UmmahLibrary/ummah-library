@@ -29,6 +29,7 @@ const linking: LinkingOptions<RootTabParamList> = {
           Collections: "bookmarks",
           ReadingGoals: "goals",
           MushafPage: "page/:page",
+          Tafsir: "tafsir",
         },
       },
       Hifz: {
