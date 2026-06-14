@@ -80,6 +80,12 @@ if (argv.includes("--seed-home")) {
   });
 }
 
+if (argv.includes("--seed-coords")) {
+  await ctx.addInitScript(() => {
+    localStorage.setItem("ul.prayerCoords", JSON.stringify({ latitude: 51.5074, longitude: -0.1278 }));
+  });
+}
+
 if (argv.includes("--seed-reading")) {
   await ctx.addInitScript(() => {
     const ymd = (off) => {

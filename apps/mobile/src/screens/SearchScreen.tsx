@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -123,6 +123,20 @@ async function buildIndex(surahs: Surah[]): Promise<SearchItem[]> {
   }
 
   return items;
+}
+
+/** Wrap the first case-insensitive match of `q` in `text` with the `hl` style. */
+function highlight(text: string, q: string, hl: object): ReactNode {
+  if (!q) return text;
+  const at = text.toLowerCase().indexOf(q.toLowerCase());
+  if (at < 0) return text;
+  return [
+    text.slice(0, at),
+    <Text key="hl" style={hl}>
+      {text.slice(at, at + q.length)}
+    </Text>,
+    text.slice(at + q.length),
+  ];
 }
 
 export function SearchScreen({ navigation }: Props) {
@@ -290,10 +304,10 @@ export function SearchScreen({ navigation }: Props) {
               ) : null}
               {r.title ? (
                 <Text style={[styles.cardTitle, r.type === "name" && styles.cardTitleName]} numberOfLines={3}>
-                  {r.title}
+                  {highlight(r.title, q, styles.hl)}
                 </Text>
               ) : null}
-              {r.sub ? <Text style={styles.cardSub}>{r.sub}</Text> : null}
+              {r.sub ? <Text style={styles.cardSub}>{highlight(r.sub, q, styles.hl)}</Text> : null}
             </Pressable>
           ))}
           {indexReady && filtered.length === 0 && (
@@ -394,6 +408,7 @@ function makeStyles(c: Palette) {
     },
     cardArName: { fontSize: 26, marginBottom: 2 },
     cardTitle: { color: c.muted, fontSize: 15, lineHeight: 23, marginTop: 8 },
+    hl: { color: c.fg, backgroundColor: c.accentSoft, fontFamily: FONT.bold },
     cardTitleName: { color: c.accent, fontWeight: "700", marginTop: 2 },
     cardSub: { color: c.faint, fontSize: 12.5, marginTop: 6 },
     empty: { alignItems: "center", paddingVertical: 50, gap: 6 },

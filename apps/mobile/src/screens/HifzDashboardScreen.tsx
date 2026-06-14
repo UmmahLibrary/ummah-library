@@ -7,6 +7,7 @@ import { api } from "../api";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useLibrary } from "../state/LibraryContext";
+import { AyahBadge } from "../components/AyahBadge";
 import { relativeDue, surahProgressMap, type SurahProgress } from "../hifz";
 import type { HifzStackParamList } from "../navigation/types";
 
@@ -110,14 +111,7 @@ export function HifzDashboardScreen({ navigation }: Props) {
             <View style={{ gap: 10 }}>
               {queue.map((item) => (
                 <View key={item.surahNumber} style={styles.queueRow}>
-                  <View style={styles.badge}>
-                    <Khatam size={38} color={colors.accent} sw={1.2} opacity={0.6} />
-                    <Text
-                      style={[styles.badgeNum, item.surahNumber >= 100 && styles.badgeNumSmall]}
-                    >
-                      {item.surahNumber}
-                    </Text>
-                  </View>
+                  <AyahBadge n={item.surahNumber} size={38} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.queueName}>{item.transliteration}</Text>
                     <View style={styles.strengthRow}>
