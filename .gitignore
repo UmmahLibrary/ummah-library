@@ -44,3 +44,6 @@ Thumbs.db
 /.ds-sync/
 /.design-sync/.cache/
 /.design-sync/learnings/
+
+# Mobile web-preview screenshots (scripts/shot.mjs output — dev-only)
+apps/mobile/.preview/
