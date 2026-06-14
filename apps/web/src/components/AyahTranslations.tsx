@@ -17,14 +17,28 @@ interface Line {
  * (ADR 0011). Re-fetches when the selection changes (the `ul.editions` window
  * event). Keeps the `.ayah-tr` markup the rest of the reader expects (e.g.
  * AyahActions' copy).
+ *
+ * The catalogue is fetched over the network, so a freshly-opened surah shows a
+ * skeleton line until the text arrives instead of an empty gap. The edition
+ * name is only labelled when more than one translation is shown — with a single
+ * translation the label is noise (it repeats under every āyah).
  */
 export function AyahTranslations({ surah, aya }: { surah: number; aya: number }) {
   const [lines, setLines] = useState<Line[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     async function load() {
       const ids = readEditions();
+      if (ids.length === 0) {
+        if (active) {
+          setLines([]);
+          setLoading(false);
+        }
+        return;
+      }
+      if (active) setLoading(true);
       const catalogue = await fetchCatalogue();
       const metaById = new Map(catalogue.map((e) => [e.id, e]));
       const entries = await Promise.all(
@@ -39,6 +53,7 @@ export function AyahTranslations({ surah, aya }: { surah: number; aya: number })
             return { id, name: meta?.name ?? id, text, direction: meta?.direction ?? "ltr" };
           }),
       );
+      setLoading(false);
     }
     void load();
     const onChange = () => void load();
@@ -49,11 +64,21 @@ export function AyahTranslations({ surah, aya }: { surah: number; aya: number })
     };
   }, [surah, aya]);
 
+  if (loading && lines.length === 0) {
+    return (
+      <p className="ayah-tr" aria-busy="true" aria-label="Loading translation">
+        <span className="skeleton-line" style={{ display: "block", maxWidth: "82%" }} />
+      </p>
+    );
+  }
+
+  const showName = lines.length > 1;
+
   return (
     <>
       {lines.map((l) => (
         <p key={l.id} className="ayah-tr" data-edition={l.id} dir={l.direction}>
-          <span className="tr-name">{l.name}</span>
+          {showName && <span className="tr-name">{l.name}</span>}
           {l.text}
         </p>
       ))}
