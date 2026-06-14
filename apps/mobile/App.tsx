@@ -49,7 +49,7 @@ const linking: LinkingOptions<RootTabParamList> = {
         screens: { HifzDashboard: "hifz", HifzReview: "hifz/review" },
       },
       More: {
-        screens: { MoreMenu: "more", Settings: "settings", Names: "names", Hadith: "hadith" },
+        screens: { MoreMenu: "more", Profile: "profile", Settings: "settings", Names: "names", Hadith: "hadith" },
       },
     },
   },

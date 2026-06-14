@@ -15,6 +15,7 @@ export function MoreMenuScreen({ navigation }: Props) {
   const toRead = (screen: string) => navigation.getParent()?.navigate("Read", { screen } as never);
 
   const items: { icon: IconName; title: string; desc: string; onPress: () => void }[] = [
+    { icon: "star", title: "Your journey", desc: "Streaks, stats & achievements", onPress: () => navigation.navigate("Profile") },
     { icon: "heart", title: "99 Names", desc: "Asmāʾ al-Ḥusná", onPress: () => navigation.navigate("Names") },
     { icon: "globe", title: "Hadith", desc: "Collections of prophetic traditions", onPress: () => navigation.navigate("Hadith") },
     { icon: "tafsir", title: "Tafsir", desc: "Commentary on the Quran", onPress: () => toRead("Tafsir") },
