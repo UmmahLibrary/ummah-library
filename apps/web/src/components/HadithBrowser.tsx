@@ -9,7 +9,7 @@ import {
   hadithGradeCategory,
   searchText,
 } from "@ummahlibrary/core";
-import { N, Icon, Khatam } from "./noor";
+import { N, Icon, Khatam } from "@ummahlibrary/ui";
 
 interface Collection {
   id: string;

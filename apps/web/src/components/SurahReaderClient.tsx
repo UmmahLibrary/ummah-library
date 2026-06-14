@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { type ReciterPlugin } from "@ummahlibrary/core";
-import { N, Khatam, Icon } from "./noor";
+import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import { AyahTranslations } from "./AyahTranslations";
 import { AyahActions } from "./AyahActions";
 import { AyahStar } from "./AyahStar";

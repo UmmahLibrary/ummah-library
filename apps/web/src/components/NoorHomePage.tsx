@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { JUZ_STARTS, TOTAL_JUZ } from "@ummahlibrary/core";
-import { N, Khatam, Icon } from "./noor";
+import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import { HomeHeroCards } from "./HomeHeroCards";
 import { useSearch } from "./shell/SearchContext";
 

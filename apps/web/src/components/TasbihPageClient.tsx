@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DHIKR_PHRASES } from "@ummahlibrary/core";
-import { N } from "./noor";
+import { N } from "@ummahlibrary/ui";
 import { NoorPageFrame } from "./NoorPageFrame";
 
 const PRESET_IDS = ["subhanallah", "alhamdulillah", "allahuakbar", "tahlil"] as const;

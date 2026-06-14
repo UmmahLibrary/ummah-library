@@ -11,7 +11,7 @@ import {
   prayerStreak,
   statusFor,
 } from "@ummahlibrary/core";
-import { Icon, N } from "./noor";
+import { Icon, N } from "@ummahlibrary/ui";
 import { PRAYER_TRACKER_EVENT, cyclePrayer, readPrayerLog, today } from "../lib/prayer-tracker";
 
 // A warm bronze for "late", matching the Prayer Tracker page.

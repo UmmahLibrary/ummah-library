@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { N } from "../../../components/noor";
+import { N } from "@ummahlibrary/ui";
 import { SurahReaderClient } from "../../../components/SurahReaderClient";
 import { TOTAL_SURAHS, isValidSurahNumber } from "@ummahlibrary/core";
 import { pluginRegistry, quranRepository } from "@ummahlibrary/api";

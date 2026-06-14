@@ -41,6 +41,7 @@ the operational checklist.
 | Web UI                                           | `apps/web`                                                   |
 | Mobile UI                                        | `apps/mobile`                                                |
 | Shared, framework-light UI                       | `packages/ui`                                                |
+| **Design token / colour / Noor primitive**        | `packages/ui/src/` — _never in apps_                        |
 | **A translation / reciter / tafsir / hadith**    | a **JSON manifest** in `packages/data/plugins/` — _not code_ |
 
 If an app needs data, it goes through **`api`**, not `data`/`adapters` directly.
@@ -54,6 +55,48 @@ If an app needs data, it goes through **`api`**, not `data`/`adapters` directly.
 - ❌ Bundle large content (full tafsir/hadith) — add a runtime plugin instead.
 - ❌ Add a database, user accounts, or server-side user data without an ADR (we are local-first — ADR 0006).
 - ❌ Reach a vendor SDK directly from `api`/apps — wrap it in an adapter behind a port.
+- ❌ Define palette colours, design tokens, or Noor component primitives inside an app — they live in `packages/ui` only (ADR 0023).
+- ❌ Add `Platform.OS` guards or conditional imports inside `packages/ui` — use platform files (`.native.tsx`) instead.
+
+## Noor design system (`packages/ui`) — ADR 0023
+
+`packages/ui` is the **single source of truth** for all visual design across web
+and mobile. The web app is the reference implementation; the mobile app must
+follow it.
+
+**What lives here:**
+
+- `src/themes.ts` — all eight Noor palettes as JS objects (`Palette` interface +
+  `noorThemes` record). The CSS custom properties in `apps/web/src/app/globals.css`
+  must stay in sync with these values.
+- `src/tokens.ts` — `N.*` CSS variable strings for web inline styles.
+- `src/NoorThemeContext.tsx` — `NoorThemeProvider` + `useNoorTheme()` for native.
+- `src/Btn.tsx` / `src/Btn.native.tsx` (and Seg, Icon, Khatam, Logo) — shared
+  component primitives.
+
+**Platform files pattern:**
+
+Metro (React Native) auto-resolves `Foo.native.tsx` over `Foo.tsx`. Next.js
+uses `Foo.tsx`. Never use `Platform.OS` checks or conditional imports inside
+`packages/ui` — write two files.
+
+```
+packages/ui/src/
+  Btn.tsx           ← web: <button> + CSS variables
+  Btn.native.tsx    ← mobile: <Pressable> + useNoorTheme()
+```
+
+**`*.native.tsx` type-checking:**
+
+`packages/ui/tsconfig.json` excludes `*.native.tsx`. Native files are
+validated by Metro at bundle time. Keep the props interface compatible across
+both files — callers use the exported web type.
+
+**Adding a new theme:** add one row to `themes.ts` + one `[data-theme]` block
+in `globals.css`. Both apps update automatically.
+
+**Adding a new component:** add `Foo.tsx` (web) and `Foo.native.tsx` (mobile)
+to `packages/ui/src/`, export both from `src/index.ts`, add tests.
 
 ## Commands
 

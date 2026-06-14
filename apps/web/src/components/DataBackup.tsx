@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MergeStrategy } from "@ummahlibrary/core";
 import { clearAllData, collectLocalData, exportBackup, importBackup } from "../lib/backup";
-import { N } from "./noor";
+import { N } from "@ummahlibrary/ui";
 
 const lcard = { background: N.card, border: `1px solid ${N.border}`, borderRadius: 16 } as const;
 

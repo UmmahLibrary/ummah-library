@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { type ReciterPlugin, quranComAudioUrl, reciterAudioUrl } from "@ummahlibrary/core";
-import { N, Icon } from "./noor";
+import { N, Icon } from "@ummahlibrary/ui";
 
 const RECITER_KEY = "ul.reciter";
 const LOOP_KEY = "ul.loop";

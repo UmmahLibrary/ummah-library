@@ -8,6 +8,7 @@ export default defineWorkspace([
   "packages/core",
   "packages/data",
   "packages/adapters",
+  "packages/ui",
   "apps/mobile",
   "apps/web",
 ]);

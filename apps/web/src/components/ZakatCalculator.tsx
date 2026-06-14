@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { type NisabBasis, ZAKAT_ASSET_CATEGORIES, calculateZakat } from "@ummahlibrary/core";
-import { N, Khatam } from "./noor";
+import { N, Khatam } from "@ummahlibrary/ui";
 
 const STORAGE_KEY = "ul.zakat";
 const lcard = { background: N.card, border: `1px solid ${N.border}`, borderRadius: 16 } as const;

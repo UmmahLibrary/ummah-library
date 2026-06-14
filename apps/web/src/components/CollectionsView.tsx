@@ -15,7 +15,7 @@ import {
   readNotes,
   writeCollections,
 } from "../lib/collections";
-import { N, Khatam } from "./noor";
+import { N, Khatam } from "@ummahlibrary/ui";
 
 export function CollectionsView() {
   const [collections, setCollections] = useState<Collection[]>([]);

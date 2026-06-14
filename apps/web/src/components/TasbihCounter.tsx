@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DHIKR_PHRASES, TASBIH_TARGETS, tasbihState } from "@ummahlibrary/core";
-import { N } from "./noor";
+import { N } from "@ummahlibrary/ui";
 
 const KEY = "ul.tasbih";
 

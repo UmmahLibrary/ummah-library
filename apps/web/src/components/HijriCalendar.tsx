@@ -9,7 +9,7 @@ import {
   hijriToGregorian,
 } from "@ummahlibrary/core";
 import { readHijriAdjust, writeHijriAdjust } from "../lib/hijri";
-import { N } from "./noor";
+import { N } from "@ummahlibrary/ui";
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const lcard = { background: N.card, border: `1px solid ${N.border}`, borderRadius: 16 } as const;

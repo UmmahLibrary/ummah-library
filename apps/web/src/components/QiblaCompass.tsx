@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { type Coordinates, compassPoint, qiblaDirection } from "@ummahlibrary/core";
-import { N } from "./noor";
+import { N } from "@ummahlibrary/ui";
 
 // Shared with the prayer-times page — one stored location for both.
 const COORDS_KEY = "ul.prayerCoords";

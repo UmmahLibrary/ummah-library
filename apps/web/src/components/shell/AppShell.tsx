@@ -4,7 +4,7 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { TabBar } from "./TabBar";
 import { SearchProvider } from "./SearchContext";
-import { N } from "../noor";
+import { N } from "@ummahlibrary/ui";
 
 interface AppShellProps {
   children: ReactNode;

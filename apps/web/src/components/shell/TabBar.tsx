@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { N, Icon } from "../noor";
-import type { IconName } from "../noor";
+import { N, Icon } from "@ummahlibrary/ui";
+import type { IconName } from "@ummahlibrary/ui";
 
 const TABS: Array<[string, string, IconName]> = [
   ["Home", "/", "home"],

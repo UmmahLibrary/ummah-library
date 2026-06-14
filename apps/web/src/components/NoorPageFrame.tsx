@@ -1,7 +1,7 @@
 "use client";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { N, Icon } from "./noor";
+import { N, Icon } from "@ummahlibrary/ui";
 
 interface Props {
   title: string;

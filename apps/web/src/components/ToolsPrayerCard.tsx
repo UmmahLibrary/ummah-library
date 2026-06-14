@@ -10,7 +10,7 @@ import {
   type PrayerTimings,
   nextPrayer,
 } from "@ummahlibrary/core";
-import { Icon, Khatam, N } from "./noor";
+import { Icon, Khatam, N } from "@ummahlibrary/ui";
 
 const COORDS_KEY = "ul.prayerCoords";
 const METHOD_KEY = "ul.prayerMethod";

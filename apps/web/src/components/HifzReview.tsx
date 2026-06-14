@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { type ReviewRating, reviewByRating } from "@ummahlibrary/core";
 import { type HifzRecord, allRecords, dueRecords, setCard } from "../lib/hifz-store";
-import { N, Khatam } from "./noor";
+import { N, Khatam } from "@ummahlibrary/ui";
 
 interface SurahArabic {
   ayahs: { aya: number; text: string }[];

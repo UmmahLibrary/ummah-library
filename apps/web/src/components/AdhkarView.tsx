@@ -10,7 +10,7 @@ import {
   nextTally,
   sessionProgress,
 } from "@ummahlibrary/core";
-import { Icon, N } from "./noor";
+import { Icon, N } from "@ummahlibrary/ui";
 import { readAdhkarCounts, writeAdhkarCounts } from "../lib/adhkar";
 
 export function AdhkarView({ dhikr }: { dhikr: readonly Dhikr[] }) {

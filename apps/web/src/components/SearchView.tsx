@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { searchText } from "@ummahlibrary/core";
-import { N, Icon, Khatam } from "./noor";
-import type { IconName } from "./noor";
+import { N, Icon, Khatam } from "@ummahlibrary/ui";
+import type { IconName } from "@ummahlibrary/ui";
 
 const ENGLISH_EDITION = "eng-mustafakhattaba";
 const ENGLISH_URL = `https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/${ENGLISH_EDITION}.min.json`;
