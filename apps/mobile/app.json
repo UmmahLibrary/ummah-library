@@ -24,6 +24,10 @@
     "ios": {
       "bundleIdentifier": "org.ummahlibrary.app"
     },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
     "plugins": [
       "expo-audio",
       "expo-asset",
