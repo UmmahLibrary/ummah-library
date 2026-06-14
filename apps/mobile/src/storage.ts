@@ -21,6 +21,7 @@ export const KEYS = {
   readingActive: "ul.readingActive",
   readingPages: "ul.readingPages",
   readingLog: "ul.readingLog",
+  readingPlan: "ul.readingPlan",
   khatma: "ul.khatma",
   hifz: "ul.hifz",
   hifzStreak: "ul.hifz.streak",

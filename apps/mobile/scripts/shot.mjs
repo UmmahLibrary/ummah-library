@@ -137,6 +137,21 @@ if (argv.includes("--seed-prayer")) {
   });
 }
 
+if (argv.includes("--seed-plan")) {
+  await ctx.addInitScript(() => {
+    const ymd = (off) => {
+      const x = new Date();
+      x.setDate(x.getDate() - off);
+      const p = (n) => String(n).padStart(2, "0");
+      return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}`;
+    };
+    localStorage.setItem(
+      "ul.readingPlan",
+      JSON.stringify({ planId: "ramadan-khatm", startDate: ymd(12), completed: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }),
+    );
+  });
+}
+
 if (argv.includes("--seed-collections")) {
   await ctx.addInitScript(() => {
     localStorage.setItem(
