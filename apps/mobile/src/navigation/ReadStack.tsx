@@ -5,6 +5,8 @@ import { SurahReaderScreen } from "../screens/SurahReaderScreen";
 import { JuzReaderScreen } from "../screens/JuzReaderScreen";
 import { SearchScreen } from "../screens/SearchScreen";
 import { CollectionsScreen } from "../screens/CollectionsScreen";
+import { ReadingGoalsScreen } from "../screens/ReadingGoalsScreen";
+import { MushafPageScreen } from "../screens/MushafPageScreen";
 import type { ReadStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<ReadStackParamList>();
@@ -33,6 +35,12 @@ export function ReadStack() {
       />
       <Stack.Screen name="Search" component={SearchScreen} options={{ title: "Search" }} />
       <Stack.Screen name="Collections" component={CollectionsScreen} options={{ title: "Bookmarks" }} />
+      <Stack.Screen name="ReadingGoals" component={ReadingGoalsScreen} options={{ title: "Reading Goals" }} />
+      <Stack.Screen
+        name="MushafPage"
+        component={MushafPageScreen}
+        options={{ title: "", headerBackTitle: "Back" }}
+      />
     </Stack.Navigator>
   );
 }

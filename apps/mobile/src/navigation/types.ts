@@ -7,6 +7,8 @@ export type ReadStackParamList = {
   JuzReader: { juz: number };
   Search: undefined;
   Collections: undefined;
+  ReadingGoals: undefined;
+  MushafPage: { page: number };
 };
 
 /** The Hifz tab's stack: memorization dashboard → review session. */
