@@ -26,6 +26,7 @@ export const KEYS = {
   prayerMethod: "ul.prayerMethod",
   prayerMadhab: "ul.prayerMadhab",
   prayerCoords: "ul.prayerCoords",
+  prayerLog: "ul.prayerLog",
   hijriAdjust: "ul.hijriAdjust",
   zakat: "ul.zakat",
 } as const;

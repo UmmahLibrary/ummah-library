@@ -8,6 +8,7 @@ const TOOLS: { screen: keyof ToolsStackParamList; icon: string; title: string; d
   { screen: "Tasbih",       icon: "📿", title: "Tasbih",         desc: "Digital dhikr counter" },
   { screen: "Adhkar",       icon: "🌅", title: "Adhkar",         desc: "Morning & evening remembrances" },
   { screen: "PrayerTimes",  icon: "🕌", title: "Prayer Times",   desc: "Daily salah times for your location" },
+  { screen: "PrayerTracker",icon: "✅", title: "Prayer Tracker", desc: "Log your five daily prayers & streak" },
   { screen: "Qibla",        icon: "🕋", title: "Qibla",          desc: "Direction of the Kaaba" },
   { screen: "HijriCalendar",icon: "📅", title: "Hijri Calendar", desc: "Islamic lunar calendar" },
   { screen: "Zakat",        icon: "💰", title: "Zakat",          desc: "Estimate your annual zakat" },

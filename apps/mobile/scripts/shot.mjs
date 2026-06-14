@@ -73,6 +73,28 @@ if (seedHifz) {
   });
 }
 
+if (argv.includes("--seed-prayer")) {
+  await ctx.addInitScript(() => {
+    const d = (off) => {
+      const x = new Date();
+      x.setDate(x.getDate() - off);
+      const p = (n) => String(n).padStart(2, "0");
+      return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}`;
+    };
+    const all = { fajr: "ontime", dhuhr: "ontime", asr: "late", maghrib: "ontime", isha: "ontime" };
+    localStorage.setItem(
+      "ul.prayerLog",
+      JSON.stringify({
+        [d(0)]: { fajr: "ontime", dhuhr: "ontime", asr: "late" },
+        [d(1)]: all,
+        [d(2)]: all,
+        [d(3)]: { fajr: "ontime", dhuhr: "late", asr: "ontime", maghrib: "ontime", isha: "late" },
+        [d(4)]: { fajr: "ontime", dhuhr: "ontime", asr: "ontime", maghrib: "ontime", isha: "ontime" },
+      }),
+    );
+  });
+}
+
 if (argv.includes("--seed-collections")) {
   await ctx.addInitScript(() => {
     localStorage.setItem(

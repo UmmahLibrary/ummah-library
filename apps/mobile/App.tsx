@@ -38,6 +38,7 @@ const linking: LinkingOptions<RootTabParamList> = {
           Tasbih: "tasbih",
           Adhkar: "adhkar",
           PrayerTimes: "prayer-times",
+          PrayerTracker: "tracker",
           Qibla: "qibla",
           HijriCalendar: "calendar",
           Zakat: "zakat",
