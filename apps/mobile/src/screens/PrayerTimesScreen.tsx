@@ -14,12 +14,31 @@ import {
   TIMING_NAMES,
   nextPrayer,
 } from "@ummahlibrary/core";
+import { Khatam, Icon, type IconName } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { KEYS, getJSON, getString, setJSON, setString } from "../storage";
 import { useTheme, type Palette } from "../theme";
+import { FONT } from "../fonts";
 import { fmtCountdown, fmtTime, localISODate } from "../utils";
 
 type Status = "idle" | "locating" | "loading" | "ready" | "error" | "denied";
+
+const PRAYER_AR: Record<PrayerName, string> = {
+  fajr: "الفجر",
+  sunrise: "الشروق",
+  dhuhr: "الظهر",
+  asr: "العصر",
+  maghrib: "المغرب",
+  isha: "العشاء",
+};
+const PRAYER_ICON: Record<PrayerName, IconName> = {
+  fajr: "moon",
+  sunrise: "sun",
+  dhuhr: "sun",
+  asr: "sun",
+  maghrib: "moon",
+  isha: "moon",
+};
 
 export function PrayerTimesScreen() {
   const { colors } = useTheme();
@@ -147,23 +166,40 @@ export function PrayerTimesScreen() {
       {timings && (
         <>
           {next && (
-            <View style={styles.nextBox}>
-              <Text style={styles.nextLabel}>Next prayer</Text>
-              <Text style={styles.nextName}>{PRAYER_LABELS[next.name]}</Text>
-              <Text style={styles.nextIn}>
-                {fmtTime(next.at)} · in {fmtCountdown(next.at, now)}
+            <View style={styles.hero}>
+              <View style={styles.heroWatermark} pointerEvents="none">
+                <Khatam size={220} color={colors.accent} sw={0.9} opacity={0.06} />
+              </View>
+              <Text style={styles.heroLabel}>Next · {PRAYER_LABELS[next.name]}</Text>
+              <Text style={styles.heroCountdown}>{fmtCountdown(next.at, now)}</Text>
+              <Text style={styles.heroSub}>
+                until {PRAYER_LABELS[next.name]} at {fmtTime(next.at)}
               </Text>
             </View>
           )}
 
           <View style={styles.list}>
-            {TIMING_NAMES.map((name) => {
+            {TIMING_NAMES.map((name, i) => {
               const isNext = upcoming?.name === name && OBLIGATORY_PRAYERS.includes(name);
               return (
-                <View key={name} style={[styles.row, isNext && styles.rowNext]}>
+                <View
+                  key={name}
+                  style={[
+                    styles.row,
+                    i < TIMING_NAMES.length - 1 && styles.rowDivider,
+                    isNext && styles.rowNext,
+                  ]}
+                >
+                  <Icon
+                    name={PRAYER_ICON[name]}
+                    size={20}
+                    color={isNext ? colors.accent : colors.muted}
+                    sw={1.8}
+                  />
                   <Text style={[styles.prayerName, isNext && styles.prayerNameNext]}>
                     {PRAYER_LABELS[name]}
                   </Text>
+                  <Text style={[styles.prayerAr, isNext && styles.prayerArNext]}>{PRAYER_AR[name]}</Text>
                   <Text style={[styles.prayerTime, isNext && styles.prayerTimeNext]}>
                     {fmtTime(timings[name])}
                   </Text>
@@ -240,37 +276,53 @@ function makeStyles(c: Palette) {
       paddingHorizontal: 24,
     },
     ctaBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
-    nextBox: {
+    hero: {
       backgroundColor: c.bgElev,
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: c.accent,
-      padding: 16,
-      gap: 4,
+      borderColor: c.border,
+      padding: 26,
+      alignItems: "center",
+      overflow: "hidden",
     },
-    nextLabel: { color: c.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
-    nextName: { color: c.accent, fontSize: 24, fontWeight: "700" },
-    nextIn: { color: c.muted, fontSize: 14 },
+    heroWatermark: { position: "absolute", top: "50%", marginTop: -110 },
+    heroLabel: {
+      color: c.accent,
+      fontSize: 12,
+      letterSpacing: 1.4,
+      textTransform: "uppercase",
+      fontFamily: FONT.bold,
+    },
+    heroCountdown: {
+      color: c.fg,
+      fontSize: 48,
+      fontFamily: FONT.extrabold,
+      letterSpacing: -1.5,
+      marginVertical: 6,
+    },
+    heroSub: { color: c.muted, fontSize: 14 },
     list: {
       backgroundColor: c.bgElev,
-      borderRadius: 12,
+      borderRadius: 14,
       borderWidth: 1,
       borderColor: c.border,
       overflow: "hidden",
     },
     row: {
       flexDirection: "row",
-      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 14,
       paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: c.border,
+      paddingVertical: 14,
     },
+    rowDivider: { borderBottomWidth: 1, borderBottomColor: c.borderSoft },
     rowNext: { backgroundColor: c.accentSoft },
-    prayerName: { color: c.fg, fontSize: 15 },
-    prayerNameNext: { color: c.accent, fontWeight: "600" },
-    prayerTime: { color: c.muted, fontSize: 15 },
-    prayerTimeNext: { color: c.accent, fontWeight: "600" },
+    prayerName: { color: c.fg, fontSize: 16, fontFamily: FONT.semibold, flex: 1 },
+    prayerNameNext: { color: c.accent, fontFamily: FONT.bold },
+    prayerAr: { color: c.faint, fontSize: 17, writingDirection: "rtl", fontFamily: FONT.ar },
+    prayerArNext: { color: c.accentHi },
+    prayerTime: { color: c.muted, fontSize: 16, fontFamily: FONT.semibold, width: 56, textAlign: "right" },
+    prayerTimeNext: { color: c.accent },
     controls: { gap: 16 },
     pickerRow: { gap: 8 },
     label: { color: c.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
