@@ -38,6 +38,7 @@ export type ToolsStackParamList = {
 /** The "More" tab's stack: a menu → secondary sections. */
 export type MoreStackParamList = {
   MoreMenu: undefined;
+  Profile: undefined;
   Settings: undefined;
   Names: undefined;
   Hadith: undefined;

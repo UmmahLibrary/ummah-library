@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { FONT } from "../fonts";
 import { MoreMenuScreen } from "../screens/MoreMenuScreen";
+import { ProfileScreen } from "../screens/ProfileScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { NamesScreen } from "../screens/NamesScreen";
 import { HadithScreen } from "../screens/HadithScreen";
@@ -21,6 +22,7 @@ export function MoreStack() {
       }}
     >
       <Stack.Screen name="MoreMenu" component={MoreMenuScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: "Your journey" }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: "Settings" }} />
       <Stack.Screen name="Names" component={NamesScreen} options={{ title: "99 Names" }} />
       <Stack.Screen name="Hadith" component={HadithScreen} options={{ title: "Hadith" }} />
