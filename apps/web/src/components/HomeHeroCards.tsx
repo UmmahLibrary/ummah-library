@@ -10,7 +10,7 @@ import {
   computeStreak,
   nextPrayer,
 } from "@ummahlibrary/core";
-import { Khatam, N } from "./noor";
+import { Khatam, N } from "@ummahlibrary/ui";
 import { HomePrayerCard } from "./HomePrayerCard";
 import { activeDates, pagesToday, readGoal, today } from "../lib/reading-goals";
 

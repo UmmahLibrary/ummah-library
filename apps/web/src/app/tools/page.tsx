@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { N } from "../../components/noor";
+import { N } from "@ummahlibrary/ui";
 import { ToolsPrayerCard } from "../../components/ToolsPrayerCard";
 
 const TOOLS = [

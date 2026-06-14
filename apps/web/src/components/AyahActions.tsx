@@ -7,8 +7,8 @@ import {
   createCollection,
   toggleAyah,
 } from "@ummahlibrary/core";
-import { N, Icon } from "./noor";
-import type { IconName } from "./noor";
+import { N, Icon } from "@ummahlibrary/ui";
+import type { IconName } from "@ummahlibrary/ui";
 import { newId, readCollections, readNote, writeCollections, writeNote } from "../lib/collections";
 import { renderAyahImage, shareOrDownload } from "../lib/share-image";
 import { isTracked, removeCard, setCard } from "../lib/hifz-store";

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { DivineName } from "@ummahlibrary/core";
-import { N } from "./noor";
+import { N } from "@ummahlibrary/ui";
 
 const KEY = "ul.asmaLearned";
 

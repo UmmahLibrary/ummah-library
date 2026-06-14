@@ -16,7 +16,7 @@ import {
   TIMING_NAMES,
   nextPrayer,
 } from "@ummahlibrary/core";
-import { Icon, Khatam, N } from "./noor";
+import { Icon, Khatam, N } from "@ummahlibrary/ui";
 import {
   type PrayerReminderPrefs,
   readPrayerReminderPrefs,

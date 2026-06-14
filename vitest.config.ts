@@ -18,6 +18,7 @@ export default defineConfig({
         "packages/core/src/**/*.ts",
         "packages/data/src/**/*.ts",
         "packages/adapters/src/**/*.ts",
+        "packages/ui/src/**/*.{ts,tsx}",
         // Web client logic — components + local-first helpers (not Next route/server files).
         "apps/web/src/components/**/*.{ts,tsx}",
         "apps/web/src/lib/**/*.{ts,tsx}",

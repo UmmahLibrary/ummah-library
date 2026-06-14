@@ -1,49 +1,38 @@
 /**
- * Light/dark theming. A palette of semantic colour tokens (mirroring the web
- * reader's CSS variables) is provided through context; screens read it with
- * `useTheme()` and build their styles from `colors`. The chosen mode persists
- * to `ul.theme`, defaulting to the OS colour scheme on first run.
+ * Mobile theme provider.  Palette values and the Palette type come from
+ * @ummahlibrary/ui (packages/ui) — the single source of truth for design
+ * tokens across web and mobile.  This module owns only the platform-specific
+ * concern: watching the OS colour scheme with react-native's Appearance API
+ * and persisting the user's override to AsyncStorage.
+ *
+ * See ADR 0023 for the full cross-platform design-system architecture.
  */
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { Appearance } from "react-native";
+import {
+  NoorThemeProvider,
+  noorThemes,
+  type Palette,
+  type ThemeKey,
+} from "@ummahlibrary/ui";
 import { KEYS, getString, setString } from "./storage";
+
+export type { Palette };
 
 export type ThemeMode = "light" | "dark";
 
-export interface Palette {
-  bg: string;
-  bgElev: string;
-  border: string;
-  fg: string;
-  muted: string;
-  accent: string;
-  accentSoft: string;
-  error: string;
-}
-
-const DARK: Palette = {
-  bg: "#0b0f0e",
-  bgElev: "#16241d",
-  border: "#1f2a27",
-  fg: "#e7efe9",
-  muted: "#9fb3a6",
-  accent: "#3fae7d",
-  accentSoft: "#13261d",
-  error: "#ff8a7e",
+/** Map the binary light/dark OS preference to the two canonical Noor themes. */
+const THEME_MAP: Record<ThemeMode, ThemeKey> = {
+  dark: "obsidian",
+  light: "ivory",
 };
-
-const LIGHT: Palette = {
-  bg: "#ffffff",
-  bgElev: "#f2f6f3",
-  border: "#e3e9e5",
-  fg: "#14201b",
-  muted: "#5c6b63",
-  accent: "#2f9e6f",
-  accentSoft: "#e6f4ed",
-  error: "#c0392b",
-};
-
-export const PALETTES: Record<ThemeMode, Palette> = { light: LIGHT, dark: DARK };
 
 interface ThemeContextValue {
   mode: ThemeMode;
@@ -67,7 +56,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ThemeContextValue>(
     () => ({
       mode,
-      colors: PALETTES[mode],
+      colors: noorThemes[THEME_MAP[mode]],
       toggle: () =>
         setMode((m) => {
           const next = m === "dark" ? "light" : "dark";
@@ -78,7 +67,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [mode],
   );
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>
+      <NoorThemeProvider theme={value.colors}>{children}</NoorThemeProvider>
+    </ThemeContext.Provider>
+  );
 }
 
 export function useTheme(): ThemeContextValue {

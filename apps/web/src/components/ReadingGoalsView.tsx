@@ -24,7 +24,7 @@ import {
   writeGoal,
   writeKhatma,
 } from "../lib/reading-goals";
-import { N } from "./noor";
+import { N } from "@ummahlibrary/ui";
 
 const lcard = { background: N.card, border: `1px solid ${N.border}`, borderRadius: 16 } as const;
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"] as const;

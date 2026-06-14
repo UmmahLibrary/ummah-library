@@ -1,5 +1,4 @@
-import { Khatam } from "./noor/Khatam";
-import { N } from "./noor/tokens";
+import { Khatam, N } from "@ummahlibrary/ui";
 
 /**
  * A gold khatam-star āyah marker with the number inside — the Noor reader's

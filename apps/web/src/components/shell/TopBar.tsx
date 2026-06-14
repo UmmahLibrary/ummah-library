@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
-import { N, Icon } from "../noor";
+import { N, Icon } from "@ummahlibrary/ui";
 import { ThemeToggle } from "../ThemeToggle";
 import { useSearch } from "./SearchContext";
 import { formatHijri, gregorianToHijri } from "@ummahlibrary/core";

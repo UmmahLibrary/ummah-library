@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { type ReciterPlugin } from "@ummahlibrary/core";
-import { N, Icon } from "./noor";
-import type { IconName } from "./noor";
+import { N, Icon } from "@ummahlibrary/ui";
+import type { IconName } from "@ummahlibrary/ui";
 import { type EditionChoice, DEFAULT_EDITIONS, readEditions } from "../lib/editions";
 import { fetchCatalogue } from "../lib/catalogue";
 import { TranslationSettings } from "./TranslationSettings";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Icon, N } from "./noor";
+import { Icon, N } from "@ummahlibrary/ui";
 import {
   applyTheme,
   lastThemeForMode,

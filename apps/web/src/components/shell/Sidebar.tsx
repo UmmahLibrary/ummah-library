@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { N, Logo, Icon } from "../noor";
-import type { IconName } from "../noor";
+import { N, Logo, Icon } from "@ummahlibrary/ui";
+import type { IconName } from "@ummahlibrary/ui";
 
 const NAV: Array<[string, Array<[string, string, IconName]>]> = [
   [
