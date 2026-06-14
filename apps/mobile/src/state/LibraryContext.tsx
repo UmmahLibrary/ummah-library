@@ -13,7 +13,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { type HifzCard, type VerseKey, compareVerseKeys, isDue } from "@ummahlibrary/core";
+import {
+  type Collection,
+  type HifzCard,
+  type VerseKey,
+  compareVerseKeys,
+  isDue,
+} from "@ummahlibrary/core";
 import { KEYS, getJSON, setJSON } from "../storage";
 import { EMPTY_STREAK, advanceStreak, type StreakData } from "../hifz";
 
@@ -47,6 +53,16 @@ interface LibraryValue {
   /** Daily review streak. `touchStreak` records a review completed today. */
   streak: StreakData;
   touchStreak: () => void;
+  /** Ayah-level bookmark collections + per-ayah notes (separate from `bookmarks`). */
+  collections: Collection[];
+  notes: Record<string, string>;
+  updateCollections: (next: Collection[]) => void;
+  setNote: (ref: VerseKey, text: string) => void;
+}
+
+/** Stable id for a new collection. */
+export function newCollectionId(): string {
+  return `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
 const LibraryContext = createContext<LibraryValue | null>(null);
@@ -56,22 +72,44 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [lastRead, setLastReadState] = useState<number | null>(null);
   const [hifz, setHifz] = useState<HifzStore>({});
   const [streak, setStreak] = useState<StreakData>(EMPTY_STREAK);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     void (async () => {
-      const [bm, lr, hz, st] = await Promise.all([
+      const [bm, lr, hz, st, cols, nts] = await Promise.all([
         getJSON<number[]>(KEYS.bookmarks, []),
         getJSON<{ surah: number } | null>(KEYS.lastRead, null),
         getJSON<HifzStore>(KEYS.hifz, {}),
         getJSON<StreakData>(KEYS.hifzStreak, EMPTY_STREAK),
+        getJSON<Collection[]>(KEYS.collections, []),
+        getJSON<Record<string, string>>(KEYS.ayahNotes, {}),
       ]);
       setBookmarks(bm);
       setLastReadState(lr?.surah ?? null);
       setHifz(hz);
       setStreak(st);
+      setCollections(cols);
+      setNotes(nts);
       setReady(true);
     })();
+  }, []);
+
+  const updateCollections = useCallback((next: Collection[]) => {
+    setCollections(next);
+    void setJSON(KEYS.collections, next);
+  }, []);
+
+  const setNote = useCallback((ref: VerseKey, text: string) => {
+    setNotes((prev) => {
+      const key = `${ref.sura}:${ref.aya}`;
+      const next = { ...prev };
+      if (text.trim()) next[key] = text;
+      else delete next[key];
+      void setJSON(KEYS.ayahNotes, next);
+      return next;
+    });
   }, []);
 
   const touchStreak = useCallback(() => {
@@ -137,6 +175,10 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       trackedCount: Object.keys(hifz).length,
       streak,
       touchStreak,
+      collections,
+      notes,
+      updateCollections,
+      setNote,
     }),
     [
       ready,
@@ -144,12 +186,16 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       lastRead,
       hifz,
       streak,
+      collections,
+      notes,
       toggleBookmark,
       setLastRead,
       setHifzCard,
       removeHifzCard,
       allRecords,
       touchStreak,
+      updateCollections,
+      setNote,
     ],
   );
 
