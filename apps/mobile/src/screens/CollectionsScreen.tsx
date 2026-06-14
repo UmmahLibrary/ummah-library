@@ -1,5 +1,14 @@
-import { useMemo } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "../Type";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   ayahKey,
@@ -7,17 +16,75 @@ import {
   renameCollection,
   toggleAyah,
 } from "@ummahlibrary/core";
-import { Khatam } from "@ummahlibrary/ui";
+import { Khatam, Icon } from "@ummahlibrary/ui";
+import { api } from "../api";
+import { FONT } from "../fonts";
+import { DEFAULT_EDITION } from "../types";
 import { useTheme, type Palette } from "../theme";
 import { useLibrary, newCollectionId } from "../state/LibraryContext";
 import type { ReadStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "Collections">;
 
+interface AyahText {
+  ar: string;
+  tr: string | null;
+}
+
 export function CollectionsScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { collections, notes, updateCollections } = useLibrary();
+  const [names, setNames] = useState<Record<number, string>>({});
+  const [texts, setTexts] = useState<Record<string, AyahText>>({});
+  const fetched = useRef<Set<number>>(new Set());
+
+  // Surah names for friendly labels (e.g. "Al-Baqarah · 2:255").
+  useEffect(() => {
+    let active = true;
+    void api
+      .listSurahs()
+      .then((s) => active && setNames(Object.fromEntries(s.map((x) => [x.number, x.transliteration]))))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // The distinct surahs referenced by any saved āyah.
+  const surahsNeeded = useMemo(() => {
+    const set = new Set<number>();
+    for (const c of collections) for (const r of c.ayahs) set.add(r.sura);
+    return [...set];
+  }, [collections]);
+
+  // Fetch the Arabic + default translation for each referenced surah, so a
+  // bookmark reads as the verse itself rather than a bare reference.
+  useEffect(() => {
+    let active = true;
+    const todo = surahsNeeded.filter((s) => !fetched.current.has(s));
+    if (todo.length === 0) return;
+    todo.forEach((s) => fetched.current.add(s));
+    void Promise.all(
+      todo.map(async (s) => {
+        const [surahData, trRows] = await Promise.all([
+          api.getSurah(s).catch(() => null),
+          api.getCatalogTranslation(DEFAULT_EDITION, s).catch(() => []),
+        ]);
+        const trMap = new Map(trRows.map((r) => [r.aya, r.text]));
+        const out: Record<string, AyahText> = {};
+        for (const a of surahData?.ayahs ?? []) {
+          out[`${s}:${a.aya}`] = { ar: a.text, tr: trMap.get(a.aya) ?? null };
+        }
+        return out;
+      }),
+    ).then((parts) => {
+      if (active) setTexts((prev) => Object.assign({}, prev, ...parts));
+    });
+    return () => {
+      active = false;
+    };
+  }, [surahsNeeded]);
 
   function addCollection() {
     updateCollections([
@@ -75,17 +142,39 @@ export function CollectionsScreen({ navigation }: Props) {
             ) : (
               c.ayahs.map((ref) => {
                 const key = ayahKey(ref);
+                const text = texts[key];
+                const note = notes[key];
+                const label = names[ref.sura] ? `${names[ref.sura]} · ${key}` : key;
                 return (
-                  <View key={key} style={styles.ayahRow}>
+                  <View key={key} style={styles.card}>
+                    <View style={styles.cardHead}>
+                      <Text style={styles.ref}>{label}</Text>
+                      <Pressable
+                        onPress={() => updateCollections(toggleAyah(collections, c.id, ref))}
+                        hitSlop={8}
+                        accessibilityLabel={`Remove ${key}`}
+                      >
+                        <Text style={styles.remove}>✕</Text>
+                      </Pressable>
+                    </View>
+
+                    {!text ? (
+                      <ActivityIndicator color={colors.accent} style={styles.loading} />
+                    ) : (
+                      <>
+                        {text.ar ? <Text style={styles.arabic}>{text.ar}</Text> : null}
+                        {text.tr ? <Text style={styles.translation}>{text.tr}</Text> : null}
+                      </>
+                    )}
+
+                    {note ? <Text style={styles.note}>{note}</Text> : null}
+
                     <Pressable
-                      style={styles.ayahRef}
+                      style={styles.open}
                       onPress={() => navigation.navigate("SurahReader", { surah: ref.sura })}
                     >
-                      <Text style={styles.ayahRefText}>{key}</Text>
-                      {notes[key] ? <Text style={styles.note}>{notes[key]}</Text> : null}
-                    </Pressable>
-                    <Pressable onPress={() => updateCollections(toggleAyah(collections, c.id, ref))} hitSlop={8}>
-                      <Text style={styles.remove}>✕</Text>
+                      <Text style={styles.openText}>Open in reader</Text>
+                      <Icon name="arrowR" size={15} color={colors.accent} sw={1.8} />
                     </Pressable>
                   </View>
                 );
@@ -132,16 +221,10 @@ function makeStyles(c: Palette) {
       borderRadius: 14,
       padding: 14,
       marginTop: 10,
-      gap: 6,
+      gap: 10,
     },
-    collHead: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 },
-    collName: {
-      flex: 1,
-      color: c.fg,
-      fontSize: 16,
-      fontWeight: "700",
-      paddingVertical: 2,
-    },
+    collHead: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 2 },
+    collName: { flex: 1, color: c.fg, fontSize: 16, fontWeight: "700", paddingVertical: 2 },
     collCount: {
       color: c.accent,
       fontSize: 12.5,
@@ -154,17 +237,36 @@ function makeStyles(c: Palette) {
     },
     delete: { color: c.faint, fontSize: 13 },
     muted: { color: c.muted, fontSize: 13.5, paddingVertical: 4 },
-    ayahRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
-      paddingVertical: 9,
-      borderTopWidth: 1,
-      borderTopColor: c.border,
+    card: {
+      backgroundColor: c.bg,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 12,
+      padding: 14,
+      gap: 8,
     },
-    ayahRef: { flex: 1 },
-    ayahRefText: { color: c.accent, fontSize: 15, fontWeight: "600" },
-    note: { color: c.faint, fontSize: 13, marginTop: 2 },
-    remove: { color: c.faint, fontSize: 16 },
+    cardHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+    ref: { color: c.accent, fontSize: 13, fontFamily: FONT.bold },
+    remove: { color: c.faint, fontSize: 15 },
+    loading: { alignSelf: "flex-start", marginVertical: 4 },
+    arabic: {
+      color: c.fg,
+      fontSize: 22,
+      lineHeight: 42,
+      textAlign: "right",
+      writingDirection: "rtl",
+      fontFamily: FONT.ar,
+    },
+    translation: { color: c.muted, fontSize: 14.5, lineHeight: 23 },
+    note: {
+      color: c.muted,
+      fontSize: 13.5,
+      lineHeight: 21,
+      paddingLeft: 10,
+      borderLeftWidth: 2,
+      borderLeftColor: c.accent,
+    },
+    open: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+    openText: { color: c.accent, fontSize: 13, fontFamily: FONT.semibold },
   });
 }
