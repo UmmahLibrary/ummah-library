@@ -73,6 +73,13 @@ if (seedHifz) {
   });
 }
 
+if (argv.includes("--seed-home")) {
+  await ctx.addInitScript(() => {
+    localStorage.setItem("ul.lastRead", JSON.stringify({ surah: 2 }));
+    localStorage.setItem("ul.bookmarks", JSON.stringify([18, 36, 67]));
+  });
+}
+
 if (argv.includes("--seed-reading")) {
   await ctx.addInitScript(() => {
     const ymd = (off) => {
