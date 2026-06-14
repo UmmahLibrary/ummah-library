@@ -98,7 +98,7 @@ function AyahViewImpl({
 
       {translations.map((t) => (
         <View key={t.id} style={styles.tr}>
-          <Text style={styles.trName}>{t.name}</Text>
+          {translations.length > 1 && <Text style={styles.trName}>{t.name}</Text>}
           <Text
             style={[
               styles.trText,
