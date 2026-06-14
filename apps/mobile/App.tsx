@@ -27,6 +27,8 @@ const linking: LinkingOptions<RootTabParamList> = {
           JuzReader: "juz/:juz",
           Search: "search",
           Collections: "bookmarks",
+          ReadingGoals: "goals",
+          MushafPage: "page/:page",
         },
       },
       Hifz: {

@@ -73,6 +73,30 @@ if (seedHifz) {
   });
 }
 
+if (argv.includes("--seed-reading")) {
+  await ctx.addInitScript(() => {
+    const ymd = (off) => {
+      const x = new Date();
+      x.setDate(x.getDate() - off);
+      const p = (n) => String(n).padStart(2, "0");
+      return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}`;
+    };
+    localStorage.setItem("ul.readingGoal", JSON.stringify({ target: 8 }));
+    localStorage.setItem(
+      "ul.readingLog",
+      JSON.stringify({ [ymd(0)]: 5, [ymd(1)]: 8, [ymd(2)]: 3, [ymd(3)]: 9, [ymd(4)]: 4, [ymd(5)]: 6 }),
+    );
+    localStorage.setItem(
+      "ul.readingActive",
+      JSON.stringify([ymd(5), ymd(4), ymd(3), ymd(2), ymd(1), ymd(0)]),
+    );
+    localStorage.setItem(
+      "ul.khatma",
+      JSON.stringify({ totalPages: 604, currentPage: 124, targetDate: ymd(-45) }),
+    );
+  });
+}
+
 if (argv.includes("--seed-prayer")) {
   await ctx.addInitScript(() => {
     const d = (off) => {

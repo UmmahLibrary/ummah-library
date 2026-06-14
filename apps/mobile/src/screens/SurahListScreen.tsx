@@ -69,10 +69,16 @@ export function SurahListScreen({ navigation }: Props) {
               <Text style={styles.searchBarText}>Search verses, names, adhkār…</Text>
             </Pressable>
 
-            <Pressable style={styles.savedLink} onPress={() => navigation.navigate("Collections")}>
-              <Text style={styles.savedText}>★ Saved verses & collections</Text>
-              <Text style={styles.savedArrow}>›</Text>
-            </Pressable>
+            <View style={styles.quickRow}>
+              <Pressable style={styles.quickLink} onPress={() => navigation.navigate("Collections")}>
+                <Icon name="bookmark" size={17} color={colors.accent} sw={1.8} />
+                <Text style={styles.quickText}>Saved verses</Text>
+              </Pressable>
+              <Pressable style={styles.quickLink} onPress={() => navigation.navigate("ReadingGoals")}>
+                <Icon name="check" size={17} color={colors.accent} sw={1.8} />
+                <Text style={styles.quickText}>Reading goals</Text>
+              </Pressable>
+            </View>
 
             {last && (
               <Pressable style={styles.continue} onPress={() => open(last.number)}>
@@ -172,20 +178,20 @@ function makeStyles(c: Palette) {
     },
     searchBarIcon: { fontSize: 15 },
     searchBarText: { color: c.muted, fontSize: 15 },
-    savedLink: {
+    quickRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
+    quickLink: {
+      flex: 1,
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: 10,
+      gap: 8,
+      paddingVertical: 11,
       paddingHorizontal: 14,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: c.border,
       backgroundColor: c.bgElev,
-      marginBottom: 14,
     },
-    savedText: { color: c.fg, fontSize: 14.5, fontWeight: "600" },
-    savedArrow: { color: c.muted, fontSize: 18 },
+    quickText: { color: c.fg, fontSize: 14, fontFamily: FONT.semibold },
     continue: {
       backgroundColor: c.bgElev,
       borderRadius: 12,
