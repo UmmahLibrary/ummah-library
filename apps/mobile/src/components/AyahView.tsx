@@ -1,12 +1,12 @@
 import { memo, useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "../Type";
+import { Pressable, Share, StyleSheet, Text, View } from "../Type";
+import { createCard } from "@ummahlibrary/core";
+import { Icon } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useLibrary } from "../state/LibraryContext";
-import { toArabicDigits } from "../format";
-import { HifzButton } from "./HifzButton";
+import { AyahBadge } from "./AyahBadge";
 import { SaveToCollection } from "./SaveToCollection";
-import { AyahActions } from "./AyahActions";
 import { AyahTafsir } from "./AyahTafsir";
 
 export interface TrLine {
@@ -31,9 +31,10 @@ interface Props {
 }
 
 /**
- * One verse-by-verse ayah: highlightable Arabic words, the selected
- * translations, and the action row (play, Hifz, copy/share, tafsir). Memoized so
- * only the playing ayah re-renders as the recitation moves word to word.
+ * One verse-by-verse āyah in the Noor reader layout: a khatam number badge and
+ * an icon action row (play · memorize · save · share) on top, then the
+ * highlightable Arabic, the translations, and collapsible tafsīr. Memoized so
+ * only the playing āyah re-renders as the recitation moves word to word.
  */
 function AyahViewImpl({
   sura,
@@ -49,26 +50,50 @@ function AyahViewImpl({
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { isTracked } = useLibrary();
-  const memorized = isTracked({ sura, aya });
+  const { isTracked, setHifzCard, removeHifzCard } = useLibrary();
+  const ref = { sura, aya };
+  const memorized = isTracked(ref);
+
+  const share = () => {
+    const block = [arabic, ...translations.map((t) => t.text), `— ${sura}:${aya}`]
+      .filter(Boolean)
+      .join("\n");
+    const link = `https://app.ummahlibrary.org/surah/${sura}#${sura}:${aya}`;
+    void Share.share({ message: `${block}\n${link}` });
+  };
 
   return (
-    <View style={[styles.ayah, memorized && styles.ayahMemorized, playing && styles.ayahPlaying]}>
-      {memorized && (
-        <Text style={styles.memorizedTag} accessibilityLabel="Memorizing this āyah">
-          ✦ Memorizing
-        </Text>
-      )}
-      <Text style={[styles.arabic, { fontSize: 26 * scale, lineHeight: 46 * scale }]}>
+    <View style={[styles.ayah, playing && styles.ayahPlaying]}>
+      <View style={styles.head}>
+        <AyahBadge n={aya} size={30} />
+        <View style={styles.actions}>
+          <Pressable onPress={() => onPlayOne(aya)} hitSlop={8} accessibilityLabel="Play āyah">
+            <Icon name="play" size={17} color={playing ? colors.accent : colors.faint} />
+          </Pressable>
+          <Pressable
+            onPress={() => (memorized ? removeHifzCard(ref) : setHifzCard(ref, createCard(new Date())))}
+            hitSlop={8}
+            accessibilityLabel={memorized ? "Stop memorizing" : "Memorize āyah"}
+          >
+            <Icon name="star" size={17} color={memorized ? colors.accent : colors.faint} sw={1.8} />
+          </Pressable>
+          <SaveToCollection sura={sura} aya={aya} asIcon />
+          <Pressable onPress={share} hitSlop={8} accessibilityLabel="Share āyah">
+            <Icon name="share" size={17} color={colors.faint} sw={1.8} />
+          </Pressable>
+        </View>
+      </View>
+
+      <Text
+        style={[styles.arabic, { fontSize: 26 * scale, lineHeight: 50 * scale }]}
+        onPress={() => onPlayFrom(aya)}
+      >
         {words.map((w, i) => (
           <Text key={i} style={playing && i === activeWord ? styles.wordActive : undefined}>
             {w}
             {i < words.length - 1 ? " " : ""}
           </Text>
-        ))}{" "}
-        <Text style={styles.marker} onPress={() => onPlayFrom(aya)}>
-          ﴿{toArabicDigits(aya)}﴾
-        </Text>
+        ))}
       </Text>
 
       {translations.map((t) => (
@@ -77,7 +102,7 @@ function AyahViewImpl({
           <Text
             style={[
               styles.trText,
-              { fontSize: 15 * scale, lineHeight: 23 * scale },
+              { fontSize: 15 * scale, lineHeight: 24 * scale },
               t.direction === "rtl" && styles.rtl,
             ]}
           >
@@ -86,14 +111,6 @@ function AyahViewImpl({
         </View>
       ))}
 
-      <View style={styles.actions}>
-        <Pressable style={styles.playBtn} onPress={() => onPlayOne(aya)}>
-          <Text style={styles.playText}>▶ Play</Text>
-        </Pressable>
-        <HifzButton sura={sura} aya={aya} />
-        <SaveToCollection sura={sura} aya={aya} />
-        <AyahActions sura={sura} aya={aya} arabic={arabic} translations={translations.map((t) => t.text)} />
-      </View>
       <AyahTafsir sura={sura} aya={aya} />
     </View>
   );
@@ -104,43 +121,26 @@ export const AyahView = memo(AyahViewImpl);
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     ayah: {
-      paddingVertical: 16,
+      paddingVertical: 18,
       paddingHorizontal: 10,
       marginHorizontal: -10,
-      borderRadius: 10,
+      borderRadius: 12,
       borderBottomWidth: 1,
-      borderBottomColor: c.border,
+      borderBottomColor: c.borderSoft,
     },
     ayahPlaying: { backgroundColor: c.bgElev, borderBottomColor: "transparent" },
-    ayahMemorized: {
-      borderLeftWidth: 2,
-      borderLeftColor: c.accent,
-      backgroundColor: c.accentSoft,
-      borderBottomColor: "transparent",
+    head: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 14,
     },
-    memorizedTag: {
-      color: c.accent,
-      fontSize: 11,
-      fontWeight: "700",
-      letterSpacing: 0.5,
-      marginBottom: 6,
-    },
+    actions: { flexDirection: "row", alignItems: "center", gap: 20 },
     arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
     wordActive: { color: c.accent },
-    marker: { color: c.accent, fontSize: 18, fontFamily: FONT.ar },
     tr: { marginTop: 12 },
-    trName: { color: c.muted, fontSize: 12, marginBottom: 2, fontFamily: FONT.medium },
-    trText: { color: c.fg },
+    trName: { color: c.faint, fontSize: 12, marginBottom: 3, fontFamily: FONT.medium },
+    trText: { color: c.muted },
     rtl: { textAlign: "right", writingDirection: "rtl" },
-    actions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 12 },
-    playBtn: {
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: c.border,
-      backgroundColor: c.bgElev,
-    },
-    playText: { color: c.accent, fontSize: 13, fontWeight: "600" },
   });
 }

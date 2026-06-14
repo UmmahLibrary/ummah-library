@@ -15,6 +15,7 @@ import {
   type Surah,
   type Translation,
 } from "@ummahlibrary/core";
+import { Khatam, Icon } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { RECITER, RECITERS } from "../plugins";
 import { BISMILLAH, toArabicDigits } from "../format";
@@ -154,17 +155,26 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.head}>
-          <Text style={styles.nameAr}>{meta.name}</Text>
+          <View style={styles.crest}>
+            <Khatam size={94} color={colors.accent} sw={1} opacity={0.5} />
+            <Text style={styles.crestAr}>{meta.name}</Text>
+          </View>
           <Text style={styles.nameEn}>
             {meta.transliteration} · {meta.englishName}
           </Text>
           <Text style={styles.sub}>
-            Surah {meta.number} · {meta.ayahCount} āyāt ·{" "}
+            Surah {meta.number} · {meta.ayahCount} verses ·{" "}
             {meta.revelationPlace === "meccan" ? "Meccan" : "Medinan"}
           </Text>
           <Pressable style={styles.bookmark} onPress={() => toggleBookmark(n)}>
-            <Text style={styles.bookmarkText}>
-              {isBookmarked(n) ? "★ Bookmarked" : "☆ Bookmark"}
+            <Icon
+              name="bookmark"
+              size={14}
+              color={isBookmarked(n) ? colors.accent : colors.muted}
+              sw={1.8}
+            />
+            <Text style={[styles.bookmarkText, isBookmarked(n) && styles.bookmarkTextOn]}>
+              {isBookmarked(n) ? "Bookmarked" : "Bookmark surah"}
             </Text>
           </Pressable>
         </View>
@@ -183,19 +193,19 @@ export function SurahReaderScreen({ navigation, route }: Props) {
             onPress={() =>
               audio.playingKey ? audio.stop() : verses[0] && audio.playFrom(verses, verses[0], true)
             }
+            accessibilityLabel={audio.playingKey ? "Stop" : "Play surah"}
           >
-            <Text style={styles.audioPlayText}>
-              {!audio.playingKey ? "▶ Play" : audio.buffering ? "■ Loading…" : "■ Stop"}
-            </Text>
+            <Icon name={audio.playingKey ? "pause" : "play"} size={18} color={colors.ink} />
           </Pressable>
           <Text style={styles.audioStatus} numberOfLines={1}>
-            {audio.playingKey ? `Playing ${audio.playingKey}` : reciter.name}
+            {audio.playingKey
+              ? audio.buffering
+                ? "Loading…"
+                : `Playing ${audio.playingKey}`
+              : reciter.name}
           </Text>
-          <Pressable
-            style={[styles.loopBtn, audio.loop && styles.loopBtnOn]}
-            onPress={() => audio.setLoop(!audio.loop)}
-          >
-            <Text style={[styles.loopText, audio.loop && styles.loopTextOn]}>🔁 Loop</Text>
+          <Pressable onPress={() => audio.setLoop(!audio.loop)} hitSlop={8} accessibilityLabel="Loop">
+            <Icon name="repeat" size={20} color={audio.loop ? colors.accent : colors.muted} sw={1.8} />
           </Pressable>
         </View>
 
@@ -289,48 +299,47 @@ function makeStyles(c: Palette) {
     center: { flex: 1, backgroundColor: c.bg, alignItems: "center", justifyContent: "center" },
     error: { color: c.error, fontSize: 15 },
     content: { paddingHorizontal: 18, paddingBottom: 40 },
-    head: { alignItems: "center", paddingVertical: 12 },
-    nameAr: { color: c.fg, fontSize: 30, writingDirection: "rtl", fontFamily: FONT.arSemibold },
-    nameEn: { color: c.fg, fontSize: 16, fontFamily: FONT.semibold, marginTop: 6 },
-    sub: { color: c.muted, fontSize: 13, marginTop: 4 },
+    head: { alignItems: "center", paddingVertical: 14 },
+    crest: { width: 94, height: 94, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+    crestAr: {
+      position: "absolute",
+      color: c.accentHi,
+      fontSize: 30,
+      writingDirection: "rtl",
+      fontFamily: FONT.arSemibold,
+    },
+    nameEn: { color: c.fg, fontSize: 16, fontFamily: FONT.bold, marginTop: 6 },
+    sub: { color: c.faint, fontSize: 13, marginTop: 4 },
     bookmark: {
-      marginTop: 10,
-      paddingVertical: 6,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+      marginTop: 12,
+      paddingVertical: 7,
       paddingHorizontal: 14,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: c.border,
       backgroundColor: c.bgElev,
     },
-    bookmarkText: { color: c.accent, fontSize: 13, fontWeight: "600" },
+    bookmarkText: { color: c.muted, fontSize: 13, fontFamily: FONT.semibold },
+    bookmarkTextOn: { color: c.accent },
     audioBar: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 12,
-      paddingVertical: 10,
-      marginBottom: 8,
+      gap: 14,
+      paddingVertical: 12,
+      marginBottom: 4,
     },
     audioPlay: {
-      paddingVertical: 8,
-      paddingHorizontal: 18,
-      borderRadius: 20,
-      backgroundColor: c.accentSoft,
-      borderWidth: 1,
-      borderColor: c.accent,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: c.accent,
+      alignItems: "center",
+      justifyContent: "center",
     },
-    audioPlayText: { color: c.accent, fontSize: 14, fontWeight: "700" },
-    audioStatus: { color: c.muted, fontSize: 13, flex: 1 },
-    loopBtn: {
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: c.border,
-      backgroundColor: c.bgElev,
-    },
-    loopBtnOn: { borderColor: c.accent, backgroundColor: c.accentSoft },
-    loopText: { color: c.muted, fontSize: 13, fontWeight: "600" },
-    loopTextOn: { color: c.accent },
+    audioStatus: { color: c.muted, fontSize: 13.5, flex: 1, fontFamily: FONT.medium },
     basmala: {
       color: c.fg,
       textAlign: "center",
