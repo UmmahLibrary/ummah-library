@@ -12,9 +12,13 @@ test.describe("Hifz memorization", () => {
     await page.getByRole("button", { name: "More" }).first().click();
     await expect(page.getByRole("button", { name: "Stop memorizing" })).toBeVisible();
 
-    // It now appears on the review page, due immediately (a fresh card is due now).
+    // The Hifz dashboard now lists it as due, with a review CTA.
     await page.goto("/hifz");
-    await expect(page.getByText(/Reviewing 1 \/ 1 due/)).toBeVisible();
+    await expect(page.getByText(/1 āyah ready for review/)).toBeVisible();
+
+    // Start the review session — the fresh card is due now.
+    await page.getByRole("link", { name: /Start review/ }).click();
+    await expect(page.getByText(/0 \/ 1/)).toBeVisible();
 
     // Reveal and rate it — the queue empties.
     await page.getByRole("button", { name: /Reveal/ }).click();
