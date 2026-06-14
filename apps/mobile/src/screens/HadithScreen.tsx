@@ -4,6 +4,9 @@ import type { HadithSection } from "@ummahlibrary/core";
 import { api } from "../api";
 import { HADITH_COLLECTIONS } from "../plugins";
 import { useTheme, type Palette } from "../theme";
+import { FONT } from "../fonts";
+
+const GRADE_GOOD = "#5bbf8a";
 
 export function HadithScreen() {
   const { colors } = useTheme();
@@ -29,6 +32,9 @@ export function HadithScreen() {
       active = false;
     };
   }, [collectionId, section]);
+
+  const collectionName =
+    HADITH_COLLECTIONS.find((c) => c.id === collectionId)?.name ?? "Hadith";
 
   return (
     <View style={styles.screen}>
@@ -76,12 +82,20 @@ export function HadithScreen() {
         )}
         {status === "ready" &&
           data?.hadiths.map((h) => (
-            <View key={h.number} style={styles.hadith}>
-              <Text style={styles.meta}>
-                #{h.number}
-                {h.grades.length > 0 ? ` · ${h.grades.join(" · ")}` : ""}
-              </Text>
+            <View key={h.number} style={styles.card}>
+              <View style={styles.cardHead}>
+                <Text style={styles.cardCol} numberOfLines={1}>
+                  {collectionName}
+                  {data?.name ? <Text style={styles.cardBook}> · {data.name}</Text> : null}
+                </Text>
+                {h.grades[0] ? <Text style={styles.grade}>{h.grades[0]}</Text> : null}
+              </View>
               <Text style={styles.text}>{h.text}</Text>
+              <View style={styles.cardFoot}>
+                <Text style={styles.ref}>
+                  {collectionName} {h.number}
+                </Text>
+              </View>
             </View>
           ))}
       </ScrollView>
@@ -124,11 +138,38 @@ function makeStyles(c: Palette) {
     chipDisabled: { opacity: 0.4 },
     chipText: { color: c.fg, fontSize: 13 },
     sectionLabel: { color: c.muted, fontSize: 12, flex: 1, textAlign: "center" },
-    list: { paddingHorizontal: 18, paddingVertical: 16 },
+    list: { paddingHorizontal: 18, paddingVertical: 16, gap: 12 },
     spinner: { marginTop: 32 },
     muted: { color: c.muted, fontSize: 14, marginTop: 24 },
-    hadith: { marginBottom: 20, borderBottomWidth: 1, borderBottomColor: c.border, paddingBottom: 16 },
-    meta: { color: c.accent, fontSize: 12, marginBottom: 6 },
-    text: { color: c.fg, fontSize: 15, lineHeight: 24 },
+    card: {
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 14,
+      padding: 18,
+    },
+    cardHead: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+      marginBottom: 12,
+    },
+    cardCol: { color: c.muted, fontSize: 12, fontFamily: FONT.semibold, flex: 1 },
+    cardBook: { color: c.faint, fontFamily: FONT.regular },
+    grade: {
+      color: GRADE_GOOD,
+      fontSize: 11,
+      fontFamily: FONT.bold,
+      borderWidth: 1,
+      borderColor: GRADE_GOOD,
+      borderRadius: 6,
+      paddingVertical: 3,
+      paddingHorizontal: 8,
+      overflow: "hidden",
+    },
+    text: { color: c.muted, fontSize: 15, lineHeight: 24 },
+    cardFoot: { marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.borderSoft },
+    ref: { color: c.accent, fontSize: 12.5, fontFamily: FONT.semibold },
   });
 }

@@ -5,6 +5,7 @@ import { Magnetometer } from "expo-sensors";
 import { type Coordinates, compassPoint, qiblaDirection } from "@ummahlibrary/core";
 import { KEYS, getJSON, setJSON } from "../storage";
 import { useTheme, type Palette } from "../theme";
+import { FONT } from "../fonts";
 
 type Status = "idle" | "locating" | "ready" | "denied" | "error";
 
@@ -38,19 +39,25 @@ export function QiblaScreen() {
     });
   }, []);
 
-  // Live magnetometer compass.
+  // Live magnetometer compass. Not every platform has a magnetometer (e.g. the
+  // web preview) — degrade gracefully to a static bearing rather than crashing.
   useEffect(() => {
-    Magnetometer.setUpdateInterval(100);
-    const sub = Magnetometer.addListener(({ x, y }) => {
-      const h = magnetometerHeading(x, y);
-      setHeading(h);
-      Animated.timing(dialRotation, {
-        toValue: -h,
-        duration: 100,
-        useNativeDriver: true,
-      }).start();
-    });
-    return () => sub.remove();
+    let sub: { remove: () => void } | undefined;
+    try {
+      Magnetometer.setUpdateInterval(100);
+      sub = Magnetometer.addListener(({ x, y }) => {
+        const h = magnetometerHeading(x, y);
+        setHeading(h);
+        Animated.timing(dialRotation, {
+          toValue: -h,
+          duration: 100,
+          useNativeDriver: true,
+        }).start();
+      });
+    } catch {
+      /* no magnetometer on this platform — show a static qibla bearing */
+    }
+    return () => sub?.remove();
   }, [dialRotation]);
 
   async function locate() {
@@ -109,27 +116,29 @@ export function QiblaScreen() {
 
       {bearing !== null && (
         <View style={styles.compassWrap}>
-          <Animated.View
-            style={[styles.dial, aligned && styles.dialAligned, { transform: [{ rotate: dialDeg }] }]}
-          >
-            <Text style={[styles.cardinal, styles.cardinalN]}>N</Text>
-            <Text style={[styles.cardinal, styles.cardinalE]}>E</Text>
-            <Text style={[styles.cardinal, styles.cardinalS]}>S</Text>
-            <Text style={[styles.cardinal, styles.cardinalW]}>W</Text>
-            {/* The Kaaba needle is fixed inside the rotating dial so it always points at the bearing */}
-            <View style={[styles.needle, { transform: [{ rotate: `${bearing}deg` }] }]}>
-              <Text style={styles.kaaba}>🕋</Text>
+          <View style={styles.compassCard}>
+            <View style={styles.dialOuter}>
+              <Animated.View
+                style={[styles.dial, aligned && styles.dialAligned, { transform: [{ rotate: dialDeg }] }]}
+              >
+                <Text style={[styles.cardinal, styles.cardinalN, styles.cardinalNorth]}>N</Text>
+                <Text style={[styles.cardinal, styles.cardinalE]}>E</Text>
+                <Text style={[styles.cardinal, styles.cardinalS]}>S</Text>
+                <Text style={[styles.cardinal, styles.cardinalW]}>W</Text>
+                {/* The Kaaba needle is fixed inside the rotating dial so it always points at the bearing */}
+                <View style={[styles.needle, { transform: [{ rotate: `${bearing}deg` }] }]}>
+                  <Text style={styles.kaaba}>🕋</Text>
+                </View>
+              </Animated.View>
+              <View style={styles.centerDot} />
             </View>
-          </Animated.View>
 
-          <View style={styles.infoBox}>
-            <Text style={styles.infoLabel}>Qibla direction</Text>
-            <Text style={styles.infoValue}>
+            <Text style={styles.degValue}>
               {Math.round(bearing)}° {compassPoint(bearing)}
             </Text>
-            <Text style={styles.infoSub}>
+            <Text style={styles.degSub}>
               {heading === null
-                ? "Compass not available — bearing is measured clockwise from true North."
+                ? "Bearing is measured clockwise from true North."
                 : aligned
                   ? "You're facing the qibla 🕋"
                   : "Turn until the 🕋 points straight up. Hold device flat."}
@@ -137,7 +146,7 @@ export function QiblaScreen() {
           </View>
 
           <Pressable style={styles.chip} onPress={locate}>
-            <Text style={styles.chipText}>📍 Update location</Text>
+            <Text style={styles.chipText}>Update location</Text>
           </Pressable>
         </View>
       )}
@@ -167,7 +176,27 @@ function makeStyles(c: Palette) {
       paddingHorizontal: 24,
     },
     ctaBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
-    compassWrap: { alignItems: "center", gap: 24, width: "100%" },
+    compassWrap: { alignItems: "center", gap: 16, width: "100%" },
+    compassCard: {
+      width: "100%",
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 16,
+      padding: 24,
+      alignItems: "center",
+      gap: 10,
+    },
+    dialOuter: { width: 240, height: 240, alignItems: "center", justifyContent: "center" },
+    centerDot: {
+      position: "absolute",
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      backgroundColor: c.accent,
+      borderWidth: 3,
+      borderColor: c.bg,
+    },
     dial: {
       width: 240,
       height: 240,
@@ -179,17 +208,16 @@ function makeStyles(c: Palette) {
       justifyContent: "center",
     },
     dialAligned: { borderColor: c.accent },
-    cardinal: { position: "absolute", color: c.muted, fontSize: 14, fontWeight: "700" },
+    cardinal: { position: "absolute", color: c.faint, fontSize: 14, fontWeight: "700" },
+    cardinalNorth: { color: c.accent },
     cardinalN: { top: 10 },
     cardinalS: { bottom: 10 },
     cardinalE: { right: 10 },
     cardinalW: { left: 10 },
     needle: { position: "absolute", alignItems: "center", justifyContent: "flex-start", height: "100%" },
     kaaba: { fontSize: 28, marginTop: 8 },
-    infoBox: { alignItems: "center", gap: 4 },
-    infoLabel: { color: c.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
-    infoValue: { color: c.accent, fontSize: 26, fontWeight: "700" },
-    infoSub: { color: c.muted, fontSize: 13, textAlign: "center", maxWidth: 260 },
+    degValue: { color: c.accent, fontSize: 30, fontFamily: FONT.extrabold, letterSpacing: -1, marginTop: 6 },
+    degSub: { color: c.muted, fontSize: 13.5, textAlign: "center", maxWidth: 260 },
     chip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: c.border },
     chipText: { color: c.muted, fontSize: 13 },
   });
