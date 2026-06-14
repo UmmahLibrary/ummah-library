@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from "../Type";
 import * as Location from "expo-location";
 import { Magnetometer } from "expo-sensors";
 import { type Coordinates, compassPoint, qiblaDirection } from "@ummahlibrary/core";

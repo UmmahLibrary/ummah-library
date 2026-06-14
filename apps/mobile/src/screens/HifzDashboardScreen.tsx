@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { TOTAL_AYAHS, type Surah } from "@ummahlibrary/core";
 import { Khatam } from "@ummahlibrary/ui";

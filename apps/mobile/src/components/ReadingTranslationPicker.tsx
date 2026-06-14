@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "../Type";
 import type { Translation } from "@ummahlibrary/core";
 import { useTheme, type Palette } from "../theme";
 

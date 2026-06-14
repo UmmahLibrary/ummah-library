@@ -7,7 +7,7 @@ import {
   Text,
   TextInput,
   View,
-} from "react-native";
+} from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { searchText, type Surah } from "@ummahlibrary/core";
 import { Icon } from "@ummahlibrary/ui";

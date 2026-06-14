@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Text,
   View,
-} from "react-native";
+} from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   TOTAL_SURAHS,

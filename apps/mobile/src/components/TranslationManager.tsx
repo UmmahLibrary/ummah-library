@@ -8,7 +8,7 @@ import {
   Text,
   TextInput,
   View,
-} from "react-native";
+} from "../Type";
 import {
   type Translation,
   filterTranslations,

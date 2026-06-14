@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   ayahKey,

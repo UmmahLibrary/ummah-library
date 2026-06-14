@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { type ReviewRating, reviewByRating } from "@ummahlibrary/core";
 import { api } from "../api";
