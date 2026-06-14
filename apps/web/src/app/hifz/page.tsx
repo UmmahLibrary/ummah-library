@@ -1,17 +1,26 @@
+import { quranRepository } from "@ummahlibrary/api";
 import { NoorPageFrame } from "../../components/NoorPageFrame";
-import { HifzReview } from "../../components/HifzReview";
+import { HifzDashboard } from "../../components/HifzDashboard";
 
-export const metadata = { title: "Hifz review" };
+export const metadata = { title: "Hifz" };
 
-export default function HifzPage() {
+export default async function HifzPage() {
+  const surahs = await quranRepository.listSurahs();
+  const surahMeta = surahs.map((s) => ({
+    number: s.number,
+    name: s.name,
+    transliteration: s.transliteration,
+    ayahCount: s.ayahCount,
+  }));
+
   return (
     <NoorPageFrame
-      title="Hifz Review"
+      title="Ḥifẓ"
       sub="Spaced-repetition memorization, tuned to your recall"
       glyph="✦"
       back="/"
     >
-      <HifzReview />
+      <HifzDashboard surahs={surahMeta} />
     </NoorPageFrame>
   );
 }
