@@ -43,6 +43,11 @@ const browser = await chromium.launch();
 const ctx = await browser.newContext({ ...device, colorScheme: scheme });
 const page = await ctx.newPage();
 
+// Bypass the first-run onboarding by default; pass --onboarding to capture it.
+if (!argv.includes("--onboarding")) {
+  await ctx.addInitScript(() => localStorage.setItem("ul.onboarded", "1"));
+}
+
 if (seedHifz) {
   // Seed a realistic local-first Hifz store so the populated dashboard / review
   // can be reviewed without hand-tapping ＋ Hifz across many āyāt.
