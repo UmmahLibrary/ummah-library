@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme, type Palette } from "../theme";
+import { FONT } from "../fonts";
 import { useLibrary } from "../state/LibraryContext";
 import { toArabicDigits } from "../format";
 import { HifzButton } from "./HifzButton";
@@ -124,11 +125,11 @@ function makeStyles(c: Palette) {
       letterSpacing: 0.5,
       marginBottom: 6,
     },
-    arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl" },
+    arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
     wordActive: { color: c.accent },
-    marker: { color: c.accent, fontSize: 18 },
+    marker: { color: c.accent, fontSize: 18, fontFamily: FONT.ar },
     tr: { marginTop: 12 },
-    trName: { color: c.muted, fontSize: 12, marginBottom: 2 },
+    trName: { color: c.muted, fontSize: 12, marginBottom: 2, fontFamily: FONT.medium },
     trText: { color: c.fg },
     rtl: { textAlign: "right", writingDirection: "rtl" },
     actions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 12 },
