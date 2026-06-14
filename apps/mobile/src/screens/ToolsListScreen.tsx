@@ -9,6 +9,7 @@ import type { ToolsStackParamList } from "../navigation/types";
 const TOOLS: { screen: keyof ToolsStackParamList; icon: IconName; title: string; desc: string }[] = [
   { screen: "Tasbih",        icon: "repeat",  title: "Tasbih",         desc: "Digital dhikr counter" },
   { screen: "Adhkar",        icon: "sun",     title: "Adhkar",         desc: "Morning & evening remembrances" },
+  { screen: "Duas",          icon: "heart",   title: "Duʿās",          desc: "Qurʾānic supplications by moment" },
   { screen: "PrayerTimes",   icon: "home",    title: "Prayer Times",   desc: "Daily salah times for your location" },
   { screen: "PrayerTracker", icon: "check",   title: "Prayer Tracker", desc: "Log your five daily prayers & streak" },
   { screen: "Qibla",         icon: "compass", title: "Qibla",          desc: "Direction of the Kaaba" },

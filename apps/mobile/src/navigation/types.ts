@@ -34,6 +34,7 @@ export type ToolsStackParamList = {
   HijriCalendar: undefined;
   Zakat: undefined;
   Ramadan: undefined;
+  Duas: undefined;
 };
 
 /** The "More" tab's stack: a menu → secondary sections. */
