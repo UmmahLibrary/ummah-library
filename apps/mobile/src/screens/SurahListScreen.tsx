@@ -62,6 +62,11 @@ export function SurahListScreen({ navigation }: Props) {
             <Text style={styles.h1}>Ummah Library</Text>
             <Text style={styles.subtitle}>Read the Quran · {TOTAL_SURAHS} surahs</Text>
 
+            <Pressable style={styles.searchBar} onPress={() => navigation.navigate("Search")}>
+              <Text style={styles.searchBarIcon}>🔍</Text>
+              <Text style={styles.searchBarText}>Search verses, names, adhkār…</Text>
+            </Pressable>
+
             {last && (
               <Pressable style={styles.continue} onPress={() => open(last.number)}>
                 <Text style={styles.continueLabel}>Continue reading</Text>
@@ -108,7 +113,7 @@ export function SurahListScreen({ navigation }: Props) {
 
             <TextInput
               style={styles.search}
-              placeholder="Search surahs by name or number…"
+              placeholder="Filter this list by name or number…"
               placeholderTextColor={colors.muted}
               value={query}
               onChangeText={setQuery}
@@ -145,7 +150,21 @@ function makeStyles(c: Palette) {
     screen: { flex: 1, backgroundColor: c.bg },
     listContent: { paddingHorizontal: 18, paddingBottom: 32 },
     h1: { color: c.fg, fontSize: 26, fontWeight: "700", marginTop: 8 },
-    subtitle: { color: c.muted, fontSize: 14, marginBottom: 16 },
+    subtitle: { color: c.muted, fontSize: 14, marginBottom: 14 },
+    searchBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      backgroundColor: c.bgElev,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: c.border,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      marginBottom: 14,
+    },
+    searchBarIcon: { fontSize: 15 },
+    searchBarText: { color: c.muted, fontSize: 15 },
     continue: {
       backgroundColor: c.bgElev,
       borderRadius: 12,

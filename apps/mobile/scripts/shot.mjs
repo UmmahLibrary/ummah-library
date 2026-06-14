@@ -90,6 +90,17 @@ for (const label of clicks) {
   }
 }
 
+// Type into the (autofocused) text input, then wait for debounce/results.
+const typeText = arg("--type", "");
+if (typeText) {
+  try {
+    await page.locator("input").first().fill(typeText);
+    await page.waitForTimeout(waitMs);
+  } catch (e) {
+    console.log(`type failed: ${e.message.split("\n")[0]}`);
+  }
+}
+
 await page.waitForTimeout(400);
 await page.screenshot({ path: out, fullPage });
 console.log("saved " + out);

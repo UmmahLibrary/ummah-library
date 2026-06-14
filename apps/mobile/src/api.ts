@@ -62,6 +62,11 @@ export const api = {
     getJson<HadithSection>(`${BASE}/hadith/${collection}/sections/${section}`),
   listNames: () => getJson<{ names: DivineName[] }>(`${BASE}/names`).then((d) => d.names),
   listAdhkar: () => getJson<{ dhikr: Dhikr[] }>(`${BASE}/adhkar`).then((d) => d.dhikr),
+  /** The full Arabic corpus (all 6,236 āyāt) for the client search index. */
+  getSearchCorpus: () =>
+    getJson<{ verses: { s: number; a: number; t: string }[] }>(`${BASE}/search/corpus`).then(
+      (d) => d.verses,
+    ),
   getPrayerTimes: (params: { lat: number; lng: number; date: string; method: string; madhab: string }) => {
     const q = new URLSearchParams({
       lat: String(params.lat),

@@ -3,6 +3,7 @@ import { useTheme } from "../theme";
 import { SurahListScreen } from "../screens/SurahListScreen";
 import { SurahReaderScreen } from "../screens/SurahReaderScreen";
 import { JuzReaderScreen } from "../screens/JuzReaderScreen";
+import { SearchScreen } from "../screens/SearchScreen";
 import type { ReadStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<ReadStackParamList>();
@@ -29,6 +30,7 @@ export function ReadStack() {
         component={JuzReaderScreen}
         options={({ route }) => ({ title: `Juzʾ ${route.params.juz}` })}
       />
+      <Stack.Screen name="Search" component={SearchScreen} options={{ title: "Search" }} />
     </Stack.Navigator>
   );
 }
