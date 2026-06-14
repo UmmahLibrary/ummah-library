@@ -186,7 +186,7 @@ export function ReaderToolbar({
           onClick={() => setPanel((p) => (p === "display" ? null : "display"))}
         />
         {panel === "display" && (
-          <div style={{ ...popover, minWidth: 244 }}>
+          <div style={{ ...popover, minWidth: 244, right: "auto", left: 0 }}>
             <div style={sectionLabel}>Text size</div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <button
@@ -248,6 +248,7 @@ export function ReaderToolbar({
                 <TafsirPicker tafsirs={tafsirs} />
               </div>
             )}
+
           </div>
         )}
       </div>
@@ -262,7 +263,7 @@ export function ReaderToolbar({
             onClick={() => setPanel((p) => (p === "reciter" ? null : "reciter"))}
           />
           {panel === "reciter" && (
-            <div style={{ ...popover, minWidth: 220, maxHeight: 320, overflowY: "auto" }}>
+            <div className="noor-pop-sm-left" style={{ ...popover, minWidth: 220, maxHeight: 320, overflowY: "auto" }}>
               <div style={sectionLabel}>Reciter</div>
               {reciters.map((r) => {
                 const on = r.id === reciterId;
@@ -320,6 +321,7 @@ export function ReaderToolbar({
             <button
               key={o.value}
               onClick={() => onSeg(o.value)}
+              className="noor-seg-btn"
               style={{
                 padding: "6px 12px",
                 fontSize: 13,
@@ -332,7 +334,8 @@ export function ReaderToolbar({
                 whiteSpace: "nowrap",
               }}
             >
-              {o.label}
+              <span className="noor-hide-sm">{o.label}</span>
+              <span className="noor-only-sm">{o.label.charAt(0)}</span>
             </button>
           );
         })}

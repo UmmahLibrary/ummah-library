@@ -75,6 +75,7 @@ export default async function MushafPage({ params }: { params: Promise<{ number:
 
   return (
     <>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 clamp(16px,4vw,36px) 48px" }}>
       <Link href="/" className="back-link">
         ← Home
       </Link>
@@ -117,6 +118,7 @@ export default async function MushafPage({ params }: { params: Promise<{ number:
         {n < TOTAL_PAGES_MADANI ? <Link href={`/page/${n + 1}`}>Next page →</Link> : <span />}
       </nav>
       <p className="foot">Arabic: Tanzil (CC-BY 3.0) · Madani Mushaf page layout</p>
+      </div>
     </>
   );
 }

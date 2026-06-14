@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { JUZ_STARTS, TOTAL_JUZ } from "@ummahlibrary/core";
 import { quranRepository } from "@ummahlibrary/api";
+import { NoorPageFrame } from "../../components/NoorPageFrame";
 
 export const metadata = { title: "Juzʾ" };
 
@@ -17,17 +18,7 @@ export default async function JuzIndexPage() {
   const byNumber = new Map(surahs.map((s) => [s.number, s]));
 
   return (
-    <>
-      <Link href="/" className="back-link">
-        ← Home
-      </Link>
-      <header className="site-head">
-        <div>
-          <h1>Juzʾ</h1>
-          <p>Read by juzʾ — each spans one or more surahs.</p>
-        </div>
-      </header>
-
+    <NoorPageFrame title="Juzʾ" sub="Read by juzʾ — each spans one or more surahs." back="/">
       <nav className="surah-grid">
         {JUZ_STARTS.map((start, i) => {
           const n = i + 1;
@@ -51,6 +42,6 @@ export default async function JuzIndexPage() {
           );
         })}
       </nav>
-    </>
+    </NoorPageFrame>
   );
 }

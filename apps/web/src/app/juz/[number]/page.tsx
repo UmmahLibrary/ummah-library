@@ -118,6 +118,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <ReaderShortcuts storageKey={`juz:${n}`} />
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 clamp(16px,4vw,36px) 48px" }}>
       <Link href="/juz" className="back-link">
         ← All juzʾ
       </Link>
@@ -241,6 +242,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
         {n < TOTAL_JUZ ? <Link href={`/juz/${n + 1}`}>Next juzʾ →</Link> : <span />}
       </nav>
       <p className="foot">Arabic: Tanzil (CC-BY 3.0) · Translations via Ummah Library datasets</p>
+      </div>
     </>
   );
 }

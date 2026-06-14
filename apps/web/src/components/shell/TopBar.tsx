@@ -125,6 +125,7 @@ export function TopBar() {
           </button>
         ) : (
           <span
+            className="noor-hide-sm"
             style={{
               fontSize: 12,
               color: N.faint,
@@ -143,7 +144,7 @@ export function TopBar() {
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <ThemeToggle />
         {hijriLabel && (
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div className="noor-hide-sm" style={{ textAlign: "right", flexShrink: 0 }}>
             <div style={{ fontSize: 14.5, fontWeight: 600, color: N.gold, fontFamily: N.ui }}>
               {hijriLabel}
             </div>

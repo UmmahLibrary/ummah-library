@@ -200,7 +200,7 @@ export function SurahReaderClient({
                 color: N.fg,
               }}
             >
-              {surah.number} · {surah.transliteration}
+              {surah.number}<span className="noor-hide-sm"> · {surah.transliteration}</span>
             </div>
             <div
               className="noor-hide-sm"

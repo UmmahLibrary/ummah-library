@@ -2427,6 +2427,13 @@ body {
   .noor-only-sm {
     display: revert !important;
   }
+  .noor-seg-btn {
+    padding: 6px 8px !important;
+  }
+  .noor-pop-sm-left {
+    right: auto !important;
+    left: 0 !important;
+  }
 }
 .noor-hide-md {
   display: revert;
