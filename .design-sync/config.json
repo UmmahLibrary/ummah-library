@@ -1,0 +1,22 @@
+{
+  "projectId": "3a13795f-d419-4e20-8715-48c284867ac0",
+  "pkg": "@ummahlibrary/ui",
+  "globalName": "NoorUI",
+  "shape": "package",
+  "srcDir": "src",
+  "entry": "src/index.ts",
+  "cssEntry": "src/noor-tokens.css",
+  "runtimeFontPrefixes": ["Hanken Grotesk", "IBM Plex Sans Arabic"],
+  "componentSrcMap": {
+    "cn": null,
+    "noorThemes": null,
+    "NoorThemeProvider": null,
+    "useNoorTheme": null,
+    "N": null
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "Btn": { "cardMode": "column" },
+    "Khatam": { "cardMode": "column" }
+  }
+}

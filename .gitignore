@@ -38,3 +38,9 @@ Thumbs.db
 /playwright-report
 /blob-report
 /playwright/.cache
+
+# Design sync (build output + ephemeral cache — config/previews/notes are committed)
+/ds-bundle/
+/.ds-sync/
+/.design-sync/.cache/
+/.design-sync/learnings/

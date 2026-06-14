@@ -1,0 +1,25 @@
+/* Noor design tokens — default theme (Obsidian & Gold).
+   This file ships with @ummahlibrary/ui so the CSS custom properties used by
+   Noor components (via the N.* token object) resolve in any host environment.
+   The full theme palette is defined in apps/web/src/app/globals.css via
+   [data-theme] blocks; this file provides the Obsidian defaults at :root. */
+
+:root {
+  --noor-bg: #0a0b0f;
+  --noor-bg2: #0e1017;
+  --noor-card: #14171f;
+  --noor-card-hi: #191d27;
+  --noor-border: #242a38;
+  --noor-border-soft: #1b2029;
+  --noor-fg: #f4f1ea;
+  --noor-muted: #9aa0b2;
+  --noor-faint: #5c6273;
+  --noor-gold: #e6b855;
+  --noor-gold-hi: #f4d58a;
+  --noor-gold-dim: #a98432;
+  --noor-gold-soft: rgba(230, 184, 85, 0.12);
+  --noor-gold-grad: linear-gradient(180deg, #f4d58a, #e6b855);
+  --noor-ink: #1a1404;
+  --noor-ui: "Hanken Grotesk", system-ui, sans-serif;
+  --noor-ar: "IBM Plex Sans Arabic", serif;
+}
