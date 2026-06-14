@@ -97,33 +97,17 @@ export function HijriCalendarScreen() {
         {WEEKDAYS.map((w) => (
           <Text key={w} style={styles.weekday}>{w}</Text>
         ))}
-        {cells.map((cell, i) =>
-          cell === null ? (
-            <View key={`pad-${i}`} style={styles.cell} />
-          ) : (
-            <View
-              key={cell.day}
-              style={[
-                styles.cell,
-                today.year === view.year && today.month === view.month && today.day === cell.day
-                  ? styles.cellToday
-                  : null,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.dayNum,
-                  today.year === view.year && today.month === view.month && today.day === cell.day
-                    ? styles.dayNumToday
-                    : null,
-                ]}
-              >
-                {cell.day}
-              </Text>
-              <Text style={styles.gregLabel}>{cell.gregLabel}</Text>
+        {cells.map((cell, i) => {
+          if (cell === null) return <View key={`pad-${i}`} style={styles.cell} />;
+          const isToday =
+            today.year === view.year && today.month === view.month && today.day === cell.day;
+          return (
+            <View key={cell.day} style={[styles.cell, isToday && styles.cellToday]}>
+              <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>{cell.day}</Text>
+              <Text style={[styles.gregLabel, isToday && styles.gregLabelToday]}>{cell.gregLabel}</Text>
             </View>
-          ),
-        )}
+          );
+        })}
       </View>
 
       <View style={styles.adjustSection}>
@@ -167,20 +151,36 @@ function makeStyles(c: Palette) {
     navTitle: { flex: 1, alignItems: "center", gap: 2 },
     monthEn: { color: c.fg, fontSize: 17, fontWeight: "700" },
     monthAr: { color: c.muted, fontSize: 15 },
-    grid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 24 },
+    grid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      marginBottom: 24,
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 14,
+      padding: 12,
+    },
     weekday: {
       width: "14.28%",
       textAlign: "center",
-      color: c.muted,
+      color: c.faint,
       fontSize: 11,
-      fontWeight: "600",
-      paddingBottom: 6,
+      fontWeight: "700",
+      paddingBottom: 8,
     },
-    cell: { width: "14.28%", aspectRatio: 1, alignItems: "center", justifyContent: "center" },
-    cellToday: { backgroundColor: c.accentSoft, borderRadius: 8 },
+    cell: {
+      width: "14.28%",
+      aspectRatio: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 9,
+    },
+    cellToday: { backgroundColor: c.accent },
     dayNum: { color: c.fg, fontSize: 13, fontWeight: "600" },
-    dayNumToday: { color: c.accent },
-    gregLabel: { color: c.muted, fontSize: 8 },
+    dayNumToday: { color: c.ink, fontWeight: "800" },
+    gregLabel: { color: c.faint, fontSize: 8 },
+    gregLabelToday: { color: c.ink },
     adjustSection: { gap: 10 },
     adjustLabel: { color: c.fg, fontSize: 13, fontWeight: "600" },
     chips: { flexDirection: "row", gap: 8 },
