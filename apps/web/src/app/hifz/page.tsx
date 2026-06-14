@@ -15,7 +15,7 @@ export default async function HifzPage() {
 
   return (
     <NoorPageFrame
-      title="Ḥifẓ"
+      title="Ḥifẓ Review"
       sub="Spaced-repetition memorization, tuned to your recall"
       glyph="✦"
       back="/"

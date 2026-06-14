@@ -13,6 +13,7 @@ const TOOLS = [
   { key: "/tasbih", label: "Tasbih", glyph: "◍", note: "Dhikr counter" },
   { key: "/adhkar", label: "Adhkār", glyph: "☼", note: "Morning · Evening" },
   { key: "/zakat", label: "Zakat", glyph: "⊜", note: "2.5% calculator" },
+  { key: "/hadith", label: "Hadith", glyph: "📖", note: "Search the collections" },
 ];
 
 export default function ToolsPage() {
