@@ -16,6 +16,7 @@ import { api } from "../api";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 import { useLibrary } from "../state/LibraryContext";
+import { AyahBadge } from "../components/AyahBadge";
 import type { ReadStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "SurahList">;
@@ -215,13 +216,11 @@ export function SurahListScreen({ navigation }: Props) {
         }
         renderItem={({ item }) => (
           <Pressable style={styles.row} onPress={() => open(item.number)}>
-            <View style={styles.num}>
-              <Text style={styles.numText}>{item.number}</Text>
-            </View>
+            <AyahBadge n={item.number} size={40} />
             <View style={styles.rowMeta}>
               <Text style={styles.rowTitle}>{item.transliteration}</Text>
               <Text style={styles.rowSub}>
-                {item.englishName} · {item.ayahCount} āyāt
+                {item.revelationPlace === "meccan" ? "Meccan" : "Medinan"} · {item.ayahCount} verses
               </Text>
             </View>
             <Text style={styles.rowArabic}>{item.name}</Text>
@@ -361,23 +360,15 @@ function makeStyles(c: Palette) {
     row: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 12,
-      paddingVertical: 12,
+      gap: 14,
+      paddingVertical: 13,
+      paddingHorizontal: 4,
       borderBottomWidth: 1,
-      borderBottomColor: c.border,
+      borderBottomColor: c.borderSoft,
     },
-    num: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      backgroundColor: c.bgElev,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    numText: { color: c.accent, fontSize: 13 },
-    rowMeta: { flex: 1 },
-    rowTitle: { color: c.fg, fontSize: 16, fontFamily: FONT.semibold },
-    rowSub: { color: c.muted, fontSize: 12 },
-    rowArabic: { color: c.fg, fontSize: 22, writingDirection: "rtl", fontFamily: FONT.arSemibold },
+    rowMeta: { flex: 1, minWidth: 0 },
+    rowTitle: { color: c.fg, fontSize: 16, fontFamily: FONT.bold },
+    rowSub: { color: c.faint, fontSize: 13, marginTop: 2 },
+    rowArabic: { color: c.accentHi, fontSize: 22, writingDirection: "rtl", fontFamily: FONT.arSemibold },
   });
 }
