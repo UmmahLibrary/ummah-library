@@ -1710,6 +1710,14 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   padding-left: 0.6rem;
   transition: box-shadow 0.2s ease;
 }
+.ayah-hifz {
+  background: var(--accent-soft);
+  box-shadow: -4px 0 0 0 var(--accent);
+  border-radius: 0 10px 10px 0;
+}
+.ayah-hifz:hover {
+  background: var(--accent-soft);
+}
 
 /* ---- Search ---- */
 .search-input {

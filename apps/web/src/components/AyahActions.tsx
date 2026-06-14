@@ -120,6 +120,8 @@ export function AyahActions({
 }) {
   const ref = { sura: surah, aya };
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const [saveOpen, setSaveOpen] = useState(false);
   const [tafsirOpen, setTafsirOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -144,6 +146,13 @@ export function AyahActions({
     setTracked(isTracked({ sura: surah, aya }));
     setCollections(readCollections());
   }, [surah, aya]);
+
+  useEffect(() => {
+    const block = containerRef.current?.closest<HTMLElement>(".ayah");
+    if (!block) return;
+    block.classList.toggle("ayah-hifz", tracked);
+    return () => { block.classList.remove("ayah-hifz"); };
+  }, [tracked]);
 
   useEffect(() => {
     setTafsirId(readTafsir(tafsirs[0]?.id ?? ""));
@@ -273,7 +282,7 @@ export function AyahActions({
   const tafsirName = tafsirs.find((t) => t.id === tafsirId)?.name ?? "Tafsir";
 
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={containerRef} style={{ position: "relative" }}>
       <div
         className="ayah-actions"
         style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap", marginTop: 6 }}
@@ -330,6 +339,22 @@ export function AyahActions({
             </>
           )}
         </div>
+
+        {tracked && (
+          <span
+            style={{
+              marginLeft: "auto",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: 0.4,
+              color: N.gold,
+              fontFamily: N.ui,
+              opacity: 0.85,
+            }}
+          >
+            ✦ Hifz
+          </span>
+        )}
       </div>
 
       {toast && (
