@@ -2,7 +2,7 @@ import { Text } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../theme";
 import { ReadStack } from "./ReadStack";
-import { HifzScreen } from "../screens/HifzScreen";
+import { HifzStack } from "./HifzStack";
 import { HadithScreen } from "../screens/HadithScreen";
 import { NamesScreen } from "../screens/NamesScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
@@ -34,7 +34,7 @@ export function RootTabs() {
       })}
     >
       <Tab.Screen name="Read" component={ReadStack} options={{ headerShown: false }} />
-      <Tab.Screen name="Hifz" component={HifzScreen} />
+      <Tab.Screen name="Hifz" component={HifzStack} options={{ headerShown: false }} />
       <Tab.Screen name="Names" component={NamesScreen} options={{ title: "99 Names" }} />
       <Tab.Screen name="Hadith" component={HadithScreen} />
       <Tab.Screen name="Tools" component={ToolsStack} options={{ headerShown: false }} />

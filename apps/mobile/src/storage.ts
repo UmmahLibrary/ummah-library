@@ -15,6 +15,7 @@ export const KEYS = {
   theme: "ul.theme",
   bookmarks: "ul.bookmarks",
   hifz: "ul.hifz",
+  hifzStreak: "ul.hifz.streak",
   lastRead: "ul.lastRead",
   asmaLearned: "ul.asmaLearned",
   tasbih: "ul.tasbih",
