@@ -24,6 +24,7 @@ const linking: LinkingOptions<RootTabParamList> = {
           SurahReader: "surah/:surah",
           JuzReader: "juz/:juz",
           Search: "search",
+          Collections: "bookmarks",
         },
       },
       Hifz: {

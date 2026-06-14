@@ -6,6 +6,7 @@ export type ReadStackParamList = {
   SurahReader: { surah: number };
   JuzReader: { juz: number };
   Search: undefined;
+  Collections: undefined;
 };
 
 /** The Hifz tab's stack: memorization dashboard → review session. */

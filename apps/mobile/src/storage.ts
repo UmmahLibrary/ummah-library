@@ -14,6 +14,8 @@ export const KEYS = {
   scale: "ul.scale",
   theme: "ul.theme",
   bookmarks: "ul.bookmarks",
+  collections: "ul.collections",
+  ayahNotes: "ul.ayahNotes",
   searchHistory: "ul.searchHistory",
   hifz: "ul.hifz",
   hifzStreak: "ul.hifz.streak",

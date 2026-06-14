@@ -73,6 +73,19 @@ if (seedHifz) {
   });
 }
 
+if (argv.includes("--seed-collections")) {
+  await ctx.addInitScript(() => {
+    localStorage.setItem(
+      "ul.collections",
+      JSON.stringify([
+        { id: "c1", name: "Favourites", ayahs: [{ sura: 2, aya: 255 }, { sura: 112, aya: 1 }] },
+        { id: "c2", name: "Duʿās", ayahs: [{ sura: 1, aya: 5 }] },
+      ]),
+    );
+    localStorage.setItem("ul.ayahNotes", JSON.stringify({ "2:255": "Ayat al-Kursi" }));
+  });
+}
+
 const errors = [];
 page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));

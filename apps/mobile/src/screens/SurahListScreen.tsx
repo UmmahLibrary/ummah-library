@@ -67,6 +67,11 @@ export function SurahListScreen({ navigation }: Props) {
               <Text style={styles.searchBarText}>Search verses, names, adhkār…</Text>
             </Pressable>
 
+            <Pressable style={styles.savedLink} onPress={() => navigation.navigate("Collections")}>
+              <Text style={styles.savedText}>★ Saved verses & collections</Text>
+              <Text style={styles.savedArrow}>›</Text>
+            </Pressable>
+
             {last && (
               <Pressable style={styles.continue} onPress={() => open(last.number)}>
                 <Text style={styles.continueLabel}>Continue reading</Text>
@@ -78,7 +83,7 @@ export function SurahListScreen({ navigation }: Props) {
 
             {bookmarks.length > 0 && (
               <View style={styles.bookmarks}>
-                <Text style={styles.shelfLabel}>Bookmarks</Text>
+                <Text style={styles.shelfLabel}>Bookmarked surahs</Text>
                 <View style={styles.chipRow}>
                   {bookmarks.map((n) => {
                     const s = byNumber.get(n);
@@ -165,6 +170,20 @@ function makeStyles(c: Palette) {
     },
     searchBarIcon: { fontSize: 15 },
     searchBarText: { color: c.muted, fontSize: 15 },
+    savedLink: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.bgElev,
+      marginBottom: 14,
+    },
+    savedText: { color: c.fg, fontSize: 14.5, fontWeight: "600" },
+    savedArrow: { color: c.muted, fontSize: 18 },
     continue: {
       backgroundColor: c.bgElev,
       borderRadius: 12,

@@ -4,6 +4,7 @@ import { useTheme, type Palette } from "../theme";
 import { useLibrary } from "../state/LibraryContext";
 import { toArabicDigits } from "../format";
 import { HifzButton } from "./HifzButton";
+import { SaveToCollection } from "./SaveToCollection";
 import { AyahActions } from "./AyahActions";
 import { AyahTafsir } from "./AyahTafsir";
 
@@ -89,6 +90,7 @@ function AyahViewImpl({
           <Text style={styles.playText}>▶ Play</Text>
         </Pressable>
         <HifzButton sura={sura} aya={aya} />
+        <SaveToCollection sura={sura} aya={aya} />
         <AyahActions sura={sura} aya={aya} arabic={arabic} translations={translations.map((t) => t.text)} />
       </View>
       <AyahTafsir sura={sura} aya={aya} />
