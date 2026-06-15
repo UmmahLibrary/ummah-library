@@ -7,16 +7,19 @@ import { Icon, Khatam } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import {
-  PLANS,
-  type DayTarget,
-  type PlanProgress,
+  type ActivePlan,
+  type DayPortion,
+  PLAN_TEMPLATES,
   clearPlan,
+  computeTodayPortion,
   currentDay,
-  planById,
-  planPercent,
+  isDayComplete,
+  percentComplete,
+  planDuration,
   planWeekWindow,
-  readPlanProgress,
+  readActivePlan,
   startPlan,
+  todayStr,
   toggleDay,
 } from "../plans";
 import type { ReadStackParamList } from "../navigation/types";
@@ -24,29 +27,32 @@ import type { ReadStackParamList } from "../navigation/types";
 type Props = NativeStackScreenProps<ReadStackParamList, "Plans">;
 type Nav = Props["navigation"];
 
-function openTarget(navigation: Nav, target: DayTarget) {
-  if (target.kind === "juz") navigation.navigate("JuzReader", { juz: target.juz });
-  else navigation.navigate("SurahReader", { surah: target.surah });
+function openTarget(navigation: Nav, portion: DayPortion) {
+  const t = portion.target;
+  if (t.kind === "juz") navigation.navigate("JuzReader", { juz: t.juz });
+  else if (t.kind === "surah") navigation.navigate("SurahReader", { surah: t.surah });
+  else navigation.navigate("SurahReader", { surah: portion.startRef.sura });
 }
 
 export function PlansScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const [progress, setProgress] = useState<PlanProgress | null>(null);
+  const [plan, setPlan] = useState<ActivePlan | null>(null);
   const [ready, setReady] = useState(false);
 
   const refresh = useCallback(() => {
-    void readPlanProgress().then((p) => {
-      setProgress(p);
+    void readActivePlan().then((p) => {
+      setPlan(p);
       setReady(true);
     });
   }, []);
   useFocusEffect(refresh);
 
-  const active = progress ? planById(progress.planId) : undefined;
-  const day = active && progress ? currentDay(active, progress) : 0;
-  const todayDay = active ? active.days[day - 1] : undefined;
-  const pct = active && progress ? planPercent(active, progress) : 0;
+  const today = todayStr();
+  const totalDays = plan ? planDuration(plan) : 0;
+  const day = plan ? currentDay(plan, today) : 0;
+  const portion = plan ? computeTodayPortion(plan, today) : undefined;
+  const pct = plan ? percentComplete(plan) : 0;
 
   const R = 33;
   const C = 2 * Math.PI * R;
@@ -56,7 +62,7 @@ export function PlansScreen({ navigation }: Props) {
       <Text style={styles.h1}>Reading plans</Text>
       <Text style={styles.subtitle}>Structured journeys through the Book</Text>
 
-      {ready && active && progress && todayDay ? (
+      {ready && plan && portion ? (
         <>
           <View style={styles.activeCard}>
             <View style={styles.watermark} pointerEvents="none">
@@ -83,15 +89,15 @@ export function PlansScreen({ navigation }: Props) {
               </View>
               <View style={styles.activeMeta}>
                 <Text style={styles.activeKicker}>
-                  Active · Day {day} of {active.days.length}
+                  Active · Day {day} of {totalDays}
                 </Text>
-                <Text style={styles.activeName}>{active.name}</Text>
+                <Text style={styles.activeName}>{plan.template.name}</Text>
                 <Text style={styles.activeToday}>
-                  Today: <Text style={styles.activeTodayStrong}>{todayDay.label}</Text> · {todayDay.est}
+                  Today: <Text style={styles.activeTodayStrong}>{portion.label}</Text> · {portion.est}
                 </Text>
               </View>
             </View>
-            <Pressable style={styles.readBtn} onPress={() => openTarget(navigation, todayDay.target)}>
+            <Pressable style={styles.readBtn} onPress={() => openTarget(navigation, portion)}>
               <Icon name="book" size={15} color={colors.ink} sw={1.8} />
               <Text style={styles.readBtnText}>Read today</Text>
             </Pressable>
@@ -99,11 +105,11 @@ export function PlansScreen({ navigation }: Props) {
 
           <View style={styles.actions}>
             <Pressable
-              style={[styles.pill, progress.completed.includes(day - 1) && styles.pillOn]}
-              onPress={() => void toggleDay(day - 1).then(refresh)}
+              style={[styles.pill, isDayComplete(plan, day) && styles.pillOn]}
+              onPress={() => void toggleDay(day).then(refresh)}
             >
-              <Text style={[styles.pillText, progress.completed.includes(day - 1) && styles.pillTextOn]}>
-                {progress.completed.includes(day - 1) ? "✓ Day done" : `Mark Day ${day} done`}
+              <Text style={[styles.pillText, isDayComplete(plan, day) && styles.pillTextOn]}>
+                {isDayComplete(plan, day) ? "✓ Day done" : `Mark Day ${day} done`}
               </Text>
             </Pressable>
             <Pressable style={styles.pill} onPress={() => void clearPlan().then(refresh)}>
@@ -113,8 +119,8 @@ export function PlansScreen({ navigation }: Props) {
 
           <Text style={styles.sectionLabel}>Your days</Text>
           <View style={styles.week}>
-            {planWeekWindow(active, day).map((n) => {
-              const done = progress.completed.includes(n - 1);
+            {planWeekWindow(plan, day).map((n) => {
+              const done = isDayComplete(plan, n);
               const isToday = n === day;
               return (
                 <View
@@ -143,15 +149,15 @@ export function PlansScreen({ navigation }: Props) {
 
       <Text style={styles.sectionLabel}>Browse plans</Text>
       <View style={styles.library}>
-        {PLANS.map((pl) => {
-          const isActive = active?.id === pl.id;
+        {PLAN_TEMPLATES.map((pl) => {
+          const isActive = plan?.template.id === pl.id;
           const plPct = isActive ? pct : 0;
           return (
             <Pressable
               key={pl.id}
               style={styles.libCard}
               onPress={() => {
-                if (isActive && todayDay) openTarget(navigation, todayDay.target);
+                if (isActive && portion) openTarget(navigation, portion);
                 else void startPlan(pl.id).then(refresh);
               }}
             >

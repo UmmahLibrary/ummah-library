@@ -3,22 +3,38 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  type DayTarget,
-  PLANS,
-  type PlanProgress,
-  currentPlanDay,
-  planById,
-  planPercent,
+  type ActivePlan,
+  type DayPortion,
+  PLAN_TEMPLATES,
+  computeTodayPortion,
+  currentDay,
+  isDayComplete,
+  percentComplete,
+  planDuration,
   planWeekWindow,
 } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
-import { READING_PLAN_EVENT, clearPlan, readPlanProgress, startPlan, toggleDay } from "../lib/reading-plan";
+import {
+  READING_PLAN_EVENT,
+  clearPlan,
+  readActivePlan,
+  startPlan,
+  todayStr,
+  toggleDay,
+} from "../lib/reading-plan";
 
 const R = 30;
 const C = 2 * Math.PI * R;
 
-function targetHref(t: DayTarget): string {
-  return t.kind === "juz" ? `/juz/${t.juz}` : `/surah/${t.surah}`;
+function targetHref(p: DayPortion): string {
+  switch (p.target.kind) {
+    case "juz":
+      return `/juz/${p.target.juz}`;
+    case "surah":
+      return `/surah/${p.target.surah}`;
+    default:
+      return `/surah/${p.startRef.sura}`;
+  }
 }
 
 const sectionLabel = {
@@ -32,29 +48,31 @@ const sectionLabel = {
 } as const;
 
 /** Reading plans — structured journeys, mirroring the mobile screen and the
- *  Noor design. Definitions + pure progress live in core; persistence is local. */
+ *  Noor design. The catalogue + pure schedule maths live in core; persistence
+ *  is local. */
 export function PlansView() {
-  const [progress, setProgress] = useState<PlanProgress | null>(null);
+  const [plan, setPlan] = useState<ActivePlan | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const refresh = () => setProgress(readPlanProgress());
+    const refresh = () => setPlan(readActivePlan());
     refresh();
     setReady(true);
     window.addEventListener(READING_PLAN_EVENT, refresh);
     return () => window.removeEventListener(READING_PLAN_EVENT, refresh);
   }, []);
 
-  const active = progress ? planById(progress.planId) : undefined;
-  const day = active && progress ? currentPlanDay(active, progress) : 0;
-  const todayDay = active ? active.days[day - 1] : undefined;
-  const pct = active && progress ? planPercent(active, progress) : 0;
+  const today = todayStr();
+  const totalDays = plan ? planDuration(plan) : 0;
+  const day = plan ? currentDay(plan, today) : 0;
+  const portion = plan ? computeTodayPortion(plan, today) : undefined;
+  const pct = plan ? percentComplete(plan) : 0;
 
   if (!ready) return <div style={{ minHeight: 240 }} />;
 
   return (
     <div>
-      {active && progress && todayDay && (
+      {plan && portion && (
         <>
           {/* Active plan */}
           <div
@@ -121,18 +139,18 @@ export function PlansView() {
                       fontFamily: N.ui,
                     }}
                   >
-                    Active · Day {day} of {active.days.length}
+                    Active · Day {day} of {totalDays}
                   </div>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, color: N.fg, fontFamily: N.ui }}>
-                    {active.name}
+                    {plan.template.name}
                   </div>
                   <div style={{ fontSize: 13.5, color: N.muted, marginTop: 3, fontFamily: N.ui }}>
-                    Today: <span style={{ color: N.fg, fontWeight: 600 }}>{todayDay.label}</span> · {todayDay.est}
+                    Today: <span style={{ color: N.fg, fontWeight: 600 }}>{portion.label}</span> · {portion.est}
                   </div>
                 </div>
               </div>
               <Link
-                href={targetHref(todayDay.target)}
+                href={targetHref(portion)}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -157,20 +175,20 @@ export function PlansView() {
           <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 14 }}>
             <button
               type="button"
-              onClick={() => toggleDay(day - 1)}
+              onClick={() => toggleDay(day)}
               className="noor-press"
               style={{
                 padding: "9px 16px",
                 borderRadius: 999,
-                border: `1px solid ${progress.completed.includes(day - 1) ? N.gold : N.border}`,
-                background: progress.completed.includes(day - 1) ? N.goldSoft : N.card,
-                color: progress.completed.includes(day - 1) ? N.gold : N.muted,
+                border: `1px solid ${isDayComplete(plan, day) ? N.gold : N.border}`,
+                background: isDayComplete(plan, day) ? N.goldSoft : N.card,
+                color: isDayComplete(plan, day) ? N.gold : N.muted,
                 fontSize: 13,
                 fontWeight: 600,
                 fontFamily: N.ui,
               }}
             >
-              {progress.completed.includes(day - 1) ? "✓ Day done" : `Mark Day ${day} done`}
+              {isDayComplete(plan, day) ? "✓ Day done" : `Mark Day ${day} done`}
             </button>
             <button
               type="button"
@@ -194,8 +212,8 @@ export function PlansView() {
           {/* This week */}
           <div style={sectionLabel}>This week</div>
           <div style={{ display: "flex", gap: 8 }}>
-            {planWeekWindow(active, day).map((n) => {
-              const done = progress.completed.includes(n - 1);
+            {planWeekWindow(plan, day).map((n) => {
+              const done = isDayComplete(plan, n);
               const isToday = n === day;
               return (
                 <div
@@ -238,7 +256,7 @@ export function PlansView() {
         </>
       )}
 
-      {ready && !active && (
+      {ready && !plan && (
         <div
           style={{
             display: "flex",
@@ -261,8 +279,8 @@ export function PlansView() {
       {/* Browse plans */}
       <div style={sectionLabel}>Browse plans</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
-        {PLANS.map((pl) => {
-          const isActive = active?.id === pl.id;
+        {PLAN_TEMPLATES.map((pl) => {
+          const isActive = plan?.template.id === pl.id;
           const plPct = isActive ? pct : 0;
           const done = plPct >= 100;
           return (
@@ -270,7 +288,7 @@ export function PlansView() {
               key={pl.id}
               type="button"
               onClick={() => {
-                if (isActive && todayDay) window.location.href = targetHref(todayDay.target);
+                if (isActive && portion) window.location.href = targetHref(portion);
                 else startPlan(pl.id);
               }}
               className="noor-press"

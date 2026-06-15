@@ -1,15 +1,17 @@
 /**
- * Local-first reading-plan progress (ADR 0006). The plan definitions and pure
- * progress helpers live in `@ummahlibrary/core`; this layer persists the active
- * plan + completed days in `localStorage` (`ul.readingPlan`) and broadcasts a
- * window event so the plans page re-renders. Mirrors the mobile persistence.
+ * Local-first reading-plan progress (ADR 0006). The plan catalogue and the pure
+ * schedule maths live in `@ummahlibrary/core`; this layer persists the *started*
+ * plan (an `ActivePlan` snapshot) in `localStorage` (`ul.readingPlan`) and
+ * broadcasts a window event so the plans page re-renders. Mirrors the mobile
+ * persistence.
  */
-import { type PlanProgress, togglePlanDay } from "@ummahlibrary/core";
+import { type ActivePlan, activatePlan, templateById, toggleDayComplete } from "@ummahlibrary/core";
 
 export const READING_PLAN_EVENT = "ul.readingPlan";
 const KEY = "ul.readingPlan";
 
-function todayStr(d = new Date()): string {
+/** Today as a local `YYYY-MM-DD` string — the clock the pure core is fed. */
+export function todayStr(d = new Date()): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
@@ -22,26 +24,27 @@ function emit(): void {
   }
 }
 
-export function readPlanProgress(): PlanProgress | null {
+export function readActivePlan(): ActivePlan | null {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as PlanProgress) : null;
+    return raw ? (JSON.parse(raw) as ActivePlan) : null;
   } catch {
     return null;
   }
 }
 
-function write(progress: PlanProgress): void {
+function write(plan: ActivePlan): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(progress));
+    localStorage.setItem(KEY, JSON.stringify(plan));
   } catch {
     /* storage unavailable */
   }
   emit();
 }
 
-export function startPlan(planId: string): void {
-  write({ planId, startDate: todayStr(), completed: [] });
+export function startPlan(templateId: string): void {
+  const template = templateById(templateId);
+  if (template) write(activatePlan(template, todayStr()));
 }
 
 export function clearPlan(): void {
@@ -53,7 +56,8 @@ export function clearPlan(): void {
   emit();
 }
 
-export function toggleDay(dayIndex: number): void {
-  const p = readPlanProgress();
-  if (p) write(togglePlanDay(p, dayIndex));
+/** Toggle a 1-based day's completion (advances/retreats the linear cursor). */
+export function toggleDay(day: number): void {
+  const plan = readActivePlan();
+  if (plan) write(toggleDayComplete(plan, day));
 }

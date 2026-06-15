@@ -1,42 +1,42 @@
 /**
- * Reading-plan persistence for mobile. The plan *definitions* and pure progress
- * helpers are shared in `@ummahlibrary/core`; this layer holds the local-first
- * progress in AsyncStorage (`ul.readingPlan`, ADR 0006). Only one plan is active.
+ * Reading-plan persistence for mobile. The plan catalogue and the pure schedule
+ * maths are shared in `@ummahlibrary/core`; this layer holds the started plan
+ * (an `ActivePlan` snapshot) in AsyncStorage (`ul.readingPlan`, ADR 0006). Only
+ * one plan is active at a time.
  */
-import { type PlanProgress, togglePlanDay } from "@ummahlibrary/core";
+import { type ActivePlan, activatePlan, templateById, toggleDayComplete } from "@ummahlibrary/core";
 import { KEYS, getJSON, setJSON } from "./storage";
 
 export {
-  PLANS,
-  planById,
-  planPercent,
+  PLAN_TEMPLATES,
+  computeTodayPortion,
+  currentDay,
+  isDayComplete,
+  percentComplete,
+  planDuration,
   planWeekWindow,
-  type DayTarget,
-  type PlanDay,
-  type PlanProgress,
-  type ReadingPlan,
 } from "@ummahlibrary/core";
-export { currentPlanDay as currentDay } from "@ummahlibrary/core";
+export type { ActivePlan, DayPortion, DayTarget, PlanTemplate } from "@ummahlibrary/core";
 
 export function todayStr(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function readPlanProgress(): Promise<PlanProgress | null> {
-  return getJSON<PlanProgress | null>(KEYS.readingPlan, null);
+export function readActivePlan(): Promise<ActivePlan | null> {
+  return getJSON<ActivePlan | null>(KEYS.readingPlan, null);
 }
 
-export async function startPlan(planId: string): Promise<void> {
-  const next: PlanProgress = { planId, startDate: todayStr(), completed: [] };
-  await setJSON(KEYS.readingPlan, next);
+export async function startPlan(templateId: string): Promise<void> {
+  const template = templateById(templateId);
+  if (template) await setJSON(KEYS.readingPlan, activatePlan(template, todayStr()));
 }
 
 export async function clearPlan(): Promise<void> {
   await setJSON(KEYS.readingPlan, null);
 }
 
-export async function toggleDay(dayIndex: number): Promise<void> {
-  const p = await readPlanProgress();
-  if (!p) return;
-  await setJSON(KEYS.readingPlan, togglePlanDay(p, dayIndex));
+/** Toggle a 1-based day's completion (advances/retreats the linear cursor). */
+export async function toggleDay(day: number): Promise<void> {
+  const plan = await readActivePlan();
+  if (plan) await setJSON(KEYS.readingPlan, toggleDayComplete(plan, day));
 }
