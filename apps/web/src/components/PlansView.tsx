@@ -29,6 +29,7 @@ import {
   extendPlanBy,
   readActivePlan,
   rebalancePlan,
+  resumePlan,
   startCustomPlan,
   startPlan,
   todayStr,
@@ -83,12 +84,16 @@ export function PlansView() {
   }, []);
 
   const today = todayStr();
+  // While paused the clock is frozen at the pause day (#68), so a break never
+  // reads as "behind". The custom creator below still uses the real `today`.
+  const viewToday = plan?.pausedOn ?? today;
+  const paused = !!plan?.pausedOn;
   const totalDays = plan ? planDuration(plan) : 0;
-  const day = plan ? currentDay(plan, today) : 0;
-  const portion = plan ? computeTodayPortion(plan, today) : undefined;
+  const day = plan ? currentDay(plan, viewToday) : 0;
+  const portion = plan ? computeTodayPortion(plan, viewToday) : undefined;
   const pct = plan ? percentComplete(plan) : 0;
-  const behind = plan ? daysAheadBehind(plan, today) : 0;
-  const catchUp = plan ? catchUpPortion(plan, today) : undefined;
+  const behind = plan ? daysAheadBehind(plan, viewToday) : 0;
+  const catchUp = plan ? catchUpPortion(plan, viewToday) : undefined;
 
   // Custom plan draft — whole Quran by pages; validate + preview the pace live.
   const customRange = rangeOfPages(1, 604);
@@ -198,7 +203,7 @@ export function PlansView() {
                       fontFamily: N.ui,
                     }}
                   >
-                    Active · Day {day} of {totalDays}
+                    {paused ? "⏸ Paused" : "Active"} · Day {day} of {totalDays}
                   </div>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, color: N.fg, fontFamily: N.ui }}>
                     {plan.template.name}
@@ -266,6 +271,44 @@ export function PlansView() {
             >
               Leave plan
             </button>
+            {paused && (
+              <button
+                type="button"
+                onClick={() => void resumePlan()}
+                className="noor-press"
+                style={{
+                  padding: "9px 16px",
+                  borderRadius: 999,
+                  border: `1px solid ${N.gold}`,
+                  background: N.goldSoft,
+                  color: N.gold,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  fontFamily: N.ui,
+                }}
+              >
+                ▶ Resume
+              </button>
+            )}
+            <Link
+              href={`/plans/${plan.template.id}`}
+              className="noor-press"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "9px 16px",
+                borderRadius: 999,
+                border: `1px solid ${N.border}`,
+                background: N.card,
+                color: N.muted,
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: N.ui,
+                textDecoration: "none",
+              }}
+            >
+              Details →
+            </Link>
           </div>
 
           {/* Behind-state + recovery (#70) */}

@@ -12,11 +12,14 @@ import {
   cumulativeUnits,
   currentDay,
   daysAheadBehind,
+  effectiveToday,
   extendPlan,
   isDayComplete,
+  isPaused,
   isValidDateString,
   materializeDay,
   nextDailyReminder,
+  pausePlan,
   percentComplete,
   planDuration,
   planEndDate,
@@ -29,6 +32,7 @@ import {
   rebalance,
   repace,
   reschedule,
+  resumePlan,
   setUnitsRead,
   surahList,
   templateById,
@@ -550,5 +554,58 @@ describe("daily reminders", () => {
     expect(c.title).toContain("pick up where you left off");
     expect(c.body).toContain("3 juzʾ");
     expect(c.body.toLowerCase()).not.toMatch(/missed|failed|behind|should/);
+  });
+});
+
+// ── Pause / resume (#68) ─────────────────────────────────────────────────────
+
+describe("pause and resume", () => {
+  it("is not paused by default", () => {
+    const p = ramadan();
+    expect(isPaused(p)).toBe(false);
+    expect(effectiveToday(p, "2026-01-10")).toBe("2026-01-10");
+  });
+
+  it("pausing freezes the clock so a break never accrues 'behind'", () => {
+    const onTrack = setUnitsRead(ramadan(), 4); // completed through day 4
+    const p = pausePlan(onTrack, "2026-01-05");
+    expect(isPaused(p)).toBe(true);
+    expect(p.pausedOn).toBe("2026-01-05");
+    expect(effectiveToday(p, "2026-01-20")).toBe("2026-01-05");
+    expect(currentDay(p, effectiveToday(p, "2026-01-20"))).toBe(5);
+    expect(daysAheadBehind(p, effectiveToday(p, "2026-01-20"))).toBe(0);
+    // without the freeze, a long break would read as deeply behind
+    expect(daysAheadBehind(p, "2026-01-20")).toBeLessThan(0);
+  });
+
+  it("pausing is idempotent", () => {
+    const p = pausePlan(ramadan(), "2026-01-05");
+    expect(pausePlan(p, "2026-01-09")).toBe(p);
+  });
+
+  it("resuming shifts the timeline forward by the break, preserving the day", () => {
+    const paused = pausePlan(ramadan(), "2026-01-05");
+    const resumed = resumePlan(paused, "2026-01-12"); // a 7-day break
+    expect(isPaused(resumed)).toBe(false);
+    expect(resumed.pausedOn).toBeUndefined();
+    expect(resumed.startDate).toBe("2026-01-08");
+    expect(currentDay(resumed, "2026-01-12")).toBe(5); // back where we left off
+    expect(planEndDate(resumed)).toBe("2026-02-06"); // deadline pushed out 7 days
+  });
+
+  it("resume is a no-op when not paused", () => {
+    const p = ramadan();
+    expect(resumePlan(p, "2026-01-12")).toBe(p);
+  });
+
+  it("resume shifts the re-pace anchor too", () => {
+    const anchored: ActivePlan = {
+      ...ramadan(),
+      anchor: { date: "2026-01-03", units: 2 },
+      pausedOn: "2026-01-05",
+    };
+    const resumed = resumePlan(anchored, "2026-01-12");
+    expect(resumed.anchor).toEqual({ date: "2026-01-10", units: 2 }); // +7 days
+    expect(resumed.pausedOn).toBeUndefined();
   });
 });

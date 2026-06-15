@@ -88,6 +88,13 @@ export interface ActivePlan {
    * (`unitsRead`, percent complete) is preserved. Absent on a fresh plan.
    */
   anchor?: { date: string; units: number };
+  /**
+   * Paused since this `YYYY-MM-DD` (#68). While paused the clock is frozen at
+   * this day — callers pass it as the effective `today` (see {@link effectiveToday})
+   * — so a break never accrues "behind". Resuming shifts the timeline forward by
+   * the break and clears this. Absent on an active plan.
+   */
+  pausedOn?: string;
 }
 
 /** What to read on a given day, resolved to deep-linkable Quran references. */
@@ -684,6 +691,42 @@ export function rebalance(plan: ActivePlan, today: string): ActivePlan {
 /** Move the end date `days` later and re-pace the remaining units from today. */
 export function extendPlan(plan: ActivePlan, today: string, days: number): ActivePlan {
   return repace(plan, today, addDays(planEndDate(plan), Math.max(1, Math.floor(days))));
+}
+
+// ── Pause / resume (#68) ────────────────────────────────────────────────────
+
+/** Whether the plan's clock is currently frozen by a pause. */
+export function isPaused(plan: ActivePlan): boolean {
+  return typeof plan.pausedOn === "string";
+}
+
+/**
+ * The date the schedule should treat as "today" — the pause day while paused,
+ * otherwise the real `today`. Freezing the clock is what stops a break from
+ * accruing "behind"; every display helper already takes `today`, so callers
+ * just pass this through.
+ */
+export function effectiveToday(plan: ActivePlan, today: string): string {
+  return plan.pausedOn ?? today;
+}
+
+/** Pause the plan, freezing its clock at `today`. Idempotent. */
+export function pausePlan(plan: ActivePlan, today: string): ActivePlan {
+  return plan.pausedOn ? plan : { ...plan, pausedOn: today };
+}
+
+/**
+ * Resume a paused plan: shift the whole timeline forward by the break so the
+ * reader picks up exactly where they left off (same day number, same pace) with
+ * the end date pushed out — a break is never penalised. A no-op if not paused.
+ */
+export function resumePlan(plan: ActivePlan, today: string): ActivePlan {
+  if (!plan.pausedOn) return plan;
+  const gap = Math.max(0, daysBetween(plan.pausedOn, today));
+  const next: ActivePlan = { ...plan, startDate: addDays(plan.startDate, gap) };
+  if (plan.anchor) next.anchor = { ...plan.anchor, date: addDays(plan.anchor.date, gap) };
+  delete next.pausedOn;
+  return next;
 }
 
 // ── Validation (for the custom-plan creator) ────────────────────────────────

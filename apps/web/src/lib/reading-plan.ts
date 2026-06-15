@@ -9,7 +9,9 @@ import {
   activatePlan,
   advanceCursorToPage,
   extendPlan,
+  pausePlan as applyPause,
   rebalance,
+  resumePlan as applyResume,
   templateById,
   toggleDayComplete,
 } from "@ummahlibrary/core";
@@ -76,6 +78,22 @@ export async function extendPlanBy(days: number): Promise<void> {
   const plan = await store.read();
   if (!plan) return;
   await store.write(extendPlan(plan, todayStr(), days));
+  emit();
+}
+
+/** Pause the active plan, freezing its clock (#68). */
+export async function pausePlan(): Promise<void> {
+  const plan = await store.read();
+  if (!plan || plan.pausedOn) return;
+  await store.write(applyPause(plan, todayStr()));
+  emit();
+}
+
+/** Resume a paused plan, shifting its timeline past the break (#68). */
+export async function resumePlan(): Promise<void> {
+  const plan = await store.read();
+  if (!plan?.pausedOn) return;
+  await store.write(applyResume(plan, todayStr()));
   emit();
 }
 
