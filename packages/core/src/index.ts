@@ -22,6 +22,7 @@ export * from "./qibla";
 export * from "./hijri";
 export * from "./zakat";
 export * from "./adhkar";
+export * from "./duas";
 export * from "./reading-goals";
 export * from "./reading-plans";
 export * from "./backup";

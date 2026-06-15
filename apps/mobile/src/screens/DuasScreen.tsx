@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from "../Type";
 import { Khatam } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
-import { DUAS, DUA_CATEGORIES, duaOfToday } from "../duas";
+import { DUAS, DUA_CATEGORIES, duaOfToday } from "@ummahlibrary/core";
 
 export function DuasScreen() {
   const { colors } = useTheme();
