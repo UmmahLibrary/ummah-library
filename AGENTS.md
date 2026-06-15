@@ -31,18 +31,19 @@ the operational checklist.
 
 ## Where does it go?
 
-| You're adding…                                   | Put it in                                                    |
-| ------------------------------------------------ | ------------------------------------------------------------ |
-| Domain type / pure logic / structural invariant  | `packages/core`                                              |
-| A new capability boundary (an interface)         | `packages/core/src/ports.ts`                                 |
-| Quran text/structure handling, ingestion         | `packages/data`                                              |
-| An adapter for something external (DB, HTTP, AI) | `packages/adapters` (implements a core port)                 |
-| Wiring repositories / a tRPC procedure / REST    | `packages/api` (router) or `apps/web/src/app/api`            |
-| Web UI                                           | `apps/web`                                                   |
-| Mobile UI                                        | `apps/mobile`                                                |
-| Shared, framework-light UI                       | `packages/ui`                                                |
-| **Design token / colour / Noor primitive**        | `packages/ui/src/` — _never in apps_                        |
-| **A translation / reciter / tafsir / hadith**    | a **JSON manifest** in `packages/data/plugins/` — _not code_ |
+| You're adding…                                   | Put it in                                                                                                  |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Domain type / pure logic / structural invariant  | `packages/core`                                                                                            |
+| A new capability boundary (an interface)         | `packages/core/src/ports.ts`                                                                               |
+| Quran text/structure handling, ingestion         | `packages/data`                                                                                            |
+| An adapter for something external (DB, HTTP, AI) | `packages/adapters` (implements a core port)                                                               |
+| Wiring repositories / a tRPC procedure / REST    | `packages/api` (router) or `apps/web/src/app/api`                                                          |
+| Web UI                                           | `apps/web`                                                                                                 |
+| Mobile UI                                        | `apps/mobile`                                                                                              |
+| Shared, framework-light UI                       | `packages/ui`                                                                                              |
+| **Design token / colour / Noor primitive**       | `packages/ui/src/` — _never in apps_                                                                       |
+| **A translation / reciter / tafsir / hadith**    | a **JSON manifest** in `packages/data/plugins/` — _not code_                                               |
+| **A reading-plan template / schedule rule**      | `packages/core` (`reading-plans.ts`) — bundled, _not_ `data` (ADR 0025); progress via the `PlanStore` port |
 
 If an app needs data, it goes through **`api`**, not `data`/`adapters` directly.
 
