@@ -13,6 +13,7 @@ import {
 import { webPlanStore } from "./plan-store";
 import {
   READING_PLAN_EVENT,
+  advancePlanToPage,
   clearPlan,
   extendPlanBy,
   readActivePlan,
@@ -149,5 +150,11 @@ describe("re-pace glue (#70)", () => {
     const after = await readActivePlan();
     expect(after?.template.schedule).toEqual({ kind: "targetDate", endDate: addDays(today, 97) });
     expect(after?.anchor?.date).toBe(today);
+  });
+
+  it("advances the active plan as pages are read (#69)", async () => {
+    await webPlanStore.write(activatePlan(templateById("quran-year")!, todayStr())); // page plan, 2/day
+    await advancePlanToPage(5);
+    expect((await readActivePlan())?.unitsRead).toBe(5);
   });
 });

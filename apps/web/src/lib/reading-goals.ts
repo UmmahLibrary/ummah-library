@@ -7,6 +7,7 @@
  */
 
 import type { KhatmaPlan } from "@ummahlibrary/core";
+import { advancePlanToPage } from "./reading-plan";
 
 export const READING_EVENT = "ul.reading";
 const GOAL_KEY = "ul.readingGoal"; // { target: number } pages/day
@@ -93,6 +94,7 @@ export function recordMushafPage(page: number): void {
   }
   const plan = readKhatma();
   if (plan && page > plan.currentPage) writeKhatma({ ...plan, currentPage: page });
+  void advancePlanToPage(page); // advance the active reading plan too (#69)
   emit();
 }
 

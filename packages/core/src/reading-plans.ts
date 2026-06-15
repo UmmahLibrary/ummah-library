@@ -29,6 +29,7 @@ import {
   TOTAL_JUZ,
   ayahCountOf,
   ordinalToRef,
+  pageNumberOf,
   pageRange,
 } from "./quran-structure";
 // UTC `YYYY-MM-DD` date maths is shared with the reading-goals domain, where
@@ -519,6 +520,27 @@ export function catchUpPortion(plan: ActivePlan, today: string): DayPortion {
 /** How many units the reader is behind by (due through today, but unread). */
 export function unitsBehind(plan: ActivePlan, today: string): number {
   return Math.max(0, cumulativeUnits(plan, currentDay(plan, today)) - plan.unitsRead);
+}
+
+/**
+ * Advance the cursor to reflect a Madani page the reader has reached: every plan
+ * unit whose last page has been read counts as done (monotonic — the cursor
+ * never retreats). Subscribes the plan to the reader's page signal (#69).
+ */
+export function advanceCursorToPage(plan: ActivePlan, page: number): ActivePlan {
+  const { unit, units } = plan.template.range;
+  let read = plan.unitsRead;
+  while (read < units.length && pageNumberOf(unitEndRef(unit, units[read]!)) <= page) read++;
+  return read > plan.unitsRead ? setUnitsRead(plan, read) : plan;
+}
+
+/** Today's portion progress for the reader chip: units done / scheduled today. */
+export function todayProgress(plan: ActivePlan, today: string): { done: number; total: number } {
+  const day = currentDay(plan, today);
+  const start = cumulativeUnits(plan, day - 1);
+  const total = cumulativeUnits(plan, day) - start;
+  const done = Math.min(total, Math.max(0, plan.unitsRead - start));
+  return { done, total };
 }
 
 /** A window of up to seven day numbers centred on `day` (for a week strip). */
