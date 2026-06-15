@@ -5,6 +5,7 @@
  * `ul.reading*` / `ul.khatma` keys; the maths lives in `@ummahlibrary/core`.
  */
 import type { KhatmaPlan } from "@ummahlibrary/core";
+import { advancePlanToPage } from "./plans";
 import { KEYS, getJSON, setJSON } from "./storage";
 import { localISODate } from "./utils";
 
@@ -67,4 +68,7 @@ export async function recordMushafPage(page: number): Promise<void> {
 
   const plan = await getJSON<KhatmaPlan | null>(KEYS.khatma, null);
   if (plan && page > plan.currentPage) await setJSON(KEYS.khatma, { ...plan, currentPage: page });
+
+  // Advance any active reading plan to the page just reached (#69).
+  await advancePlanToPage(page);
 }

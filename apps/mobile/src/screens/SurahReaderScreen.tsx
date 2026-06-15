@@ -30,6 +30,8 @@ import { ReaderControls } from "../components/ReaderControls";
 import { ReadingTranslationPicker } from "../components/ReadingTranslationPicker";
 import { TranslationManager } from "../components/TranslationManager";
 import { AyahView, type TrLine } from "../components/AyahView";
+import { recordMushafPage } from "../reading-goals";
+import { readActivePlan, todayProgress, todayStr, type ActivePlan } from "../plans";
 import type { ReadStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "SurahReader">;
@@ -69,12 +71,19 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   // continuous reading modes fall back to the surah's first āyah.
   const offsetsRef = useRef<Map<number, number>>(new Map());
   const scrollYRef = useRef(0);
+  const lastPageRef = useRef(0);
+  const [activePlan, setActivePlan] = useState<ActivePlan | null>(null);
   useEffect(() => {
     offsetsRef.current.clear();
     scrollYRef.current = 0;
+    lastPageRef.current = 0;
+    void readActivePlan().then(setActivePlan);
   }, [n]);
 
-  const openMushaf = useCallback(() => {
+  // Madani page of the topmost visible āyah. Offsets are only known in
+  // translation mode (discrete rows); the continuous reading modes fall back to
+  // the sūrah's first āyah — same fidelity as "open in Mushaf".
+  const currentPage = useCallback(() => {
     let aya = 1;
     let best = -1;
     const cutoff = scrollYRef.current + 80;
@@ -84,8 +93,25 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         aya = a;
       }
     });
-    navigation.navigate("MushafPage", { page: pageNumberOf({ sura: n, aya }) });
-  }, [navigation, n]);
+    return pageNumberOf({ sura: n, aya });
+  }, [n]);
+
+  const openMushaf = useCallback(() => {
+    navigation.navigate("MushafPage", { page: currentPage() });
+  }, [navigation, currentPage]);
+
+  // Reading-plan auto-advance (#69): record the furthest Madani page reached and
+  // refresh the plan so the floating chip ticks up as the reader scrolls.
+  const recordPage = useCallback((page: number) => {
+    if (page <= 0 || page === lastPageRef.current) return;
+    lastPageRef.current = page;
+    void recordMushafPage(page).then(() => readActivePlan().then(setActivePlan));
+  }, []);
+
+  // Count the opening page so short sūrahs (no scroll) still register.
+  useEffect(() => {
+    if (ayahs?.length) recordPage(pageNumberOf({ sura: n, aya: ayahs[0]?.aya ?? 1 }));
+  }, [ayahs, n, recordPage]);
 
   useLayoutEffect(() => {
     if (!meta) return;
@@ -192,6 +218,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         scrollEventThrottle={16}
         onScroll={(e) => {
           scrollYRef.current = e.nativeEvent.contentOffset.y;
+          recordPage(currentPage());
         }}
       >
         <View style={styles.head}>
@@ -326,6 +353,12 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         </View>
       </ScrollView>
 
+      {activePlan && (
+        <View style={styles.chipWrap} pointerEvents="none">
+          <PlanChip plan={activePlan} styles={styles} colors={colors} />
+        </View>
+      )}
+
       <TranslationManager
         visible={managerOpen}
         catalogue={catalogue}
@@ -333,6 +366,48 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         onChange={setEditions}
         onClose={() => setManagerOpen(false)}
       />
+    </View>
+  );
+}
+
+const UNIT_LABEL: Record<string, string> = {
+  juz: "juzʾ",
+  hizb: "ḥizb",
+  page: "pages",
+  surah: "sūrahs",
+  ayah: "ayahs",
+};
+
+/**
+ * Slim floating chip shown while a plan is active — "Plan · 2 of 3 pages today"
+ * — that advances as the reader scrolls (the plan is subscribed to the page
+ * signal, #69). Renders nothing once there's no portion left to read.
+ */
+function PlanChip({
+  plan,
+  styles,
+  colors,
+}: {
+  plan: ActivePlan;
+  styles: ReturnType<typeof makeStyles>;
+  colors: Palette;
+}) {
+  const { done, total } = todayProgress(plan, todayStr());
+  if (total === 0) return null;
+  const complete = done >= total;
+  const unit = UNIT_LABEL[plan.template.range.unit] ?? "units";
+  return (
+    <View style={[styles.chip, complete && styles.chipDone]}>
+      {complete ? (
+        <>
+          <Icon name="check" size={13} color={colors.accent} sw={2} />
+          <Text style={[styles.chipText, styles.chipTextDone]}>Today’s portion done</Text>
+        </>
+      ) : (
+        <Text style={styles.chipText}>
+          <Text style={styles.chipLabel}>Plan</Text> · {done} of {total} {unit} today
+        </Text>
+      )}
     </View>
   );
 }
@@ -404,5 +479,26 @@ function makeStyles(c: Palette) {
       borderTopColor: c.border,
     },
     navText: { color: c.accent, fontSize: 15, fontWeight: "600" },
+    chipWrap: { position: "absolute", top: 12, left: 0, right: 0, alignItems: "center" },
+    chip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 14,
+      borderRadius: 999,
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      shadowColor: "#000",
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 6,
+    },
+    chipDone: { backgroundColor: c.accentSoft, borderColor: c.accent },
+    chipText: { color: c.muted, fontSize: 12.5, fontFamily: FONT.semibold },
+    chipTextDone: { color: c.accent },
+    chipLabel: { color: c.accent, fontFamily: FONT.bold },
   });
 }
