@@ -3,7 +3,13 @@
  * (web adapter `webPlanStore`, ADR 0024); this layer adds the business helpers
  * and broadcasts a window event so the plans page re-renders. Mirrors mobile.
  */
-import { type ActivePlan, activatePlan, templateById, toggleDayComplete } from "@ummahlibrary/core";
+import {
+  type ActivePlan,
+  type PlanTemplate,
+  activatePlan,
+  templateById,
+  toggleDayComplete,
+} from "@ummahlibrary/core";
 import { webPlanStore as store } from "./plan-store";
 
 export const READING_PLAN_EVENT = "ul.readingPlan";
@@ -26,11 +32,19 @@ export function readActivePlan(): Promise<ActivePlan | null> {
   return store.read();
 }
 
-export async function startPlan(templateId: string): Promise<void> {
-  const template = templateById(templateId);
-  if (!template) return;
+async function activate(template: PlanTemplate): Promise<void> {
   await store.write(activatePlan(template, todayStr()));
   emit();
+}
+
+export async function startPlan(templateId: string): Promise<void> {
+  const template = templateById(templateId);
+  if (template) await activate(template);
+}
+
+/** Start a one-off custom plan built in the UI (not from the catalogue). */
+export function startCustomPlan(template: PlanTemplate): Promise<void> {
+  return activate(template);
 }
 
 export async function clearPlan(): Promise<void> {
