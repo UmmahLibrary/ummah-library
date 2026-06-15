@@ -22,6 +22,7 @@ import {
   validatePlanDraft,
 } from "@ummahlibrary/core";
 import { N, Khatam, Icon, Seg } from "@ummahlibrary/ui";
+import { PlanReminderToggle } from "./PlanReminderToggle";
 import {
   READING_PLAN_EVENT,
   clearPlan,
@@ -357,6 +358,8 @@ export function PlansView() {
               );
             })}
           </div>
+
+          <PlanReminderToggle />
         </>
       )}
 
