@@ -90,6 +90,27 @@ const spec = {
         },
       },
     },
+    "/plans/catalogue": {
+      get: {
+        summary: "List the reading-plan catalogue (templates a reader can start)",
+        responses: {
+          "200": {
+            description: "Plan templates",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    count: { type: "integer" },
+                    plans: { type: "array", items: { $ref: "#/components/schemas/PlanTemplate" } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   components: {
     schemas: {
@@ -132,6 +153,32 @@ const spec = {
           aya: { type: "integer" },
           translationId: { type: "string" },
           text: { type: "string" },
+        },
+      },
+      PlanTemplate: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          name: { type: "string" },
+          tag: { type: "string", description: 'Short badge, e.g. "30 days"' },
+          len: { type: "string", description: 'Cadence label, e.g. "Juzʾ a day"' },
+          desc: { type: "string" },
+          range: {
+            type: "object",
+            properties: {
+              unit: { type: "string", enum: ["juz", "hizb", "page", "surah", "ayah"] },
+              units: { type: "array", items: { type: "integer" }, description: "Ordered 1-based unit indices" },
+            },
+          },
+          schedule: {
+            type: "object",
+            description: "A fixed cadence or a target date",
+            properties: {
+              kind: { type: "string", enum: ["fixed", "targetDate"] },
+              unitsPerDay: { type: "integer" },
+              endDate: { type: "string", format: "date" },
+            },
+          },
         },
       },
     },
