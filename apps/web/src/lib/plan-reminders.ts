@@ -59,7 +59,7 @@ export async function syncPlanReminder(notifier: Notifier): Promise<void> {
   if (!pref.on || notifier.permission() !== "granted") return;
 
   const plan = await readActivePlan();
-  if (!plan) return;
+  if (!plan || plan.pausedOn) return; // a paused plan doesn't nudge (#68)
 
   const at = nextDailyReminder(pref.time, new Date());
   if (!at) return;

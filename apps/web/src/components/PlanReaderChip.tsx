@@ -28,7 +28,7 @@ export function PlanReaderChip() {
     return () => window.removeEventListener(READING_PLAN_EVENT, refresh);
   }, []);
 
-  if (!plan) return null;
+  if (!plan || plan.pausedOn) return null; // hidden while the plan is paused (#68)
   const { done, total } = todayProgress(plan, todayStr());
   if (total === 0) return null;
   const complete = done >= total;
