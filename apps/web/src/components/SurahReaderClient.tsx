@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { type ReciterPlugin } from "@ummahlibrary/core";
+import { type ReciterPlugin, pageNumberOf } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import { AyahTranslations } from "./AyahTranslations";
 import { AyahActions } from "./AyahActions";
@@ -15,6 +15,7 @@ import { WordByWord } from "./WordByWord";
 import { HashHighlighter } from "./HashHighlighter";
 import { ReaderShortcuts } from "./ReaderShortcuts";
 import { ReadingTracker } from "./ReadingTracker";
+import { recordMushafPage } from "../lib/reading-goals";
 
 type ReadingMode = "translation" | "reading" | "reading-tr";
 
@@ -57,6 +58,44 @@ interface Props {
   tafsirs: { id: string; name: string }[];
 }
 
+/** Group consecutive ayahs by their Madani-mushaf page. */
+function pagesOf(sura: number, ayahs: Ayah[]): { page: number; ayahs: Ayah[] }[] {
+  const groups: { page: number; ayahs: Ayah[] }[] = [];
+  for (const ayah of ayahs) {
+    const page = pageNumberOf({ sura, aya: ayah.aya });
+    const last = groups[groups.length - 1];
+    if (last && last.page === page) last.ayahs.push(ayah);
+    else groups.push({ page, ayahs: [ayah] });
+  }
+  return groups;
+}
+
+/** A subtle Madani-page divider, shown where each mushaf page begins. */
+function PageMarker({ n }: { n: number }) {
+  return (
+    <div
+      data-page={n}
+      aria-label={`Page ${n}`}
+      style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0", userSelect: "none" }}
+    >
+      <div style={{ flex: 1, height: 1, background: N.borderSoft }} />
+      <span
+        style={{
+          fontSize: 11.5,
+          letterSpacing: 1.5,
+          textTransform: "uppercase",
+          fontFamily: N.ui,
+          fontWeight: 700,
+          color: N.faint,
+        }}
+      >
+        Page {n}
+      </span>
+      <div style={{ flex: 1, height: 1, background: N.borderSoft }} />
+    </div>
+  );
+}
+
 export function SurahReaderClient({
   surah,
   ayahs,
@@ -69,6 +108,8 @@ export function SurahReaderClient({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
   const [mode, setMode] = useState<ReadingMode>("translation");
+  const pages = useMemo(() => pagesOf(surah.number, ayahs), [surah.number, ayahs]);
+  const lastPageRef = useRef(0);
 
   // Restore persisted reading mode on mount
   useEffect(() => {
@@ -108,7 +149,25 @@ export function SurahReaderClient({
     if (!box) return;
     const max = box.scrollHeight - box.clientHeight;
     setProgress(max > 0 ? Math.min(1, box.scrollTop / max) : 0);
+    // Record the furthest Madani page scrolled into view. Only the visible
+    // mode's markers count — hidden modes' markers have a null offsetParent.
+    const top = box.scrollTop + 80;
+    let current = 0;
+    box.querySelectorAll<HTMLElement>("[data-page]").forEach((m) => {
+      if (m.offsetParent !== null && m.offsetTop <= top) current = Number(m.dataset.page);
+    });
+    if (current > 0 && current !== lastPageRef.current) {
+      lastPageRef.current = current;
+      recordMushafPage(current);
+    }
   }, []);
+
+  // Count the opening page so short sūrahs (no scroll) still register.
+  useEffect(() => {
+    const first = pageNumberOf({ sura: surah.number, aya: ayahs[0]?.aya ?? 1 });
+    lastPageRef.current = first;
+    recordMushafPage(first);
+  }, [surah.number, ayahs]);
 
   const segValue = MODE_TO_SEG[mode] ?? "verse";
   const segOptions = [
@@ -124,14 +183,19 @@ export function SurahReaderClient({
       {surah.hasBismillah && surah.number !== 1 && (
         <p className="basmala arabic">{bismillah}</p>
       )}
-      <p className="mushaf arabic">
-        {ayahs.map((ayah) => (
-          <span key={ayah.aya}>
-            {ayah.text}
-            <AyahStar n={ayah.aya} />{" "}
-          </span>
-        ))}
-      </p>
+      {pages.map((pg) => (
+        <div key={pg.page}>
+          <PageMarker n={pg.page} />
+          <p className="mushaf arabic">
+            {pg.ayahs.map((ayah) => (
+              <span key={ayah.aya}>
+                {ayah.text}
+                <AyahStar n={ayah.aya} />{" "}
+              </span>
+            ))}
+          </p>
+        </div>
+      ))}
     </>
   );
 
@@ -311,26 +375,31 @@ export function SurahReaderClient({
             )}
 
             <div>
-              {ayahs.map((ayah) => (
-                <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
-                  <p className="ayah-ar arabic">
-                    {ayah.text.split(" ").flatMap((word, i) => [
-                      <span key={i} className="w" data-w={i}>
-                        {word}
-                      </span>,
-                      " ",
-                    ])}
-                    <button
-                      type="button"
-                      className="ayah-marker"
-                      data-play-key={`${surah.number}:${ayah.aya}`}
-                      aria-label={`Play from āyah ${ayah.aya}`}
-                    >
-                      ﴿{toArabicDigits(ayah.aya)}﴾
-                    </button>
-                  </p>
-                  <AyahTranslations surah={surah.number} aya={ayah.aya} />
-                  <AyahActions surah={surah.number} aya={ayah.aya} tafsirs={tafsirs} />
+              {pages.map((pg) => (
+                <div key={pg.page}>
+                  <PageMarker n={pg.page} />
+                  {pg.ayahs.map((ayah) => (
+                    <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
+                      <p className="ayah-ar arabic">
+                        {ayah.text.split(" ").flatMap((word, i) => [
+                          <span key={i} className="w" data-w={i}>
+                            {word}
+                          </span>,
+                          " ",
+                        ])}
+                        <button
+                          type="button"
+                          className="ayah-marker"
+                          data-play-key={`${surah.number}:${ayah.aya}`}
+                          aria-label={`Play from āyah ${ayah.aya}`}
+                        >
+                          ﴿{toArabicDigits(ayah.aya)}﴾
+                        </button>
+                      </p>
+                      <AyahTranslations surah={surah.number} aya={ayah.aya} />
+                      <AyahActions surah={surah.number} aya={ayah.aya} tafsirs={tafsirs} />
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
