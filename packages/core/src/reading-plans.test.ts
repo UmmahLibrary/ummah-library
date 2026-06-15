@@ -94,6 +94,25 @@ describe("PLAN_TEMPLATES", () => {
     expect(templateById("ramadan-khatm")?.name).toBe("Ramaḍān Khatm");
     expect(templateById("nope")).toBeUndefined();
   });
+
+  it("ships the launch catalogue with the expected pacing", () => {
+    const dur = (id: string) => planDuration(activatePlan(templateById(id)!, START));
+    expect(dur("ramadan-khatm")).toBe(30);
+    expect(dur("juz-sprint")).toBe(30);
+    expect(dur("quran-60")).toBe(60); // 60 aḥzāb, one a day
+    expect(dur("quran-year")).toBe(302); // 604 pages, two a day
+    expect(dur("juz-amma")).toBe(37); // 37 sūrahs of Juzʾ ʿAmma
+  });
+
+  it("validates every template against the core types (acceptance)", () => {
+    for (const t of PLAN_TEMPLATES) {
+      expect(validatePlanDraft({ range: t.range, schedule: t.schedule, startDate: START })).toEqual([]);
+      const plan = activatePlan(t, START);
+      expect(planDuration(plan)).toBeGreaterThan(0);
+      expect(totalUnits(t.range)).toBeGreaterThan(0);
+      expect(computeTodayPortion(plan, START).empty).toBe(false);
+    }
+  });
 });
 
 // ── Duration + end date ──────────────────────────────────────────────────────

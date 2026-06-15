@@ -18,6 +18,7 @@ import type {
 } from "./entities";
 import type { HifzCard } from "./hifz";
 import type { Coordinates, Madhab, PrayerTimings } from "./prayer";
+import type { PlanTemplate } from "./reading-plans";
 
 /** Access to the Arabic Quran text and surah structure. */
 export interface QuranRepository {
@@ -130,6 +131,18 @@ export interface AdhkarRepository {
   all(): Promise<readonly Dhikr[]>;
   /** The dhikrs said at a given occasion (morning/evening), in display order. */
   byOccasion(occasion: AdhkarOccasion): Promise<readonly Dhikr[]>;
+}
+
+/**
+ * Access to the reading-plan catalogue (templates a reader can start). The
+ * curated templates are bundled in `core` so both apps load them offline; this
+ * port lets the API serve them through the same seam as every other repository.
+ */
+export interface PlanCatalogPort {
+  /** Every template in the catalogue, in display order. */
+  all(): Promise<readonly PlanTemplate[]>;
+  /** A single template by id, or `null` if it isn't in the catalogue. */
+  byId(id: string): Promise<PlanTemplate | null>;
 }
 
 /** One tracked memorization item: which ayah, and its SM-2 state. */

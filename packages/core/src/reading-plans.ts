@@ -247,6 +247,11 @@ export function rangeOfSurahs(from: number, to: number): PlanRange {
   return { unit: "surah", units: seq(from, to) };
 }
 
+/** A contiguous ḥizb range, e.g. `rangeOfHizb(1, 60)` for the whole Quran. */
+export function rangeOfHizb(from: number, to: number): PlanRange {
+  return { unit: "hizb", units: seq(from, to) };
+}
+
 /** A contiguous page range. */
 export function rangeOfPages(from: number, to: number): PlanRange {
   return { unit: "page", units: seq(from, to) };
@@ -257,7 +262,11 @@ export function surahList(units: number[]): PlanRange {
   return { unit: "surah", units: [...units] };
 }
 
-/** The built-in catalogue, shared by web and mobile. */
+/**
+ * The built-in catalogue, bundled in core so it loads offline on web *and*
+ * mobile (the same "shared via core" approach as the Duʿās). `packages/data`
+ * re-serves it through `PlanCatalogPort` for the API; see the reading-plans ADR.
+ */
 export const PLAN_TEMPLATES: readonly PlanTemplate[] = [
   {
     id: "ramadan-khatm",
@@ -267,6 +276,33 @@ export const PLAN_TEMPLATES: readonly PlanTemplate[] = [
     desc: "Complete the Quran in a month, one juzʾ each day.",
     range: rangeOfJuz(1, 30),
     schedule: { kind: "fixed", unitsPerDay: 1 },
+  },
+  {
+    id: "juz-sprint",
+    name: "30-Day Juzʾ Sprint",
+    tag: "30 days",
+    len: "Juzʾ a day",
+    desc: "Finish the whole Quran in a month — one juzʾ a day, any time of year.",
+    range: rangeOfJuz(1, 30),
+    schedule: { kind: "fixed", unitsPerDay: 1 },
+  },
+  {
+    id: "quran-60",
+    name: "Quran in 60 Days",
+    tag: "60 days",
+    len: "Ḥizb a day",
+    desc: "A gentler pace — one ḥizb (half a juzʾ) each day completes the Quran in two months.",
+    range: rangeOfHizb(1, 60),
+    schedule: { kind: "fixed", unitsPerDay: 1 },
+  },
+  {
+    id: "quran-year",
+    name: "Quran in a Year",
+    tag: "≈ 10 months",
+    len: "2 pages a day",
+    desc: "Two pages a day — a sustainable habit that completes the Quran in under a year.",
+    range: rangeOfPages(1, 604),
+    schedule: { kind: "fixed", unitsPerDay: 2 },
   },
   {
     id: "juz-amma",
