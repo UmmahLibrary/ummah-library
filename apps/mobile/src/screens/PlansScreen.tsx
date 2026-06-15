@@ -1,26 +1,38 @@
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "../Type";
 import Svg, { Circle } from "react-native-svg";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Icon, Khatam } from "@ummahlibrary/ui";
+import { Icon, Khatam, Seg } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import {
   type ActivePlan,
   type DayPortion,
+  type PlanTemplate,
+  type ScheduleStrategy,
   PLAN_TEMPLATES,
+  activatePlan,
+  addDays,
+  catchUpPortion,
   clearPlan,
   computeTodayPortion,
   currentDay,
+  daysAheadBehind,
+  extendPlanBy,
   isDayComplete,
   percentComplete,
   planDuration,
+  planEndDate,
   planWeekWindow,
+  rangeOfPages,
   readActivePlan,
+  rebalancePlan,
+  startCustomPlan,
   startPlan,
   todayStr,
   toggleDay,
+  validatePlanDraft,
 } from "../plans";
 import type { ReadStackParamList } from "../navigation/types";
 
@@ -39,6 +51,10 @@ export function PlansScreen({ navigation }: Props) {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [plan, setPlan] = useState<ActivePlan | null>(null);
   const [ready, setReady] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [mode, setMode] = useState<"pace" | "duration">("pace");
+  const [perDay, setPerDay] = useState("2");
+  const [days, setDays] = useState("90");
 
   const refresh = useCallback(() => {
     void readActivePlan().then((p) => {
@@ -53,6 +69,43 @@ export function PlansScreen({ navigation }: Props) {
   const day = plan ? currentDay(plan, today) : 0;
   const portion = plan ? computeTodayPortion(plan, today) : undefined;
   const pct = plan ? percentComplete(plan) : 0;
+  const behind = plan ? daysAheadBehind(plan, today) : 0;
+  const catchUp = plan ? catchUpPortion(plan, today) : undefined;
+
+  // Custom plan draft — whole Quran by pages, by pace or by days-to-finish.
+  const customRange = rangeOfPages(1, 604);
+  const customSchedule: ScheduleStrategy =
+    mode === "pace"
+      ? { kind: "fixed", unitsPerDay: Number(perDay) || 0 }
+      : { kind: "targetDate", endDate: addDays(today, Math.max(0, Math.floor(Number(days) || 0))) };
+  const customErrors = validatePlanDraft({ range: customRange, schedule: customSchedule, startDate: today });
+  const customDraft =
+    customErrors.length === 0
+      ? activatePlan({ id: "custom", name: "", tag: "", len: "", desc: "", range: customRange, schedule: customSchedule }, today)
+      : null;
+  const customDays = customDraft ? planDuration(customDraft) : 0;
+  const customEnd = customDraft ? planEndDate(customDraft) : "";
+  const customPerDay = customDays ? Math.ceil(customRange.units.length / customDays) : 0;
+
+  function createCustom() {
+    if (!customDraft) return;
+    const template: PlanTemplate = {
+      id: "custom",
+      name: "Your plan",
+      tag: `${customDays} days`,
+      len: mode === "pace" ? `${perDay} pages a day` : `≈ ${customPerDay} pages a day`,
+      desc:
+        mode === "pace"
+          ? `${perDay} pages a day through the whole Quran.`
+          : `Finish the Quran by ${customEnd}.`,
+      range: customRange,
+      schedule: customSchedule,
+    };
+    void startCustomPlan(template).then(() => {
+      setCustomOpen(false);
+      refresh();
+    });
+  }
 
   const R = 33;
   const C = 2 * Math.PI * R;
@@ -116,6 +169,27 @@ export function PlansScreen({ navigation }: Props) {
               <Text style={styles.pillText}>Leave plan</Text>
             </Pressable>
           </View>
+
+          {behind < 0 && catchUp ? (
+            <View style={styles.behindCard}>
+              <Text style={styles.behindTitle}>
+                You’re {Math.abs(behind)} {Math.abs(behind) === 1 ? "day" : "days"} behind
+              </Text>
+              <Text style={styles.behindSub}>Catch up, re-pace to keep your finish date, or take more time.</Text>
+              <View style={styles.behindActions}>
+                <Pressable style={styles.behindPrimary} onPress={() => openTarget(navigation, catchUp)}>
+                  <Icon name="book" size={14} color={colors.ink} sw={1.8} />
+                  <Text style={styles.behindPrimaryText}>Catch up</Text>
+                </Pressable>
+                <Pressable style={styles.pill} onPress={() => void rebalancePlan().then(refresh)}>
+                  <Text style={styles.pillText}>Rebalance</Text>
+                </Pressable>
+                <Pressable style={styles.pill} onPress={() => void extendPlanBy(7).then(refresh)}>
+                  <Text style={styles.pillText}>Extend +1wk</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
 
           <Text style={styles.sectionLabel}>Your days</Text>
           <View style={styles.week}>
@@ -187,6 +261,53 @@ export function PlansScreen({ navigation }: Props) {
           );
         })}
       </View>
+
+      <Text style={styles.sectionLabel}>Create your own</Text>
+      {!customOpen ? (
+        <Pressable style={styles.createBtn} onPress={() => setCustomOpen(true)}>
+          <Icon name="plus" size={16} color={colors.accent} sw={2} />
+          <Text style={styles.createText}>Create a custom plan</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.customCard}>
+          <Seg
+            options={[
+              { value: "pace", label: "Pages a day" },
+              { value: "duration", label: "Finish in…" },
+            ]}
+            value={mode}
+            onChange={(v) => setMode(v as "pace" | "duration")}
+            size="sm"
+          />
+          <Text style={styles.customLabel}>{mode === "pace" ? "Pages a day" : "Days to finish"}</Text>
+          <TextInput
+            value={mode === "pace" ? perDay : days}
+            onChangeText={mode === "pace" ? setPerDay : setDays}
+            keyboardType="number-pad"
+            style={styles.input}
+            placeholderTextColor={colors.faint}
+          />
+          <Text style={styles.previewText}>
+            {customDraft
+              ? mode === "pace"
+                ? `≈ ${customDays} days · finishes ${customEnd}`
+                : `≈ ${customPerDay} pages a day · ${customDays} days`
+              : customErrors[0]}
+          </Text>
+          <View style={styles.customActions}>
+            <Pressable
+              style={[styles.startCustomBtn, !customDraft && styles.startCustomBtnOff]}
+              disabled={!customDraft}
+              onPress={createCustom}
+            >
+              <Text style={[styles.startCustomText, !customDraft && styles.startCustomTextOff]}>Start plan</Text>
+            </Pressable>
+            <Pressable style={styles.pill} onPress={() => setCustomOpen(false)}>
+              <Text style={styles.pillText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -325,5 +446,67 @@ function makeStyles(c: Palette) {
     continue: { color: c.accent, fontSize: 12, fontFamily: FONT.semibold },
     startRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14 },
     startText: { color: c.accent, fontSize: 13, fontFamily: FONT.semibold },
+
+    behindCard: {
+      marginTop: 12,
+      padding: 16,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: c.accent,
+      backgroundColor: c.accentSoft,
+    },
+    behindTitle: { color: c.fg, fontSize: 14, fontFamily: FONT.bold },
+    behindSub: { color: c.muted, fontSize: 13, marginTop: 4, marginBottom: 12, lineHeight: 19 },
+    behindActions: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+    behindPrimary: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingVertical: 9,
+      paddingHorizontal: 14,
+      borderRadius: 999,
+      backgroundColor: c.accent,
+    },
+    behindPrimaryText: { color: c.ink, fontSize: 13, fontFamily: FONT.bold },
+
+    createBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      padding: 16,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderStyle: "dashed",
+      backgroundColor: c.bgElev,
+    },
+    createText: { color: c.accent, fontSize: 14, fontFamily: FONT.semibold },
+    customCard: {
+      padding: 16,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.bgElev,
+    },
+    customLabel: { color: c.muted, fontSize: 13, marginTop: 14 },
+    input: {
+      marginTop: 6,
+      paddingVertical: 11,
+      paddingHorizontal: 14,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.bg,
+      color: c.fg,
+      fontSize: 16,
+      fontFamily: FONT.semibold,
+    },
+    previewText: { color: c.muted, fontSize: 13, marginTop: 12, minHeight: 18 },
+    customActions: { flexDirection: "row", gap: 8, marginTop: 14 },
+    startCustomBtn: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 11, backgroundColor: c.accent },
+    startCustomBtnOff: { backgroundColor: c.bg, borderWidth: 1, borderColor: c.border },
+    startCustomText: { color: c.ink, fontSize: 14, fontFamily: FONT.bold },
+    startCustomTextOff: { color: c.faint },
   });
 }
