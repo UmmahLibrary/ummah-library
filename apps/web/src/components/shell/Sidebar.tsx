@@ -10,6 +10,7 @@ const NAV: Array<[string, Array<[string, string, IconName]>]> = [
     [
       ["Quran", "/", "book"],
       ["Search", "/search", "search"],
+      ["Reading Plans", "/plans", "route"],
       ["Bookmarks", "/bookmarks", "bookmark"],
       ["Tafsir", "/tafsir", "tafsir"],
     ],

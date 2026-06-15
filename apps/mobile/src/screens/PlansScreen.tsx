@@ -10,11 +10,11 @@ import {
   PLANS,
   type DayTarget,
   type PlanProgress,
-  type ReadingPlan,
   clearPlan,
   currentDay,
   planById,
   planPercent,
+  planWeekWindow,
   readPlanProgress,
   startPlan,
   toggleDay,
@@ -27,16 +27,6 @@ type Nav = Props["navigation"];
 function openTarget(navigation: Nav, target: DayTarget) {
   if (target.kind === "juz") navigation.navigate("JuzReader", { juz: target.juz });
   else navigation.navigate("SurahReader", { surah: target.surah });
-}
-
-/** A window of up to seven plan days centred on today, for the strip. */
-function weekWindow(plan: ReadingPlan, day: number) {
-  const len = plan.days.length;
-  const size = Math.min(7, len);
-  let start = day - 3;
-  if (start < 1) start = 1;
-  if (start + size - 1 > len) start = len - size + 1;
-  return Array.from({ length: size }, (_, i) => start + i); // 1-based day numbers
 }
 
 export function PlansScreen({ navigation }: Props) {
@@ -123,7 +113,7 @@ export function PlansScreen({ navigation }: Props) {
 
           <Text style={styles.sectionLabel}>Your days</Text>
           <View style={styles.week}>
-            {weekWindow(active, day).map((n) => {
+            {planWeekWindow(active, day).map((n) => {
               const done = progress.completed.includes(n - 1);
               const isToday = n === day;
               return (
