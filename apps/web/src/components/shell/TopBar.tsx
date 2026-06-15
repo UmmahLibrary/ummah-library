@@ -159,7 +159,9 @@ export function TopBar() {
           </div>
         )}
         <Link
-          href="/settings"
+          href="/profile"
+          aria-label="Your journey"
+          title="Your journey"
           style={{
             width: 40,
             height: 40,
