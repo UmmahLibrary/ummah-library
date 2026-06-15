@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  type ActivePlan,
   type PlanTemplate,
   activatePlan,
+  addDays,
   buildBackup,
+  rangeOfJuz,
   rangeOfPages,
   templateById,
   toggleDayComplete,
@@ -11,7 +14,9 @@ import { webPlanStore } from "./plan-store";
 import {
   READING_PLAN_EVENT,
   clearPlan,
+  extendPlanBy,
   readActivePlan,
+  rebalancePlan,
   startCustomPlan,
   startPlan,
   todayStr,
@@ -104,5 +109,45 @@ describe("plan state through export/import (acceptance #61)", () => {
     const result = importBackup(fileText, "replace");
     expect(result.ok).toBe(true);
     expect(await webPlanStore.read()).toEqual(plan);
+  });
+});
+
+describe("re-pace glue (#70)", () => {
+  beforeEach(() => localStorage.clear());
+
+  /** A behind plan: started 10 days ago, ends 90 days out, barely read. */
+  const behindPlan = (): ActivePlan => {
+    const today = todayStr();
+    return {
+      template: {
+        id: "x",
+        name: "X",
+        tag: "",
+        len: "",
+        desc: "",
+        range: rangeOfJuz(1, 30),
+        schedule: { kind: "targetDate", endDate: addDays(today, 90) },
+      },
+      startDate: addDays(today, -10),
+      unitsRead: 1,
+    };
+  };
+
+  it("rebalances the active plan, keeping its end date and re-anchoring at today", async () => {
+    const today = todayStr();
+    await webPlanStore.write(behindPlan());
+    await rebalancePlan();
+    const after = await readActivePlan();
+    expect(after?.anchor).toEqual({ date: today, units: 1 });
+    expect(after?.template.schedule).toEqual({ kind: "targetDate", endDate: addDays(today, 90) });
+  });
+
+  it("extends the active plan's end date by a week and re-anchors", async () => {
+    const today = todayStr();
+    await webPlanStore.write(behindPlan());
+    await extendPlanBy(7);
+    const after = await readActivePlan();
+    expect(after?.template.schedule).toEqual({ kind: "targetDate", endDate: addDays(today, 97) });
+    expect(after?.anchor?.date).toBe(today);
   });
 });

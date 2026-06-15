@@ -7,6 +7,8 @@ import {
   type ActivePlan,
   type PlanTemplate,
   activatePlan,
+  extendPlan,
+  rebalance,
   templateById,
   toggleDayComplete,
 } from "@ummahlibrary/core";
@@ -57,5 +59,21 @@ export async function toggleDay(day: number): Promise<void> {
   const plan = await store.read();
   if (!plan) return;
   await store.write(toggleDayComplete(plan, day));
+  emit();
+}
+
+/** Re-pace the active plan to keep its end date (catch-up rebalance, #70). */
+export async function rebalancePlan(): Promise<void> {
+  const plan = await store.read();
+  if (!plan) return;
+  await store.write(rebalance(plan, todayStr()));
+  emit();
+}
+
+/** Push the active plan's end date `days` later and re-pace (#70). */
+export async function extendPlanBy(days: number): Promise<void> {
+  const plan = await store.read();
+  if (!plan) return;
+  await store.write(extendPlan(plan, todayStr(), days));
   emit();
 }
