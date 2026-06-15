@@ -16,6 +16,7 @@ import {
   extendPlan,
   isDayComplete,
   isPaused,
+  isPlanComplete,
   isValidDateString,
   materializeDay,
   nextDailyReminder,
@@ -607,5 +608,17 @@ describe("pause and resume", () => {
     const resumed = resumePlan(anchored, "2026-01-12");
     expect(resumed.anchor).toEqual({ date: "2026-01-10", units: 2 }); // +7 days
     expect(resumed.pausedOn).toBeUndefined();
+  });
+});
+
+// ── Completion (#63) ─────────────────────────────────────────────────────────
+
+describe("completion", () => {
+  it("is complete only when every unit is read", () => {
+    const p = ramadan(); // 30 juzʾ
+    expect(isPlanComplete(p)).toBe(false);
+    expect(isPlanComplete(setUnitsRead(p, 29))).toBe(false);
+    expect(isPlanComplete(setUnitsRead(p, 30))).toBe(true);
+    expect(percentComplete(setUnitsRead(p, 30))).toBe(100);
   });
 });

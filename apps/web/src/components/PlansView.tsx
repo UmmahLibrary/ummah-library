@@ -14,6 +14,7 @@ import {
   currentDay,
   daysAheadBehind,
   isDayComplete,
+  isPlanComplete,
   percentComplete,
   planDuration,
   planEndDate,
@@ -23,6 +24,7 @@ import {
 } from "@ummahlibrary/core";
 import { N, Khatam, Icon, Seg } from "@ummahlibrary/ui";
 import { PlanReminderToggle } from "./PlanReminderToggle";
+import { PlanCompletionCard } from "./PlanCompletionCard";
 import {
   READING_PLAN_EVENT,
   clearPlan,
@@ -136,7 +138,9 @@ export function PlansView() {
 
   return (
     <div>
-      {plan && portion && (
+      {plan && isPlanComplete(plan) && <PlanCompletionCard plan={plan} />}
+
+      {plan && portion && !isPlanComplete(plan) && (
         <>
           {/* Active plan */}
           <div

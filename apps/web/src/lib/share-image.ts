@@ -110,6 +110,82 @@ export async function renderAyahImage(input: AyahImageInput): Promise<Blob | nul
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
 }
 
+interface PlanCardInput {
+  /** English headline, e.g. "Quran journey complete". */
+  heading: string;
+  /** A short Arabic phrase rendered large (Amiri), e.g. "ٱلْحَمْدُ لِلّٰهِ". */
+  arabic: string;
+  /** Plan name + scope, e.g. "Ramadan Khatm · 30 juzʾ · 30 days". */
+  subtitle: string;
+}
+
+/**
+ * Render a square "plan complete" share card (#63) — reuses this module's
+ * canvas + fixed palette + {@link shareOrDownload}, the same way ayah cards are
+ * made. Entirely client-side; no server, no upload.
+ */
+export async function renderPlanCardImage(input: PlanCardInput): Promise<Blob | null> {
+  try {
+    await document.fonts.load("104px Amiri");
+  } catch {
+    /* fall back to whatever is available */
+  }
+
+  const SIZE = 1080;
+  const canvas = document.createElement("canvas");
+  const scale = 2;
+  canvas.width = SIZE * scale;
+  canvas.height = SIZE * scale;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.scale(scale, scale);
+  const cx = SIZE / 2;
+
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = ACCENT;
+  ctx.fillRect(0, 0, SIZE, 10);
+  ctx.fillRect(0, SIZE - 10, SIZE, 10);
+
+  // Check badge
+  ctx.strokeStyle = ACCENT;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.arc(cx, 300, 86, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = 13;
+  ctx.beginPath();
+  ctx.moveTo(cx - 40, 302);
+  ctx.lineTo(cx - 10, 334);
+  ctx.lineTo(cx + 44, 268);
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = FG;
+  ctx.font = "700 56px system-ui, sans-serif";
+  ctx.fillText(input.heading, cx, 480);
+
+  ctx.direction = "rtl";
+  ctx.fillStyle = ACCENT;
+  ctx.font = "600 104px Amiri, serif";
+  ctx.fillText(input.arabic, cx, 650);
+  ctx.direction = "ltr";
+
+  ctx.fillStyle = MUTED;
+  ctx.font = "36px system-ui, sans-serif";
+  for (const [i, line] of wrap(ctx, input.subtitle, SIZE - 160).entries()) {
+    ctx.fillText(line, cx, 760 + i * 50);
+  }
+
+  ctx.fillStyle = MUTED;
+  ctx.font = "28px system-ui, sans-serif";
+  ctx.fillText("app.ummahlibrary.org", cx, SIZE - 90);
+
+  return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
+}
+
 /** Share the image via the Web Share API if possible, else download it. */
 export async function shareOrDownload(blob: Blob, reference: string): Promise<void> {
   const file = new File([blob], `ummah-library-${reference.replace(":", "_")}.png`, {

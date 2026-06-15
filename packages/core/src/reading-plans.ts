@@ -419,6 +419,12 @@ export function percentComplete(plan: ActivePlan): number {
   return Math.round((Math.min(plan.unitsRead, total) / total) * 100);
 }
 
+/** Whether every scheduled unit has been read — the plan is finished (#63). */
+export function isPlanComplete(plan: ActivePlan): boolean {
+  const total = planTotal(plan);
+  return total > 0 && plan.unitsRead >= total;
+}
+
 /** Whether everything scheduled through day `day` has been read. */
 export function isDayComplete(plan: ActivePlan, day: number): boolean {
   return plan.unitsRead >= cumulativeUnits(plan, day);

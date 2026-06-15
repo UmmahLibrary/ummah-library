@@ -12,12 +12,14 @@ import {
   effectiveToday,
   isDayComplete,
   isPaused,
+  isPlanComplete,
   percentComplete,
   planDuration,
   planEndDate,
   templateById,
 } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
+import { PlanCompletionCard } from "./PlanCompletionCard";
 import {
   READING_PLAN_EVENT,
   clearPlan,
@@ -96,6 +98,12 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
         <Link href="/plans" style={{ color: N.muted, fontSize: 13, fontFamily: N.ui, textDecoration: "none" }}>
           ← All plans
         </Link>
+
+        {isPlanComplete(plan) && (
+          <div style={{ marginTop: 16 }}>
+            <PlanCompletionCard plan={plan} />
+          </div>
+        )}
 
         <div style={{ display: "flex", alignItems: "center", gap: 18, margin: "18px 0 22px" }}>
           <div style={{ position: "relative", width: 140, height: 140, flexShrink: 0 }}>
