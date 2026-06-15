@@ -23,6 +23,7 @@ export * from "./hijri";
 export * from "./zakat";
 export * from "./adhkar";
 export * from "./reading-goals";
+export * from "./reading-plans";
 export * from "./backup";
 export * from "./collections";
 export * from "./tasbih";
