@@ -7,6 +7,7 @@ import {
   type ActivePlan,
   type PlanTemplate,
   activatePlan,
+  advanceCursorToPage,
   extendPlan,
   rebalance,
   templateById,
@@ -28,6 +29,7 @@ export {
   planEndDate,
   planWeekWindow,
   rangeOfPages,
+  todayProgress,
   validatePlanDraft,
 } from "@ummahlibrary/core";
 export type {
@@ -77,4 +79,12 @@ export async function rebalancePlan(): Promise<void> {
 export async function extendPlanBy(days: number): Promise<void> {
   const plan = await store.read();
   if (plan) await store.write(extendPlan(plan, todayStr(), days));
+}
+
+/** Advance the active plan's cursor to a Madani page the reader has reached (#69). */
+export async function advancePlanToPage(page: number): Promise<void> {
+  const plan = await store.read();
+  if (!plan) return;
+  const next = advanceCursorToPage(plan, page);
+  if (next.unitsRead !== plan.unitsRead) await store.write(next);
 }
