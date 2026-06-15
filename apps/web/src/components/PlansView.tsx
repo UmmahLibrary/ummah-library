@@ -5,19 +5,26 @@ import Link from "next/link";
 import {
   type ActivePlan,
   type DayPortion,
+  type PlanTemplate,
+  type ScheduleStrategy,
   PLAN_TEMPLATES,
+  activatePlan,
   computeTodayPortion,
   currentDay,
   isDayComplete,
   percentComplete,
   planDuration,
+  planEndDate,
   planWeekWindow,
+  rangeOfPages,
+  validatePlanDraft,
 } from "@ummahlibrary/core";
-import { N, Khatam, Icon } from "@ummahlibrary/ui";
+import { N, Khatam, Icon, Seg } from "@ummahlibrary/ui";
 import {
   READING_PLAN_EVENT,
   clearPlan,
   readActivePlan,
+  startCustomPlan,
   startPlan,
   todayStr,
   toggleDay,
@@ -53,6 +60,10 @@ const sectionLabel = {
 export function PlansView() {
   const [plan, setPlan] = useState<ActivePlan | null>(null);
   const [ready, setReady] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [mode, setMode] = useState<"date" | "pace">("date");
+  const [endDate, setEndDate] = useState("");
+  const [perDay, setPerDay] = useState("2");
 
   useEffect(() => {
     const refresh = () => {
@@ -71,6 +82,43 @@ export function PlansView() {
   const day = plan ? currentDay(plan, today) : 0;
   const portion = plan ? computeTodayPortion(plan, today) : undefined;
   const pct = plan ? percentComplete(plan) : 0;
+
+  // Custom plan draft — whole Quran by pages; validate + preview the pace live.
+  const customRange = rangeOfPages(1, 604);
+  const customSchedule: ScheduleStrategy =
+    mode === "date"
+      ? { kind: "targetDate", endDate }
+      : { kind: "fixed", unitsPerDay: Number(perDay) || 0 };
+  const customErrors = validatePlanDraft({ range: customRange, schedule: customSchedule, startDate: today });
+  const customPreview =
+    customErrors.length === 0
+      ? (() => {
+          const draft = activatePlan(
+            { id: "custom", name: "", tag: "", len: "", desc: "", range: customRange, schedule: customSchedule },
+            today,
+          );
+          const days = planDuration(draft);
+          return { days, end: planEndDate(draft), perDay: Math.ceil(customRange.units.length / days) };
+        })()
+      : null;
+
+  function createCustom() {
+    if (!customPreview) return;
+    const template: PlanTemplate = {
+      id: "custom",
+      name: "Your plan",
+      tag: `${customPreview.days} days`,
+      len: mode === "date" ? `≈ ${customPreview.perDay} pages a day` : `${perDay} pages a day`,
+      desc:
+        mode === "date"
+          ? `Finish the Quran by ${customPreview.end}.`
+          : `${perDay} pages a day through the whole Quran.`,
+      range: customRange,
+      schedule: customSchedule,
+    };
+    void startCustomPlan(template);
+    setCustomOpen(false);
+  }
 
   if (!ready) return <div style={{ minHeight: 240 }} />;
 
@@ -350,6 +398,142 @@ export function PlansView() {
           );
         })}
       </div>
+
+      {/* Create your own */}
+      <div style={sectionLabel}>Create your own</div>
+      {!customOpen ? (
+        <button
+          type="button"
+          onClick={() => setCustomOpen(true)}
+          className="noor-press"
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            padding: 16,
+            borderRadius: 14,
+            border: `1px dashed ${N.border}`,
+            background: N.card,
+            color: N.gold,
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: N.ui,
+            cursor: "pointer",
+          }}
+        >
+          <Icon name="plus" size={16} color={N.gold} sw={2} /> Create a custom plan
+        </button>
+      ) : (
+        <div style={{ border: `1px solid ${N.border}`, borderRadius: 14, padding: 18, background: N.card }}>
+          <Seg
+            options={[
+              { value: "date", label: "By date" },
+              { value: "pace", label: "Pages a day" },
+            ]}
+            value={mode}
+            onChange={(v) => setMode(v as "date" | "pace")}
+            size="sm"
+          />
+          <label style={{ display: "block", marginTop: 14 }}>
+            <span style={{ fontSize: 13, color: N.muted, fontFamily: N.ui }}>
+              {mode === "date" ? "Finish the Quran by" : "Pages a day"}
+            </span>
+            {mode === "date" ? (
+              <input
+                type="date"
+                min={today}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                style={inputStyle}
+              />
+            ) : (
+              <input
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={perDay}
+                onChange={(e) => setPerDay(e.target.value)}
+                style={inputStyle}
+              />
+            )}
+          </label>
+
+          <div style={{ marginTop: 12, minHeight: 20, fontSize: 13, fontFamily: N.ui }}>
+            {customPreview ? (
+              <span style={{ color: N.muted }}>
+                {mode === "date" ? (
+                  <>
+                    ≈ <span style={{ color: N.fg, fontWeight: 600 }}>{customPreview.perDay} pages a day</span> ·{" "}
+                    {customPreview.days} days
+                  </>
+                ) : (
+                  <>
+                    <span style={{ color: N.fg, fontWeight: 600 }}>{customPreview.days} days</span> · finishes{" "}
+                    {customPreview.end}
+                  </>
+                )}
+              </span>
+            ) : (
+              <span style={{ color: N.goldDim }}>{customErrors[0]}</span>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 9, marginTop: 14 }}>
+            <button
+              type="button"
+              disabled={!customPreview}
+              onClick={createCustom}
+              className="noor-press"
+              style={{
+                padding: "10px 18px",
+                borderRadius: 11,
+                background: customPreview ? N.goldGrad : N.card,
+                color: customPreview ? N.ink : N.faint,
+                border: `1px solid ${customPreview ? "transparent" : N.border}`,
+                fontWeight: 700,
+                fontSize: 14,
+                fontFamily: N.ui,
+                cursor: customPreview ? "pointer" : "not-allowed",
+              }}
+            >
+              Start plan
+            </button>
+            <button
+              type="button"
+              onClick={() => setCustomOpen(false)}
+              className="noor-press"
+              style={{
+                padding: "10px 16px",
+                borderRadius: 11,
+                background: N.card,
+                color: N.muted,
+                border: `1px solid ${N.border}`,
+                fontWeight: 600,
+                fontSize: 14,
+                fontFamily: N.ui,
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const inputStyle = {
+  display: "block",
+  width: "100%",
+  marginTop: 6,
+  padding: "11px 14px",
+  borderRadius: 10,
+  border: `1px solid ${N.border}`,
+  background: N.cardHi,
+  color: N.fg,
+  fontFamily: N.ui,
+  fontSize: 15,
+  boxSizing: "border-box",
+} as const;

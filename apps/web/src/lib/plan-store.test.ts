@@ -1,10 +1,18 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { activatePlan, buildBackup, templateById, toggleDayComplete } from "@ummahlibrary/core";
+import {
+  type PlanTemplate,
+  activatePlan,
+  buildBackup,
+  rangeOfPages,
+  templateById,
+  toggleDayComplete,
+} from "@ummahlibrary/core";
 import { webPlanStore } from "./plan-store";
 import {
   READING_PLAN_EVENT,
   clearPlan,
   readActivePlan,
+  startCustomPlan,
   startPlan,
   todayStr,
   toggleDay,
@@ -60,6 +68,23 @@ describe("reading-plan glue", () => {
     await startPlan("does-not-exist");
     expect(await readActivePlan()).toBeNull();
     expect(todayStr(new Date(2026, 2, 5))).toBe("2026-03-05");
+  });
+
+  it("starts a one-off custom plan from a synthesized template", async () => {
+    const template: PlanTemplate = {
+      id: "custom",
+      name: "Your plan",
+      tag: "302 days",
+      len: "2 pages a day",
+      desc: "Two pages a day.",
+      range: rangeOfPages(1, 604),
+      schedule: { kind: "fixed", unitsPerDay: 2 },
+    };
+    await startCustomPlan(template);
+    const active = await readActivePlan();
+    expect(active?.template.id).toBe("custom");
+    expect(active?.template.schedule).toEqual({ kind: "fixed", unitsPerDay: 2 });
+    expect(active?.unitsRead).toBe(0);
   });
 });
 
