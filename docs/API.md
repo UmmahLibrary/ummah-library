@@ -23,12 +23,18 @@ OpenAPI spec: [`/api/v1/openapi.json`](https://app.ummahlibrary.org/api/v1/opena
 | `GET /api/v1/surahs/{number}`                        | `{ surah: Surah, ayahs: Ayah[] }` (Arabic)    |
 | `GET /api/v1/editions`                               | `{ count, editions: Translation[] }`          |
 | `GET /api/v1/surahs/{number}/translations/{edition}` | `{ surah, edition, ayahs: TranslatedAyah[] }` |
+| `GET /api/v1/plans/catalogue`                        | `{ count, plans: PlanTemplate[] }`            |
 | `GET /api/v1/search/corpus`                          | `{ count, verses: { s, a, t }[] }` (full Arabic corpus, powers client-side search) |
 | `GET /api/v1/openapi.json`                           | OpenAPI 3 document                            |
 
 Tafsir, the runtime translation catalogue, and Hadith sections are also served
 under `/api/v1` (fetched on demand by the reader); see the OpenAPI document for
 the complete list.
+
+Reading **plans** expose only the catalogue (`/plans/catalogue`). A reader's
+progress is local-first device state (ADR 0006) that never leaves the device, so
+there are no plan-progress endpoints — starting, advancing and re-pacing a plan
+all happen client-side.
 
 `{number}` is `1`–`114`; `{edition}` is a translation id from `/editions`
 (e.g. `eng-khattab`, `urd-jalandhry`, `ben-muhiuddinkhan`).
@@ -62,6 +68,15 @@ type Translation = {
   direction: "rtl" | "ltr";
 };
 type TranslatedAyah = Ayah & { translationId: string };
+type PlanTemplate = {
+  id: string;
+  name: string;
+  tag: string; // short badge, e.g. "30 days"
+  len: string; // cadence, e.g. "Juzʾ a day"
+  desc: string;
+  range: { unit: "juz" | "hizb" | "page" | "surah" | "ayah"; units: number[] };
+  schedule: { kind: "fixed"; unitsPerDay: number } | { kind: "targetDate"; endDate: string };
+};
 ```
 
 ---
@@ -76,6 +91,7 @@ Endpoint: `/api/trpc`. Procedures (all queries):
 | `getSurah`       | `{ number }`          | `{ surah, ayahs } \| null` |
 | `listEditions`   | —                     | `Translation[]`            |
 | `getTranslation` | `{ edition, number }` | `TranslatedAyah[]`         |
+| `listPlanTemplates` | —                  | `PlanTemplate[]`           |
 
 The `AppRouter` type is exported from `@ummahlibrary/api` for end-to-end type
 safety in TypeScript clients:

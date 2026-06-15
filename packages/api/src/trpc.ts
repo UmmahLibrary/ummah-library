@@ -8,6 +8,7 @@ import { initTRPC } from "@trpc/server";
 import { z } from "zod";
 import {
   hadithRepository,
+  planCatalog,
   pluginRegistry,
   quranRepository,
   tafsirRepository,
@@ -57,6 +58,13 @@ export const appRouter = t.router({
   getHadithSection: t.procedure
     .input(z.object({ collection: z.string(), section: z.number().int().min(1) }))
     .query(({ input }) => hadithRepository.getSection(input.collection, input.section)),
+
+  /**
+   * The reading-plan catalogue (templates a reader can start). Read-only — a
+   * reader's *progress* is local-first device state (ADR 0006), never on the
+   * server, so there are no plan mutations here.
+   */
+  listPlanTemplates: t.procedure.query(() => planCatalog.all()),
 });
 
 export type AppRouter = typeof appRouter;
