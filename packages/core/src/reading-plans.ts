@@ -81,6 +81,12 @@ export interface ActivePlan {
   startDate: string;
   /** Atomic units completed so far (a linear cursor, 0…total). */
   unitsRead: number;
+  /**
+   * Re-pace anchor (#70): when a plan is re-paced, the schedule re-anchors here
+   * so the remaining units spread from this date while overall progress
+   * (`unitsRead`, percent complete) is preserved. Absent on a fresh plan.
+   */
+  anchor?: { date: string; units: number };
 }
 
 /** What to read on a given day, resolved to deep-linkable Quran references. */
@@ -366,13 +372,24 @@ export function planEndDate(plan: ActivePlan): string {
   return s.kind === "targetDate" ? s.endDate : addDays(plan.startDate, planDuration(plan) - 1);
 }
 
-/** Units that should be read by the end of day `day` (even distribution). */
+/**
+ * Units that should be read by the end of day `day`. A fresh plan spreads evenly
+ * from the start; a re-paced plan (with an `anchor`) follows a two-segment line
+ * through (anchorDay, anchorUnits) → (duration, total), so the remaining units
+ * re-pace from the anchor while the percent complete stays put.
+ */
 export function cumulativeUnits(plan: ActivePlan, day: number): number {
   const total = planTotal(plan);
   const dur = planDuration(plan);
   if (day <= 0) return 0;
   if (day >= dur) return total;
-  return Math.floor((day * total) / dur);
+  const { anchor } = plan;
+  if (!anchor) return Math.floor((day * total) / dur);
+  const aDay = Math.min(Math.max(daysBetween(plan.startDate, anchor.date) + 1, 1), dur);
+  const aUnits = Math.min(Math.max(anchor.units, 0), total);
+  if (day <= aDay) return Math.floor((day * aUnits) / aDay);
+  if (dur === aDay) return total;
+  return aUnits + Math.floor(((day - aDay) * (total - aUnits)) / (dur - aDay));
 }
 
 /** The calendar day the reader is on (1-based), clamped to the plan length. */
@@ -432,11 +449,9 @@ export function projectedFinish(plan: ActivePlan, today: string): string {
   return addDays(today, need);
 }
 
-/** What to read on day `day`, resolved to references and a label. */
-export function materializeDay(plan: ActivePlan, day: number): DayPortion {
-  const { unit, units } = plan.template.range;
-  const from = cumulativeUnits(plan, day - 1);
-  const to = cumulativeUnits(plan, day);
+/** Build a day's portion from a half-open unit-index window `[from, to)`. */
+function buildPortion(range: PlanRange, day: number, from: number, to: number): DayPortion {
+  const { unit, units } = range;
   if (to <= from) {
     return {
       day,
@@ -472,9 +487,38 @@ export function materializeDay(plan: ActivePlan, day: number): DayPortion {
   };
 }
 
-/** Today's portion — what to read now to stay on schedule. */
+/** The idealised units scheduled for a single calendar day. */
+export function materializeDay(plan: ActivePlan, day: number): DayPortion {
+  return buildPortion(plan.template.range, day, cumulativeUnits(plan, day - 1), cumulativeUnits(plan, day));
+}
+
+/**
+ * Today's portion — the reader's **next unread** units, one day's worth. A
+ * reader who has fallen behind is pointed at where they actually are (their next
+ * unread unit), never skipped past it.
+ */
 export function computeTodayPortion(plan: ActivePlan, today: string): DayPortion {
-  return materializeDay(plan, currentDay(plan, today));
+  const day = currentDay(plan, today);
+  const total = planTotal(plan);
+  const amount = cumulativeUnits(plan, day) - cumulativeUnits(plan, day - 1);
+  const from = Math.min(plan.unitsRead, total);
+  return buildPortion(plan.template.range, day, from, Math.min(total, from + amount));
+}
+
+/**
+ * Everything due through today from the reader's cursor — today's portion plus
+ * any backlog. Reading it brings a behind reader back on schedule.
+ */
+export function catchUpPortion(plan: ActivePlan, today: string): DayPortion {
+  const day = currentDay(plan, today);
+  const total = planTotal(plan);
+  const from = Math.min(plan.unitsRead, total);
+  return buildPortion(plan.template.range, day, from, Math.max(from, cumulativeUnits(plan, day)));
+}
+
+/** How many units the reader is behind by (due through today, but unread). */
+export function unitsBehind(plan: ActivePlan, today: string): number {
+  return Math.max(0, cumulativeUnits(plan, currentDay(plan, today)) - plan.unitsRead);
 }
 
 /** A window of up to seven day numbers centred on `day` (for a week strip). */
@@ -524,6 +568,31 @@ export function reschedule(plan: ActivePlan, change: RescheduleChange): ActivePl
     throw new RangeError("A fixed plan must read at least one unit per day.");
   }
   return { ...plan, template: { ...plan.template, schedule: change } };
+}
+
+/**
+ * Re-pace from `today`, preserving overall progress (#70). The schedule
+ * re-anchors so the remaining units spread from today to `endDate`, while
+ * `unitsRead` and the percent complete stay put. Throws if `endDate` is before
+ * today.
+ */
+export function repace(plan: ActivePlan, today: string, endDate: string): ActivePlan {
+  if (daysBetween(today, endDate) < 0) throw new RangeError("The end date is before today.");
+  return {
+    ...plan,
+    template: { ...plan.template, schedule: { kind: "targetDate", endDate } },
+    anchor: { date: today, units: plan.unitsRead },
+  };
+}
+
+/** Keep the current end date and re-pace the remaining units from today. */
+export function rebalance(plan: ActivePlan, today: string): ActivePlan {
+  return repace(plan, today, planEndDate(plan));
+}
+
+/** Move the end date `days` later and re-pace the remaining units from today. */
+export function extendPlan(plan: ActivePlan, today: string, days: number): ActivePlan {
+  return repace(plan, today, addDays(planEndDate(plan), Math.max(1, Math.floor(days))));
 }
 
 // ── Validation (for the custom-plan creator) ────────────────────────────────

@@ -6,10 +6,12 @@ import {
   type PlanTemplate,
   PLAN_TEMPLATES,
   activatePlan,
+  catchUpPortion,
   computeTodayPortion,
   cumulativeUnits,
   currentDay,
   daysAheadBehind,
+  extendPlan,
   isDayComplete,
   isValidDateString,
   materializeDay,
@@ -21,12 +23,15 @@ import {
   rangeOfJuz,
   rangeOfPages,
   rangeOfSurahs,
+  rebalance,
+  repace,
   reschedule,
   setUnitsRead,
   surahList,
   templateById,
   toggleDayComplete,
   totalUnits,
+  unitsBehind,
   unitsRemaining,
   validatePlanDraft,
 } from "./reading-plans";
@@ -323,8 +328,61 @@ describe("materializeDay", () => {
 });
 
 describe("computeTodayPortion", () => {
-  it("returns the calendar day's portion", () => {
-    expect(computeTodayPortion(ramadan(), "2026-01-05").label).toBe("Juzʾ 5");
+  it("points at the next unread unit for an on-track reader", () => {
+    const onTrack = setUnitsRead(ramadan(), 4); // juzʾ 1–4 done by day 5
+    expect(computeTodayPortion(onTrack, "2026-01-05").label).toBe("Juzʾ 5");
+  });
+  it("points at the next unread unit when behind — never skips ahead", () => {
+    // Nothing read by day 5: the next portion is juzʾ 1, not the calendar's juzʾ 5.
+    expect(computeTodayPortion(ramadan(), "2026-01-05").label).toBe("Juzʾ 1");
+  });
+});
+
+describe("catch-up + re-pace (#70)", () => {
+  // Behind: by day 10 of a 30-day juzʾ-a-day plan, only 5 juzʾ have been read.
+  const behind = () => setUnitsRead(ramadan(), 5);
+  const T10 = "2026-01-10";
+
+  it("reports how far behind, in days and units", () => {
+    expect(daysAheadBehind(behind(), T10)).toBeLessThan(0);
+    expect(unitsBehind(behind(), T10)).toBe(5); // due 10, read 5
+  });
+
+  it("catch-up portion spans the backlog through today", () => {
+    const portion = catchUpPortion(behind(), T10);
+    expect(portion.fromUnit).toBe(6); // the next unread juzʾ
+    expect(portion.toUnit).toBe(10); // through today
+    expect(portion.count).toBe(5);
+  });
+
+  it("rebalance keeps the end date, re-paces, and lands the reader on track", () => {
+    const plan = rebalance(behind(), T10);
+    expect(planEndDate(plan)).toBe("2026-01-30"); // unchanged
+    expect(daysAheadBehind(plan, T10)).toBe(0); // on track right after
+    expect(cumulativeUnits(plan, planDuration(plan))).toBe(30); // still finishable
+    // 25 juzʾ over the remaining ~21 days is steeper than 1/day — some day reads 2.
+    let maxAmount = 0;
+    for (let d = 11; d <= planDuration(plan); d++) {
+      maxAmount = Math.max(maxAmount, cumulativeUnits(plan, d) - cumulativeUnits(plan, d - 1));
+    }
+    expect(maxAmount).toBe(2);
+  });
+
+  it("extend moves the end date later and eases the pace", () => {
+    const plan = extendPlan(behind(), T10, 10);
+    expect(daysBetween("2026-01-30", planEndDate(plan))).toBe(10); // +10 days
+    expect(daysAheadBehind(plan, T10)).toBeGreaterThanOrEqual(0); // no longer behind
+    expect(cumulativeUnits(plan, planDuration(plan))).toBe(30); // finishable
+  });
+
+  it("preserves overall progress through a re-pace", () => {
+    const plan = rebalance(behind(), T10);
+    expect(plan.unitsRead).toBe(5);
+    expect(percentComplete(plan)).toBe(17); // 5/30 ≈ 17%, unchanged
+  });
+
+  it("rejects an end date before today", () => {
+    expect(() => repace(behind(), T10, "2026-01-05")).toThrow(RangeError);
   });
 });
 

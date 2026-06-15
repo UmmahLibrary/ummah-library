@@ -9,8 +9,10 @@ import {
   type ScheduleStrategy,
   PLAN_TEMPLATES,
   activatePlan,
+  catchUpPortion,
   computeTodayPortion,
   currentDay,
+  daysAheadBehind,
   isDayComplete,
   percentComplete,
   planDuration,
@@ -23,7 +25,9 @@ import { N, Khatam, Icon, Seg } from "@ummahlibrary/ui";
 import {
   READING_PLAN_EVENT,
   clearPlan,
+  extendPlanBy,
   readActivePlan,
+  rebalancePlan,
   startCustomPlan,
   startPlan,
   todayStr,
@@ -82,6 +86,8 @@ export function PlansView() {
   const day = plan ? currentDay(plan, today) : 0;
   const portion = plan ? computeTodayPortion(plan, today) : undefined;
   const pct = plan ? percentComplete(plan) : 0;
+  const behind = plan ? daysAheadBehind(plan, today) : 0;
+  const catchUp = plan ? catchUpPortion(plan, today) : undefined;
 
   // Custom plan draft — whole Quran by pages; validate + preview the pace live.
   const customRange = rangeOfPages(1, 604);
@@ -260,6 +266,52 @@ export function PlansView() {
               Leave plan
             </button>
           </div>
+
+          {/* Behind-state + recovery (#70) */}
+          {behind < 0 && catchUp && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: 16,
+                borderRadius: 14,
+                border: `1px solid ${N.gold}`,
+                background: N.goldSoft,
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
+                You’re {Math.abs(behind)} {Math.abs(behind) === 1 ? "day" : "days"} behind
+              </div>
+              <div style={{ fontSize: 13, color: N.muted, fontFamily: N.ui, margin: "4px 0 12px" }}>
+                Catch up on the backlog, re-pace to keep your finish date, or give yourself more time.
+              </div>
+              <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
+                <Link
+                  href={targetHref(catchUp)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 7,
+                    padding: "9px 16px",
+                    borderRadius: 999,
+                    background: N.goldGrad,
+                    color: N.ink,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    textDecoration: "none",
+                    fontFamily: N.ui,
+                  }}
+                >
+                  <Icon name="book" size={15} color={N.ink} sw={1.8} /> Catch up · {catchUp.label}
+                </Link>
+                <button type="button" onClick={() => void rebalancePlan()} className="noor-press" style={repaceBtn}>
+                  Rebalance
+                </button>
+                <button type="button" onClick={() => void extendPlanBy(7)} className="noor-press" style={repaceBtn}>
+                  Extend +1 week
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* This week */}
           <div style={sectionLabel}>This week</div>
@@ -536,4 +588,16 @@ const inputStyle = {
   fontFamily: N.ui,
   fontSize: 15,
   boxSizing: "border-box",
+} as const;
+
+const repaceBtn = {
+  padding: "9px 16px",
+  borderRadius: 999,
+  border: `1px solid ${N.border}`,
+  background: N.card,
+  color: N.muted,
+  fontSize: 13,
+  fontWeight: 600,
+  fontFamily: N.ui,
+  cursor: "pointer",
 } as const;
