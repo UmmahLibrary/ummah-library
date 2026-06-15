@@ -2,6 +2,7 @@ import type {
   AdhkarRepository,
   AsmaRepository,
   HadithRepository,
+  PlanCatalogPort,
   PluginRegistry,
   PrayerTimesCalculator,
   QuranRepository,
@@ -9,6 +10,7 @@ import type {
   TranslationRepository,
 } from "@ummahlibrary/core";
 import {
+  BundledPlanCatalog,
   FileAdhkarRepository,
   FileAsmaRepository,
   FileHadithRepository,
@@ -53,3 +55,6 @@ export const adhkarRepository: AdhkarRepository = new FileAdhkarRepository();
 
 /** The bundled 99 Names of Allah. */
 export const asmaRepository: AsmaRepository = new FileAsmaRepository();
+
+/** The reading-plan catalogue — bundled in core, served through the port for the API. */
+export const planCatalog: PlanCatalogPort = new BundledPlanCatalog();

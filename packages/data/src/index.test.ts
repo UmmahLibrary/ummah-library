@@ -10,6 +10,7 @@ import {
 } from "@ummahlibrary/core";
 import { describe, expect, it } from "vitest";
 import {
+  BundledPlanCatalog,
   FileHadithRepository,
   FileQuranRepository,
   FileTranslationRepository,
@@ -20,6 +21,7 @@ import surahsData from "../datasets/surahs.json";
 const quran = new FileQuranRepository();
 const translations = new FileTranslationRepository();
 const hadith = new FileHadithRepository();
+const planCatalog = new BundledPlanCatalog();
 
 describe("FileQuranRepository", () => {
   it("lists all 114 surahs with full metadata", async () => {
@@ -133,6 +135,21 @@ describe("FileHadithRepository", () => {
     expect(await hadith.getCollection("nope")).toBeNull();
     expect(await hadith.getCollection("../secrets")).toBeNull();
     expect(await hadith.getSection("../secrets", 1)).toBeNull();
+  });
+});
+
+describe("BundledPlanCatalog", () => {
+  it("serves the catalogue bundled in core (loads offline)", async () => {
+    const all = await planCatalog.all();
+    expect(all.length).toBeGreaterThanOrEqual(5);
+    expect(all.map((t) => t.id)).toEqual(
+      expect.arrayContaining(["ramadan-khatm", "juz-sprint", "quran-60", "quran-year", "juz-amma"]),
+    );
+  });
+
+  it("finds a template by id and misses gracefully", async () => {
+    expect((await planCatalog.byId("ramadan-khatm"))?.name).toBe("Ramaḍān Khatm");
+    expect(await planCatalog.byId("nope")).toBeNull();
   });
 });
 

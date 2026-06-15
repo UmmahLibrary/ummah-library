@@ -25,6 +25,8 @@ import type {
   HadithCollection,
   HadithRepository,
   HadithSection,
+  PlanCatalogPort,
+  PlanTemplate,
   QuranRepository,
   Surah,
   TranslatedAyah,
@@ -34,6 +36,7 @@ import type {
 } from "@ummahlibrary/core";
 import type { ContentPlugin } from "@ummahlibrary/core";
 import {
+  PLAN_TEMPLATES,
   PluginRegistry,
   filterByOccasion,
   isValidSurahNumber,
@@ -185,6 +188,21 @@ const ASMA = asmaData.names as readonly DivineName[];
 export class FileAsmaRepository implements AsmaRepository {
   all(): Promise<readonly DivineName[]> {
     return Promise.resolve(ASMA);
+  }
+}
+
+/**
+ * Serves the reading-plan catalogue. The curated templates are bundled in
+ * `core` (so both apps load them offline, like the Duʿās); this adapter
+ * re-serves them through `PlanCatalogPort` so the API and any future remote
+ * catalogue depend only on the port, never on where the templates live.
+ */
+export class BundledPlanCatalog implements PlanCatalogPort {
+  all(): Promise<readonly PlanTemplate[]> {
+    return Promise.resolve(PLAN_TEMPLATES);
+  }
+  byId(id: string): Promise<PlanTemplate | null> {
+    return Promise.resolve(PLAN_TEMPLATES.find((t) => t.id === id) ?? null);
   }
 }
 
