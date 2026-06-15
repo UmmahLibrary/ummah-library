@@ -18,7 +18,7 @@ import type {
 } from "./entities";
 import type { HifzCard } from "./hifz";
 import type { Coordinates, Madhab, PrayerTimings } from "./prayer";
-import type { PlanTemplate } from "./reading-plans";
+import type { ActivePlan, PlanTemplate } from "./reading-plans";
 
 /** Access to the Arabic Quran text and surah structure. */
 export interface QuranRepository {
@@ -166,4 +166,18 @@ export interface HifzRepository {
   due(now: Date): Promise<readonly HifzRecord[]>;
   /** Every tracked card, in mushaf order. */
   all(): Promise<readonly HifzRecord[]>;
+}
+
+/**
+ * Persists the reader's single active reading plan on-device (ADR 0024). The web
+ * adapter uses `localStorage`, mobile uses `AsyncStorage`; a synced adapter can
+ * replace either without touching the plan logic or UI — the seam for #25.
+ */
+export interface PlanStore {
+  /** The active plan, or `null` if none is in progress. */
+  read(): Promise<ActivePlan | null>;
+  /** Save (or replace) the active plan. */
+  write(plan: ActivePlan): Promise<void>;
+  /** Stop the active plan. */
+  clear(): Promise<void>;
 }

@@ -1,11 +1,10 @@
 /**
- * Reading-plan persistence for mobile. The plan catalogue and the pure schedule
- * maths are shared in `@ummahlibrary/core`; this layer holds the started plan
- * (an `ActivePlan` snapshot) in AsyncStorage (`ul.readingPlan`, ADR 0006). Only
- * one plan is active at a time.
+ * Reading-plan glue for mobile. The plan catalogue and pure schedule maths are
+ * shared in `@ummahlibrary/core`; persistence goes through the `PlanStore` port
+ * (mobile adapter `mobilePlanStore`, ADR 0024). Only one plan is active.
  */
 import { type ActivePlan, activatePlan, templateById, toggleDayComplete } from "@ummahlibrary/core";
-import { KEYS, getJSON, setJSON } from "./storage";
+import { mobilePlanStore as store } from "./plan-store";
 
 export {
   PLAN_TEMPLATES,
@@ -23,20 +22,20 @@ export function todayStr(d = new Date()): string {
 }
 
 export function readActivePlan(): Promise<ActivePlan | null> {
-  return getJSON<ActivePlan | null>(KEYS.readingPlan, null);
+  return store.read();
 }
 
 export async function startPlan(templateId: string): Promise<void> {
   const template = templateById(templateId);
-  if (template) await setJSON(KEYS.readingPlan, activatePlan(template, todayStr()));
+  if (template) await store.write(activatePlan(template, todayStr()));
 }
 
 export async function clearPlan(): Promise<void> {
-  await setJSON(KEYS.readingPlan, null);
+  await store.clear();
 }
 
 /** Toggle a 1-based day's completion (advances/retreats the linear cursor). */
 export async function toggleDay(day: number): Promise<void> {
-  const plan = await readActivePlan();
-  if (plan) await setJSON(KEYS.readingPlan, toggleDayComplete(plan, day));
+  const plan = await store.read();
+  if (plan) await store.write(toggleDayComplete(plan, day));
 }

@@ -32,6 +32,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0021](0021-global-search.md)                 | Global search: one client index over several sources        | Accepted |
 | [0022](0022-hadith-ingested-search.md)        | Hadith ingested at build time, searched on the client       | Accepted |
 | [0023](0023-noor-design-system.md)            | Noor design system: single source of truth across web and mobile | Accepted |
+| [0024](0024-local-storage-ports.md)           | Typed storage ports for local-first state (the sync seam)   | Accepted |
 
 ## Writing a new ADR
 
