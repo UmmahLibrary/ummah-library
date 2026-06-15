@@ -15,6 +15,7 @@ import { WordByWord } from "./WordByWord";
 import { HashHighlighter } from "./HashHighlighter";
 import { ReaderShortcuts } from "./ReaderShortcuts";
 import { ReadingTracker } from "./ReadingTracker";
+import { PlanReaderChip } from "./PlanReaderChip";
 import { recordMushafPage } from "../lib/reading-goals";
 
 type ReadingMode = "translation" | "reading" | "reading-tr";
@@ -205,6 +206,7 @@ export function SurahReaderClient({
       <ReaderShortcuts storageKey={`surah:${surah.number}`} />
       <ReadingTracker />
       <HashHighlighter />
+      <PlanReaderChip />
 
       {/* Scroll progress bar */}
       <div style={{ height: 3, background: N.borderSoft, flexShrink: 0 }}>

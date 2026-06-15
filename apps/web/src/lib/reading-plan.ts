@@ -7,6 +7,7 @@ import {
   type ActivePlan,
   type PlanTemplate,
   activatePlan,
+  advanceCursorToPage,
   extendPlan,
   rebalance,
   templateById,
@@ -76,4 +77,15 @@ export async function extendPlanBy(days: number): Promise<void> {
   if (!plan) return;
   await store.write(extendPlan(plan, todayStr(), days));
   emit();
+}
+
+/** Advance the active plan to a Madani page the reader has reached (#69). */
+export async function advancePlanToPage(page: number): Promise<void> {
+  const plan = await store.read();
+  if (!plan) return;
+  const next = advanceCursorToPage(plan, page);
+  if (next.unitsRead !== plan.unitsRead) {
+    await store.write(next);
+    emit();
+  }
 }

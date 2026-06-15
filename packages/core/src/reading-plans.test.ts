@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ayahCountOf } from "./quran-structure";
+import { ayahCountOf, pageNumberOf } from "./quran-structure";
 import { addDays, daysBetween } from "./reading-goals";
 import {
   type ActivePlan,
   type PlanTemplate,
   PLAN_TEMPLATES,
   activatePlan,
+  advanceCursorToPage,
   catchUpPortion,
   computeTodayPortion,
   cumulativeUnits,
@@ -29,6 +30,7 @@ import {
   setUnitsRead,
   surahList,
   templateById,
+  todayProgress,
   toggleDayComplete,
   totalUnits,
   unitsBehind,
@@ -383,6 +385,30 @@ describe("catch-up + re-pace (#70)", () => {
 
   it("rejects an end date before today", () => {
     expect(() => repace(behind(), T10, "2026-01-05")).toThrow(RangeError);
+  });
+});
+
+describe("reader auto-advance (#69)", () => {
+  const pagePlan = () => activatePlan(tpl(rangeOfPages(1, 10), { kind: "fixed", unitsPerDay: 2 }), START);
+
+  it("advances the cursor through page-units as pages are read", () => {
+    expect(advanceCursorToPage(pagePlan(), 4).unitsRead).toBe(4); // pages 1–4 read
+    expect(advanceCursorToPage(pagePlan(), 0).unitsRead).toBe(0); // nothing yet
+  });
+
+  it("advances a juzʾ plan when the juzʾ's last page is reached", () => {
+    const juz1EndPage = pageNumberOf({ sura: 2, aya: 141 }); // last verse of juzʾ 1
+    expect(advanceCursorToPage(ramadan(), juz1EndPage).unitsRead).toBe(1);
+    expect(advanceCursorToPage(ramadan(), juz1EndPage - 1).unitsRead).toBe(0);
+  });
+
+  it("never retreats the cursor (monotonic)", () => {
+    expect(advanceCursorToPage(setUnitsRead(pagePlan(), 6), 3).unitsRead).toBe(6);
+  });
+
+  it("reports today's portion progress for the chip", () => {
+    expect(todayProgress(setUnitsRead(ramadan(), 2), "2026-01-03")).toEqual({ done: 0, total: 1 });
+    expect(todayProgress(setUnitsRead(ramadan(), 3), "2026-01-03")).toEqual({ done: 1, total: 1 });
   });
 });
 
