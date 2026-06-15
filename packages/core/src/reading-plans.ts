@@ -543,6 +543,75 @@ export function todayProgress(plan: ActivePlan, today: string): { done: number; 
   return { done, total };
 }
 
+/** A unit's display word, count-aware — the vocabulary the reader chip uses. */
+export function unitWord(unit: PlanUnit, count: number): string {
+  switch (unit) {
+    case "juz":
+      return "juzʾ";
+    case "hizb":
+      return "ḥizb";
+    case "page":
+      return count === 1 ? "page" : "pages";
+    case "surah":
+      return count === 1 ? "sūrah" : "sūrahs";
+    case "ayah":
+      return count === 1 ? "ayah" : "ayahs";
+  }
+}
+
+/**
+ * The next wall-clock occurrence of a daily `HH:MM` reminder, relative to `now`:
+ * today if the time is still ahead, otherwise tomorrow. Pure — the clock is
+ * injected — so it's deterministic for a given `now`. Returns `null` for a
+ * malformed time (#71).
+ */
+export function nextDailyReminder(time: string, now: Date): Date | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  const at = new Date(now);
+  at.setHours(h, min, 0, 0);
+  if (at.getTime() <= now.getTime()) at.setDate(at.getDate() + 1);
+  return at;
+}
+
+/**
+ * The copy for a plan's daily reminder, adapted to where the reader stands:
+ * a "done" note when today's portion is complete, a gentle catch-up note when
+ * behind from earlier days, otherwise today's target. Never guilt-framed (#71).
+ */
+export function planReminderContent(
+  plan: ActivePlan,
+  today: string,
+): { title: string; body: string } {
+  const { done, total } = todayProgress(plan, today);
+  const unit = plan.template.range.unit;
+  const name = plan.template.name;
+
+  if (total > 0 && done >= total) {
+    return {
+      title: `${name} — today’s portion done ✓`,
+      body: "You’re on track. Keep the streak alive tomorrow, insha’Allah.",
+    };
+  }
+  // "Behind" counts only earlier days' shortfall, so a fresh day's reading is
+  // never framed as catching up.
+  if (daysAheadBehind(plan, today) < 0) {
+    const back = unitsBehind(plan, today);
+    return {
+      title: `${name} — pick up where you left off`,
+      body: `About ${back} ${unitWord(unit, back)} to be back on track. No rush — a little today goes a long way.`,
+    };
+  }
+  const left = Math.max(1, total - done);
+  return {
+    title: `Today’s reading — ${name}`,
+    body: `${left} ${unitWord(unit, left)} today. Open the Book when you’re ready.`,
+  };
+}
+
 /** A window of up to seven day numbers centred on `day` (for a week strip). */
 export function planWeekWindow(plan: ActivePlan, day: number): number[] {
   const len = planDuration(plan);

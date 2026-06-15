@@ -4,6 +4,7 @@ import { Hanken_Grotesk, IBM_Plex_Sans_Arabic, Amiri } from "next/font/google";
 import { ServiceWorkerRegister } from "../components/ServiceWorkerRegister";
 import { AdhkarReminderBanner } from "../components/AdhkarReminderBanner";
 import { PrayerReminderScheduler } from "../components/PrayerReminderScheduler";
+import { PlanReminderScheduler } from "../components/PlanReminderScheduler";
 import { AppShellWrapper } from "../components/AppShellWrapper";
 import "./globals.css";
 
@@ -88,6 +89,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </a>
         <AdhkarReminderBanner />
         <PrayerReminderScheduler />
+        <PlanReminderScheduler />
         <AppShellWrapper>{children}</AppShellWrapper>
         <ServiceWorkerRegister />
       </body>

@@ -16,9 +16,11 @@ import {
   isDayComplete,
   isValidDateString,
   materializeDay,
+  nextDailyReminder,
   percentComplete,
   planDuration,
   planEndDate,
+  planReminderContent,
   planWeekWindow,
   projectedFinish,
   rangeOfJuz,
@@ -33,6 +35,7 @@ import {
   todayProgress,
   toggleDayComplete,
   totalUnits,
+  unitWord,
   unitsBehind,
   unitsRemaining,
   validatePlanDraft,
@@ -494,5 +497,58 @@ describe("validatePlanDraft", () => {
     expect(validatePlanDraft({ range: rangeOfJuz(1, 30), schedule: { kind: "targetDate", endDate: "2025-12-01" }, startDate: START })).toContain(
       "The end date can’t be before the start date.",
     );
+  });
+});
+
+// ── Daily reminders (#71) ────────────────────────────────────────────────────
+
+describe("daily reminders", () => {
+  it("pluralises unit words sensibly", () => {
+    expect(unitWord("page", 1)).toBe("page");
+    expect(unitWord("page", 3)).toBe("pages");
+    expect(unitWord("surah", 1)).toBe("sūrah");
+    expect(unitWord("surah", 2)).toBe("sūrahs");
+    expect(unitWord("juz", 5)).toBe("juzʾ");
+    expect(unitWord("hizb", 2)).toBe("ḥizb");
+  });
+
+  it("schedules today when the reminder time is still ahead", () => {
+    const now = new Date(2026, 0, 1, 12, 0, 0);
+    const at = nextDailyReminder("20:00", now);
+    expect(at?.getDate()).toBe(1);
+    expect(at?.getHours()).toBe(20);
+    expect(at?.getMinutes()).toBe(0);
+  });
+
+  it("rolls to tomorrow when the time has passed or equals now", () => {
+    const now = new Date(2026, 0, 1, 12, 0, 0);
+    expect(nextDailyReminder("08:00", now)?.getDate()).toBe(2);
+    expect(nextDailyReminder("12:00", now)?.getDate()).toBe(2);
+  });
+
+  it("rejects malformed reminder times", () => {
+    const now = new Date(2026, 0, 1, 12, 0, 0);
+    expect(nextDailyReminder("nope", now)).toBeNull();
+    expect(nextDailyReminder("25:00", now)).toBeNull();
+    expect(nextDailyReminder("12:60", now)).toBeNull();
+  });
+
+  it("shows today's portion when on track", () => {
+    const c = planReminderContent(ramadan(), START); // day 1, nothing read yet
+    expect(c.title).toContain("Today’s reading");
+    expect(c.body).toContain("1 juzʾ today");
+  });
+
+  it("celebrates a completed daily portion", () => {
+    const c = planReminderContent(setUnitsRead(ramadan(), 1), START);
+    expect(c.title).toContain("done");
+    expect(c.body).toContain("on track");
+  });
+
+  it("nudges gently when behind — never guilt-framed", () => {
+    const c = planReminderContent(setUnitsRead(ramadan(), 2), "2026-01-05"); // day 5, only 2 read
+    expect(c.title).toContain("pick up where you left off");
+    expect(c.body).toContain("3 juzʾ");
+    expect(c.body.toLowerCase()).not.toMatch(/missed|failed|behind|should/);
   });
 });
