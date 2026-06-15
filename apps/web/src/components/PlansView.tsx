@@ -55,9 +55,13 @@ export function PlansView() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const refresh = () => setPlan(readActivePlan());
+    const refresh = () => {
+      void readActivePlan().then((p) => {
+        setPlan(p);
+        setReady(true);
+      });
+    };
     refresh();
-    setReady(true);
     window.addEventListener(READING_PLAN_EVENT, refresh);
     return () => window.removeEventListener(READING_PLAN_EVENT, refresh);
   }, []);
@@ -175,7 +179,7 @@ export function PlansView() {
           <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 14 }}>
             <button
               type="button"
-              onClick={() => toggleDay(day)}
+              onClick={() => void toggleDay(day)}
               className="noor-press"
               style={{
                 padding: "9px 16px",
@@ -192,7 +196,7 @@ export function PlansView() {
             </button>
             <button
               type="button"
-              onClick={() => clearPlan()}
+              onClick={() => void clearPlan()}
               className="noor-press"
               style={{
                 padding: "9px 16px",
@@ -289,7 +293,7 @@ export function PlansView() {
               type="button"
               onClick={() => {
                 if (isActive && portion) window.location.href = targetHref(portion);
-                else startPlan(pl.id);
+                else void startPlan(pl.id);
               }}
               className="noor-press"
               style={{

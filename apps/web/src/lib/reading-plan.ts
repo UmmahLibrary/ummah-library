@@ -1,14 +1,12 @@
 /**
- * Local-first reading-plan progress (ADR 0006). The plan catalogue and the pure
- * schedule maths live in `@ummahlibrary/core`; this layer persists the *started*
- * plan (an `ActivePlan` snapshot) in `localStorage` (`ul.readingPlan`) and
- * broadcasts a window event so the plans page re-renders. Mirrors the mobile
- * persistence.
+ * Local-first reading-plan glue. Persistence goes through the `PlanStore` port
+ * (web adapter `webPlanStore`, ADR 0024); this layer adds the business helpers
+ * and broadcasts a window event so the plans page re-renders. Mirrors mobile.
  */
 import { type ActivePlan, activatePlan, templateById, toggleDayComplete } from "@ummahlibrary/core";
+import { webPlanStore as store } from "./plan-store";
 
 export const READING_PLAN_EVENT = "ul.readingPlan";
-const KEY = "ul.readingPlan";
 
 /** Today as a local `YYYY-MM-DD` string — the clock the pure core is fed. */
 export function todayStr(d = new Date()): string {
@@ -24,40 +22,26 @@ function emit(): void {
   }
 }
 
-export function readActivePlan(): ActivePlan | null {
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as ActivePlan) : null;
-  } catch {
-    return null;
-  }
+export function readActivePlan(): Promise<ActivePlan | null> {
+  return store.read();
 }
 
-function write(plan: ActivePlan): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(plan));
-  } catch {
-    /* storage unavailable */
-  }
+export async function startPlan(templateId: string): Promise<void> {
+  const template = templateById(templateId);
+  if (!template) return;
+  await store.write(activatePlan(template, todayStr()));
   emit();
 }
 
-export function startPlan(templateId: string): void {
-  const template = templateById(templateId);
-  if (template) write(activatePlan(template, todayStr()));
-}
-
-export function clearPlan(): void {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    /* ignore */
-  }
+export async function clearPlan(): Promise<void> {
+  await store.clear();
   emit();
 }
 
 /** Toggle a 1-based day's completion (advances/retreats the linear cursor). */
-export function toggleDay(day: number): void {
-  const plan = readActivePlan();
-  if (plan) write(toggleDayComplete(plan, day));
+export async function toggleDay(day: number): Promise<void> {
+  const plan = await store.read();
+  if (!plan) return;
+  await store.write(toggleDayComplete(plan, day));
+  emit();
 }
