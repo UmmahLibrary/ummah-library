@@ -35,4 +35,17 @@ describe("TasbihPageClient", () => {
 
     expect(dial()).toHaveAccessibleName(/0 of 34/); // reset, target 34
   });
+
+  it("the Reset button clears the running count and persists it", async () => {
+    render(<TasbihPageClient />);
+
+    const d = await screen.findByRole("button", { name: /Count/ });
+    await userEvent.click(d);
+    await userEvent.click(d);
+    expect(dial()).toHaveAccessibleName(/2 of 33/);
+
+    await userEvent.click(screen.getByRole("button", { name: "Reset" }));
+    expect(dial()).toHaveAccessibleName(/0 of 33/);
+    expect(JSON.parse(localStorage.getItem("ul.tasbih2") ?? "{}").total).toBe(0);
+  });
 });
