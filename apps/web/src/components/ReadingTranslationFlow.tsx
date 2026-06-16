@@ -24,8 +24,8 @@ export function ReadingTranslationFlow({ surah, ayat }: { surah: number; ayat: n
   useEffect(() => {
     let active = true;
     async function load() {
-      const ids = readEditions();
-      const activeId = resolveActiveTranslation(ids, readReadingTranslation(), DEFAULT_EDITIONS[0]!);
+      const ids = await readEditions();
+      const activeId = resolveActiveTranslation(ids, await readReadingTranslation(), DEFAULT_EDITIONS[0]!);
       const [catalogue, textByAya] = await Promise.all([
         fetchCatalogue(),
         fetchEditionSurah(activeId, surah),

@@ -27,7 +27,7 @@ export function TafsirSample({ tafsirs }: { tafsirs: TafsirMeta[] }) {
   const [state, setState] = useState<"loading" | "ready" | "empty">("loading");
 
   useEffect(() => {
-    setTafsirId(readTafsir(tafsirs[0]?.id ?? ""));
+    void readTafsir(tafsirs[0]?.id ?? "").then(setTafsirId);
     const onChange = (e: Event) => setTafsirId((e as CustomEvent<string>).detail);
     window.addEventListener(TAFSIR_KEY, onChange as EventListener);
     return () => window.removeEventListener(TAFSIR_KEY, onChange as EventListener);

@@ -30,7 +30,7 @@ export function AyahTranslations({ surah, aya }: { surah: number; aya: number })
   useEffect(() => {
     let active = true;
     async function load() {
-      const ids = readEditions();
+      const ids = await readEditions();
       if (ids.length === 0) {
         if (active) {
           setLines([]);

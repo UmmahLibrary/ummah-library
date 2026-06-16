@@ -8,6 +8,7 @@
  * there is no longer a server-rendered set to toggle with CSS.
  */
 import type { Translation } from "@ummahlibrary/core";
+import { webSettingsStore as store } from "./settings-store";
 
 /** The edition fields the reader UI needs (a view over `Translation`). */
 export type EditionChoice = Pick<Translation, "id" | "name" | "author" | "language" | "direction">;
@@ -37,37 +38,21 @@ export function defaultEditions(): string[] {
   return DEFAULT_EDITIONS;
 }
 
-export function readEditions(): string[] {
-  try {
-    const raw = localStorage.getItem(EDITIONS_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : defaultEditions();
-  } catch {
-    return defaultEditions();
-  }
+export async function readEditions(): Promise<string[]> {
+  const ed = (await store.read()).editions;
+  return ed ?? defaultEditions();
 }
 
-export function writeEditions(ids: string[]): void {
-  try {
-    localStorage.setItem(EDITIONS_KEY, JSON.stringify(ids));
-  } catch {
-    /* storage unavailable — ignore */
-  }
+export async function writeEditions(ids: string[]): Promise<void> {
+  await store.writeEditions(ids);
   window.dispatchEvent(new CustomEvent(EDITIONS_KEY, { detail: ids }));
 }
 
-export function readReadingTranslation(): string | null {
-  try {
-    return localStorage.getItem(READING_TR_KEY);
-  } catch {
-    return null;
-  }
+export async function readReadingTranslation(): Promise<string | null> {
+  return (await store.read()).readingTranslation;
 }
 
-export function writeReadingTranslation(id: string): void {
-  try {
-    localStorage.setItem(READING_TR_KEY, id);
-  } catch {
-    /* storage unavailable — ignore */
-  }
+export async function writeReadingTranslation(id: string): Promise<void> {
+  await store.writeReadingTranslation(id);
   window.dispatchEvent(new CustomEvent(READING_TR_KEY, { detail: id }));
 }

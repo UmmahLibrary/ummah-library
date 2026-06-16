@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { readTafsir } from "../lib/tafsir";
 import { TafsirPicker } from "./TafsirPicker";
+
+beforeEach(() => localStorage.clear());
 
 const tafsirs = [
   { id: "en-jalalayn", name: "Jalālayn" },
@@ -22,6 +24,6 @@ describe("TafsirPicker", () => {
     await userEvent.selectOptions(select, "en-ibn-kathir");
 
     expect(select.value).toBe("en-ibn-kathir");
-    expect(readTafsir("")).toBe("en-ibn-kathir");
+    await waitFor(async () => expect(await readTafsir("")).toBe("en-ibn-kathir"));
   });
 });

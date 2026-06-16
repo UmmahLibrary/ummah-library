@@ -1,0 +1,40 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { webSettingsStore as store } from "./settings-store";
+
+beforeEach(() => localStorage.clear());
+afterEach(() => localStorage.clear());
+
+describe("webSettingsStore", () => {
+  it("reads null for every unset preference", async () => {
+    expect(await store.read()).toEqual({
+      editions: null,
+      readingMode: null,
+      readingTranslation: null,
+      reciter: null,
+      tafsir: null,
+      scale: null,
+    });
+  });
+
+  it("round-trips every preference under its existing key", async () => {
+    await store.writeEditions(["eng-sahih"]);
+    await store.writeReadingMode("reading");
+    await store.writeReadingTranslation("urd-jalandhry");
+    await store.writeReciter("alafasy");
+    await store.writeTafsir("ar-muyassar");
+    await store.writeScale(1.4);
+
+    const s = await store.read();
+    expect(s.editions).toEqual(["eng-sahih"]);
+    expect(s.readingMode).toBe("reading");
+    expect(s.readingTranslation).toBe("urd-jalandhry");
+    expect(s.reciter).toBe("alafasy");
+    expect(s.tafsir).toBe("ar-muyassar");
+    expect(s.scale).toBe(1.4);
+
+    // editions and scale are JSON; the rest are plain strings (unchanged format)
+    expect(localStorage.getItem("ul.editions")).toBe('["eng-sahih"]');
+    expect(localStorage.getItem("ul.scale")).toBe("1.4");
+    expect(localStorage.getItem("ul.reciter")).toBe("alafasy");
+  });
+});
