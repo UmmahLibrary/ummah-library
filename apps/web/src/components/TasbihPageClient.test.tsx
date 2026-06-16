@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -16,11 +16,13 @@ import { TasbihPageClient } from "./TasbihPageClient";
 
 const dial = () => screen.getByRole("button", { name: /Count/ });
 
+beforeEach(() => localStorage.clear());
+
 describe("TasbihPageClient", () => {
   it("counts up when the dial is tapped", async () => {
     render(<TasbihPageClient />);
 
-    expect(dial()).toHaveAccessibleName(/0 of 33/);
+    expect(await screen.findByRole("button", { name: /Count/ })).toHaveAccessibleName(/0 of 33/);
     await userEvent.click(dial());
     expect(dial()).toHaveAccessibleName(/1 of 33/);
   });
@@ -28,7 +30,7 @@ describe("TasbihPageClient", () => {
   it("switching the dhikr preset resets the count and its target", async () => {
     render(<TasbihPageClient />);
 
-    await userEvent.click(dial()); // count → 1
+    await userEvent.click(await screen.findByRole("button", { name: /Count/ })); // count → 1
     await userEvent.click(screen.getByRole("button", { name: "Allāhu Akbar" }));
 
     expect(dial()).toHaveAccessibleName(/0 of 34/); // reset, target 34
