@@ -4,17 +4,21 @@
  * merge logic is pure in `@ummahlibrary/core`.
  */
 
-import { type MergeStrategy, buildBackup, mergeBackups, validateBackup } from "@ummahlibrary/core";
+import {
+  type MergeStrategy,
+  buildBackup,
+  isBackupKey,
+  mergeBackups,
+  validateBackup,
+} from "@ummahlibrary/core";
 
-const PREFIX = "ul.";
-
-/** Every `ul.*` key currently in localStorage, with its raw string value. */
+/** Every local-first (`ul.*`) key in localStorage, with its raw string value. */
 export function collectLocalData(): Record<string, string> {
   const out: Record<string, string> = {};
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(PREFIX)) {
+      if (key && isBackupKey(key)) {
         const value = localStorage.getItem(key);
         if (value !== null) out[key] = value;
       }

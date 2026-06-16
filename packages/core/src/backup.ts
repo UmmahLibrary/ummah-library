@@ -8,6 +8,20 @@
 export const BACKUP_VERSION = 1;
 export const BACKUP_APP = "ummah-library";
 
+/**
+ * The shared namespace every local-first key lives under (`ul.readingPlan`,
+ * `ul.editions`, …). It's the single mechanism the backup uses to discover the
+ * data the typed stores persist (ADR 0024): every store adapter writes under
+ * this prefix, and the backup collects exactly the keys that match it, so a new
+ * store is captured automatically with no backup change.
+ */
+export const BACKUP_KEY_PREFIX = "ul.";
+
+/** Whether a storage key belongs to the app's local-first data (and the backup). */
+export function isBackupKey(key: string): boolean {
+  return key.startsWith(BACKUP_KEY_PREFIX);
+}
+
 /** A portable snapshot of the user's local data (keys → their stored strings). */
 export interface BackupFile {
   app: typeof BACKUP_APP;

@@ -1,11 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
   BACKUP_APP,
+  BACKUP_KEY_PREFIX,
   BACKUP_VERSION,
   buildBackup,
+  isBackupKey,
   mergeBackups,
   validateBackup,
 } from "./backup";
+
+describe("isBackupKey", () => {
+  it("matches only the shared local-first prefix", () => {
+    expect(BACKUP_KEY_PREFIX).toBe("ul.");
+    expect(isBackupKey("ul.readingPlan")).toBe(true);
+    expect(isBackupKey("ul.editions")).toBe(true);
+    expect(isBackupKey("theme")).toBe(false);
+    expect(isBackupKey("other.key")).toBe(false);
+  });
+});
 
 describe("buildBackup", () => {
   it("wraps data in a versioned, timestamped envelope", () => {
