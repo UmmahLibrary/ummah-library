@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DHIKR_PHRASES } from "@ummahlibrary/core";
+import { DHIKR_PHRASES, type TasbihRecord, tasbihState } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
 import { NoorPageFrame } from "./NoorPageFrame";
+import { DEFAULT_TASBIH, readTasbih, writeTasbih } from "../lib/tasbih";
 
 const PRESET_IDS = ["subhanallah", "alhamdulillah", "allahuakbar", "tahlil"] as const;
 
@@ -14,85 +15,53 @@ const PHRASE_TARGETS: Record<string, number> = {
   tahlil: 100,
 };
 
-const STORAGE_KEY = "ul.tasbih2";
-
-interface Stored {
-  phraseId: string;
-  count: number;
-  cycles: number;
-}
-
-function load(): Stored {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Stored;
-  } catch {
-    /* ignore */
-  }
-  return { phraseId: DHIKR_PHRASES[0]!.id, count: 0, cycles: 0 };
-}
-
-function save(s: Stored) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  } catch {
-    /* ignore */
-  }
-}
-
 export function TasbihPageClient() {
   const [ready, setReady] = useState(false);
-  const [state, setState] = useState<Stored>({
-    phraseId: DHIKR_PHRASES[0]!.id,
-    count: 0,
-    cycles: 0,
-  });
+  const [state, setState] = useState<TasbihRecord>({ ...DEFAULT_TASBIH });
   const [pulse, setPulse] = useState(0);
 
   useEffect(() => {
-    const stored = load();
-    setState(stored);
-    setReady(true);
+    void readTasbih().then((stored) => {
+      setState(stored);
+      setReady(true);
+    });
   }, []);
 
   const presets = DHIKR_PHRASES.filter((p) => (PRESET_IDS as readonly string[]).includes(p.id));
   const phrase = DHIKR_PHRASES.find((p) => p.id === state.phraseId) ?? presets[0]!;
-  const target = PHRASE_TARGETS[state.phraseId] ?? 33;
+  const view = tasbihState(state.total, state.target);
+  const target = state.target;
 
-  function update(next: Stored) {
+  function update(next: TasbihRecord) {
     setState(next);
-    save(next);
+    void writeTasbih(next);
   }
 
   function tap() {
     setPulse((v) => v + 1);
     setState((prev) => {
-      const newCount = prev.count + 1;
-      const target = PHRASE_TARGETS[prev.phraseId] ?? 33;
-      const next: Stored =
-        newCount >= target
-          ? { ...prev, count: 0, cycles: prev.cycles + 1 }
-          : { ...prev, count: newCount };
-      save(next);
+      const next: TasbihRecord = { ...prev, total: prev.total + 1 };
+      void writeTasbih(next);
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-        navigator.vibrate(newCount >= target ? 60 : 12);
+        // count wraps to 0 exactly when a round completes
+        navigator.vibrate(tasbihState(next.total, next.target).count === 0 ? 60 : 12);
       }
       return next;
     });
   }
 
   function selectPhrase(phraseId: string) {
-    update({ phraseId, count: 0, cycles: 0 });
+    update({ phraseId, total: 0, target: PHRASE_TARGETS[phraseId] ?? 33 });
   }
 
   function reset() {
-    update({ phraseId: state.phraseId, count: 0, cycles: 0 });
+    update({ ...state, total: 0 });
   }
 
-  const pct = target > 0 ? state.count / target : 0;
+  const pct = target > 0 ? view.count / target : 0;
   const R = 130;
   const C = 2 * Math.PI * R;
-  const totalToday = state.cycles * target + state.count;
+  const totalToday = view.total;
 
   const resetBtn = (
     <button
@@ -164,7 +133,7 @@ export function TasbihPageClient() {
           <div
             onClick={tap}
             role="button"
-            aria-label={`Count — ${state.count} of ${target}`}
+            aria-label={`Count — ${view.count} of ${target}`}
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -250,7 +219,7 @@ export function TasbihPageClient() {
                     textAlign: "center",
                   }}
                 >
-                  {state.count}
+                  {view.count}
                 </div>
                 <div
                   style={{
@@ -271,7 +240,7 @@ export function TasbihPageClient() {
           <div style={{ display: "flex", justifyContent: "center", gap: 28, marginTop: 26 }}>
             {(
               [
-                { big: state.cycles, label: "Cycles complete" },
+                { big: view.rounds, label: "Cycles complete" },
                 { big: totalToday, label: "Total today" },
               ] as const
             ).map(({ big, label }) => (

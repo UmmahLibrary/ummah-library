@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, Vibration, View } from "../Type";
 import Svg, { Circle } from "react-native-svg";
 import { DHIKR_PHRASES, TASBIH_TARGETS, tasbihState } from "@ummahlibrary/core";
-import { KEYS, getJSON, setJSON } from "../storage";
+import { mobileTasbihStore as store } from "../tasbih-store";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 
@@ -21,12 +21,12 @@ export function TasbihScreen() {
   const [state, setState] = useState<Stored>(DEFAULT);
 
   useEffect(() => {
-    void getJSON<Stored>(KEYS.tasbih, DEFAULT).then(setState);
+    void store.read().then((s) => setState(s ?? DEFAULT));
   }, []);
 
   function persist(next: Stored) {
     setState(next);
-    void setJSON(KEYS.tasbih, next);
+    void store.write(next);
   }
 
   const view = tasbihState(state.total, state.target);

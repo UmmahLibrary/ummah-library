@@ -18,6 +18,7 @@ import type {
 } from "./entities";
 import type { Collection } from "./collections";
 import type { PrayerTrackerLog } from "./prayer-tracker";
+import type { TasbihRecord } from "./tasbih";
 import type { HifzCard } from "./hifz";
 import type { Coordinates, Madhab, PrayerTimings } from "./prayer";
 import type { ActivePlan, PlanTemplate } from "./reading-plans";
@@ -244,4 +245,15 @@ export interface LibraryStore {
 export interface PrayerTrackerStore {
   read(): Promise<PrayerTrackerLog>;
   write(log: PrayerTrackerLog): Promise<void>;
+}
+
+/**
+ * Persists the tasbih counter on-device (ADR 0024): the chosen phrase, a running
+ * total, and the round size. Web uses `localStorage`, mobile `AsyncStorage`; a
+ * synced adapter (#25) replaces either without touching the counter logic
+ * (`tasbihState`). `null` means the reader hasn't counted yet.
+ */
+export interface TasbihStore {
+  read(): Promise<TasbihRecord | null>;
+  write(record: TasbihRecord): Promise<void>;
 }

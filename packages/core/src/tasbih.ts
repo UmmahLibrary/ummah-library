@@ -41,3 +41,10 @@ export function tasbihState(total: number, target: number): TasbihState {
   const safeTotal = Math.max(0, Math.floor(total));
   return { count: safeTotal % t, rounds: Math.floor(safeTotal / t), total: safeTotal };
 }
+
+/** The persisted tasbih counter: the chosen phrase, a running total, the round size. */
+export interface TasbihRecord {
+  phraseId: string;
+  total: number;
+  target: number;
+}
