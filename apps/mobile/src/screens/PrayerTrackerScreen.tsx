@@ -15,7 +15,7 @@ import {
   statusFor,
 } from "@ummahlibrary/core";
 import { useTheme, type Palette } from "../theme";
-import { KEYS, getJSON, setJSON } from "../storage";
+import { mobilePrayerTrackerStore as prayerStore } from "../prayer-tracker-store";
 import { localISODate } from "../utils";
 
 const STATUS_LABEL: Record<PrayerStatus, string> = {
@@ -35,13 +35,13 @@ export function PrayerTrackerScreen() {
   const today = localISODate(new Date());
 
   useEffect(() => {
-    void getJSON<PrayerTrackerLog>(KEYS.prayerLog, {}).then(setLog);
+    void prayerStore.read().then(setLog);
   }, []);
 
   function cycle(prayer: (typeof OBLIGATORY_PRAYERS)[number]) {
     setLog((prev) => {
       const next = setPrayerStatus(prev, today, prayer, nextPrayerStatus(statusFor(prev[today], prayer)));
-      void setJSON(KEYS.prayerLog, next);
+      void prayerStore.write(next);
       return next;
     });
   }

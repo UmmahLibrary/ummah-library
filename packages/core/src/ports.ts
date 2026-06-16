@@ -17,6 +17,7 @@ import type {
   VerseKey,
 } from "./entities";
 import type { Collection } from "./collections";
+import type { PrayerTrackerLog } from "./prayer-tracker";
 import type { HifzCard } from "./hifz";
 import type { Coordinates, Madhab, PrayerTimings } from "./prayer";
 import type { ActivePlan, PlanTemplate } from "./reading-plans";
@@ -232,4 +233,15 @@ export interface LibraryStore {
   /** Per-ayah notes, `{ "sura:aya": text }`. */
   readNotes(): Promise<Record<string, string>>;
   writeNotes(notes: Record<string, string>): Promise<void>;
+}
+
+/**
+ * Persists the prayer tracker log on-device (ADR 0024): which of the five daily
+ * prayers were prayed (on time / late) each day. Web uses `localStorage`, mobile
+ * `AsyncStorage`; a synced adapter (#25) replaces either without touching the
+ * tracker logic.
+ */
+export interface PrayerTrackerStore {
+  read(): Promise<PrayerTrackerLog>;
+  write(log: PrayerTrackerLog): Promise<void>;
 }
