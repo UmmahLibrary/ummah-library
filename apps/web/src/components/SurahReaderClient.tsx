@@ -17,6 +17,7 @@ import { ReaderShortcuts } from "./ReaderShortcuts";
 import { ReadingTracker } from "./ReadingTracker";
 import { PlanReaderChip } from "./PlanReaderChip";
 import { recordMushafPage } from "../lib/reading-goals";
+import { writeReadingMode } from "../lib/reader-prefs";
 
 type ReadingMode = "translation" | "reading" | "reading-tr";
 
@@ -112,32 +113,19 @@ export function SurahReaderClient({
   const pages = useMemo(() => pagesOf(surah.number, ayahs), [surah.number, ayahs]);
   const lastPageRef = useRef(0);
 
-  // Restore persisted reading mode on mount
+  // Restore persisted reading mode on mount. The mode is restored pre-paint into
+  // `data-reading-mode` by the layout bootstrap (the sole sync read, for FOUC).
   useEffect(() => {
     const saved = document.documentElement.dataset.readingMode as ReadingMode | undefined;
     if (saved && SEG_TO_MODE[MODE_TO_SEG[saved] ?? ""] !== undefined) {
       setMode(saved);
-    } else {
-      try {
-        const ls = localStorage.getItem("ul.readingMode") as ReadingMode | null;
-        if (ls && ls in MODE_TO_SEG) {
-          setMode(ls);
-          document.documentElement.dataset.readingMode = ls;
-        }
-      } catch {
-        /* ignore */
-      }
     }
   }, []);
 
-  // Sync mode to DOM (for CSS-based mode switching used by existing components)
+  // Sync mode to the DOM (CSS-based switching) and persist it through the store.
   useEffect(() => {
     document.documentElement.dataset.readingMode = mode;
-    try {
-      localStorage.setItem("ul.readingMode", mode);
-    } catch {
-      /* ignore */
-    }
+    void writeReadingMode(mode);
   }, [mode]);
 
   const chooseMode = (seg: string) => {

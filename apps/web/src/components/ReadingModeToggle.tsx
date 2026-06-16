@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { writeReadingMode } from "../lib/reader-prefs";
 
 /**
  * Reading mode, mirroring Quran.com's two-level control:
@@ -24,11 +25,7 @@ export function ReadingModeToggle() {
   function choose(next: Mode) {
     setMode(next);
     document.documentElement.dataset.readingMode = next;
-    try {
-      localStorage.setItem("ul.readingMode", next);
-    } catch {
-      /* ignore */
-    }
+    void writeReadingMode(next);
   }
 
   const isReading = mode === "reading" || mode === "reading-tr";
