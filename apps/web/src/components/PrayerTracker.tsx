@@ -49,9 +49,9 @@ export function PrayerTracker() {
 
   useEffect(() => {
     setTodayStr(today());
-    setLog(readPrayerLog());
+    void readPrayerLog().then(setLog);
     setReady(true);
-    const onChange = () => setLog(readPrayerLog());
+    const onChange = () => void readPrayerLog().then(setLog);
     window.addEventListener(PRAYER_TRACKER_EVENT, onChange);
     return () => window.removeEventListener(PRAYER_TRACKER_EVENT, onChange);
   }, []);
@@ -100,7 +100,7 @@ export function PrayerTracker() {
               <button
                 key={p}
                 type="button"
-                onClick={() => setLog(cyclePrayer(todayStr, p))}
+                onClick={() => void cyclePrayer(todayStr, p).then(setLog)}
                 aria-label={`${PRAYER_LABELS[p]}: ${statusLabel(st)} — tap to change`}
                 style={{
                   padding: "16px 6px",

@@ -48,19 +48,20 @@ export function ProfileView() {
 
   useEffect(() => {
     const t = today();
-    const log = readPrayerLog();
     const hifzStreak = getStreak().count;
-    const prayer = prayerStreak(log, t);
-    void Promise.all([readReadingState(), readCollections()]).then(([reading, collections]) =>
-      setS({
-        hifzStreak,
-        memorized: allRecords().length,
-        surahsStarted: surahProgressMap(new Date()).size,
-        prayerStreak: prayer,
-        names: namesLearned(),
-        saved: totalSavedAyahs(collections),
-        bestStreak: Math.max(hifzStreak, prayer, longestStreak(log), computeStreak(reading.activeDates, t)),
-      }),
+    void Promise.all([readReadingState(), readCollections(), readPrayerLog()]).then(
+      ([reading, collections, log]) => {
+        const prayer = prayerStreak(log, t);
+        setS({
+          hifzStreak,
+          memorized: allRecords().length,
+          surahsStarted: surahProgressMap(new Date()).size,
+          prayerStreak: prayer,
+          names: namesLearned(),
+          saved: totalSavedAyahs(collections),
+          bestStreak: Math.max(hifzStreak, prayer, longestStreak(log), computeStreak(reading.activeDates, t)),
+        });
+      },
     );
   }, []);
 
