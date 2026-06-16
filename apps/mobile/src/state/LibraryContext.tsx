@@ -21,6 +21,7 @@ import {
   isDue,
 } from "@ummahlibrary/core";
 import { KEYS, getJSON, setJSON } from "../storage";
+import { mobileLibraryStore as library } from "./library-store";
 import { EMPTY_STREAK, advanceStreak, type StreakData } from "../hifz";
 
 export interface HifzRecord {
@@ -79,12 +80,12 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void (async () => {
       const [bm, lr, hz, st, cols, nts] = await Promise.all([
-        getJSON<number[]>(KEYS.bookmarks, []),
+        library.readBookmarks(),
         getJSON<{ surah: number } | null>(KEYS.lastRead, null),
         getJSON<HifzStore>(KEYS.hifz, {}),
         getJSON<StreakData>(KEYS.hifzStreak, EMPTY_STREAK),
-        getJSON<Collection[]>(KEYS.collections, []),
-        getJSON<Record<string, string>>(KEYS.ayahNotes, {}),
+        library.readCollections(),
+        library.readNotes(),
       ]);
       setBookmarks(bm);
       setLastReadState(lr?.surah ?? null);
@@ -98,7 +99,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   const updateCollections = useCallback((next: Collection[]) => {
     setCollections(next);
-    void setJSON(KEYS.collections, next);
+    void library.writeCollections(next);
   }, []);
 
   const setNote = useCallback((ref: VerseKey, text: string) => {
@@ -107,7 +108,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       const next = { ...prev };
       if (text.trim()) next[key] = text;
       else delete next[key];
-      void setJSON(KEYS.ayahNotes, next);
+      void library.writeNotes(next);
       return next;
     });
   }, []);
@@ -123,7 +124,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const toggleBookmark = useCallback((surah: number) => {
     setBookmarks((prev) => {
       const next = prev.includes(surah) ? prev.filter((n) => n !== surah) : [...prev, surah];
-      void setJSON(KEYS.bookmarks, next);
+      void library.writeBookmarks(next);
       return next;
     });
   }, []);

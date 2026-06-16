@@ -6,6 +6,7 @@ import { N, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
 import { type EditionChoice, DEFAULT_EDITIONS, readEditions } from "../lib/editions";
 import { fetchCatalogue } from "../lib/catalogue";
+import { readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
 import { TranslationSettings } from "./TranslationSettings";
 import { TafsirPicker } from "./TafsirPicker";
 import { WBW_KEY } from "./WordByWord";
@@ -13,7 +14,6 @@ import { WBW_KEY } from "./WordByWord";
 const SCALE_KEY = "ul.scale";
 const SCALE_MIN = 0.8;
 const SCALE_MAX = 1.8;
-const BOOKMARKS_KEY = "ul.bookmarks";
 const LAST_READ_KEY = "ul.lastRead";
 const RECITER_KEY = "ul.reciter";
 
@@ -73,7 +73,7 @@ export function ReaderToolbar({
     const savedScale = read<number>(SCALE_KEY, 1);
     setScale(savedScale);
     document.documentElement.style.setProperty("--reading-scale", String(savedScale));
-    setBookmarked(read<number[]>(BOOKMARKS_KEY, []).includes(surahNumber));
+    void readBookmarks().then((list) => setBookmarked(list.includes(surahNumber)));
     write(LAST_READ_KEY, { surah: surahNumber });
     const r = localStorage.getItem(RECITER_KEY);
     if (r && reciters.some((x) => x.id === r)) setReciterId(r);
@@ -103,12 +103,7 @@ export function ReaderToolbar({
     document.documentElement.style.setProperty("--reading-scale", String(next));
   }
   function toggleBookmark() {
-    const list = read<number[]>(BOOKMARKS_KEY, []);
-    const next = list.includes(surahNumber)
-      ? list.filter((n) => n !== surahNumber)
-      : [...list, surahNumber].sort((a, b) => a - b);
-    write(BOOKMARKS_KEY, next);
-    setBookmarked(next.includes(surahNumber));
+    void toggleBm(surahNumber).then((next) => setBookmarked(next.includes(surahNumber)));
   }
   function chooseReciter(id: string) {
     setReciterId(id);

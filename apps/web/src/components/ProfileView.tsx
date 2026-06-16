@@ -51,14 +51,14 @@ export function ProfileView() {
     const log = readPrayerLog();
     const hifzStreak = getStreak().count;
     const prayer = prayerStreak(log, t);
-    void readReadingState().then((reading) =>
+    void Promise.all([readReadingState(), readCollections()]).then(([reading, collections]) =>
       setS({
         hifzStreak,
         memorized: allRecords().length,
         surahsStarted: surahProgressMap(new Date()).size,
         prayerStreak: prayer,
         names: namesLearned(),
-        saved: totalSavedAyahs(readCollections()),
+        saved: totalSavedAyahs(collections),
         bestStreak: Math.max(hifzStreak, prayer, longestStreak(log), computeStreak(reading.activeDates, t)),
       }),
     );

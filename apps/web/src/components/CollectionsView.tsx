@@ -36,8 +36,8 @@ export function CollectionsView() {
 
   useEffect(() => {
     const refresh = () => {
-      setCollections(readCollections());
-      setNotes(readNotes());
+      void readCollections().then(setCollections);
+      void readNotes().then(setNotes);
     };
     refresh();
     setReady(true);
@@ -96,7 +96,7 @@ export function CollectionsView() {
 
   function persist(next: Collection[]) {
     setCollections(next);
-    writeCollections(next);
+    void writeCollections(next);
   }
 
   if (!ready) return null;

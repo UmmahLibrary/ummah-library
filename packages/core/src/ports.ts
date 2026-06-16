@@ -16,6 +16,7 @@ import type {
   Translation,
   VerseKey,
 } from "./entities";
+import type { Collection } from "./collections";
 import type { HifzCard } from "./hifz";
 import type { Coordinates, Madhab, PrayerTimings } from "./prayer";
 import type { ActivePlan, PlanTemplate } from "./reading-plans";
@@ -213,4 +214,22 @@ export interface ReadingGoalsStore {
   writePages(pages: { date: string; pages: number[] }): Promise<void>;
   /** Save the khatma, or remove it when `null`. */
   writeKhatma(khatma: KhatmaPlan | null): Promise<void>;
+}
+
+/**
+ * Persists the reader's saved library on-device (ADR 0024): surah bookmarks,
+ * ayah collections, and per-ayah notes (keyed by `sura:aya`). Web uses
+ * `localStorage`, mobile `AsyncStorage`; a synced adapter (#25) replaces either
+ * without touching the library logic — one method per stored key.
+ */
+export interface LibraryStore {
+  /** Bookmarked surah numbers. */
+  readBookmarks(): Promise<number[]>;
+  writeBookmarks(surahs: number[]): Promise<void>;
+  /** Ayah collections, in display order. */
+  readCollections(): Promise<Collection[]>;
+  writeCollections(collections: Collection[]): Promise<void>;
+  /** Per-ayah notes, `{ "sura:aya": text }`. */
+  readNotes(): Promise<Record<string, string>>;
+  writeNotes(notes: Record<string, string>): Promise<void>;
 }
