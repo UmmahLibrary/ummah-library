@@ -10,8 +10,8 @@ import { markActivity, recordMushafPage } from "../lib/reading-goals";
  */
 export function ReadingTracker({ page }: { page?: number }) {
   useEffect(() => {
-    if (typeof page === "number") recordMushafPage(page);
-    else markActivity();
+    if (typeof page === "number") void recordMushafPage(page);
+    else void markActivity();
   }, [page]);
   return null;
 }

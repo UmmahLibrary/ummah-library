@@ -6,7 +6,7 @@ import { N, Khatam } from "@ummahlibrary/ui";
 import { allRecords, surahProgressMap } from "../lib/hifz-store";
 import { getStreak } from "../lib/hifz-streak";
 import { readPrayerLog, today } from "../lib/prayer-tracker";
-import { activeDates } from "../lib/reading-goals";
+import { readReadingState } from "../lib/reading-goals";
 import { readCollections } from "../lib/collections";
 
 interface Stats {
@@ -51,16 +51,17 @@ export function ProfileView() {
     const log = readPrayerLog();
     const hifzStreak = getStreak().count;
     const prayer = prayerStreak(log, t);
-    const stats: Stats = {
-      hifzStreak,
-      memorized: allRecords().length,
-      surahsStarted: surahProgressMap(new Date()).size,
-      prayerStreak: prayer,
-      names: namesLearned(),
-      saved: totalSavedAyahs(readCollections()),
-      bestStreak: Math.max(hifzStreak, prayer, longestStreak(log), computeStreak(activeDates(), t)),
-    };
-    setS(stats);
+    void readReadingState().then((reading) =>
+      setS({
+        hifzStreak,
+        memorized: allRecords().length,
+        surahsStarted: surahProgressMap(new Date()).size,
+        prayerStreak: prayer,
+        names: namesLearned(),
+        saved: totalSavedAyahs(readCollections()),
+        bestStreak: Math.max(hifzStreak, prayer, longestStreak(log), computeStreak(reading.activeDates, t)),
+      }),
+    );
   }, []);
 
   const statCards: [string, string][] = [

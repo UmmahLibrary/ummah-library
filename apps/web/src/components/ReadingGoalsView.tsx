@@ -14,12 +14,8 @@ import {
 } from "@ummahlibrary/core";
 import {
   READING_EVENT,
-  activeDates,
   clearKhatma,
-  pagesToday,
-  readGoal,
-  readingLog,
-  readKhatma,
+  readReadingState,
   today,
   writeGoal,
   writeKhatma,
@@ -74,13 +70,14 @@ export function ReadingGoalsView() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const refresh = () => {
-      setGoal(readGoal());
-      setStreak(computeStreak(activeDates(), today()));
-      setPages(pagesToday());
-      setWeek(lastSevenDays(readingLog()));
-      setKhatma(readKhatma());
-    };
+    const refresh = () =>
+      void readReadingState().then((s) => {
+        setGoal(s.goal);
+        setStreak(computeStreak(s.activeDates, today()));
+        setPages(s.pagesToday);
+        setWeek(lastSevenDays(s.log));
+        setKhatma(s.khatma);
+      });
     refresh();
     setReady(true);
     window.addEventListener(READING_EVENT, refresh);
@@ -89,7 +86,7 @@ export function ReadingGoalsView() {
 
   function changeGoal(next: number) {
     setGoal(next);
-    writeGoal(next);
+    void writeGoal(next);
   }
 
   function startKhatma(days: number) {
@@ -99,7 +96,7 @@ export function ReadingGoalsView() {
       targetDate: addDays(today(), days),
     };
     setKhatma(plan);
-    writeKhatma(plan);
+    void writeKhatma(plan);
   }
 
   function adjustKhatma(deltaPages: number) {
@@ -107,7 +104,7 @@ export function ReadingGoalsView() {
     const currentPage = Math.min(khatma.totalPages, Math.max(0, khatma.currentPage + deltaPages));
     const plan = { ...khatma, currentPage };
     setKhatma(plan);
-    writeKhatma(plan);
+    void writeKhatma(plan);
   }
 
   if (!ready) return null;
@@ -335,7 +332,7 @@ export function ReadingGoalsView() {
             <button onClick={() => adjustKhatma(-1)} style={pill(false)}>
               −1
             </button>
-            <button onClick={clearKhatma} style={pill(false)}>
+            <button onClick={() => void clearKhatma()} style={pill(false)}>
               Clear
             </button>
           </>

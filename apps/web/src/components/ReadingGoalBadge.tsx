@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { computeStreak, goalMet } from "@ummahlibrary/core";
-import { READING_EVENT, activeDates, pagesToday, readGoal, today } from "../lib/reading-goals";
+import { READING_EVENT, readReadingState, today } from "../lib/reading-goals";
 
 /** Home badge: today's streak and progress toward the daily reading goal. */
 export function ReadingGoalBadge() {
@@ -11,11 +11,9 @@ export function ReadingGoalBadge() {
 
   useEffect(() => {
     const update = () =>
-      setState({
-        streak: computeStreak(activeDates(), today()),
-        pages: pagesToday(),
-        goal: readGoal(),
-      });
+      void readReadingState().then((s) =>
+        setState({ streak: computeStreak(s.activeDates, today()), pages: s.pagesToday, goal: s.goal }),
+      );
     update();
     window.addEventListener(READING_EVENT, update);
     return () => window.removeEventListener(READING_EVENT, update);

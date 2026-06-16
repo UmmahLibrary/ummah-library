@@ -1,20 +1,17 @@
 /**
  * Local-first reading habit state (ADR 0006): a daily goal, an activity log
  * (which days you read — drives the streak), per-day Mushaf pages read (drives
- * the daily goal), and an optional khatma plan. All in `localStorage`; the
- * computation lives in `@ummahlibrary/core`. A window event lets the home badge
- * and the goals page re-render together.
+ * the daily goal), and an optional khatma plan. Persistence goes through the
+ * `ReadingGoalsStore` port (web adapter `webReadingGoalsStore`, ADR 0024); this
+ * layer adds the habit logic and a window event so the home badge and the goals
+ * page re-render together.
  */
 
 import type { KhatmaPlan } from "@ummahlibrary/core";
 import { advancePlanToPage } from "./reading-plan";
+import { webReadingGoalsStore as store } from "./reading-goals-store";
 
 export const READING_EVENT = "ul.reading";
-const GOAL_KEY = "ul.readingGoal"; // { target: number } pages/day
-const ACTIVE_KEY = "ul.readingActive"; // string[] of YYYY-MM-DD with any reading
-const PAGES_KEY = "ul.readingPages"; // { date: "YYYY-MM-DD", pages: number[] } today's distinct mushaf pages
-const LOG_KEY = "ul.readingLog"; // { "YYYY-MM-DD": number } pages read that day
-const KHATMA_KEY = "ul.khatma"; // KhatmaPlan | (absent)
 
 export const DEFAULT_GOAL = 4;
 
@@ -23,21 +20,6 @@ export function today(d = new Date()): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-function get<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-function set(key: string, value: unknown): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* storage unavailable */
-  }
-}
 function emit(): void {
   try {
     window.dispatchEvent(new CustomEvent(READING_EVENT));
@@ -46,70 +28,67 @@ function emit(): void {
   }
 }
 
-export function readGoal(): number {
-  return get<{ target: number }>(GOAL_KEY, { target: DEFAULT_GOAL }).target;
+/** The reader's resolved habit state for the badge, goals page and profile. */
+export interface ReadingState {
+  goal: number;
+  activeDates: string[];
+  log: Record<string, number>;
+  pagesToday: number;
+  khatma: KhatmaPlan | null;
 }
-export function writeGoal(target: number): void {
-  set(GOAL_KEY, { target: Math.max(1, Math.floor(target) || DEFAULT_GOAL) });
+
+export async function readReadingState(): Promise<ReadingState> {
+  const s = await store.read();
+  return {
+    goal: s.goal ?? DEFAULT_GOAL,
+    activeDates: s.activeDates,
+    log: s.log,
+    pagesToday: s.log[today()] ?? 0,
+    khatma: s.khatma,
+  };
+}
+
+export async function writeGoal(target: number): Promise<void> {
+  await store.writeGoal(Math.max(1, Math.floor(target) || DEFAULT_GOAL));
   emit();
 }
 
-/** Dates (YYYY-MM-DD) with any reading activity — pruned to the last ~400. */
-export function activeDates(): string[] {
-  return get<string[]>(ACTIVE_KEY, []);
-}
-export function readingLog(): Record<string, number> {
-  return get<Record<string, number>>(LOG_KEY, {});
-}
-export function pagesToday(): number {
-  return readingLog()[today()] ?? 0;
-}
-
 /** Record that the reader was opened today (keeps the streak alive). */
-export function markActivity(): void {
+export async function markActivity(): Promise<void> {
   const t = today();
-  const dates = activeDates();
-  if (!dates.includes(t)) {
-    dates.push(t);
-    set(ACTIVE_KEY, dates.slice(-400));
+  const s = await store.read();
+  if (!s.activeDates.includes(t)) {
+    await store.writeActiveDates([...s.activeDates, t].slice(-400));
     emit();
   }
 }
 
 /**
  * Record a Mushaf page as read today (de-duplicated), updating the daily page
- * count and advancing the khatma cursor. Also marks activity.
+ * count and advancing the khatma cursor. Also marks activity and advances the
+ * active reading plan (#69).
  */
-export function recordMushafPage(page: number): void {
-  markActivity();
+export async function recordMushafPage(page: number): Promise<void> {
   const t = today();
-  const seen = get<{ date: string; pages: number[] }>(PAGES_KEY, { date: t, pages: [] });
-  const pages = seen.date === t ? seen.pages : [];
+  const s = await store.read();
+  if (!s.activeDates.includes(t)) await store.writeActiveDates([...s.activeDates, t].slice(-400));
+
+  const pages = s.pages.date === t ? s.pages.pages : [];
   if (!pages.includes(page)) {
     pages.push(page);
-    set(PAGES_KEY, { date: t, pages });
-    const log = readingLog();
-    log[t] = pages.length;
-    set(LOG_KEY, log);
+    await store.writePages({ date: t, pages });
+    await store.writeLog({ ...s.log, [t]: pages.length });
   }
-  const plan = readKhatma();
-  if (plan && page > plan.currentPage) writeKhatma({ ...plan, currentPage: page });
-  void advancePlanToPage(page); // advance the active reading plan too (#69)
+  if (s.khatma && page > s.khatma.currentPage) await store.writeKhatma({ ...s.khatma, currentPage: page });
+  void advancePlanToPage(page);
   emit();
 }
 
-export function readKhatma(): KhatmaPlan | null {
-  return get<KhatmaPlan | null>(KHATMA_KEY, null);
-}
-export function writeKhatma(plan: KhatmaPlan): void {
-  set(KHATMA_KEY, plan);
+export async function writeKhatma(plan: KhatmaPlan): Promise<void> {
+  await store.writeKhatma(plan);
   emit();
 }
-export function clearKhatma(): void {
-  try {
-    localStorage.removeItem(KHATMA_KEY);
-  } catch {
-    /* ignore */
-  }
+export async function clearKhatma(): Promise<void> {
+  await store.writeKhatma(null);
   emit();
 }

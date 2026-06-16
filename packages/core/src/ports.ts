@@ -19,6 +19,7 @@ import type {
 import type { HifzCard } from "./hifz";
 import type { Coordinates, Madhab, PrayerTimings } from "./prayer";
 import type { ActivePlan, PlanTemplate } from "./reading-plans";
+import type { KhatmaPlan } from "./reading-goals";
 
 /** Access to the Arabic Quran text and surah structure. */
 export interface QuranRepository {
@@ -180,4 +181,36 @@ export interface PlanStore {
   write(plan: ActivePlan): Promise<void>;
   /** Stop the active plan. */
   clear(): Promise<void>;
+}
+
+/** The reader's habit state as persisted — one field per stored key (ADR 0024). */
+export interface ReadingGoalsState {
+  /** Daily page goal, or `null` if the reader hasn't set one. */
+  goal: number | null;
+  /** Dates (`YYYY-MM-DD`) with any reading activity — drives the streak. */
+  activeDates: string[];
+  /** Pages read per day, `{ "YYYY-MM-DD": count }`. */
+  log: Record<string, number>;
+  /** Today's distinct Mushaf pages (the `date` guards a day rollover). */
+  pages: { date: string; pages: number[] };
+  /** The optional khatma plan. */
+  khatma: KhatmaPlan | null;
+}
+
+/**
+ * Persists the reader's habit state on-device (ADR 0024): the daily goal, the
+ * activity log/streak, today's pages, and the khatma. The web adapter uses
+ * `localStorage`, mobile uses `AsyncStorage`; a synced adapter can replace
+ * either without touching the habit logic — the seam for #25. One method per
+ * stored key keeps writes as granular as the direct calls they replace.
+ */
+export interface ReadingGoalsStore {
+  /** The full habit snapshot (each key with its stored value or a default). */
+  read(): Promise<ReadingGoalsState>;
+  writeGoal(target: number): Promise<void>;
+  writeActiveDates(dates: string[]): Promise<void>;
+  writeLog(log: Record<string, number>): Promise<void>;
+  writePages(pages: { date: string; pages: number[] }): Promise<void>;
+  /** Save the khatma, or remove it when `null`. */
+  writeKhatma(khatma: KhatmaPlan | null): Promise<void>;
 }

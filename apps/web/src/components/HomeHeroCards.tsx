@@ -12,7 +12,7 @@ import {
 } from "@ummahlibrary/core";
 import { Khatam, N } from "@ummahlibrary/ui";
 import { HomePrayerCard } from "./HomePrayerCard";
-import { activeDates, pagesToday, readGoal, today } from "../lib/reading-goals";
+import { readReadingState, today } from "../lib/reading-goals";
 
 const COORDS_KEY = "ul.prayerCoords";
 const METHOD_KEY = "ul.prayerMethod";
@@ -55,11 +55,9 @@ export function HomeHeroCards() {
 
   useEffect(() => {
     setReady(true);
-    setReading({
-      pages: pagesToday(),
-      goal: readGoal(),
-      streak: computeStreak(activeDates(), today()),
-    });
+    void readReadingState().then((s) =>
+      setReading({ pages: s.pagesToday, goal: s.goal, streak: computeStreak(s.activeDates, today()) }),
+    );
     const saved = read<Coordinates | null>(COORDS_KEY, null);
     if (saved) {
       const method = localStorage.getItem(METHOD_KEY) ?? DEFAULT_CALCULATION_METHOD;
