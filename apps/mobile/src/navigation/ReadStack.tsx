@@ -9,6 +9,7 @@ import { ReadingGoalsScreen } from "../screens/ReadingGoalsScreen";
 import { MushafPageScreen } from "../screens/MushafPageScreen";
 import { TafsirScreen } from "../screens/TafsirScreen";
 import { PlansScreen } from "../screens/PlansScreen";
+import { PlanDetailScreen } from "../screens/PlanDetailScreen";
 import type { ReadStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<ReadStackParamList>();
@@ -45,6 +46,7 @@ export function ReadStack() {
       />
       <Stack.Screen name="Tafsir" component={TafsirScreen} options={{ title: "Tafsir" }} />
       <Stack.Screen name="Plans" component={PlansScreen} options={{ title: "Reading Plans" }} />
+      <Stack.Screen name="PlanDetail" component={PlanDetailScreen} options={{ title: "Plan", headerBackTitle: "Plans" }} />
     </Stack.Navigator>
   );
 }
