@@ -353,7 +353,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         </View>
       </ScrollView>
 
-      {activePlan && (
+      {activePlan && !activePlan.pausedOn && (
         <View style={styles.chipWrap} pointerEvents="none">
           <PlanChip plan={activePlan} styles={styles} colors={colors} />
         </View>

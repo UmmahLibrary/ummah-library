@@ -9,7 +9,9 @@ import {
   activatePlan,
   advanceCursorToPage,
   extendPlan,
+  pausePlan as applyPause,
   rebalance,
+  resumePlan as applyResume,
   templateById,
   toggleDayComplete,
 } from "@ummahlibrary/core";
@@ -23,13 +25,18 @@ export {
   computeTodayPortion,
   currentDay,
   daysAheadBehind,
+  effectiveToday,
   isDayComplete,
+  isPaused,
+  isPlanComplete,
   percentComplete,
   planDuration,
   planEndDate,
   planWeekWindow,
   rangeOfPages,
   todayProgress,
+  totalUnits,
+  unitWord,
   validatePlanDraft,
 } from "@ummahlibrary/core";
 export type {
@@ -87,4 +94,18 @@ export async function advancePlanToPage(page: number): Promise<void> {
   if (!plan) return;
   const next = advanceCursorToPage(plan, page);
   if (next.unitsRead !== plan.unitsRead) await store.write(next);
+}
+
+/** Pause the active plan, freezing its clock (#68). */
+export async function pausePlan(): Promise<void> {
+  const plan = await store.read();
+  if (!plan || plan.pausedOn) return;
+  await store.write(applyPause(plan, todayStr()));
+}
+
+/** Resume a paused plan, shifting its timeline past the break (#68). */
+export async function resumePlan(): Promise<void> {
+  const plan = await store.read();
+  if (!plan?.pausedOn) return;
+  await store.write(applyResume(plan, todayStr()));
 }

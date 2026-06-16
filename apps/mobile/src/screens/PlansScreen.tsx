@@ -21,6 +21,7 @@ import {
   daysAheadBehind,
   extendPlanBy,
   isDayComplete,
+  isPlanComplete,
   percentComplete,
   planDuration,
   planEndDate,
@@ -28,12 +29,14 @@ import {
   rangeOfPages,
   readActivePlan,
   rebalancePlan,
+  resumePlan,
   startCustomPlan,
   startPlan,
   todayStr,
   toggleDay,
   validatePlanDraft,
 } from "../plans";
+import { PlanCompletionCard } from "../components/PlanCompletionCard";
 import type { ReadStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "Plans">;
@@ -65,12 +68,16 @@ export function PlansScreen({ navigation }: Props) {
   useFocusEffect(refresh);
 
   const today = todayStr();
+  // Frozen at the pause day while paused (#68), so a break never reads as behind.
+  const viewToday = plan?.pausedOn ?? today;
+  const paused = !!plan?.pausedOn;
+  const complete = plan ? isPlanComplete(plan) : false;
   const totalDays = plan ? planDuration(plan) : 0;
-  const day = plan ? currentDay(plan, today) : 0;
-  const portion = plan ? computeTodayPortion(plan, today) : undefined;
+  const day = plan ? currentDay(plan, viewToday) : 0;
+  const portion = plan ? computeTodayPortion(plan, viewToday) : undefined;
   const pct = plan ? percentComplete(plan) : 0;
-  const behind = plan ? daysAheadBehind(plan, today) : 0;
-  const catchUp = plan ? catchUpPortion(plan, today) : undefined;
+  const behind = plan ? daysAheadBehind(plan, viewToday) : 0;
+  const catchUp = plan ? catchUpPortion(plan, viewToday) : undefined;
 
   // Custom plan draft — whole Quran by pages, by pace or by days-to-finish.
   const customRange = rangeOfPages(1, 604);
@@ -115,7 +122,9 @@ export function PlansScreen({ navigation }: Props) {
       <Text style={styles.h1}>Reading plans</Text>
       <Text style={styles.subtitle}>Structured journeys through the Book</Text>
 
-      {ready && plan && portion ? (
+      {ready && plan && complete ? (
+        <PlanCompletionCard plan={plan} onStart={(id) => void startPlan(id).then(refresh)} />
+      ) : ready && plan && portion ? (
         <>
           <View style={styles.activeCard}>
             <View style={styles.watermark} pointerEvents="none">
@@ -142,7 +151,7 @@ export function PlansScreen({ navigation }: Props) {
               </View>
               <View style={styles.activeMeta}>
                 <Text style={styles.activeKicker}>
-                  Active · Day {day} of {totalDays}
+                  {paused ? "⏸ Paused" : "Active"} · Day {day} of {totalDays}
                 </Text>
                 <Text style={styles.activeName}>{plan.template.name}</Text>
                 <Text style={styles.activeToday}>
@@ -167,6 +176,17 @@ export function PlansScreen({ navigation }: Props) {
             </Pressable>
             <Pressable style={styles.pill} onPress={() => void clearPlan().then(refresh)}>
               <Text style={styles.pillText}>Leave plan</Text>
+            </Pressable>
+            {paused && (
+              <Pressable style={[styles.pill, styles.pillOn]} onPress={() => void resumePlan().then(refresh)}>
+                <Text style={styles.pillTextOn}>▶ Resume</Text>
+              </Pressable>
+            )}
+            <Pressable
+              style={styles.pill}
+              onPress={() => navigation.navigate("PlanDetail", { id: plan.template.id })}
+            >
+              <Text style={styles.pillText}>Details</Text>
             </Pressable>
           </View>
 
