@@ -29,9 +29,10 @@ export function ReadingTranslationPicker() {
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const ids = readEditions();
-    setSelected(ids);
-    setActive(resolveActiveTranslation(ids, readReadingTranslation(), DEFAULT_EDITIONS[0]!));
+    void Promise.all([readEditions(), readReadingTranslation()]).then(([ids, rtr]) => {
+      setSelected(ids);
+      setActive(resolveActiveTranslation(ids, rtr, DEFAULT_EDITIONS[0]!));
+    });
     void fetchCatalogue().then(setCatalogue);
   }, []);
 
@@ -57,7 +58,7 @@ export function ReadingTranslationPicker() {
 
   function pick(id: string): void {
     setActive(id);
-    writeReadingTranslation(id);
+    void writeReadingTranslation(id);
     setOpen(false);
   }
 
@@ -67,7 +68,7 @@ export function ReadingTranslationPicker() {
     const nextActive = resolveActiveTranslation(ids, active, DEFAULT_EDITIONS[0]!);
     setSelected(ids);
     setActive(nextActive);
-    writeReadingTranslation(nextActive);
+    void writeReadingTranslation(nextActive);
   }
 
   return (

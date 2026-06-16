@@ -80,7 +80,7 @@ export function ReaderToolbar({
     const wbwOn = localStorage.getItem(WBW_KEY) === "1";
     setWbw(wbwOn);
     document.body.classList.toggle("wbw-on", wbwOn);
-    setSelected(new Set(readEditions()));
+    void readEditions().then((ids) => setSelected(new Set(ids)));
     void fetchCatalogue().then(setCatalogue);
   }, [surahNumber, reciters]);
 

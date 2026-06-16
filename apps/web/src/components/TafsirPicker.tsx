@@ -13,7 +13,7 @@ export function TafsirPicker({ tafsirs }: { tafsirs: TafsirMeta[] }) {
   const [id, setId] = useState(tafsirs[0]?.id ?? "");
 
   useEffect(() => {
-    setId(readTafsir(tafsirs[0]?.id ?? ""));
+    void readTafsir(tafsirs[0]?.id ?? "").then(setId);
   }, [tafsirs]);
 
   if (tafsirs.length <= 1) return null;
@@ -25,7 +25,7 @@ export function TafsirPicker({ tafsirs }: { tafsirs: TafsirMeta[] }) {
       value={id}
       onChange={(e) => {
         setId(e.target.value);
-        writeTafsir(e.target.value);
+        void writeTafsir(e.target.value);
       }}
     >
       {tafsirs.map((t) => (

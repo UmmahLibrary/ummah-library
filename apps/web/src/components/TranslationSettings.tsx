@@ -50,7 +50,7 @@ export function TranslationSettings({
   function commit(next: Set<string>): void {
     if (next.size === 0) next.add(DEFAULT_EDITIONS[0]!); // never hide everything
     onChange(next);
-    writeEditions([...next]); // persists + broadcasts `ul.editions`
+    void writeEditions([...next]); // persists + broadcasts `ul.editions`
   }
 
   function toggle(id: string): void {

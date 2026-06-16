@@ -17,7 +17,7 @@ export function EditionManager() {
   const [managing, setManaging] = useState(false);
 
   useEffect(() => {
-    setSelected(new Set(readEditions()));
+    void readEditions().then((ids) => setSelected(new Set(ids)));
     void fetchCatalogue().then(setCatalogue);
   }, []);
 
