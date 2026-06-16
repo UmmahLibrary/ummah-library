@@ -7,24 +7,16 @@ import type { IconName } from "@ummahlibrary/ui";
 import { type EditionChoice, DEFAULT_EDITIONS, readEditions } from "../lib/editions";
 import { fetchCatalogue } from "../lib/catalogue";
 import { readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
+import { readReciter, readScale, writeReciter, writeScale } from "../lib/reader-prefs";
 import { TranslationSettings } from "./TranslationSettings";
 import { TafsirPicker } from "./TafsirPicker";
 import { WBW_KEY } from "./WordByWord";
 
-const SCALE_KEY = "ul.scale";
 const SCALE_MIN = 0.8;
 const SCALE_MAX = 1.8;
 const LAST_READ_KEY = "ul.lastRead";
 const RECITER_KEY = "ul.reciter";
 
-function read<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
 function write(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -70,13 +62,15 @@ export function ReaderToolbar({
   const [selected, setSelected] = useState<Set<string>>(() => new Set(DEFAULT_EDITIONS));
 
   useEffect(() => {
-    const savedScale = read<number>(SCALE_KEY, 1);
-    setScale(savedScale);
-    document.documentElement.style.setProperty("--reading-scale", String(savedScale));
+    void readScale().then((s) => {
+      setScale(s);
+      document.documentElement.style.setProperty("--reading-scale", String(s));
+    });
     void readBookmarks().then((list) => setBookmarked(list.includes(surahNumber)));
     write(LAST_READ_KEY, { surah: surahNumber });
-    const r = localStorage.getItem(RECITER_KEY);
-    if (r && reciters.some((x) => x.id === r)) setReciterId(r);
+    void readReciter().then((r) => {
+      if (r && reciters.some((x) => x.id === r)) setReciterId(r);
+    });
     const wbwOn = localStorage.getItem(WBW_KEY) === "1";
     setWbw(wbwOn);
     document.body.classList.toggle("wbw-on", wbwOn);
@@ -99,7 +93,7 @@ export function ReaderToolbar({
   function changeScale(delta: number) {
     const next = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((scale + delta) * 10) / 10));
     setScale(next);
-    write(SCALE_KEY, next);
+    void writeScale(next);
     document.documentElement.style.setProperty("--reading-scale", String(next));
   }
   function toggleBookmark() {
@@ -107,12 +101,8 @@ export function ReaderToolbar({
   }
   function chooseReciter(id: string) {
     setReciterId(id);
-    try {
-      localStorage.setItem(RECITER_KEY, id);
-      window.dispatchEvent(new CustomEvent(RECITER_KEY, { detail: id }));
-    } catch {
-      /* ignore */
-    }
+    void writeReciter(id);
+    window.dispatchEvent(new CustomEvent(RECITER_KEY, { detail: id }));
     setPanel(null);
   }
 

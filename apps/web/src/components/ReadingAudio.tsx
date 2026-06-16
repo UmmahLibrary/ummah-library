@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { type ReciterPlugin, quranComAudioUrl, reciterAudioUrl } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
+import { readReciter, writeReciter } from "../lib/reader-prefs";
 
 const RECITER_KEY = "ul.reciter";
 const LOOP_KEY = "ul.loop";
@@ -83,8 +84,9 @@ export function ReadingAudio({
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem(RECITER_KEY);
-    if (saved && reciters.some((r) => r.id === saved)) setReciterId(saved);
+    void readReciter().then((saved) => {
+      if (saved && reciters.some((r) => r.id === saved)) setReciterId(saved);
+    });
     const savedLoop = localStorage.getItem(LOOP_KEY) === "1";
     setLoop(savedLoop);
     loopRef.current = savedLoop;
@@ -327,7 +329,7 @@ export function ReadingAudio({
             value={reciterId}
             onChange={(e) => {
               setReciterId(e.target.value);
-              localStorage.setItem(RECITER_KEY, e.target.value);
+              void writeReciter(e.target.value);
               stop();
             }}
             style={{
@@ -376,7 +378,7 @@ export function ReadingAudio({
           value={reciterId}
           onChange={(e) => {
             setReciterId(e.target.value);
-            localStorage.setItem(RECITER_KEY, e.target.value);
+            void writeReciter(e.target.value);
             stop();
           }}
         >

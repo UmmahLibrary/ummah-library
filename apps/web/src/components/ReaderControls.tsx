@@ -4,20 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EditionManager } from "./EditionManager";
 import { readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
+import { readScale, writeScale } from "../lib/reader-prefs";
 
 const LAST_READ_KEY = "ul.lastRead";
-const SCALE_KEY = "ul.scale";
 const SCALE_MIN = 0.8;
 const SCALE_MAX = 1.8;
-
-function read<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 function write(key: string, value: unknown): void {
   try {
@@ -44,15 +35,16 @@ export function ReaderControls({
     void readBookmarks().then((list) => setBookmarked(list.includes(surahNumber)));
     write(LAST_READ_KEY, { surah: surahNumber });
 
-    const savedScale = read<number>(SCALE_KEY, 1);
-    setScale(savedScale);
-    document.documentElement.style.setProperty("--reading-scale", String(savedScale));
+    void readScale().then((s) => {
+      setScale(s);
+      document.documentElement.style.setProperty("--reading-scale", String(s));
+    });
   }, [surahNumber]);
 
   function changeScale(delta: number): void {
     const next = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((scale + delta) * 10) / 10));
     setScale(next);
-    write(SCALE_KEY, next);
+    void writeScale(next);
     document.documentElement.style.setProperty("--reading-scale", String(next));
   }
 
