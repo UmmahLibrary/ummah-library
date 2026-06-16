@@ -257,3 +257,35 @@ export interface TasbihStore {
   read(): Promise<TasbihRecord | null>;
   write(record: TasbihRecord): Promise<void>;
 }
+
+/** Reader preferences as persisted — each `null` when the reader hasn't set it. */
+export interface StoredSettings {
+  /** Selected translation edition ids. */
+  editions: string[] | null;
+  /** Reading mode: `translation` | `reading` | `reading-tr`. */
+  readingMode: string | null;
+  /** The single "Reading → Translations" edition id. */
+  readingTranslation: string | null;
+  /** Selected reciter id. */
+  reciter: string | null;
+  /** Selected tafsir edition id. */
+  tafsir: string | null;
+  /** Reading font scale. */
+  scale: number | null;
+}
+
+/**
+ * Persists the reader's preferences on-device (ADR 0024): editions, reading
+ * mode, the reading translation, reciter, tafsir, and font scale. Web uses
+ * `localStorage`, mobile `AsyncStorage`; a synced adapter (#25) replaces either
+ * without touching the settings UI — one method per stored key.
+ */
+export interface SettingsStore {
+  read(): Promise<StoredSettings>;
+  writeEditions(ids: string[]): Promise<void>;
+  writeReadingMode(mode: string): Promise<void>;
+  writeReadingTranslation(id: string): Promise<void>;
+  writeReciter(id: string): Promise<void>;
+  writeTafsir(id: string): Promise<void>;
+  writeScale(scale: number): Promise<void>;
+}

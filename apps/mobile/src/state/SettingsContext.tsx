@@ -15,7 +15,7 @@ import {
 } from "react";
 import type { Translation } from "@ummahlibrary/core";
 import { api, type TafsirMeta } from "../api";
-import { KEYS, getJSON, getString, setJSON, setString } from "../storage";
+import { mobileSettingsStore as store } from "./settings-store";
 import { RECITER, TAFSIRS } from "../plugins";
 import { DEFAULT_EDITIONS, MAX_SCALE, MIN_SCALE, type ReadingMode } from "../types";
 
@@ -51,23 +51,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [tafsirs, setTafsirs] = useState<TafsirMeta[]>([]);
 
   useEffect(() => {
-    void (async () => {
-      const [ed, mode, rtr, reciter, tafsir, sc] = await Promise.all([
-        getJSON<string[]>(KEYS.editions, DEFAULT_EDITIONS),
-        getString(KEYS.readingMode),
-        getString(KEYS.readingTranslation),
-        getString(KEYS.reciter),
-        getString(KEYS.tafsir),
-        getJSON<number>(KEYS.scale, 1),
-      ]);
-      setEditionsState(ed.length > 0 ? ed : DEFAULT_EDITIONS);
-      if (mode === "translation" || mode === "reading" || mode === "reading-tr")
-        setReadingModeState(mode);
-      if (rtr) setReadingTranslationState(rtr);
-      if (reciter) setReciterIdState(reciter);
-      if (tafsir) setTafsirIdState(tafsir);
-      setScaleState(clampScale(sc));
-    })();
+    void store.read().then((s) => {
+      if (s.editions && s.editions.length > 0) setEditionsState(s.editions);
+      if (s.readingMode === "translation" || s.readingMode === "reading" || s.readingMode === "reading-tr")
+        setReadingModeState(s.readingMode);
+      if (s.readingTranslation) setReadingTranslationState(s.readingTranslation);
+      if (s.reciter) setReciterIdState(s.reciter);
+      if (s.tafsir) setTafsirIdState(s.tafsir);
+      if (s.scale != null) setScaleState(clampScale(s.scale));
+    });
     void api
       .listTranslationCatalog()
       .then(setCatalogue)
@@ -81,33 +73,33 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setEditions = useCallback((ids: string[]) => {
     const next = ids.length > 0 ? ids : DEFAULT_EDITIONS;
     setEditionsState(next);
-    void setJSON(KEYS.editions, next);
+    void store.writeEditions(next);
   }, []);
 
   const setReadingMode = useCallback((mode: ReadingMode) => {
     setReadingModeState(mode);
-    void setString(KEYS.readingMode, mode);
+    void store.writeReadingMode(mode);
   }, []);
 
   const setReadingTranslation = useCallback((id: string) => {
     setReadingTranslationState(id);
-    void setString(KEYS.readingTranslation, id);
+    void store.writeReadingTranslation(id);
   }, []);
 
   const setReciterId = useCallback((id: string) => {
     setReciterIdState(id);
-    void setString(KEYS.reciter, id);
+    void store.writeReciter(id);
   }, []);
 
   const setTafsirId = useCallback((id: string) => {
     setTafsirIdState(id);
-    void setString(KEYS.tafsir, id);
+    void store.writeTafsir(id);
   }, []);
 
   const setScale = useCallback((next: number) => {
     const clamped = clampScale(next);
     setScaleState(clamped);
-    void setJSON(KEYS.scale, clamped);
+    void store.writeScale(clamped);
   }, []);
 
   const value = useMemo<SettingsValue>(
