@@ -12,7 +12,7 @@ import {
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
 import { RAMADAN_EVENT, readFasts, readWorship, toggleFast, toggleWorship } from "../lib/ramadan";
-import { readingLog } from "../lib/reading-goals";
+import { readReadingState } from "../lib/reading-goals";
 
 const WORSHIP: { key: string; label: string; icon: IconName }[] = [
   { key: "suhur", label: "Suhūr", icon: "sun" },
@@ -78,7 +78,7 @@ export function RamadanView() {
     const sync = () => {
       setFasts(readFasts());
       setWorship(readWorship(today));
-      setPagesRead(Object.values(readingLog()).reduce((a, b) => a + b, 0));
+      void readReadingState().then((s) => setPagesRead(Object.values(s.log).reduce((a, b) => a + b, 0)));
     };
     sync();
     window.addEventListener(RAMADAN_EVENT, sync);

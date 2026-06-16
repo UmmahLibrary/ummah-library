@@ -159,7 +159,7 @@ export function SurahReaderClient({
     });
     if (current > 0 && current !== lastPageRef.current) {
       lastPageRef.current = current;
-      recordMushafPage(current);
+      void recordMushafPage(current);
     }
   }, []);
 
@@ -167,7 +167,7 @@ export function SurahReaderClient({
   useEffect(() => {
     const first = pageNumberOf({ sura: surah.number, aya: ayahs[0]?.aya ?? 1 });
     lastPageRef.current = first;
-    recordMushafPage(first);
+    void recordMushafPage(first);
   }, [surah.number, ayahs]);
 
   const segValue = MODE_TO_SEG[mode] ?? "verse";
