@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { readBookmarks } from "../lib/bookmarks";
 
 interface SurahRef {
   number: number;
@@ -26,7 +27,7 @@ export function ReadingShelf({ surahs }: { surahs: SurahRef[] }) {
 
   useEffect(() => {
     setLastRead(read<{ surah: number } | null>("ul.lastRead", null)?.surah ?? null);
-    setBookmarks(read<number[]>("ul.bookmarks", []));
+    void readBookmarks().then(setBookmarks);
     setReady(true);
   }, []);
 

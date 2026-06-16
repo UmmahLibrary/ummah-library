@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EditionManager } from "./EditionManager";
+import { readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
 
-const BOOKMARKS_KEY = "ul.bookmarks";
 const LAST_READ_KEY = "ul.lastRead";
 const SCALE_KEY = "ul.scale";
 const SCALE_MIN = 0.8;
@@ -41,7 +41,7 @@ export function ReaderControls({
 
   // Hydrate from localStorage and record this surah as last-read.
   useEffect(() => {
-    setBookmarked(read<number[]>(BOOKMARKS_KEY, []).includes(surahNumber));
+    void readBookmarks().then((list) => setBookmarked(list.includes(surahNumber)));
     write(LAST_READ_KEY, { surah: surahNumber });
 
     const savedScale = read<number>(SCALE_KEY, 1);
@@ -57,12 +57,7 @@ export function ReaderControls({
   }
 
   function toggleBookmark(): void {
-    const list = read<number[]>(BOOKMARKS_KEY, []);
-    const next = list.includes(surahNumber)
-      ? list.filter((n) => n !== surahNumber)
-      : [...list, surahNumber].sort((a, b) => a - b);
-    write(BOOKMARKS_KEY, next);
-    setBookmarked(next.includes(surahNumber));
+    void toggleBm(surahNumber).then((next) => setBookmarked(next.includes(surahNumber)));
   }
 
   return (

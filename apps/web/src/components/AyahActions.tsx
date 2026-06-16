@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  type Collection,
   collectionsWithAyah,
   createCard,
   createCollection,
@@ -126,7 +127,7 @@ export function AyahActions({
   const [tafsirOpen, setTafsirOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const [collections, setCollections] = useState(() => [] as ReturnType<typeof readCollections>);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [note, setNote] = useState("");
   const [newName, setNewName] = useState("");
   const [tracked, setTracked] = useState(false);
@@ -144,7 +145,7 @@ export function AyahActions({
 
   useEffect(() => {
     setTracked(isTracked({ sura: surah, aya }));
-    setCollections(readCollections());
+    void readCollections().then(setCollections);
   }, [surah, aya]);
 
   useEffect(() => {
@@ -186,25 +187,25 @@ export function AyahActions({
 
   // ── collections + note ──
   function openSave() {
-    setCollections(readCollections());
-    setNote(readNote(ref));
+    void readCollections().then(setCollections);
+    void readNote(ref).then(setNote);
     setSaveOpen((o) => !o);
   }
   function toggleCol(id: string) {
     const next = toggleAyah(collections, id, ref);
     setCollections(next);
-    writeCollections(next);
+    void writeCollections(next);
   }
   function addCollection() {
     const id = newId();
     const next = toggleAyah(createCollection(collections, id, newName), id, ref);
     setCollections(next);
-    writeCollections(next);
+    void writeCollections(next);
     setNewName("");
   }
   function saveNote(text: string) {
     setNote(text);
-    writeNote(ref, text);
+    void writeNote(ref, text);
   }
 
   // ── more menu actions ──
@@ -274,8 +275,8 @@ export function AyahActions({
 
   function addReflection() {
     setMoreOpen(false);
-    setCollections(readCollections());
-    setNote(readNote(ref));
+    void readCollections().then(setCollections);
+    void readNote(ref).then(setNote);
     setSaveOpen(true);
   }
 
