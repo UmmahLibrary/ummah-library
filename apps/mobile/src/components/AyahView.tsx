@@ -88,12 +88,17 @@ function AyahViewImpl({
         style={[styles.arabic, { fontSize: 26 * scale, lineHeight: 50 * scale }]}
         onPress={() => onPlayFrom(aya)}
       >
-        {words.map((w, i) => (
-          <Text key={i} style={playing && i === activeWord ? styles.wordActive : undefined}>
-            {w}
-            {i < words.length - 1 ? " " : ""}
-          </Text>
-        ))}
+        {/* Only the playing āyah splits into per-word spans (for highlighting);
+            every other āyah renders as a single text node, which keeps long
+            surahs cheap to scroll. */}
+        {playing
+          ? words.map((w, i) => (
+              <Text key={i} style={i === activeWord ? styles.wordActive : undefined}>
+                {w}
+                {i < words.length - 1 ? " " : ""}
+              </Text>
+            ))
+          : arabic}
       </Text>
 
       {translations.map((t) => (
