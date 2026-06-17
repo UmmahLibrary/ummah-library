@@ -18,6 +18,7 @@ import { useTheme, type Palette } from "../theme";
 import { useLibrary } from "../state/LibraryContext";
 import { AyahBadge } from "../components/AyahBadge";
 import { verseOfToday } from "../verses";
+import { readReadingState } from "../reading-goals";
 import { KEYS, getJSON, getString } from "../storage";
 import { fmtCountdown, fmtTime, localISODate } from "../utils";
 import type { HomeStackParamList } from "../navigation/types";
@@ -31,10 +32,15 @@ export function HomeScreen({ navigation }: Props) {
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
   const [now, setNow] = useState(() => new Date());
+  // Reading progress (daily pages / goal) for the continue-reading progress bar.
+  const [readPct, setReadPct] = useState(0);
 
   useEffect(() => {
     let active = true;
     void api.listSurahs().then((s) => active && setSurahs(s)).catch(() => undefined);
+    void readReadingState().then((s) => {
+      if (active) setReadPct(Math.min(1, s.goal > 0 ? s.pagesToday / s.goal : 0));
+    });
     return () => {
       active = false;
     };
@@ -126,6 +132,10 @@ export function HomeScreen({ navigation }: Props) {
                 </Text>
               </View>
               <Text style={styles.continueAr}>{last.name}</Text>
+            </View>
+            {/* Progress bar (design: h6 · radius3, gold) — daily reading progress */}
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${Math.round(readPct * 100)}%` }]} />
             </View>
           </Pressable>
         )}
@@ -221,6 +231,14 @@ function makeStyles(c: Palette) {
     continueName: { color: c.fg, fontSize: 17, fontFamily: FONT.bold },
     continueSub: { color: c.muted, fontSize: 13.5, marginTop: 2 },
     continueAr: { color: c.accentHi, fontSize: 24, writingDirection: "rtl", fontFamily: FONT.ar },
+    progressTrack: {
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: c.bg,
+      marginTop: 16,
+      overflow: "hidden",
+    },
+    progressFill: { height: "100%", borderRadius: 3, backgroundColor: c.accent },
     prayerStrip: {
       flexDirection: "row",
       alignItems: "center",
