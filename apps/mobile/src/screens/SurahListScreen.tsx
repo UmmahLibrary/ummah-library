@@ -19,6 +19,14 @@ import type { ReadStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "SurahList">;
 
+/** Lowercase + strip diacritics for accent-insensitive search. */
+const fold = (s: string): string =>
+  s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim()
+    .toLowerCase();
+
 type Tab = "surah" | "juz" | "rev";
 type Row =
   | { kind: "surah"; surah: Surah }
@@ -42,15 +50,17 @@ export function SurahListScreen({ navigation }: Props) {
       .catch(() => setError(true));
   }, []);
 
-  const q = query.trim().toLowerCase();
+  // Fold diacritics so "fatiha" matches "Al-Fātiḥah", "baqarah" matches
+  // "Al-Baqarah", etc. — users type surah names without the macrons/dots.
+  const q = fold(query);
   const filtered = useMemo(() => {
     const list = surahs ?? [];
     if (!q) return list;
     return list.filter(
       (s) =>
         String(s.number).startsWith(q) ||
-        s.transliteration.toLowerCase().includes(q) ||
-        s.englishName.toLowerCase().includes(q),
+        fold(s.transliteration).includes(q) ||
+        fold(s.englishName).includes(q),
     );
   }, [surahs, q]);
 
