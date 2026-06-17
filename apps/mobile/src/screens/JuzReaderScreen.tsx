@@ -53,7 +53,14 @@ export function JuzReaderScreen({ route }: Props) {
     let active = true;
     setLines(null);
     setError(false);
-    const parts = juzRange(juz);
+    if (!Number.isInteger(Number(juz)) || Number(juz) < 1 || Number(juz) > TOTAL_JUZ) {
+      setError(true);
+      return () => {
+        active = false;
+        audio.stop();
+      };
+    }
+    const parts = juzRange(Number(juz));
     Promise.all(
       parts.map(async (p) => {
         const [surah, tr] = await Promise.all([

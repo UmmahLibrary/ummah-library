@@ -126,6 +126,15 @@ export function SurahReaderScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     setError(false);
+    // Clear the previous surah's data immediately so a rapid surah→surah
+    // navigation never pairs a new `n` with stale `ayahs` (which would feed an
+    // out-of-range ref to pageNumberOf and throw).
+    setMeta(null);
+    setAyahs(null);
+    if (!Number.isInteger(n) || n < 1 || n > TOTAL_SURAHS) {
+      setError(true);
+      return;
+    }
     api
       .getSurah(n)
       .then((d) => {
