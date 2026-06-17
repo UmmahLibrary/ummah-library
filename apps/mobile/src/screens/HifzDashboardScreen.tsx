@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { TOTAL_AYAHS, type Surah } from "@ummahlibrary/core";
 import { Khatam } from "@ummahlibrary/ui";
@@ -22,6 +23,7 @@ interface QueueItem extends SurahProgress {
 export function HifzDashboardScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
   const { ready, allRecords, trackedCount, dueRecords, streak } = useLibrary();
 
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
@@ -60,7 +62,7 @@ export function HifzDashboardScreen({ navigation }: Props) {
     trackedCount === 0 ? "0%" : `${Math.round((trackedCount / TOTAL_AYAHS) * 100)}%`;
 
   return (
-    <ScrollView contentContainerStyle={styles.screen}>
+    <ScrollView contentContainerStyle={[styles.screen, { paddingTop: insets.top + 18 }]}>
       <Text style={styles.h1}>Hifz</Text>
       <Text style={styles.subtitle}>Memorize the Quran with spaced repetition</Text>
 

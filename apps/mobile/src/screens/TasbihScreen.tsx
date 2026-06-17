@@ -44,6 +44,21 @@ export function TasbihScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
+      {/* Dhikr selector — above the dial, per the mobile design */}
+      <View style={styles.dhikrTop}>
+        {DHIKR_PHRASES.map((p) => (
+          <Pressable
+            key={p.id}
+            style={[styles.chip, p.id === state.phraseId && styles.chipOn]}
+            onPress={() => persist({ ...state, phraseId: p.id })}
+          >
+            <Text style={[styles.chipText, p.id === state.phraseId && styles.chipTextOn]}>
+              {p.transliteration}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       <View style={styles.dialWrap}>
         <Svg width={260} height={260} style={styles.ring}>
           <Circle cx={130} cy={130} r={ringR} stroke={colors.border} strokeWidth={10} fill="none" />
@@ -82,23 +97,6 @@ export function TasbihScreen() {
 
       <View style={styles.controls}>
         <View style={styles.pickerRow}>
-          <Text style={styles.label}>Dhikr</Text>
-          <View style={styles.chips}>
-            {DHIKR_PHRASES.map((p) => (
-              <Pressable
-                key={p.id}
-                style={[styles.chip, p.id === state.phraseId && styles.chipOn]}
-                onPress={() => persist({ ...state, phraseId: p.id })}
-              >
-                <Text style={[styles.chipText, p.id === state.phraseId && styles.chipTextOn]}>
-                  {p.transliteration}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.pickerRow}>
           <Text style={styles.label}>Target</Text>
           <View style={styles.chips}>
             {TASBIH_TARGETS.map((t) => (
@@ -126,6 +124,13 @@ export function TasbihScreen() {
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { padding: 20, backgroundColor: c.bg, flexGrow: 1, alignItems: "center" },
+    dhikrTop: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: 8,
+      marginBottom: 4,
+    },
     dialWrap: { width: 260, height: 260, alignItems: "center", justifyContent: "center", marginTop: 8 },
     ring: { position: "absolute" },
     dial: {
