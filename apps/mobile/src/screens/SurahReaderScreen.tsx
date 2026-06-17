@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "../Type";
+import type { ViewToken } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   TOTAL_SURAHS,
@@ -69,32 +71,23 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   // Track the topmost visible āyah so "open in Mushaf" lands on the right page.
   // Per-āyah offsets are only known in translation mode (discrete rows); the
   // continuous reading modes fall back to the surah's first āyah.
-  const offsetsRef = useRef<Map<number, number>>(new Map());
-  const scrollYRef = useRef(0);
+  const topAyaRef = useRef(1);
+  // n via a ref so the stable viewability callback (which RN forbids changing)
+  // always reads the current sūrah.
+  const nRef = useRef(n);
+  nRef.current = n;
   const lastPageRef = useRef(0);
   const [activePlan, setActivePlan] = useState<ActivePlan | null>(null);
   useEffect(() => {
-    offsetsRef.current.clear();
-    scrollYRef.current = 0;
+    topAyaRef.current = 1;
     lastPageRef.current = 0;
     void readActivePlan().then(setActivePlan);
   }, [n]);
 
-  // Madani page of the topmost visible āyah. Offsets are only known in
-  // translation mode (discrete rows); the continuous reading modes fall back to
-  // the sūrah's first āyah — same fidelity as "open in Mushaf".
-  const currentPage = useCallback(() => {
-    let aya = 1;
-    let best = -1;
-    const cutoff = scrollYRef.current + 80;
-    offsetsRef.current.forEach((y, a) => {
-      if (y <= cutoff && y > best) {
-        best = y;
-        aya = a;
-      }
-    });
-    return pageNumberOf({ sura: n, aya });
-  }, [n]);
+  // Madani page of the topmost visible āyah. The visible āyah is tracked via the
+  // list's viewability in translation mode; the continuous reading modes have no
+  // discrete rows and fall back to the sūrah's first āyah.
+  const currentPage = useCallback(() => pageNumberOf({ sura: n, aya: topAyaRef.current }), [n]);
 
   const openMushaf = useCallback(() => {
     navigation.navigate("MushafPage", { page: currentPage() });
@@ -185,8 +178,47 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     [ayahs, editions, trMap, metaById, n],
   );
 
-  const playFrom = (aya: number) => audio.playFrom(verses, { sura: n, aya }, true);
-  const playOne = (aya: number) => audio.playFrom(verses, { sura: n, aya }, false);
+  // Stable so the memoized AyahView only re-renders the playing āyah as the
+  // recitation moves word to word — an inline arrow would change identity every
+  // render and defeat the memo, re-rendering the whole surah on each word.
+  const { playFrom: playAudio, playingKey, activeWord } = audio;
+  const playFrom = useCallback(
+    (aya: number) => playAudio(verses, { sura: n, aya }, true),
+    [playAudio, verses, n],
+  );
+  const playOne = useCallback(
+    (aya: number) => playAudio(verses, { sura: n, aya }, false),
+    [playAudio, verses, n],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: (typeof rows)[number] }) => (
+      <AyahView
+        sura={n}
+        aya={item.aya}
+        arabic={item.arabic}
+        words={item.words}
+        translations={item.translations}
+        activeWord={playingKey === item.key ? activeWord : -1}
+        playing={playingKey === item.key}
+        scale={scale}
+        onPlayFrom={playFrom}
+        onPlayOne={playOne}
+      />
+    ),
+    [n, playingKey, activeWord, scale, playFrom, playOne],
+  );
+
+  // Track the topmost visible āyah for "open in Mushaf" and reading-plan
+  // auto-advance. Kept in a ref because RN forbids changing the handler.
+  const onViewable = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    const aya = (viewableItems[0]?.item as { aya?: number } | undefined)?.aya;
+    if (aya != null) {
+      topAyaRef.current = aya;
+      recordPage(pageNumberOf({ sura: nRef.current, aya }));
+    }
+  }).current;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 10 }).current;
 
   const shortlist = useMemo(
     () => editions.map((id) => metaById.get(id)).filter((x): x is Translation => Boolean(x)),
@@ -211,147 +243,157 @@ export function SurahReaderScreen({ navigation, route }: Props) {
 
   const showBismillah = meta.hasBismillah && meta.number !== 1;
 
+  const header = (
+    <>
+      <View style={styles.head}>
+        <View style={styles.crest}>
+          <Khatam size={94} color={colors.accent} sw={1} opacity={0.5} />
+          <Text style={styles.crestAr}>{meta.name}</Text>
+        </View>
+        <Text style={styles.nameEn}>
+          {meta.transliteration} · {meta.englishName}
+        </Text>
+        <Text style={styles.sub}>
+          Surah {meta.number} · {meta.ayahCount} verses ·{" "}
+          {meta.revelationPlace === "meccan" ? "Meccan" : "Medinan"}
+        </Text>
+        <Pressable style={styles.bookmark} onPress={() => toggleBookmark(n)}>
+          <Icon
+            name="bookmark"
+            size={14}
+            color={isBookmarked(n) ? colors.accent : colors.muted}
+            sw={1.8}
+          />
+          <Text style={[styles.bookmarkText, isBookmarked(n) && styles.bookmarkTextOn]}>
+            {isBookmarked(n) ? "Bookmarked" : "Bookmark surah"}
+          </Text>
+        </Pressable>
+      </View>
+
+      <ReaderControls
+        mode={readingMode}
+        onMode={setReadingMode}
+        scale={scale}
+        onScale={setScale}
+        onManage={() => setManagerOpen(true)}
+      />
+
+      <View style={styles.audioBar}>
+        <Pressable
+          style={styles.audioPlay}
+          onPress={() =>
+            audio.playingKey ? audio.stop() : verses[0] && audio.playFrom(verses, verses[0], true)
+          }
+          accessibilityLabel={audio.playingKey ? "Stop" : "Play surah"}
+        >
+          <Icon name={audio.playingKey ? "pause" : "play"} size={18} color={colors.ink} />
+        </Pressable>
+        <Text style={styles.audioStatus} numberOfLines={1}>
+          {audio.playingKey
+            ? audio.buffering
+              ? "Loading…"
+              : `Playing ${audio.playingKey}`
+            : reciter.name}
+        </Text>
+        <Pressable onPress={() => audio.setLoop(!audio.loop)} hitSlop={8} accessibilityLabel="Loop">
+          <Icon name="repeat" size={20} color={audio.loop ? colors.accent : colors.muted} sw={1.8} />
+        </Pressable>
+      </View>
+    </>
+  );
+
+  const footer = (
+    <View style={styles.nav}>
+      {n > 1 ? (
+        <Pressable onPress={() => navigation.replace("SurahReader", { surah: n - 1 })}>
+          <Text style={styles.navText}>← Previous</Text>
+        </Pressable>
+      ) : (
+        <View />
+      )}
+      {n < TOTAL_SURAHS ? (
+        <Pressable onPress={() => navigation.replace("SurahReader", { surah: n + 1 })}>
+          <Text style={styles.navText}>Next →</Text>
+        </Pressable>
+      ) : (
+        <View />
+      )}
+    </View>
+  );
+
   return (
     <View style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        scrollEventThrottle={16}
-        onScroll={(e) => {
-          scrollYRef.current = e.nativeEvent.contentOffset.y;
-          recordPage(currentPage());
-        }}
-      >
-        <View style={styles.head}>
-          <View style={styles.crest}>
-            <Khatam size={94} color={colors.accent} sw={1} opacity={0.5} />
-            <Text style={styles.crestAr}>{meta.name}</Text>
-          </View>
-          <Text style={styles.nameEn}>
-            {meta.transliteration} · {meta.englishName}
-          </Text>
-          <Text style={styles.sub}>
-            Surah {meta.number} · {meta.ayahCount} verses ·{" "}
-            {meta.revelationPlace === "meccan" ? "Meccan" : "Medinan"}
-          </Text>
-          <Pressable style={styles.bookmark} onPress={() => toggleBookmark(n)}>
-            <Icon
-              name="bookmark"
-              size={14}
-              color={isBookmarked(n) ? colors.accent : colors.muted}
-              sw={1.8}
-            />
-            <Text style={[styles.bookmarkText, isBookmarked(n) && styles.bookmarkTextOn]}>
-              {isBookmarked(n) ? "Bookmarked" : "Bookmark surah"}
-            </Text>
-          </Pressable>
-        </View>
-
-        <ReaderControls
-          mode={readingMode}
-          onMode={setReadingMode}
-          scale={scale}
-          onScale={setScale}
-          onManage={() => setManagerOpen(true)}
+      {readingMode === "translation" ? (
+        // Virtualized so a long sūrah renders only the visible āyāt; combined
+        // with the stable callbacks above, a word-tick re-renders just the
+        // playing āyah instead of the whole list.
+        <FlatList
+          data={rows}
+          keyExtractor={(r) => r.key}
+          renderItem={renderItem}
+          extraData={`${playingKey ?? ""}:${activeWord}:${scale}`}
+          contentContainerStyle={styles.content}
+          onViewableItemsChanged={onViewable}
+          viewabilityConfig={viewabilityConfig}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={11}
+          removeClippedSubviews
+          ListHeaderComponent={
+            <>
+              {header}
+              {showBismillah && (
+                <Text style={[styles.basmala, { fontSize: 22 * scale }]}>{BISMILLAH}</Text>
+              )}
+            </>
+          }
+          ListFooterComponent={footer}
         />
+      ) : (
+        <ScrollView contentContainerStyle={styles.content}>
+          {header}
 
-        <View style={styles.audioBar}>
-          <Pressable
-            style={styles.audioPlay}
-            onPress={() =>
-              audio.playingKey ? audio.stop() : verses[0] && audio.playFrom(verses, verses[0], true)
-            }
-            accessibilityLabel={audio.playingKey ? "Stop" : "Play surah"}
-          >
-            <Icon name={audio.playingKey ? "pause" : "play"} size={18} color={colors.ink} />
-          </Pressable>
-          <Text style={styles.audioStatus} numberOfLines={1}>
-            {audio.playingKey
-              ? audio.buffering
-                ? "Loading…"
-                : `Playing ${audio.playingKey}`
-              : reciter.name}
-          </Text>
-          <Pressable onPress={() => audio.setLoop(!audio.loop)} hitSlop={8} accessibilityLabel="Loop">
-            <Icon name="repeat" size={20} color={audio.loop ? colors.accent : colors.muted} sw={1.8} />
-          </Pressable>
-        </View>
+          {readingMode === "reading-tr" && (
+            <ReadingTranslationPicker
+              shortlist={shortlist}
+              activeId={activeTr}
+              onPick={setReadingTranslation}
+              onManage={() => setManagerOpen(true)}
+            />
+          )}
 
-        {readingMode === "reading-tr" && (
-          <ReadingTranslationPicker
-            shortlist={shortlist}
-            activeId={activeTr}
-            onPick={setReadingTranslation}
-            onManage={() => setManagerOpen(true)}
-          />
-        )}
+          {showBismillah && readingMode === "reading" && (
+            <Text style={[styles.basmala, { fontSize: 22 * scale }]}>{BISMILLAH}</Text>
+          )}
 
-        {showBismillah && readingMode !== "reading-tr" && (
-          <Text style={[styles.basmala, { fontSize: 22 * scale }]}>{BISMILLAH}</Text>
-        )}
-
-        {readingMode === "translation" &&
-          rows.map((r) => (
-            <View
-              key={r.key}
-              onLayout={(e) => offsetsRef.current.set(r.aya, e.nativeEvent.layout.y)}
-            >
-              <AyahView
-                sura={n}
-                aya={r.aya}
-                arabic={r.arabic}
-                words={r.words}
-                translations={r.translations}
-                activeWord={audio.playingKey === r.key ? audio.activeWord : -1}
-                playing={audio.playingKey === r.key}
-                scale={scale}
-                onPlayFrom={playFrom}
-                onPlayOne={playOne}
-              />
-            </View>
-          ))}
-
-        {readingMode === "reading" && (
-          <Text style={[styles.mushaf, { fontSize: 26 * scale, lineHeight: 52 * scale }]}>
-            {ayahs.map((a) => (
-              <Text key={a.aya} onPress={() => playFrom(a.aya)}>
-                {a.text}
-                <Text style={styles.endMarker}> ﴿{toArabicDigits(a.aya)}﴾ </Text>
-              </Text>
-            ))}
-          </Text>
-        )}
-
-        {readingMode === "reading-tr" && (
-          <Text style={[styles.flow, { fontSize: 17 * scale, lineHeight: 30 * scale }]}>
-            {ayahs.map((a) => {
-              const text = trMap.get(activeTr)?.get(a.aya);
-              return text ? (
-                <Text key={a.aya}>
-                  <Text style={styles.flowNum}>{a.aya}. </Text>
-                  {text}{"  "}
+          {readingMode === "reading" && (
+            <Text style={[styles.mushaf, { fontSize: 26 * scale, lineHeight: 52 * scale }]}>
+              {ayahs.map((a) => (
+                <Text key={a.aya} onPress={() => playFrom(a.aya)}>
+                  {a.text}
+                  <Text style={styles.endMarker}> ﴿{toArabicDigits(a.aya)}﴾ </Text>
                 </Text>
-              ) : null;
-            })}
-          </Text>
-        )}
+              ))}
+            </Text>
+          )}
 
-        <View style={styles.nav}>
-          {n > 1 ? (
-            <Pressable onPress={() => navigation.replace("SurahReader", { surah: n - 1 })}>
-              <Text style={styles.navText}>← Previous</Text>
-            </Pressable>
-          ) : (
-            <View />
+          {readingMode === "reading-tr" && (
+            <Text style={[styles.flow, { fontSize: 17 * scale, lineHeight: 30 * scale }]}>
+              {ayahs.map((a) => {
+                const text = trMap.get(activeTr)?.get(a.aya);
+                return text ? (
+                  <Text key={a.aya}>
+                    <Text style={styles.flowNum}>{a.aya}. </Text>
+                    {text}{"  "}
+                  </Text>
+                ) : null;
+              })}
+            </Text>
           )}
-          {n < TOTAL_SURAHS ? (
-            <Pressable onPress={() => navigation.replace("SurahReader", { surah: n + 1 })}>
-              <Text style={styles.navText}>Next →</Text>
-            </Pressable>
-          ) : (
-            <View />
-          )}
-        </View>
-      </ScrollView>
+
+          {footer}
+        </ScrollView>
+      )}
 
       {activePlan && !activePlan.pausedOn && (
         <View style={styles.chipWrap} pointerEvents="none">
