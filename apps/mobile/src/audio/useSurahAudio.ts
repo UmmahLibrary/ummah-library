@@ -77,6 +77,14 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
 
   const release = useCallback((player: AudioPlayer | null) => {
     if (player) {
+      // Pause first: remove() tears the player down but does not always silence
+      // it synchronously, so a rapid re-tap could otherwise stack overlapping
+      // recitations. Pausing stops the sound immediately.
+      try {
+        player.pause();
+      } catch {
+        /* already released */
+      }
       try {
         player.remove();
       } catch {
@@ -102,6 +110,9 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
       if (startIdx < 0) return;
       const queue = advance ? verses.slice(startIdx) : [verses[startIdx]!];
       const token = ++tokenRef.current;
+      // Settle any in-flight āyah loop now so its poll/listener tear down at
+      // once (a stale loop would otherwise linger until its stall timeout).
+      settleRef.current?.();
 
       void (async () => {
         setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
@@ -141,6 +152,7 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
               if (settled) return;
               settled = true;
               clearTimeout(timer);
+              clearInterval(poll);
               sub.remove();
               settleRef.current = null;
               resolve();
@@ -149,33 +161,41 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
               clearTimeout(timer);
               timer = setTimeout(done, STALL_MS);
             };
+            // End-of-āyah advance comes from the status event; the word
+            // highlight and stall detection are driven by a tight poll of the
+            // real playback position so the highlight tracks the audio instead
+            // of lagging behind the coarse status-update cadence.
             const sub = player.addListener("playbackStatusUpdate", (status) => {
-              if (status.didJustFinish) {
-                done();
+              if (status.didJustFinish) done();
+            });
+            const poll = setInterval(() => {
+              let t: number;
+              try {
+                t = player.currentTime;
+              } catch {
                 return;
               }
-              if (status.playing && status.currentTime > 0) {
-                setBuffering(false);
-                if (status.currentTime !== lastTime) {
-                  lastTime = status.currentTime;
-                  arm();
+              if (typeof t !== "number" || Number.isNaN(t) || t <= 0) return;
+              setBuffering(false);
+              if (t !== lastTime) {
+                lastTime = t;
+                arm();
+              }
+              if (segments) {
+                const ms = t * 1000;
+                let index = -1;
+                for (const seg of segments) {
+                  if (ms >= seg[2] && ms < seg[3]) {
+                    index = seg[0];
+                    break;
+                  }
                 }
-                if (segments) {
-                  const ms = status.currentTime * 1000;
-                  let index = -1;
-                  for (const seg of segments) {
-                    if (ms >= seg[2] && ms < seg[3]) {
-                      index = seg[0];
-                      break;
-                    }
-                  }
-                  if (index !== lastWord) {
-                    lastWord = index;
-                    setActiveWord(index);
-                  }
+                if (index !== lastWord) {
+                  lastWord = index;
+                  setActiveWord(index);
                 }
               }
-            });
+            }, 60);
             settleRef.current = done;
             arm();
           });
