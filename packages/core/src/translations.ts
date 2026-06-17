@@ -24,9 +24,22 @@ export interface LanguageGroup {
 /** Lowercase and strip diacritics so "Jalāl" matches a search for "jalal". */
 export function normalize(value: string): string {
   return value
+    .toLowerCase()
+    .replace(/[\u0101\u00e1\u00e0\u00e2\u00e4]/g, "a")
+    .replace(/[\u012b\u00ed\u00ec\u00ee]/g, "i")
+    .replace(/[\u016b\u00fa\u00f9\u00fb]/g, "u")
+    .replace(/[\u0113\u00e9\u00e8\u00ea]/g, "e")
+    .replace(/[\u014d\u00f3\u00f2\u00f4]/g, "o")
+    .replace(/\u1e25/g, "h")
+    .replace(/\u1e0d/g, "d")
+    .replace(/[\u1e63\u0161]/g, "s")
+    .replace(/\u1e6d/g, "t")
+    .replace(/\u1e93/g, "z")
+    .replace(/\u1e47/g, "n")
+    .replace(/\u0121/g, "g")
+    .replace(/[\u02bf\u02be\u02bc\u02bb]/g, "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
     .trim();
 }
 
