@@ -220,6 +220,26 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   }).current;
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 10 }).current;
 
+  // Auto-scroll: keep the playing āyah in view as the recitation advances. Only
+  // applies to the virtualized translation list; the index may not be measured
+  // yet (it's off-screen) so onScrollToIndexFailed retries after a beat.
+  const listRef = useRef<FlatList<(typeof rows)[number]>>(null);
+  const indexOfKey = useMemo(() => {
+    const m = new Map<string, number>();
+    rows.forEach((r, i) => m.set(r.key, i));
+    return m;
+  }, [rows]);
+  useEffect(() => {
+    if (readingMode !== "translation" || !playingKey) return;
+    const index = indexOfKey.get(playingKey);
+    if (index == null) return;
+    try {
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+    } catch {
+      /* list not ready */
+    }
+  }, [playingKey, readingMode, indexOfKey]);
+
   const shortlist = useMemo(
     () => editions.map((id) => metaById.get(id)).filter((x): x is Translation => Boolean(x)),
     [editions, metaById],
@@ -328,6 +348,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         // with the stable callbacks above, a word-tick re-renders just the
         // playing āyah instead of the whole list.
         <FlatList
+          ref={listRef}
           data={rows}
           keyExtractor={(r) => r.key}
           renderItem={renderItem}
@@ -335,6 +356,20 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.content}
           onViewableItemsChanged={onViewable}
           viewabilityConfig={viewabilityConfig}
+          onScrollToIndexFailed={(info) => {
+            // Target āyah isn't measured yet — settle, then retry once.
+            setTimeout(() => {
+              try {
+                listRef.current?.scrollToIndex({
+                  index: info.index,
+                  animated: true,
+                  viewPosition: 0.3,
+                });
+              } catch {
+                /* give up quietly */
+              }
+            }, 350);
+          }}
           initialNumToRender={8}
           maxToRenderPerBatch={8}
           windowSize={11}
