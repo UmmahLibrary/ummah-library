@@ -11,7 +11,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { TOTAL_JUZ, type Surah } from "@ummahlibrary/core";
-import { Seg } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
@@ -100,17 +99,20 @@ export function SurahListScreen({ navigation }: Props) {
               onChangeText={setQuery}
               autoCorrect={false}
             />
-            <View style={styles.segWrap}>
-              <Seg
-                options={[
-                  { value: "surah", label: "Surah" },
-                  { value: "juz", label: "Juzʾ" },
-                  { value: "rev", label: "Revelation" },
-                ]}
-                value={tab}
-                onChange={(v) => setTab(v as Tab)}
-                size="sm"
-              />
+            <View style={styles.seg}>
+              {([
+                { v: "surah", l: "Surah" },
+                { v: "juz", l: "Juzʾ" },
+                { v: "rev", l: "Revelation" },
+              ] as const).map((o) => (
+                <Pressable
+                  key={o.v}
+                  style={[styles.segItem, tab === o.v && styles.segItemOn]}
+                  onPress={() => setTab(o.v)}
+                >
+                  <Text style={[styles.segText, tab === o.v && styles.segTextOn]}>{o.l}</Text>
+                </Pressable>
+              ))}
             </View>
             {error && <Text style={styles.error}>Couldn’t load surahs. Check your connection.</Text>}
             {!surahs && !error && <ActivityIndicator color={colors.accent} style={styles.spinner} />}
@@ -174,7 +176,19 @@ function makeStyles(c: Palette) {
       fontSize: 15,
       marginBottom: 14,
     },
-    segWrap: { marginBottom: 6 },
+    seg: {
+      flexDirection: "row",
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 10,
+      padding: 3,
+      marginBottom: 6,
+    },
+    segItem: { flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: "center" },
+    segItemOn: { backgroundColor: c.accent },
+    segText: { color: c.muted, fontSize: 13, fontFamily: FONT.semibold },
+    segTextOn: { color: c.ink, fontFamily: FONT.bold },
     sectionLabel: {
       color: c.faint,
       fontSize: 12,

@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "../Typ
 import Svg, { Circle } from "react-native-svg";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Icon, Khatam, Seg } from "@ummahlibrary/ui";
+import { Icon, Khatam } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import {
@@ -290,15 +290,20 @@ export function PlansScreen({ navigation }: Props) {
         </Pressable>
       ) : (
         <View style={styles.customCard}>
-          <Seg
-            options={[
-              { value: "pace", label: "Pages a day" },
-              { value: "duration", label: "Finish in…" },
-            ]}
-            value={mode}
-            onChange={(v) => setMode(v as "pace" | "duration")}
-            size="sm"
-          />
+          <View style={styles.seg}>
+            {([
+              { v: "pace", l: "Pages a day" },
+              { v: "duration", l: "Finish in…" },
+            ] as const).map((o) => (
+              <Pressable
+                key={o.v}
+                onPress={() => setMode(o.v)}
+                style={[styles.segItem, mode === o.v && styles.segItemOn]}
+              >
+                <Text style={[styles.segText, mode === o.v && styles.segTextOn]}>{o.l}</Text>
+              </Pressable>
+            ))}
+          </View>
           <Text style={styles.customLabel}>{mode === "pace" ? "Pages a day" : "Days to finish"}</Text>
           <TextInput
             value={mode === "pace" ? perDay : days}
@@ -510,6 +515,18 @@ function makeStyles(c: Palette) {
       backgroundColor: c.bgElev,
     },
     customLabel: { color: c.muted, fontSize: 13, marginTop: 14 },
+    seg: {
+      flexDirection: "row",
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 10,
+      padding: 3,
+    },
+    segItem: { flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: "center" },
+    segItemOn: { backgroundColor: c.accent },
+    segText: { color: c.muted, fontSize: 13, fontFamily: FONT.semibold },
+    segTextOn: { color: c.ink, fontFamily: FONT.bold },
     input: {
       marginTop: 6,
       paddingVertical: 11,
