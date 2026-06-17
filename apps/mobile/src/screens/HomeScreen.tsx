@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   type Coordinates,
@@ -28,6 +29,7 @@ type Props = NativeStackScreenProps<HomeStackParamList, "Today">;
 export function HomeScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
   const { lastRead } = useLibrary();
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
@@ -101,7 +103,7 @@ export function HomeScreen({ navigation }: Props) {
   ];
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Assalāmu ʿalaykum</Text>

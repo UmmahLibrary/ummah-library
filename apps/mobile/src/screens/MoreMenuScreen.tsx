@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Icon, type IconName } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
@@ -11,6 +12,7 @@ type Props = NativeStackScreenProps<MoreStackParamList, "MoreMenu">;
 export function MoreMenuScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
 
   const toRead = (screen: string) => navigation.getParent()?.navigate("Read", { screen } as never);
 
@@ -26,7 +28,7 @@ export function MoreMenuScreen({ navigation }: Props) {
   ];
 
   return (
-    <ScrollView contentContainerStyle={styles.screen}>
+    <ScrollView contentContainerStyle={[styles.screen, { paddingTop: insets.top + 12 }]}>
       <Text style={styles.h1}>More</Text>
       {items.map((it) => (
         <Pressable key={it.title} style={styles.card} onPress={it.onPress} accessibilityRole="button">

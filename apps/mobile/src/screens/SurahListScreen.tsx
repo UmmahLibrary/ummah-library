@@ -3,14 +3,15 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "../Type";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { TOTAL_JUZ, type Surah } from "@ummahlibrary/core";
+import { Seg } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
@@ -19,13 +20,21 @@ import type { ReadStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "SurahList">;
 
+type Tab = "surah" | "juz" | "rev";
+type Row =
+  | { kind: "surah"; surah: Surah }
+  | { kind: "section"; label: string }
+  | { kind: "juz"; juz: number };
+
 /** The Qur'ān index — the Read tab's landing (the home dashboard lives on Home). */
 export function SurahListScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
   const [error, setError] = useState(false);
   const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<Tab>("surah");
 
   useEffect(() => {
     api
@@ -46,13 +55,38 @@ export function SurahListScreen({ navigation }: Props) {
     );
   }, [surahs, q]);
 
+  // The list rows depend on the active tab: a flat surah list, the 30 juzʾ, or
+  // surahs grouped by place of revelation (Meccan / Medinan).
+  const rows = useMemo<Row[]>(() => {
+    if (tab === "juz") {
+      return Array.from({ length: TOTAL_JUZ }, (_, i) => ({ kind: "juz", juz: i + 1 }));
+    }
+    if (tab === "rev") {
+      const out: Row[] = [];
+      const meccan = filtered.filter((s) => s.revelationPlace === "meccan");
+      const medinan = filtered.filter((s) => s.revelationPlace === "medinan");
+      if (meccan.length) {
+        out.push({ kind: "section", label: "Meccan" });
+        meccan.forEach((s) => out.push({ kind: "surah", surah: s }));
+      }
+      if (medinan.length) {
+        out.push({ kind: "section", label: "Medinan" });
+        medinan.forEach((s) => out.push({ kind: "surah", surah: s }));
+      }
+      return out;
+    }
+    return filtered.map((s) => ({ kind: "surah", surah: s }));
+  }, [tab, filtered]);
+
   const open = (surah: number) => navigation.navigate("SurahReader", { surah });
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
       <FlatList
-        data={filtered}
-        keyExtractor={(s) => String(s.number)}
+        data={rows}
+        keyExtractor={(r) =>
+          r.kind === "surah" ? `s${r.surah.number}` : r.kind === "juz" ? `j${r.juz}` : `h${r.label}`
+        }
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
@@ -66,23 +100,17 @@ export function SurahListScreen({ navigation }: Props) {
               onChangeText={setQuery}
               autoCorrect={false}
             />
-            <View style={styles.juzBlock}>
-              <Text style={styles.shelfLabel}>Browse by Juzʾ</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipRow}
-              >
-                {Array.from({ length: TOTAL_JUZ }, (_, i) => i + 1).map((j) => (
-                  <Pressable
-                    key={j}
-                    style={styles.juzChip}
-                    onPress={() => navigation.navigate("JuzReader", { juz: j })}
-                  >
-                    <Text style={styles.chipText}>{j}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+            <View style={styles.segWrap}>
+              <Seg
+                options={[
+                  { value: "surah", label: "Surah" },
+                  { value: "juz", label: "Juzʾ" },
+                  { value: "rev", label: "Revelation" },
+                ]}
+                value={tab}
+                onChange={(v) => setTab(v as Tab)}
+                size="sm"
+              />
             </View>
             {error && <Text style={styles.error}>Couldn’t load surahs. Check your connection.</Text>}
             {!surahs && !error && <ActivityIndicator color={colors.accent} style={styles.spinner} />}
@@ -91,18 +119,40 @@ export function SurahListScreen({ navigation }: Props) {
         ListEmptyComponent={
           surahs && q ? <Text style={styles.muted}>No surahs match “{query}”.</Text> : null
         }
-        renderItem={({ item }) => (
-          <Pressable style={styles.row} onPress={() => open(item.number)}>
-            <AyahBadge n={item.number} size={40} />
-            <View style={styles.rowMeta}>
-              <Text style={styles.rowTitle}>{item.transliteration}</Text>
-              <Text style={styles.rowSub}>
-                {item.revelationPlace === "meccan" ? "Meccan" : "Medinan"} · {item.ayahCount} verses
-              </Text>
-            </View>
-            <Text style={styles.rowArabic}>{item.name}</Text>
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          if (item.kind === "section") {
+            return <Text style={styles.sectionLabel}>{item.label}</Text>;
+          }
+          if (item.kind === "juz") {
+            return (
+              <Pressable
+                style={styles.row}
+                onPress={() => navigation.navigate("JuzReader", { juz: item.juz })}
+              >
+                <View style={styles.juzBadge}>
+                  <Text style={styles.juzBadgeText}>{item.juz}</Text>
+                </View>
+                <View style={styles.rowMeta}>
+                  <Text style={styles.rowTitle}>Juzʾ {item.juz}</Text>
+                  <Text style={styles.rowSub}>Read continuously</Text>
+                </View>
+              </Pressable>
+            );
+          }
+          const s = item.surah;
+          return (
+            <Pressable style={styles.row} onPress={() => open(s.number)}>
+              <AyahBadge n={s.number} size={40} />
+              <View style={styles.rowMeta}>
+                <Text style={styles.rowTitle}>{s.transliteration}</Text>
+                <Text style={styles.rowSub}>
+                  {s.revelationPlace === "meccan" ? "Meccan" : "Medinan"} · {s.ayahCount} verses
+                </Text>
+              </View>
+              <Text style={styles.rowArabic}>{s.name}</Text>
+            </Pressable>
+          );
+        }}
       />
     </View>
   );
@@ -124,27 +174,16 @@ function makeStyles(c: Palette) {
       fontSize: 15,
       marginBottom: 14,
     },
-    juzBlock: { marginBottom: 10 },
-    shelfLabel: {
+    segWrap: { marginBottom: 6 },
+    sectionLabel: {
       color: c.faint,
       fontSize: 12,
       letterSpacing: 1,
       textTransform: "uppercase",
       fontFamily: FONT.bold,
-      marginBottom: 8,
+      marginTop: 18,
+      marginBottom: 4,
     },
-    chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-    juzChip: {
-      minWidth: 38,
-      paddingVertical: 8,
-      paddingHorizontal: 10,
-      borderRadius: 10,
-      backgroundColor: c.bgElev,
-      borderWidth: 1,
-      borderColor: c.border,
-      alignItems: "center",
-    },
-    chipText: { color: c.fg, fontSize: 13 },
     error: { color: c.error, marginTop: 12 },
     muted: { color: c.muted, marginTop: 16, fontSize: 14 },
     spinner: { marginTop: 32 },
@@ -161,5 +200,16 @@ function makeStyles(c: Palette) {
     rowTitle: { color: c.fg, fontSize: 16, fontFamily: FONT.bold },
     rowSub: { color: c.faint, fontSize: 13, marginTop: 2 },
     rowArabic: { color: c.accentHi, fontSize: 22, writingDirection: "rtl", fontFamily: FONT.arSemibold },
+    juzBadge: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: c.accentSoft,
+      borderWidth: 1,
+      borderColor: c.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    juzBadgeText: { color: c.accent, fontSize: 15, fontFamily: FONT.bold },
   });
 }
