@@ -19,13 +19,30 @@ import type { ReadStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "SurahList">;
 
-/** Lowercase + strip diacritics for accent-insensitive search. */
+/**
+ * Normalise surah names for forgiving search. The dataset uses ASCII phonetic
+ * spellings with doubled long vowels ("Al-Faatiha", "An-Nisaa"), so a user
+ * typing "fatiha" / "nisa" wouldn't match. Lowercase, map any diacritics,
+ * drop hamza/ʿayn/apostrophes, and collapse repeated vowels — all without
+ * String.normalize (Hermes doesn't implement NFD).
+ */
 const fold = (s: string): string =>
   s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[āáàâ]/g, "a")
+    .replace(/[īíìî]/g, "i")
+    .replace(/[ūúùû]/g, "u")
+    .replace(/[ēéè]/g, "e")
+    .replace(/[ōóò]/g, "o")
+    .replace(/ḥ/g, "h")
+    .replace(/ḍ/g, "d")
+    .replace(/ṣ/g, "s")
+    .replace(/ṭ/g, "t")
+    .replace(/ẓ/g, "z")
+    .replace(/ṇ/g, "n")
+    .replace(/[ʿʾʼʻ'’]/g, "")
+    .replace(/([aeiou])\1+/g, "$1")
+    .trim();
 
 type Tab = "surah" | "juz" | "rev";
 type Row =
