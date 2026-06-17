@@ -103,7 +103,9 @@ export function SurahReaderScreen({ navigation, route }: Props) {
 
   // Count the opening page so short sūrahs (no scroll) still register.
   useEffect(() => {
-    if (ayahs?.length) recordPage(pageNumberOf({ sura: n, aya: ayahs[0]?.aya ?? 1 }));
+    if (ayahs?.length && n >= 1 && n <= TOTAL_SURAHS) {
+      recordPage(pageNumberOf({ sura: n, aya: ayahs[0]?.aya ?? 1 }));
+    }
   }, [ayahs, n, recordPage]);
 
   useLayoutEffect(() => {
@@ -135,13 +137,20 @@ export function SurahReaderScreen({ navigation, route }: Props) {
       setError(true);
       return;
     }
+    // `active` guards against an in-flight fetch for a previous surah resolving
+    // after `n` has already changed and writing its ayahs onto the new surah.
+    let active = true;
     api
       .getSurah(n)
       .then((d) => {
+        if (!active) return;
         setMeta(d.surah);
         setAyahs(d.ayahs);
       })
-      .catch(() => setError(true));
+      .catch(() => active && setError(true));
+    return () => {
+      active = false;
+    };
   }, [n]);
 
   // Fetch every selected edition's text for this surah.
@@ -222,9 +231,10 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   // auto-advance. Kept in a ref because RN forbids changing the handler.
   const onViewable = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     const aya = (viewableItems[0]?.item as { aya?: number } | undefined)?.aya;
-    if (aya != null) {
+    const s = nRef.current;
+    if (aya != null && s >= 1 && s <= TOTAL_SURAHS) {
       topAyaRef.current = aya;
-      recordPage(pageNumberOf({ sura: nRef.current, aya }));
+      recordPage(pageNumberOf({ sura: s, aya }));
     }
   }).current;
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 10 }).current;
