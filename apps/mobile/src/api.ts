@@ -16,7 +16,7 @@ import type {
 } from "@ummahlibrary/core";
 
 const BASE =
-  (process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://app.ummahlibrary.org/api/v1").replace(
+  (process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://ummahlibrary.org/api/v1").replace(
     /\/$/,
     "",
   );

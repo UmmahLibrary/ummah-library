@@ -58,7 +58,7 @@ function AyahViewImpl({
     const block = [arabic, ...translations.map((t) => t.text), `— ${sura}:${aya}`]
       .filter(Boolean)
       .join("\n");
-    const link = `https://app.ummahlibrary.org/surah/${sura}#${sura}:${aya}`;
+    const link = `https://ummahlibrary.org/surah/${sura}#${sura}:${aya}`;
     void Share.share({ message: `${block}\n${link}` });
   };
 
