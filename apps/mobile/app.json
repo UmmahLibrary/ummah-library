@@ -2,7 +2,7 @@
   "expo": {
     "name": "Ummah Library",
     "slug": "ummah-library",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "scheme": "ummahlibrary",
     "userInterfaceStyle": "dark",
