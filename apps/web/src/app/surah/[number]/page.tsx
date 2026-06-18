@@ -4,6 +4,7 @@ import { N } from "@ummahlibrary/ui";
 import { SurahReaderClient } from "../../../components/SurahReaderClient";
 import { TOTAL_SURAHS, isValidSurahNumber } from "@ummahlibrary/core";
 import { pluginRegistry, quranRepository } from "@ummahlibrary/api";
+import { SITE_URL } from "../../../lib/site";
 
 const RECITERS = pluginRegistry.byKind("reciter");
 const TAFSIRS = pluginRegistry.byKind("tafsir").map((t) => ({ id: t.id, name: t.name }));
@@ -68,7 +69,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
     inLanguage: "ar",
     position: surah.number,
     isPartOf: { "@type": "Book", name: "The Holy Quran" },
-    url: `https://app.ummahlibrary.org/surah/${surah.number}`,
+    url: `${SITE_URL}/surah/${surah.number}`,
     license: "https://www.gnu.org/licenses/agpl-3.0.html",
   };
 

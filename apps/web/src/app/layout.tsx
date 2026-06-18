@@ -6,6 +6,7 @@ import { AdhkarReminderBanner } from "../components/AdhkarReminderBanner";
 import { PrayerReminderScheduler } from "../components/PrayerReminderScheduler";
 import { PlanReminderScheduler } from "../components/PlanReminderScheduler";
 import { AppShellWrapper } from "../components/AppShellWrapper";
+import { SITE_URL } from "../lib/site";
 import "./globals.css";
 
 /* ── Noor fonts ── */
@@ -32,7 +33,7 @@ const amiri = Amiri({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://app.ummahlibrary.org"),
+  metadataBase: new URL(SITE_URL),
   title: { default: "Ummah Library", template: "%s · Ummah Library" },
   description:
     "An open-source Quran reader — read the Quran with translations, recitations, tafsir and Islamic tools.",

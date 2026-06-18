@@ -1,4 +1,5 @@
 import { apiJson } from "../../../../lib/api-response";
+import { SITE_URL } from "../../../../lib/site";
 
 export const dynamic = "force-static";
 
@@ -10,7 +11,7 @@ const spec = {
     description: "Read-only public API for the Quran text and translations.",
     license: { name: "AGPL-3.0-only" },
   },
-  servers: [{ url: "https://app.ummahlibrary.org/api/v1" }],
+  servers: [{ url: `${SITE_URL}/api/v1` }],
   paths: {
     "/surahs": {
       get: {
