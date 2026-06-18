@@ -149,6 +149,17 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
 
             await new Promise<void>((resolve) => {
               let settled = false;
+              // The one reused player lingers in the previous āyah's STATE_ENDED
+              // until replace()+prepare() finishes asynchronously, and expo-audio
+              // reports didJustFinish as a *level* (playbackState === ENDED), not
+              // a one-shot edge. So a freshly-attached listener can observe the
+              // *previous* āyah's leftover "finished" and skip this one in
+              // silence. Gate every advance on this āyah having actually begun:
+              // honour didJustFinish (and the word/stall poll) only once we have
+              // seen real playback — the player report `playing`, or the position
+              // genuinely move forward (a single leaked end-position stays
+              // constant, so it never trips the progress check).
+              let started = false;
               let lastTime = -1;
               let lastWord = -1;
               let timer: ReturnType<typeof setTimeout>;
@@ -170,7 +181,8 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
               // real playback position so the highlight tracks the audio
               // instead of lagging behind the coarse status-update cadence.
               const sub = player.addListener("playbackStatusUpdate", (status) => {
-                if (status.didJustFinish) done();
+                if (status.playing) started = true;
+                if (status.didJustFinish && started) done();
               });
               const poll = setInterval(() => {
                 let t: number;
@@ -180,6 +192,14 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
                   return;
                 }
                 if (typeof t !== "number" || Number.isNaN(t) || t <= 0) return;
+                if (!started) {
+                  // Two increasing samples confirm the new source is really
+                  // advancing (not a stale end-position leaked from the last
+                  // āyah). Until then, ignore the position entirely.
+                  if (lastTime >= 0 && t > lastTime) started = true;
+                  lastTime = t;
+                  if (!started) return;
+                }
                 setBuffering(false);
                 if (t !== lastTime) {
                   lastTime = t;
