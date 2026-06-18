@@ -12,6 +12,7 @@
  * same player), and we avoid allocating/freeing a native player every āyah.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState } from "react-native";
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import { reciterAudioUrl, type ReciterPlugin, type VerseKey } from "@ummahlibrary/core";
 
@@ -75,6 +76,19 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
   const settleRef = useRef<(() => void) | null>(null);
   // A ref so the running playback loop reads the latest value, not a stale closure.
   const loopRef = useRef(false);
+  // Set when the app returns to the foreground so the next poll tick force-pushes
+  // the word highlight. While backgrounded the JS poll is throttled and React
+  // never commits its `setActiveWord` calls, so on return the highlight can sit
+  // stale (right word value, nothing painted) until the audio crosses into the
+  // next word. Re-asserting it on resume re-syncs the highlight to live audio.
+  const resyncRef = useRef(false);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") resyncRef.current = true;
+    });
+    return () => sub.remove();
+  }, []);
 
   const setLoop = useCallback((on: boolean) => {
     loopRef.current = on;
@@ -102,6 +116,8 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
     setActiveWord(-1);
     try {
       playerRef.current?.pause();
+      // Tear down the lock-screen / notification controls — playback is over.
+      playerRef.current?.setActiveForLockScreen(false);
     } catch {
       /* not playing */
     }
@@ -130,6 +146,10 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
           () => {},
         );
 
+        // Bring the notification/lock-screen controls up exactly once per
+        // session (see below) — rebuilding them per āyah would flicker.
+        let lockActive = false;
+
         do {
           for (const v of queue) {
             if (tokenRef.current !== token) return;
@@ -152,6 +172,29 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
 
             const player = ensurePlayer(src);
             if (tokenRef.current !== token) return;
+
+            // Bring up the lock-screen / notification media controls (foreground
+            // service) once per session. This is what lets recitation keep
+            // playing — under a visible, controllable notification — when the
+            // screen turns off or the user switches apps, matching how Quran
+            // audio apps behave. The session binds to the persistent ExoPlayer,
+            // so it survives the per-āyah replace(); we deliberately do NOT
+            // re-arm it per āyah because that rebuilds the MediaSession and
+            // flickers the notification. It exposes only play/pause (next/prev
+            // are stripped natively), so it can't fight our queue — an external
+            // pause is handled by the pause-aware watchdog below.
+            if (!lockActive) {
+              try {
+                player.setActiveForLockScreen(true, {
+                  title: "Holy Quran",
+                  artist: reciter.name,
+                  albumTitle: "Ummah Library",
+                });
+                lockActive = true;
+              } catch {
+                /* lock-screen controls unavailable on this platform */
+              }
+            }
 
             await new Promise<void>((resolve) => {
               let settled = false;
@@ -237,10 +280,15 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
                       break;
                     }
                   }
-                  if (index !== lastWord) {
+                  // Re-push on app-resume even if the index is unchanged, so a
+                  // highlight that went stale in the background snaps back to
+                  // the live audio position.
+                  const resync = resyncRef.current;
+                  if (index !== lastWord || resync) {
                     lastWord = index;
                     setActiveWord(index);
                   }
+                  if (resync) resyncRef.current = false;
                 }
               }, POLL_MS);
               settleRef.current = done;
@@ -256,6 +304,8 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
         if (tokenRef.current === token) {
           try {
             playerRef.current?.pause();
+            // Recitation finished — clear the lock-screen / notification controls.
+            playerRef.current?.setActiveForLockScreen(false);
           } catch {
             /* already paused */
           }
@@ -268,12 +318,14 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
     [reciter, ensurePlayer],
   );
 
-  // Tear the player down when the screen leaves so no poll/interval lingers.
+  // Tear the player down when the screen leaves so no poll/interval lingers,
+  // and clear the notification so it can't outlive the reader.
   useEffect(() => {
     return () => {
       tokenRef.current += 1;
       settleRef.current?.();
       try {
+        playerRef.current?.setActiveForLockScreen(false);
         playerRef.current?.remove();
       } catch {
         /* already gone */
