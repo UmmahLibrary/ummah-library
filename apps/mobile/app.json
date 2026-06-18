@@ -31,7 +31,12 @@
       ]
     },
     "ios": {
-      "bundleIdentifier": "org.ummahlibrary.app"
+      "bundleIdentifier": "org.ummahlibrary.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "web": {
       "bundler": "metro",
