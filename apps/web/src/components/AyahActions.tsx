@@ -11,7 +11,6 @@ import {
 import { N, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
 import { newId, readCollections, readNote, writeCollections, writeNote } from "../lib/collections";
-import { renderAyahImage, shareOrDownload } from "../lib/share-image";
 import { isTracked, removeCard, setCard } from "../lib/hifz-store";
 import { TAFSIR_KEY, readTafsir } from "../lib/tafsir";
 
@@ -253,6 +252,9 @@ export function AyahActions({
     try {
       const { arabic, translations } = readAyahText();
       if (!arabic) return;
+      // Loaded on demand so the canvas image-renderer stays out of the reader's
+      // initial bundle — it's only needed when "share as image" is pressed.
+      const { renderAyahImage, shareOrDownload } = await import("../lib/share-image");
       const blob = await renderAyahImage({ arabic, translations, reference: `${surah}:${aya}` });
       if (blob) await shareOrDownload(blob, `${surah}:${aya}`);
     } finally {
