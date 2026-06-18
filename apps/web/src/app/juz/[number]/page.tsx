@@ -47,18 +47,31 @@ async function loadJuz(numberParam: string) {
   const n = Number(numberParam);
   if (!isValidJuzNumber(n)) return null;
   const { start, end } = juzRange(n);
-  const bismillah = await quranRepository.getBismillah();
+
+  // Fetch the bismillah and every sura in the juzʾ concurrently (independent
+  // local reads), then assemble sections in sura order — same output, no
+  // sequential round-trips.
+  const suraNums: number[] = [];
+  for (let sura = start.sura; sura <= end.sura; sura++) suraNums.push(sura);
+  const [bismillah, perSura] = await Promise.all([
+    quranRepository.getBismillah(),
+    Promise.all(
+      suraNums.map(async (sura) => {
+        const [surah, allAyahs] = await Promise.all([
+          quranRepository.getSurah(sura),
+          quranRepository.getSurahAyahs(sura),
+        ]);
+        return { sura, surah, allAyahs };
+      }),
+    ),
+  ]);
 
   const sections = [];
   const verses: VerseKey[] = [];
-  for (let sura = start.sura; sura <= end.sura; sura++) {
+  for (const { sura, surah, allAyahs } of perSura) {
+    if (!surah) continue;
     const ayaStart = sura === start.sura ? start.aya : 1;
     const ayaEnd = sura === end.sura ? end.aya : ayahCountOf(sura);
-    const [surah, allAyahs] = await Promise.all([
-      quranRepository.getSurah(sura),
-      quranRepository.getSurahAyahs(sura),
-    ]);
-    if (!surah) continue;
     const ayahs = allAyahs
       .filter((a) => a.aya >= ayaStart && a.aya <= ayaEnd)
       .map((a) => ({ aya: a.aya, text: a.text }));

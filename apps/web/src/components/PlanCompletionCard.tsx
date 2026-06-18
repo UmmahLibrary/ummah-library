@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { type ActivePlan, PLAN_TEMPLATES, planDuration, totalUnits, unitWord } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
-import { renderPlanCardImage, shareOrDownload } from "../lib/share-image";
 
 /**
  * Completion milestone for a finished plan (#63): a celebration, a shareable
@@ -23,6 +22,9 @@ export function PlanCompletionCard({ plan }: { plan: ActivePlan }) {
   async function share() {
     setBusy(true);
     try {
+      // Loaded on demand so the canvas image-renderer stays out of the
+      // initial bundle — it's only needed when this button is pressed.
+      const { renderPlanCardImage, shareOrDownload } = await import("../lib/share-image");
       const blob = await renderPlanCardImage({
         heading: "Quran journey complete",
         arabic: "ٱلْحَمْدُ لِلّٰهِ",

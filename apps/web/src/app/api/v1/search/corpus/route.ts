@@ -7,10 +7,15 @@ import { apiJson } from "../../../../../lib/api-response";
 export const dynamic = "force-static";
 
 export async function GET() {
-  const verses: { s: number; a: number; t: string }[] = [];
-  for (let s = 1; s <= TOTAL_SURAHS; s++) {
-    const ayahs = await quranRepository.getSurahAyahs(s);
-    for (const ayah of ayahs) verses.push({ s, a: ayah.aya, t: ayah.text });
-  }
+  // Read all 114 suras concurrently (independent local reads), then flatten in
+  // sura order — same payload as a sequential loop, without the round-trips.
+  const perSurah = await Promise.all(
+    Array.from({ length: TOTAL_SURAHS }, (_, i) =>
+      quranRepository
+        .getSurahAyahs(i + 1)
+        .then((ayahs) => ayahs.map((ayah) => ({ s: i + 1, a: ayah.aya, t: ayah.text }))),
+    ),
+  );
+  const verses = perSurah.flat();
   return apiJson({ count: verses.length, verses });
 }
