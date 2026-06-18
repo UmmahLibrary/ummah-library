@@ -4,6 +4,8 @@
  * (independent of the app theme) so the image looks right wherever it's shared.
  */
 
+import { SITE_HOST } from "./site";
+
 const WIDTH = 1080;
 const PAD = 88;
 const BG = "#0b1f17";
@@ -105,7 +107,7 @@ export async function renderAyahImage(input: AyahImageInput): Promise<Blob | nul
   ctx.textAlign = "right";
   ctx.fillStyle = MUTED;
   ctx.font = "26px system-ui, sans-serif";
-  ctx.fillText("app.ummahlibrary.org", WIDTH - PAD, height - PAD + 10);
+  ctx.fillText(SITE_HOST, WIDTH - PAD, height - PAD + 10);
 
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
 }
@@ -181,7 +183,7 @@ export async function renderPlanCardImage(input: PlanCardInput): Promise<Blob | 
 
   ctx.fillStyle = MUTED;
   ctx.font = "28px system-ui, sans-serif";
-  ctx.fillText("app.ummahlibrary.org", cx, SIZE - 90);
+  ctx.fillText(SITE_HOST, cx, SIZE - 90);
 
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
 }

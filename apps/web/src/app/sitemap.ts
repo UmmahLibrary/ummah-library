@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 import { TOTAL_JUZ, TOTAL_PAGES_MADANI, TOTAL_SURAHS } from "@ummahlibrary/core";
+import { SITE_URL } from "../lib/site";
 
-const BASE = "https://app.ummahlibrary.org";
+const BASE = SITE_URL;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = [

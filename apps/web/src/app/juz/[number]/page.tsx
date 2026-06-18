@@ -17,6 +17,7 @@ import { AyahTranslations } from "../../../components/AyahTranslations";
 import { AyahStar } from "../../../components/AyahStar";
 import { ReadingTranslationFlow } from "../../../components/ReadingTranslationFlow";
 import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
+import { SITE_URL } from "../../../lib/site";
 import { WordByWord } from "../../../components/WordByWord";
 
 const RECITERS = pluginRegistry.byKind("reciter");
@@ -107,7 +108,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
     inLanguage: "ar",
     position: n,
     isPartOf: { "@type": "Book", name: "The Holy Quran" },
-    url: `https://app.ummahlibrary.org/juz/${n}`,
+    url: `${SITE_URL}/juz/${n}`,
     license: "https://www.gnu.org/licenses/agpl-3.0.html",
   };
 
