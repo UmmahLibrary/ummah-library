@@ -122,7 +122,13 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
       setActiveWord(-1);
 
       void (async () => {
-        setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+        // Keep the audio session alive when the app backgrounds (the screen
+        // turns off, the user switches away) so recitation keeps playing
+        // instead of expo-audio auto-pausing it. `playsInSilentMode` is the
+        // iOS counterpart.
+        setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: true }).catch(
+          () => {},
+        );
 
         do {
           for (const v of queue) {
@@ -181,8 +187,25 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
               // real playback position so the highlight tracks the audio
               // instead of lagging behind the coarse status-update cadence.
               const sub = player.addListener("playbackStatusUpdate", (status) => {
-                if (status.playing) started = true;
-                if (status.didJustFinish && started) done();
+                if (status.didJustFinish && started) {
+                  done();
+                  return;
+                }
+                if (status.playing) {
+                  // Genuinely playing: mark this āyah started and (re)start the
+                  // stall countdown.
+                  started = true;
+                  arm();
+                } else if (started && status.isLoaded && !status.isBuffering) {
+                  // Paused after it had been playing, and not mid-buffer — the
+                  // screen went off, a call came in, or the system took audio
+                  // focus. Freeze the stall watchdog so we hold on this āyah and
+                  // its highlight instead of skipping ahead; playback (and the
+                  // poll below) resumes us when audio comes back. A stuck
+                  // *load* (started/buffering) deliberately keeps the watchdog
+                  // armed so it still degrades a flaky connection gracefully.
+                  clearTimeout(timer);
+                }
               });
               const poll = setInterval(() => {
                 let t: number;
