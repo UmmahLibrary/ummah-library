@@ -128,6 +128,7 @@ Islamic content is scholar-reviewed before release.
 
 ## License
 
-[AGPL-3.0-only](LICENSE). Quran text and translations carry their own source
-attributions (e.g. Tanzil CC-BY 3.0) which travel with the data — see
-[`packages/data/ATTRIBUTION.md`](packages/data/ATTRIBUTION.md).
+[AGPL-3.0-only](LICENSE). Every external source — bundled or fetched at runtime —
+is credited in [`ATTRIBUTION.md`](ATTRIBUTION.md), with the per-dataset notices in
+[`packages/data/ATTRIBUTION.md`](packages/data/ATTRIBUTION.md). These attributions
+(e.g. Tanzil CC-BY 3.0) travel with the data.

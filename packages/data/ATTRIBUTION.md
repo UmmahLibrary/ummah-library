@@ -4,6 +4,8 @@ The Quran is a sacred trust. Every dataset in `datasets/` carries its source
 attribution, and these notices **must travel with the data** in any copy or
 derivative — this is both a licensing requirement and an _amāna_.
 
+> Repo-wide index (incl. runtime services & fonts): [`/ATTRIBUTION.md`](../../ATTRIBUTION.md).
+
 All files in `datasets/` are **generated** by `scripts/ingest.ts`. Do not edit
 them by hand; change the script and re-run:
 
@@ -82,3 +84,32 @@ of its author/publisher and is included under the upstream terms.
   sets (after-salah, sleep, travel, …) grow the adhkar step in `scripts/ingest.ts`.
 - **Pending:** a scholar should verify the Arabic vocalisation, translations, and
   gradings before any production launch (see ADR 0016).
+
+## Hadith — `datasets/hadiths/`
+
+- **Source:** [`fawazahmed0/hadith-api`](https://github.com/fawazahmed0/hadith-api),
+  aggregating the English collections of **Ṣaḥīḥ al-Bukhārī, Ṣaḥīḥ Muslim, Sunan
+  Abī Dāwūd, Jāmiʿ al-Tirmidhī, Sunan al-Nasāʾī** and **Sunan Ibn Mājah**.
+- Each hadith keeps its `source` (upstream API + retrieval date). **Translation
+  copyright varies per collection** — confirm redistribution terms before a
+  production launch, as with the translations above.
+- To add or swap a collection, edit the hadith step in `scripts/ingest.ts`.
+
+## Content plugins — `plugins/`
+
+The manifests are bundled; the **content they point to is loaded from upstream**,
+not stored in this repo.
+
+- **Reciters** (`plugins/reciters/`) — recitation **audio streamed at runtime**
+  from [everyayah.com](https://everyayah.com) and [quran.com](https://quran.com):
+  Alafasy, Abdul Basit, Al-Minshawi, Al-Shuraim, As-Sudais, Al-Husary, Al-Ghamdi,
+  Al-Shatri. No audio is redistributed by this repo.
+- **Tafsirs** (`plugins/tafsirs/`) — Tafsīr al-Muyassar (King Fahd Complex),
+  Tafsīr al-Ṭabarī, Tafsīr Ibn Kathīr (English/Urdu/Bengali), Maʿārif-ul-Qurʾān
+  (Muftī Muḥammad Shafīʿ). Each remains © its author/publisher.
+
+---
+
+For **runtime/external services** (the quran.com word-by-word popover, audio
+hosts, web fonts) and the repo-wide index, see the top-level
+[`/ATTRIBUTION.md`](../../ATTRIBUTION.md).
