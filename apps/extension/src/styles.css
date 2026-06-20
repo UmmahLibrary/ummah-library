@@ -1,0 +1,64 @@
+/* Popup chrome. Colours come from the Noor design tokens (@ummahlibrary/ui ->
+   noor-tokens.css), so the extension matches the web app's Obsidian theme. */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 360px;
+  /* Chrome caps popup height at ~600px and scrolls beyond it. */
+  min-height: 200px;
+  max-height: 580px;
+  overflow-y: auto;
+  background: var(--noor-bg);
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+}
+
+#root {
+  display: block;
+}
+
+a {
+  color: inherit;
+}
+
+input,
+select,
+button {
+  font-family: inherit;
+}
+
+/* Thin, theme-coloured scrollbar (Chromium). */
+body::-webkit-scrollbar {
+  width: 8px;
+}
+body::-webkit-scrollbar-thumb {
+  background: var(--noor-border);
+  border-radius: 8px;
+}
+
+@keyframes ul-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.ul-skeleton {
+  background: var(--noor-card-hi);
+  border-radius: 6px;
+  animation: ul-pulse 1.3s ease-in-out infinite;
+}

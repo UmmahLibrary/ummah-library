@@ -57,6 +57,7 @@ monolith with strict, **lint-enforced** module boundaries:
 apps/
   web/        Next.js reader + public API (live)
   mobile/     Expo app shell (Phase 3)
+  extension/  MV3 browser extension — popup over the public API (ADR 0026)
 packages/
   core/       Pure domain — Quran model, structure utils, ports. No framework, no DB.
   data/       Ingested Quran datasets + adapters that serve them through core ports.
