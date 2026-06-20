@@ -11,4 +11,5 @@ export default defineWorkspace([
   "packages/ui",
   "apps/mobile",
   "apps/web",
+  "apps/extension",
 ]);

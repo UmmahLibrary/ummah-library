@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Ummah Library",
+  "version": "1.0.0",
+  "description": "Verse of the day, the Hijri date, and quick Quran lookup — from Ummah Library.",
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Ummah Library",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage"],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "extension@ummahlibrary.org",
+      "strict_min_version": "109.0"
+    }
+  }
+}

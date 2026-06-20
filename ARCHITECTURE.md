@@ -14,6 +14,7 @@ map; the _why_ behind each decision lives in the [ADRs](docs/adr/).
 flowchart TD
   web["apps/web · Next.js reader + API"]
   mobile["apps/mobile · Expo"]
+  extension["apps/extension · MV3 browser extension"]
   api["packages/api · app layer (repos + tRPC)"]
   data["packages/data · Quran datasets + adapters"]
   adapters["packages/adapters · external adapters"]
@@ -23,6 +24,8 @@ flowchart TD
   web --> api
   web --> ui
   mobile --> core
+  extension --> core
+  extension --> ui
   api --> data
   api --> adapters
   api --> core
@@ -47,6 +50,7 @@ flowchart TD
 | **`ui`**          | Shared, framework-light UI primitives (kept React-free so web/mobile can share).                                                                                           | `core`                     |
 | **`apps/web`**    | Next.js App Router reader + the public REST/OpenAPI + tRPC endpoints (mostly statically generated).                                                                        | `api`, `core`, `ui`        |
 | **`apps/mobile`** | Expo app; shares `core`, reads the public REST API.                                                                                                                        | `core`                     |
+| **`apps/extension`** | MV3 browser extension (Vite); a thin popup client over the public REST API ([ADR 0026](docs/adr/0026-browser-extension.md)).                                            | `core`, `ui`               |
 
 ### `core` — the heart
 
