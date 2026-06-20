@@ -33,6 +33,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  delete document.documentElement.dataset.theme;
   vi.restoreAllMocks();
 });
 
@@ -58,5 +59,15 @@ describe("Popup", () => {
 
     const result = await screen.findByText("Ya-Sin");
     expect(result.closest("a")?.getAttribute("href")).toBe("https://ummahlibrary.org/surah/36");
+  });
+
+  it("switches the theme via the swatch picker", async () => {
+    render(<Popup />);
+    await waitFor(() => expect(screen.getByText("ARABIC_VERSE_TEXT")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("radio", { name: "emerald" }));
+
+    expect(document.documentElement.dataset.theme).toBe("emerald");
+    expect(localStorage.getItem("ul.ext.themeMirror")).toBe("emerald");
   });
 });

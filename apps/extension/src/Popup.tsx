@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatHijri, gregorianToHijri, verseOfDay } from "@ummahlibrary/core";
 import type { Surah, Translation } from "@ummahlibrary/core";
-import { Logo, N } from "@ummahlibrary/ui";
+import { Logo, N, noorThemes } from "@ummahlibrary/ui";
+import type { ThemeKey } from "@ummahlibrary/ui";
 import { fetchVerse, getEditions, getSurahs } from "./lib/api";
 import type { VerseData } from "./lib/api";
 import { DEFAULT_EDITION } from "./lib/config";
@@ -9,16 +10,31 @@ import { todayGregorian, todayISO } from "./lib/date";
 import { homeUrl, openUrl, settingsUrl, surahUrl } from "./lib/links";
 import { getPref, setPref } from "./lib/storage";
 import { filterSurahs } from "./lib/surah-filter";
+import { applyTheme, getStoredTheme, readThemeSync, setStoredTheme, THEME_KEYS } from "./lib/theme";
 
 const PAD = 16;
 
 export function Popup() {
+  const [theme, setTheme] = useState<ThemeKey>(readThemeSync());
+
+  useEffect(() => {
+    void getStoredTheme().then((key) => {
+      setTheme(key);
+      applyTheme(key);
+    });
+  }, []);
+
+  function changeTheme(key: ThemeKey) {
+    setTheme(key);
+    void setStoredTheme(key);
+  }
+
   return (
     <main style={{ padding: PAD, display: "flex", flexDirection: "column", gap: 14 }}>
       <Header />
       <VerseOfDay />
       <SurahJump />
-      <Footer />
+      <Footer theme={theme} onTheme={changeTheme} />
     </main>
   );
 }
@@ -249,7 +265,7 @@ function SurahJump() {
   );
 }
 
-function Footer() {
+function Footer({ theme, onTheme }: { theme: ThemeKey; onTheme: (key: ThemeKey) => void }) {
   const link = { color: N.muted, fontSize: 12, textDecoration: "none", fontFamily: N.ui } as const;
   return (
     <footer
@@ -257,16 +273,54 @@ function Footer() {
         borderTop: `1px solid ${N.borderSoft}`,
         paddingTop: 10,
         display: "flex",
-        gap: 16,
-        justifyContent: "center",
+        flexDirection: "column",
+        gap: 10,
       }}
     >
-      <a href={homeUrl()} target="_blank" rel="noreferrer" style={link}>
-        Open Ummah Library
-      </a>
-      <a href={settingsUrl()} target="_blank" rel="noreferrer" style={link}>
-        Settings
-      </a>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={LABEL_STYLE}>Theme</span>
+        <ThemePicker value={theme} onChange={onTheme} />
+      </div>
+      <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
+        <a href={homeUrl()} target="_blank" rel="noreferrer" style={link}>
+          Open Ummah Library
+        </a>
+        <a href={settingsUrl()} target="_blank" rel="noreferrer" style={link}>
+          Settings
+        </a>
+      </div>
     </footer>
+  );
+}
+
+function ThemePicker({ value, onChange }: { value: ThemeKey; onChange: (key: ThemeKey) => void }) {
+  return (
+    <div role="radiogroup" aria-label="Theme" style={{ display: "flex", gap: 5 }}>
+      {THEME_KEYS.map((key) => {
+        const palette = noorThemes[key];
+        const active = key === value;
+        return (
+          <button
+            key={key}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-label={key}
+            title={key}
+            onClick={() => onChange(key)}
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: "50%",
+              background: palette.bg,
+              boxShadow: `inset 0 0 0 4px ${palette.accent}`,
+              border: active ? `2px solid ${N.fg}` : `1px solid ${N.border}`,
+              cursor: "pointer",
+              padding: 0,
+            }}
+          />
+        );
+      })}
+    </div>
   );
 }
