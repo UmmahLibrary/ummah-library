@@ -3,6 +3,10 @@
 - **Status:** Accepted
 - **Date:** 2026-06-14
 - **Supersedes:** partial guidance in ADR 0009 (mobile app)
+- **Amended by:** [ADR 0027](0027-generated-theme-css.md) — the web's
+  `[data-theme]` CSS is now **generated** from `themes.ts`, not hand-maintained.
+  Where this ADR says to add a matching `globals.css` block by hand, edit
+  `themes.ts` and run `build:themes` instead.
 
 ## Context
 

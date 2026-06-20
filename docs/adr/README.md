@@ -34,6 +34,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0023](0023-noor-design-system.md)            | Noor design system: single source of truth across web and mobile | Accepted |
 | [0024](0024-local-storage-ports.md)           | Typed storage ports for local-first state (the sync seam)        | Accepted |
 | [0025](0025-reading-plans.md)                 | Reading plans: pure schedule engine, catalogue bundled in core   | Accepted |
+| [0027](0027-generated-theme-css.md)           | Theme CSS generated from one token source (amends 0023)          | Accepted |
 
 ## Writing a new ADR
 

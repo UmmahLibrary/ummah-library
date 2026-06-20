@@ -68,8 +68,10 @@ follow it.
 **What lives here:**
 
 - `src/themes.ts` — all eight Noor palettes as JS objects (`Palette` interface +
-  `noorThemes` record). The CSS custom properties in `apps/web/src/app/globals.css`
-  must stay in sync with these values.
+  `noorThemes` record). **The single source of truth for theme values.**
+- `src/theme-css.ts` + `src/noor-themes.css` / `src/noor-tokens.css` — the CSS
+  custom properties are **generated** from `themes.ts` (ADR 0027); never hand-edit
+  the `.css`. Web/extension import `noor-themes.css`; a drift test guards them.
 - `src/tokens.ts` — `N.*` CSS variable strings for web inline styles.
 - `src/NoorThemeContext.tsx` — `NoorThemeProvider` + `useNoorTheme()` for native.
 - `src/Btn.tsx` / `src/Btn.native.tsx` (and Seg, Icon, Khatam, Logo) — shared
@@ -93,8 +95,9 @@ packages/ui/src/
 validated by Metro at bundle time. Keep the props interface compatible across
 both files — callers use the exported web type.
 
-**Adding a new theme:** add one row to `themes.ts` + one `[data-theme]` block
-in `globals.css`. Both apps update automatically.
+**Adding a new theme:** add one row to `noorThemes` in `themes.ts`, then run
+`pnpm --filter @ummahlibrary/ui build:themes` to regenerate the CSS. Web, mobile,
+and the extension all update from that one source (ADR 0027).
 
 **Adding a new component:** add `Foo.tsx` (web) and `Foo.native.tsx` (mobile)
 to `packages/ui/src/`, export both from `src/index.ts`, add tests.
