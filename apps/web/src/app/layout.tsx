@@ -7,6 +7,9 @@ import { PrayerReminderScheduler } from "../components/PrayerReminderScheduler";
 import { PlanReminderScheduler } from "../components/PlanReminderScheduler";
 import { AppShellWrapper } from "../components/AppShellWrapper";
 import { SITE_URL } from "../lib/site";
+// Noor palette (all themes) — generated from packages/ui/src/themes.ts (ADR 0027).
+// Imported before globals.css so the web's next/font overrides for --noor-ui/--noor-ar win.
+import "@ummahlibrary/ui/noor-themes.css";
 import "./globals.css";
 
 /* ── Noor fonts ── */
