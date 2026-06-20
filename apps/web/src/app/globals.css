@@ -765,6 +765,15 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
 .wbw-translation {
   font-size: 0.95rem;
 }
+/* Source credit — word-by-word data is fetched live from quran.com, not bundled.
+   See ATTRIBUTION.md (runtime services). */
+.wbw-source {
+  margin-top: 0.1rem;
+  color: var(--muted);
+  opacity: 0.65;
+  font-size: 0.62rem;
+  text-align: right;
+}
 
 /* ---- Prayer times ---- */
 .prayer-cta {
