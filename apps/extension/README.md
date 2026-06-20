@@ -11,6 +11,9 @@ The popup shows:
 - **Quick sūra jump** — fetches and caches the sūra list, filters by name/number,
   opens the web reader.
 - **Translation edition** — chosen from `/api/v1/editions`, remembered.
+- **Themes** — all eight Noor palettes via a swatch picker (the generated
+  `@ummahlibrary/ui/noor-themes.css`, ADR 0027); the choice syncs across the
+  browser profile via `chrome.storage.sync`.
 
 It reuses `@ummahlibrary/core` (logic) and `@ummahlibrary/ui` (the Noor look). It
 needs **no backend**: content comes from the live API (`https://ummahlibrary.org`,

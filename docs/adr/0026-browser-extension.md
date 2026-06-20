@@ -60,9 +60,10 @@ and a **translation-edition selector**.
   surah list (the list is cached after first load; both fail soft to an offline
   message). The deployed app is a hard dependency — schema changes to
   `/api/v1` must keep the extension in mind, the same as any API consumer.
-- **Theme:** v1 ships the default Obsidian palette only (the full eight-theme set
-  lives in the web app's `globals.css`, not in `ui`); theme switching in the popup
-  is a later enhancement, not a blocker.
+- **Theme:** the popup imports the generated `@ummahlibrary/ui/noor-themes.css`
+  (ADR 0027) and offers all eight Noor themes via a swatch picker; the choice
+  persists in `chrome.storage.sync` (cross-device) with a synchronous
+  `localStorage` mirror applied before paint to avoid a flash.
 - **Distribution:** store submission (Chrome Web Store / AMO listing, screenshots,
   privacy declarations) is operational follow-up, like the iOS app (#115); the
   build itself is reproducible via `pnpm --filter @ummahlibrary/extension build`.
