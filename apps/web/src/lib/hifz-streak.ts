@@ -1,6 +1,6 @@
 "use client";
 
-const KEY = "ul.hifz.streak";
+import { readStreak, writeStreak } from "./hifz-streak-store";
 
 export interface StreakData {
   count: number;
@@ -12,20 +12,13 @@ function toDateStr(d: Date): string {
 }
 
 export function getStreak(): StreakData {
-  try {
-    return (JSON.parse(localStorage.getItem(KEY) ?? "null") as StreakData | null) ?? {
-      count: 0,
-      lastDate: "",
-    };
-  } catch {
-    return { count: 0, lastDate: "" };
-  }
+  return readStreak();
 }
 
 /** Call once per session when the user completes at least one review. */
 export function touchStreak(): StreakData {
   const today = toDateStr(new Date());
-  const current = getStreak();
+  const current = readStreak();
   if (current.lastDate === today) return current;
 
   const yesterday = new Date();
@@ -34,10 +27,6 @@ export function touchStreak(): StreakData {
     count: current.lastDate === toDateStr(yesterday) ? current.count + 1 : 1,
     lastDate: today,
   };
-  try {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  } catch {
-    /* storage unavailable */
-  }
+  writeStreak(next);
   return next;
 }

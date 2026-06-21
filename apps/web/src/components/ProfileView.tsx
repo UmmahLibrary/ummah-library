@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { computeStreak, longestStreak, prayerStreak, totalSavedAyahs } from "@ummahlibrary/core";
 import { N, Khatam } from "@ummahlibrary/ui";
+import { countLearned } from "../lib/asma-store";
 import { allRecords, surahProgressMap } from "../lib/hifz-store";
 import { getStreak } from "../lib/hifz-streak";
 import { readPrayerLog, today } from "../lib/prayer-tracker";
@@ -29,14 +30,6 @@ const ZERO: Stats = {
   bestStreak: 0,
 };
 
-function namesLearned(): number {
-  try {
-    return Object.keys(JSON.parse(localStorage.getItem("ul.asmaLearned") ?? "{}") as object).length;
-  } catch {
-    return 0;
-  }
-}
-
 /**
  * "Your journey" — a progress dashboard built entirely from the local-first data
  * the app already keeps (Hifz, prayer log, reading log, names learned,
@@ -57,7 +50,7 @@ export function ProfileView() {
           memorized: allRecords().length,
           surahsStarted: surahProgressMap(new Date()).size,
           prayerStreak: prayer,
-          names: namesLearned(),
+          names: countLearned(),
           saved: totalSavedAyahs(collections),
           bestStreak: Math.max(hifzStreak, prayer, longestStreak(log), computeStreak(reading.activeDates, t)),
         });
