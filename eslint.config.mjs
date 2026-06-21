@@ -187,4 +187,43 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Check B — persistence behind a port (ADR 0024). App feature code must not
+    // touch raw web storage; it goes through a Store adapter so a synced adapter
+    // (#25) can replace it. The ONLY sanctioned raw-storage homes are the adapter
+    // files carved out below (`*-store` / `*-provider` / the notifier / each app's
+    // `storage.ts`). No legacy allowlist — every feature is migrated.
+    files: ["apps/**/*.{ts,tsx}"],
+    ignores: [
+      "apps/**/*.test.{ts,tsx}",
+      "apps/web/src/test-setup.ts",
+      "apps/*/scripts/**",
+      "apps/**/*-store.ts",
+      "apps/**/*-provider.ts",
+      "apps/web/src/lib/web-notifier.ts",
+      "apps/*/src/**/storage.ts",
+    ],
+    rules: {
+      "no-restricted-globals": [
+        "error",
+        ...["localStorage", "sessionStorage", "indexedDB"].map((name) => ({
+          name,
+          message:
+            "Persisted state must go through a Store adapter (ADR 0024): keep raw web storage in a *-store / *-provider / storage.ts file, not in feature code.",
+        })),
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@react-native-async-storage/async-storage",
+              message:
+                "Persisted state must go through a Store adapter (ADR 0024): keep AsyncStorage in a *-store / storage.ts file.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

@@ -4,29 +4,12 @@
  * merge logic is pure in `@ummahlibrary/core`.
  */
 
-import {
-  type MergeStrategy,
-  buildBackup,
-  isBackupKey,
-  mergeBackups,
-  validateBackup,
-} from "@ummahlibrary/core";
+import { type MergeStrategy, buildBackup, mergeBackups, validateBackup } from "@ummahlibrary/core";
+import { clearAll, restore, snapshot } from "./backup-store";
 
 /** Every local-first (`ul.*`) key in localStorage, with its raw string value. */
 export function collectLocalData(): Record<string, string> {
-  const out: Record<string, string> = {};
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && isBackupKey(key)) {
-        const value = localStorage.getItem(key);
-        if (value !== null) out[key] = value;
-      }
-    }
-  } catch {
-    /* storage unavailable */
-  }
-  return out;
+  return snapshot();
 }
 
 export function exportBackup(): void {
@@ -60,13 +43,9 @@ export function importBackup(text: string, strategy: MergeStrategy): ImportResul
   if (errors.length) return { ok: false, message: errors.join(" ") };
 
   const incoming = (parsed as { data: Record<string, string> }).data;
-  const merged = mergeBackups(collectLocalData(), incoming, strategy);
+  const merged = mergeBackups(snapshot(), incoming, strategy);
   try {
-    if (strategy === "replace") {
-      // Clear existing ul.* keys so a replace is a true restore.
-      for (const key of Object.keys(collectLocalData())) localStorage.removeItem(key);
-    }
-    for (const [key, value] of Object.entries(merged)) localStorage.setItem(key, value);
+    restore(merged, strategy === "replace");
   } catch {
     return { ok: false, message: "Couldn’t write to local storage." };
   }
@@ -78,11 +57,5 @@ export function importBackup(text: string, strategy: MergeStrategy): ImportResul
 }
 
 export function clearAllData(): number {
-  const keys = Object.keys(collectLocalData());
-  try {
-    for (const key of keys) localStorage.removeItem(key);
-  } catch {
-    /* ignore */
-  }
-  return keys.length;
+  return clearAll();
 }
