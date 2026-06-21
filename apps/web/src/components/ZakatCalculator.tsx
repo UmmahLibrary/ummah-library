@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { type NisabBasis, ZAKAT_ASSET_CATEGORIES, calculateZakat } from "@ummahlibrary/core";
 import { N, Khatam } from "@ummahlibrary/ui";
+import { readZakat, writeZakat } from "../lib/zakat-store";
 
-const STORAGE_KEY = "ul.zakat";
 const lcard = { background: N.card, border: `1px solid ${N.border}`, borderRadius: 16 } as const;
 
 interface State {
@@ -120,29 +120,20 @@ export function ZakatCalculator() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw) as Partial<State>;
-        setState({
-          ...DEFAULT_STATE,
-          ...saved,
-          assets: { ...EMPTY_ASSETS, ...(saved.assets ?? {}) },
-        });
-      }
-    } catch {
-      /* ignore corrupt storage */
+    const saved = readZakat() as Partial<State> | null;
+    if (saved) {
+      setState({
+        ...DEFAULT_STATE,
+        ...saved,
+        assets: { ...EMPTY_ASSETS, ...(saved.assets ?? {}) },
+      });
     }
     setLoaded(true);
   }, []);
 
   useEffect(() => {
     if (!loaded) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      /* storage unavailable */
-    }
+    writeZakat(state);
   }, [state, loaded]);
 
   const result = useMemo(
