@@ -20,7 +20,7 @@ import type { Collection } from "./collections";
 import type { PrayerTrackerLog } from "./prayer-tracker";
 import type { TasbihRecord } from "./tasbih";
 import type { HifzCard } from "./hifz";
-import type { Coordinates, Madhab, PrayerTimings } from "./prayer";
+import type { Coordinates, Madhab, PrayerName, PrayerTimings } from "./prayer";
 import type { ActivePlan, PlanTemplate } from "./reading-plans";
 import type { KhatmaPlan } from "./reading-goals";
 
@@ -288,4 +288,70 @@ export interface SettingsStore {
   writeReciter(id: string): Promise<void>;
   writeTafsir(id: string): Promise<void>;
   writeScale(scale: number): Promise<void>;
+}
+
+/** The reader's prayer-times location and calculation config as persisted. */
+export interface PrayerSettings {
+  /** Saved location, or `null` until the reader uses prayer times / qibla. */
+  coords: Coordinates | null;
+  /** Calculation method id (e.g. `"MuslimWorldLeague"`). */
+  method: string;
+  /** Juristic madhab for the ʿAsr time. */
+  madhab: Madhab;
+}
+
+/**
+ * Persists the reader's prayer-times location and calculation config on-device
+ * (ADR 0024): coordinates, calculation method, and madhab — shared by prayer
+ * times, qibla, Ramadan, and reminders. Web uses `localStorage`, mobile
+ * `AsyncStorage`; a synced adapter (#25) replaces either without touching the
+ * prayer-times UI. `read()` applies the defaults; one method per stored key.
+ */
+export interface PrayerSettingsStore {
+  read(): Promise<PrayerSettings>;
+  writeCoords(coords: Coordinates | null): Promise<void>;
+  writeMethod(method: string): Promise<void>;
+  writeMadhab(madhab: Madhab): Promise<void>;
+}
+
+/**
+ * Supplies today's prayer timings for the stored location, hiding *how* they're
+ * obtained and cached behind the port: the web adapter fetches the prayer-times
+ * function and caches the day; a mobile adapter can compute them on-device via
+ * a {@link PrayerTimesCalculator}. Returns `null` when no location is stored or
+ * the lookup fails. This keeps the reminder orchestration in `core` free of I/O.
+ */
+export interface PrayerTimingsProvider {
+  getTodaysTimings(): Promise<PrayerTimings | null>;
+}
+
+/** A reading-plan daily-reminder preference. */
+export interface PlanReminderPref {
+  on: boolean;
+  /** Local wall-clock time, `HH:MM`. */
+  time: string;
+}
+
+/** The reader's reminder preferences as persisted (ADR 0024). */
+export interface ReminderPrefs {
+  /** Reading-plan daily nudge (#71). */
+  plan: PlanReminderPref;
+  /** Per-prayer reminder toggles. */
+  prayers: Partial<Record<PrayerName, boolean>>;
+  /** Morning/evening adhkar reminder on/off. */
+  adhkarOn: boolean;
+}
+
+/**
+ * Persists the reader's reminder preferences on-device (ADR 0024): the plan
+ * daily nudge, the per-prayer toggles, and the adhkar on/off. Web uses
+ * `localStorage`, mobile `AsyncStorage`; a synced adapter (#25) replaces either
+ * without touching the reminder orchestration in `core`. `read()` applies the
+ * defaults; one method per stored key.
+ */
+export interface ReminderStore {
+  read(): Promise<ReminderPrefs>;
+  writePlan(pref: PlanReminderPref): Promise<void>;
+  writePrayers(prefs: Partial<Record<PrayerName, boolean>>): Promise<void>;
+  writeAdhkarOn(on: boolean): Promise<void>;
 }
