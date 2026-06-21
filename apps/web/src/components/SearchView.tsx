@@ -5,10 +5,14 @@ import Link from "next/link";
 import { searchText } from "@ummahlibrary/core";
 import { N, Icon, Khatam } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
+import {
+  clearHistory as clearStoredHistory,
+  readHistory,
+  writeHistory,
+} from "../lib/search-history-store";
 
 const ENGLISH_EDITION = "eng-mustafakhattaba";
 const ENGLISH_URL = `https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/${ENGLISH_EDITION}.min.json`;
-const HISTORY_KEY = "ul.searchHistory";
 const MAX_HISTORY = 6;
 
 const TOPICS = ["mercy", "patience", "Mulk", "forgiveness", "knowledge", "Raḥmān", "guidance", "light"];
@@ -167,15 +171,6 @@ async function buildIndex(surahs: SurahRef[]): Promise<SearchItem[]> {
   return items;
 }
 
-function readHistory(): string[] {
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
 function highlight(text: string, q: string): React.ReactNode {
   const at = text.toLowerCase().indexOf(q.toLowerCase());
   if (!q || at < 0) return text;
@@ -238,20 +233,12 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
     if (trimmed.length < 2) return;
     const next = [trimmed, ...history.filter((h) => h !== trimmed)].slice(0, MAX_HISTORY);
     setHistory(next);
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
-    } catch {
-      /* storage unavailable */
-    }
+    writeHistory(next);
   }
 
   function clearHistory() {
     setHistory([]);
-    try {
-      localStorage.removeItem(HISTORY_KEY);
-    } catch {
-      /* ignore */
-    }
+    clearStoredHistory();
   }
 
   // Count by filter key (surahs fold into "ayah"/Quran).
