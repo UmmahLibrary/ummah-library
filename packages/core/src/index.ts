@@ -25,6 +25,7 @@ export * from "./adhkar";
 export * from "./duas";
 export * from "./reading-goals";
 export * from "./reading-plans";
+export * from "./reminders";
 export * from "./backup";
 export * from "./collections";
 export * from "./tasbih";
