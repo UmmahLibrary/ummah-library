@@ -1,8 +1,10 @@
 /**
- * The eight Noor theme palettes and the small amount of logic for selecting,
- * resolving and persisting them. The palettes themselves live in globals.css as
- * `[data-theme="…"]` blocks; here we only track which one is active.
+ * The eight Noor theme palettes and the small amount of logic for selecting and
+ * resolving them. The palettes themselves live in globals.css as `[data-theme="…"]`
+ * blocks; here we only track which one is active. Persistence is delegated to the
+ * `./theme-store` adapter (ADR 0024).
  */
+import { readLastTheme, writeActiveTheme } from "./theme-store";
 
 export type ThemeMode = "dark" | "light";
 
@@ -38,9 +40,6 @@ export const THEMES: ThemeMeta[] = [
 export const DEFAULT_DARK: ThemeKey = "obsidian";
 export const DEFAULT_LIGHT: ThemeKey = "ivory";
 
-/** localStorage key holding the active theme. */
-export const THEME_STORAGE_KEY = "ul.theme";
-
 const BY_KEY = new Map<string, ThemeMeta>(THEMES.map((t) => [t.key, t]));
 const LEGACY: Record<string, ThemeKey> = { dark: DEFAULT_DARK, light: DEFAULT_LIGHT };
 
@@ -58,8 +57,7 @@ export function themeMode(key: ThemeKey): ThemeMode {
 /** The theme last used in a given mode, or that mode's default. */
 export function lastThemeForMode(mode: ThemeMode): ThemeKey {
   const fallback = mode === "dark" ? DEFAULT_DARK : DEFAULT_LIGHT;
-  if (typeof localStorage === "undefined") return fallback;
-  const stored = localStorage.getItem(mode === "dark" ? "ul.lastDark" : "ul.lastLight");
+  const stored = readLastTheme(mode);
   const key = stored ? normalizeTheme(stored) : null;
   return key && themeMode(key) === mode ? key : fallback;
 }
@@ -70,10 +68,5 @@ export function applyTheme(key: ThemeKey): void {
   const root = document.documentElement;
   root.dataset.theme = key;
   root.dataset.mode = mode;
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, key);
-    localStorage.setItem(mode === "dark" ? "ul.lastDark" : "ul.lastLight", key);
-  } catch {
-    /* ignore */
-  }
+  writeActiveTheme(key, mode);
 }
