@@ -34,7 +34,9 @@
       "bundleIdentifier": "org.ummahlibrary.app",
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -52,7 +54,8 @@
         }
       ],
       "expo-font",
-      "expo-notifications"
+      "expo-notifications",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

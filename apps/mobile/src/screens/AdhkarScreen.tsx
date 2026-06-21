@@ -14,6 +14,7 @@ import { KEYS, getJSON, setJSON } from "../storage";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { adhkarToday } from "../utils";
+import { AdhkarReminderToggle } from "../components/AdhkarReminderToggle";
 
 interface Stored {
   date: string;
@@ -90,6 +91,7 @@ export function AdhkarScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
+      <AdhkarReminderToggle />
       <View style={styles.tabs} accessibilityRole="tablist">
         {ADHKAR_OCCASIONS.map((o) => (
           <Pressable

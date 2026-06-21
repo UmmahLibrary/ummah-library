@@ -41,6 +41,7 @@ export const KEYS = {
   planReminder: "ul.planReminder",
   prayerReminders: "ul.prayerReminders",
   adhkarReminders: "ul.adhkarReminders",
+  adhkarTimings: "ul.adhkarTimings",
 } as const;
 
 export async function getJSON<T>(key: string, fallback: T): Promise<T> {
