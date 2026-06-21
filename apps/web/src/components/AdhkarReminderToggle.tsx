@@ -20,9 +20,11 @@ export function AdhkarReminderToggle() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setEnabled(remindersEnabled());
-    setHasCoords(readCoords() !== null);
-    setReady(true);
+    void Promise.all([remindersEnabled(), readCoords()]).then(([on, coords]) => {
+      setEnabled(on);
+      setHasCoords(coords !== null);
+      setReady(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -54,11 +56,11 @@ export function AdhkarReminderToggle() {
         // Ask through the port; the in-app banner still works if it's declined.
         await notifier.requestPermission();
       }
-      setRemindersEnabled(true);
+      await setRemindersEnabled(true);
       setEnabled(true);
-      setHasCoords(readCoords() !== null);
+      setHasCoords((await readCoords()) !== null);
     } else {
-      setRemindersEnabled(false);
+      await setRemindersEnabled(false);
       setEnabled(false);
     }
   }
