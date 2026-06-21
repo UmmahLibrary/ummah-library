@@ -29,6 +29,7 @@ import {
   todayStr,
 } from "../plans";
 import { PlanCompletionCard } from "../components/PlanCompletionCard";
+import { PlanReminderToggle } from "../components/PlanReminderToggle";
 import type { ReadStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "PlanDetail">;
@@ -145,6 +146,8 @@ export function PlanDetailScreen({ navigation }: Props) {
           </Pressable>
         </View>
       )}
+
+      {!complete && <PlanReminderToggle />}
 
       {!paused && behind < 0 && (
         <Text style={styles.behindNote}>

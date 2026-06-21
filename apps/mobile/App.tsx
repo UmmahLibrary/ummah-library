@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AppState } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -16,6 +17,8 @@ import { RootTabs } from "./src/navigation/RootTabs";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { fontMap } from "./src/fonts";
 import { KEYS, getString, setString } from "./src/storage";
+import { initNotifier } from "./src/notifier";
+import { syncPlanReminder } from "./src/plan-reminders";
 import type { RootTabParamList } from "./src/navigation/types";
 
 /** URL routes for the web build and OS deep links (ummahlibrary://). */
@@ -106,6 +109,17 @@ function AppGate() {
 
 export default function App() {
   const [fontsLoaded] = useFonts(fontMap);
+
+  // Prime the notifier, then keep the plan reminder scheduled — re-syncing on
+  // foreground so the schedule rolls to the next day after one fires (#71).
+  useEffect(() => {
+    void initNotifier().then(() => syncPlanReminder());
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") void syncPlanReminder();
+    });
+    return () => sub.remove();
+  }, []);
+
   if (!fontsLoaded) return null;
   return (
     <SafeAreaProvider>
