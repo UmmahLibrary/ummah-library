@@ -36,6 +36,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0025](0025-reading-plans.md)                 | Reading plans: pure schedule engine, catalogue bundled in core   | Accepted |
 | [0026](0026-browser-extension.md)             | Browser extension: thin client over the public REST API          | Accepted |
 | [0027](0027-generated-theme-css.md)           | Theme CSS generated from one token source (amends 0023)          | Accepted |
+| [0028](0028-persistence-enforcement.md)       | Persistence behind store adapters is lint-enforced (amends 0024) | Accepted |
 
 ## Writing a new ADR
 
