@@ -5,6 +5,8 @@
  * on-page Hijri date re-renders together.
  */
 
+import { readAdjustRaw, writeAdjustRaw } from "./hijri-store";
+
 export const HIJRI_ADJUST_KEY = "ul.hijriAdjust";
 
 /** Clamp to a sane range — a sighting is never more than a couple of days out. */
@@ -13,21 +15,13 @@ function clamp(n: number): number {
 }
 
 export function readHijriAdjust(): number {
-  try {
-    const raw = localStorage.getItem(HIJRI_ADJUST_KEY);
-    const n = raw === null ? 0 : Number.parseInt(raw, 10);
-    return Number.isFinite(n) ? clamp(n) : 0;
-  } catch {
-    return 0;
-  }
+  const raw = readAdjustRaw();
+  const n = raw === null ? 0 : Number.parseInt(raw, 10);
+  return Number.isFinite(n) ? clamp(n) : 0;
 }
 
 export function writeHijriAdjust(days: number): void {
   const value = clamp(days);
-  try {
-    localStorage.setItem(HIJRI_ADJUST_KEY, String(value));
-  } catch {
-    /* storage unavailable — ignore */
-  }
+  writeAdjustRaw(value);
   window.dispatchEvent(new CustomEvent(HIJRI_ADJUST_KEY, { detail: value }));
 }

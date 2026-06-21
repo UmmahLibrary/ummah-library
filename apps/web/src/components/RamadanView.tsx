@@ -2,15 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  type Coordinates,
-  DEFAULT_CALCULATION_METHOD,
-  type PrayerTimings,
-  gregorianToHijri,
-  hijriMonth,
-} from "@ummahlibrary/core";
+import { type PrayerTimings, gregorianToHijri, hijriMonth } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
+import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
+import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
 import { RAMADAN_EVENT, readFasts, readWorship, toggleFast, toggleWorship } from "../lib/ramadan";
 import { readReadingState } from "../lib/reading-goals";
 
@@ -35,15 +31,6 @@ function countdown(target: Date, now: Date): string {
   const m = Math.floor(s / 60);
   s -= m * 60;
   return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-function read<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
 }
 
 const statCard = {
@@ -83,23 +70,10 @@ export function RamadanView() {
     sync();
     window.addEventListener(RAMADAN_EVENT, sync);
 
-    const coords = read<Coordinates | null>("ul.prayerCoords", null);
-    if (coords) {
-      setHasCoords(true);
-      const method = localStorage.getItem("ul.prayerMethod") ?? DEFAULT_CALCULATION_METHOD;
-      const madhab = localStorage.getItem("ul.prayerMadhab") ?? "shafi";
-      const params = new URLSearchParams({
-        lat: String(coords.latitude),
-        lng: String(coords.longitude),
-        date: today,
-        method,
-        madhab,
-      });
-      fetch(`/api/v1/prayer-times?${params}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d: { timings: PrayerTimings } | null) => d && setTimings(d.timings))
-        .catch(() => {});
-    }
+    void webPrayerSettingsStore.read().then(({ coords }) => setHasCoords(coords !== null));
+    void webPrayerTimingsProvider.getTodaysTimings().then((t) => {
+      if (t) setTimings(t);
+    });
     return () => window.removeEventListener(RAMADAN_EVENT, sync);
   }, [today]);
 
