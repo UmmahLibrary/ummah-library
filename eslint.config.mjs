@@ -112,4 +112,79 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Check A — core purity (ADR 0001 rules #1 & #3). `core` is pure and
+    // deterministic: no platform globals, no I/O, no nondeterminism, no Node
+    // built-ins. The clock is injected (see hifz.ts), so a bare `new Date()`
+    // *default parameter* stays allowed; `Date.now()`/`Math.random()` do not.
+    // boundaries already blocks workspace imports from core — this closes the
+    // global/builtin holes it can't see.
+    files: ["packages/core/src/**/*.ts"],
+    ignores: ["packages/core/src/**/*.test.ts"],
+    rules: {
+      "no-restricted-globals": [
+        "error",
+        ...[
+          "window",
+          "document",
+          "localStorage",
+          "sessionStorage",
+          "navigator",
+          "fetch",
+          "XMLHttpRequest",
+          "indexedDB",
+          "caches",
+          "process",
+        ].map((name) => ({
+          name,
+          message:
+            "core is pure (ADR 0001 #1/#3): no platform access — put it behind a port in core/src/ports.ts and implement it in an adapter.",
+        })),
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']",
+          message: "core is deterministic (ADR 0001 #3) — inject the clock (see hifz.ts), don't read wall-clock time.",
+        },
+        {
+          selector: "CallExpression[callee.object.name='Math'][callee.property.name='random']",
+          message: "core is deterministic (ADR 0001 #3) — inject randomness, don't call Math.random().",
+        },
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "node:*",
+                "fs",
+                "path",
+                "os",
+                "crypto",
+                "http",
+                "https",
+                "stream",
+                "child_process",
+                "util",
+                "events",
+                "url",
+                "zlib",
+                "net",
+                "tls",
+                "dns",
+                "assert",
+                "buffer",
+                "querystring",
+                "readline",
+                "worker_threads",
+              ],
+              message: "core imports nothing (ADR 0001 #1) — no Node built-ins; wrap external access in an adapter.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
