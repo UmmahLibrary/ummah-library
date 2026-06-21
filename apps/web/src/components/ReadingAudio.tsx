@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { type ReciterPlugin, quranComAudioUrl, reciterAudioUrl } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
 import { readReciter, writeReciter } from "../lib/reader-prefs";
+import { readLoop, writeLoop } from "../lib/reader-prefs-store";
 
 const RECITER_KEY = "ul.reciter";
-const LOOP_KEY = "ul.loop";
 
 interface Verse {
   sura: number;
@@ -87,7 +87,7 @@ export function ReadingAudio({
     void readReciter().then((saved) => {
       if (saved && reciters.some((r) => r.id === saved)) setReciterId(saved);
     });
-    const savedLoop = localStorage.getItem(LOOP_KEY) === "1";
+    const savedLoop = readLoop();
     setLoop(savedLoop);
     loopRef.current = savedLoop;
 
@@ -107,7 +107,7 @@ export function ReadingAudio({
     const next = !loopRef.current;
     loopRef.current = next;
     setLoop(next);
-    localStorage.setItem(LOOP_KEY, next ? "1" : "0");
+    writeLoop(next);
   }
 
   function clearWord() {

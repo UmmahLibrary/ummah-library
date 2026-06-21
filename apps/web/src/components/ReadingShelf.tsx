@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { readBookmarks } from "../lib/bookmarks";
+import { readLastRead } from "../lib/reader-prefs-store";
 
 interface SurahRef {
   number: number;
@@ -10,23 +11,14 @@ interface SurahRef {
   englishName: string;
 }
 
-function read<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-/** Client-only "continue reading" + bookmarks, backed by localStorage. */
+/** Client-only "continue reading" + bookmarks, backed by the reader-prefs store. */
 export function ReadingShelf({ surahs }: { surahs: SurahRef[] }) {
   const [lastRead, setLastRead] = useState<number | null>(null);
   const [bookmarks, setBookmarks] = useState<number[]>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setLastRead(read<{ surah: number } | null>("ul.lastRead", null)?.surah ?? null);
+    setLastRead(readLastRead());
     void readBookmarks().then(setBookmarks);
     setReady(true);
   }, []);

@@ -8,22 +8,14 @@ import { type EditionChoice, DEFAULT_EDITIONS, readEditions } from "../lib/editi
 import { fetchCatalogue } from "../lib/catalogue";
 import { readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
 import { readReciter, readScale, writeReciter, writeScale } from "../lib/reader-prefs";
+import { readWordByWord, writeLastRead, writeWordByWord } from "../lib/reader-prefs-store";
 import { TranslationSettings } from "./TranslationSettings";
 import { TafsirPicker } from "./TafsirPicker";
 import { WBW_KEY } from "./WordByWord";
 
 const SCALE_MIN = 0.8;
 const SCALE_MAX = 1.8;
-const LAST_READ_KEY = "ul.lastRead";
 const RECITER_KEY = "ul.reciter";
-
-function write(key: string, value: unknown): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* storage unavailable */
-  }
-}
 
 interface SegOption {
   value: string;
@@ -67,11 +59,11 @@ export function ReaderToolbar({
       document.documentElement.style.setProperty("--reading-scale", String(s));
     });
     void readBookmarks().then((list) => setBookmarked(list.includes(surahNumber)));
-    write(LAST_READ_KEY, { surah: surahNumber });
+    writeLastRead(surahNumber);
     void readReciter().then((r) => {
       if (r && reciters.some((x) => x.id === r)) setReciterId(r);
     });
-    const wbwOn = localStorage.getItem(WBW_KEY) === "1";
+    const wbwOn = readWordByWord();
     setWbw(wbwOn);
     document.body.classList.toggle("wbw-on", wbwOn);
     void readEditions().then((ids) => setSelected(new Set(ids)));
@@ -82,12 +74,8 @@ export function ReaderToolbar({
     const next = !wbw;
     setWbw(next);
     document.body.classList.toggle("wbw-on", next);
-    try {
-      localStorage.setItem(WBW_KEY, next ? "1" : "0");
-      window.dispatchEvent(new CustomEvent(WBW_KEY, { detail: next }));
-    } catch {
-      /* ignore */
-    }
+    writeWordByWord(next);
+    window.dispatchEvent(new CustomEvent(WBW_KEY, { detail: next }));
   }
 
   function changeScale(delta: number) {
