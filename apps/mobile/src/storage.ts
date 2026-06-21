@@ -38,6 +38,9 @@ export const KEYS = {
   onboarded: "ul.onboarded",
   ramadanFasts: "ul.ramadanFasts",
   ramadanWorship: "ul.ramadanWorship",
+  planReminder: "ul.planReminder",
+  prayerReminders: "ul.prayerReminders",
+  adhkarReminders: "ul.adhkarReminders",
 } as const;
 
 export async function getJSON<T>(key: string, fallback: T): Promise<T> {
