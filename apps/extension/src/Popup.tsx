@@ -3,6 +3,7 @@ import { formatHijri, gregorianToHijri, verseOfDay } from "@ummahlibrary/core";
 import type { Surah, Translation } from "@ummahlibrary/core";
 import { Logo, N, noorThemes } from "@ummahlibrary/ui";
 import type { ThemeKey } from "@ummahlibrary/ui";
+import { Dropdown } from "./Dropdown";
 import { fetchVerse, getEditions, getSurahs } from "./lib/api";
 import type { VerseData } from "./lib/api";
 import { DEFAULT_EDITION } from "./lib/config";
@@ -134,26 +135,12 @@ function VerseOfDay() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={LABEL_STYLE}>Verse of the day</span>
         {editions.length > 0 && (
-          <select
-            aria-label="Translation"
+          <Dropdown
+            ariaLabel="Translation"
             value={edition}
-            onChange={(e) => onEdition(e.target.value)}
-            style={{
-              background: N.bg2,
-              color: N.muted,
-              border: `1px solid ${N.border}`,
-              borderRadius: 8,
-              fontSize: 11,
-              padding: "2px 4px",
-              maxWidth: 150,
-            }}
-          >
-            {editions.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-              </option>
-            ))}
-          </select>
+            onChange={onEdition}
+            options={editions.map((e) => ({ value: e.id, label: e.name }))}
+          />
         )}
       </div>
 
