@@ -1,0 +1,80 @@
+/**
+ * Web reader-UI preferences (ADR 0024) — the raw-storage home for small
+ * per-reader display state: the last-read surah, the word-by-word toggle, the
+ * audio loop, and per-page scroll position. Kept **synchronous** (these are read
+ * during render / scroll restore, before paint), so components import these
+ * helpers instead of touching `localStorage` / `sessionStorage` directly. This
+ * `*-store` file is the sanctioned raw-storage home.
+ */
+
+const LAST_READ_KEY = "ul.lastRead";
+const LOOP_KEY = "ul.loop";
+// Mirrors the event key exported by components/WordByWord.
+const WBW_KEY = "ul.wbw";
+
+/** The surah number the reader last opened, or `null`. */
+export function readLastRead(): number | null {
+  try {
+    const raw = localStorage.getItem(LAST_READ_KEY);
+    return raw ? ((JSON.parse(raw) as { surah?: number }).surah ?? null) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeLastRead(surah: number): void {
+  try {
+    localStorage.setItem(LAST_READ_KEY, JSON.stringify({ surah }));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function readWordByWord(): boolean {
+  try {
+    return localStorage.getItem(WBW_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function writeWordByWord(on: boolean): void {
+  try {
+    localStorage.setItem(WBW_KEY, on ? "1" : "0");
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function readLoop(): boolean {
+  try {
+    return localStorage.getItem(LOOP_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function writeLoop(on: boolean): void {
+  try {
+    localStorage.setItem(LOOP_KEY, on ? "1" : "0");
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** Per-page scroll offset (session-scoped — restores within a tab session). */
+export function readScroll(key: string): number {
+  try {
+    return Number(sessionStorage.getItem(key)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function writeScroll(key: string, y: number): void {
+  try {
+    sessionStorage.setItem(key, String(y));
+  } catch {
+    /* storage unavailable */
+  }
+}

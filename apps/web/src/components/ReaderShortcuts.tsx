@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { readScroll, writeScroll } from "../lib/reader-prefs-store";
 
 /**
  * Reader keyboard shortcuts, a top reading-progress bar, and scroll-position
@@ -73,23 +74,13 @@ export function ReaderShortcuts({ storageKey }: { storageKey: string }) {
         setProgress(max > 0 ? Math.min(100, Math.max(0, (doc.scrollTop / max) * 100)) : 0);
       });
       if (saveTimer) clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => {
-        try {
-          sessionStorage.setItem(scrollKey, String(window.scrollY));
-        } catch {
-          /* storage unavailable */
-        }
-      }, 250);
+      saveTimer = setTimeout(() => writeScroll(scrollKey, window.scrollY), 250);
     }
 
     // Restore scroll position unless the URL deep-links to a specific āyah.
     if (!window.location.hash) {
-      try {
-        const saved = Number(sessionStorage.getItem(scrollKey));
-        if (saved > 0) window.scrollTo(0, saved);
-      } catch {
-        /* storage unavailable */
-      }
+      const saved = readScroll(scrollKey);
+      if (saved > 0) window.scrollTo(0, saved);
     }
     onScroll();
 

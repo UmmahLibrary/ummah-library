@@ -5,18 +5,10 @@ import { useEffect, useState } from "react";
 import { EditionManager } from "./EditionManager";
 import { readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
 import { readScale, writeScale } from "../lib/reader-prefs";
+import { writeLastRead } from "../lib/reader-prefs-store";
 
-const LAST_READ_KEY = "ul.lastRead";
 const SCALE_MIN = 0.8;
 const SCALE_MAX = 1.8;
-
-function write(key: string, value: unknown): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* storage unavailable — ignore */
-  }
-}
 
 export function ReaderControls({
   surahNumber,
@@ -33,7 +25,7 @@ export function ReaderControls({
   // Hydrate from localStorage and record this surah as last-read.
   useEffect(() => {
     void readBookmarks().then((list) => setBookmarked(list.includes(surahNumber)));
-    write(LAST_READ_KEY, { surah: surahNumber });
+    writeLastRead(surahNumber);
 
     void readScale().then((s) => {
       setScale(s);
