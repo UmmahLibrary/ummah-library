@@ -19,11 +19,12 @@ describe("QiblaCompass", () => {
     expect(screen.queryByText("Qibla direction")).not.toBeInTheDocument();
   });
 
-  it("renders the qibla bearing from a saved location", () => {
+  it("renders the qibla bearing from a saved location", async () => {
     localStorage.setItem(COORDS_KEY, JSON.stringify(london));
     render(<QiblaCompass />);
 
-    expect(screen.getByText("Qibla direction")).toBeInTheDocument();
+    // Location is restored asynchronously through the prayer-settings store.
+    expect(await screen.findByText("Qibla direction")).toBeInTheDocument();
     // Bearing renders as "<degrees>° <cardinal>", e.g. "119° ESE".
     expect(screen.getByText(/^\d+° [NESW]+$/)).toBeInTheDocument();
     // The Kaaba marker sits on the needle.

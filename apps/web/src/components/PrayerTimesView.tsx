@@ -22,22 +22,10 @@ import {
   readPrayerReminderPrefs,
   setPrayerReminder,
 } from "../lib/prayer-reminders";
+import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { WebNotifier } from "../lib/web-notifier";
 
-const METHOD_KEY = "ul.prayerMethod";
-const MADHAB_KEY = "ul.prayerMadhab";
-const COORDS_KEY = "ul.prayerCoords";
-
 type Status = "idle" | "locating" | "loading" | "ready" | "error" | "denied";
-
-function read<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 /** Local calendar date as YYYY-MM-DD (not UTC — prayer times are a local concept). */
 function localDate(d: Date): string {
@@ -136,17 +124,16 @@ export function PrayerTimesView() {
 
   // Restore preferences + last location, and load times if we have a location.
   useEffect(() => {
-    const m = localStorage.getItem(METHOD_KEY) ?? DEFAULT_CALCULATION_METHOD;
-    const mad = (localStorage.getItem(MADHAB_KEY) as Madhab) || "shafi";
-    const saved = read<Coordinates | null>(COORDS_KEY, null);
-    setMethod(m);
-    setMadhab(mad);
+    void webPrayerSettingsStore.read().then(({ coords: saved, method: m, madhab: mad }) => {
+      setMethod(m);
+      setMadhab(mad);
+      if (saved) {
+        setCoords(saved);
+        void fetchTimings(saved, m, mad);
+      }
+    });
     void readPrayerReminderPrefs().then(setReminders);
     setPermission(getNotifier().permission());
-    if (saved) {
-      setCoords(saved);
-      void fetchTimings(saved, m, mad);
-    }
   }, [fetchTimings]);
 
   // Tick the clock for the live countdown.
@@ -165,11 +152,7 @@ export function PrayerTimesView() {
       (pos) => {
         const c = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
         setCoords(c);
-        try {
-          localStorage.setItem(COORDS_KEY, JSON.stringify(c));
-        } catch {
-          /* storage unavailable */
-        }
+        void webPrayerSettingsStore.writeCoords(c);
         void fetchTimings(c, method, madhab);
       },
       () => setStatus("denied"),
@@ -179,12 +162,12 @@ export function PrayerTimesView() {
 
   function changeMethod(m: string) {
     setMethod(m);
-    localStorage.setItem(METHOD_KEY, m);
+    void webPrayerSettingsStore.writeMethod(m);
     if (coords) void fetchTimings(coords, m, madhab);
   }
   function changeMadhab(m: Madhab) {
     setMadhab(m);
-    localStorage.setItem(MADHAB_KEY, m);
+    void webPrayerSettingsStore.writeMadhab(m);
     if (coords) void fetchTimings(coords, method, m);
   }
 
