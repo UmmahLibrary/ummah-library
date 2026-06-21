@@ -1,75 +1,42 @@
 /**
- * Reading-plan daily reminder (#71). Opt-in, a single daily nudge at a chosen
- * time. All local: the on/off + time preference lives in `localStorage`, the
- * message copy is the pure core helper (`planReminderContent`), and delivery
- * goes through the {@link Notifier} port — the web adapter fires while a tab is
- * open (ADR 0019). No server push; the honest limit of a no-backend app. The
- * same core helpers will back a future Expo notifier behind the same port.
+ * Reading-plan daily reminder — web wiring (#71). The on/off + time preference
+ * goes through the {@link webReminderStore} (`ReminderStore` port, ADR 0024) and
+ * the scheduling decision is the shared `syncPlanReminder` in
+ * `@ummahlibrary/core`; this module only injects the web adapters and re-emits a
+ * `CustomEvent` so the scheduler/toggle re-sync. Delivery is the {@link Notifier}
+ * port (the web adapter fires while a tab is open, ADR 0019) — no server push.
  */
-import { type Notifier, nextDailyReminder, planReminderContent } from "@ummahlibrary/core";
-import { readActivePlan, todayStr } from "./reading-plan";
+import type { Notifier, PlanReminderPref } from "@ummahlibrary/core";
+import {
+  DEFAULT_PLAN_REMINDER_TIME,
+  PLAN_REMINDER_ID,
+  syncPlanReminder as coreSyncPlanReminder,
+} from "@ummahlibrary/core";
+import { webPlanStore } from "./plan-store";
+import { webReminderStore } from "./reminder-store";
 
+export { DEFAULT_PLAN_REMINDER_TIME, PLAN_REMINDER_ID };
+export type { PlanReminderPref };
+
+/** Event dispatched on a preference change so the scheduler re-syncs. */
 export const PLAN_REMINDER_KEY = "ul.planReminder";
-export const PLAN_REMINDER_ID = "plan:daily";
-export const DEFAULT_PLAN_REMINDER_TIME = "20:00";
 
-export interface PlanReminderPref {
-  on: boolean;
-  /** Local wall-clock time, `HH:MM`. */
-  time: string;
-}
-
-const FALLBACK: PlanReminderPref = { on: false, time: DEFAULT_PLAN_REMINDER_TIME };
-
-export function readPlanReminderPref(): PlanReminderPref {
-  try {
-    const raw = localStorage.getItem(PLAN_REMINDER_KEY);
-    if (raw) {
-      const p = JSON.parse(raw) as Partial<PlanReminderPref>;
-      return {
-        on: p.on === true,
-        time: typeof p.time === "string" ? p.time : DEFAULT_PLAN_REMINDER_TIME,
-      };
-    }
-  } catch {
-    /* storage unavailable */
-  }
-  return { ...FALLBACK };
+export async function readPlanReminderPref(): Promise<PlanReminderPref> {
+  return (await webReminderStore.read()).plan;
 }
 
 /** Persist the preference and notify the scheduler (and any open toggles). */
-export function setPlanReminderPref(pref: PlanReminderPref): void {
-  try {
-    localStorage.setItem(PLAN_REMINDER_KEY, JSON.stringify(pref));
-  } catch {
-    /* storage unavailable */
-  }
+export async function setPlanReminderPref(pref: PlanReminderPref): Promise<void> {
+  await webReminderStore.writePlan(pref);
   window.dispatchEvent(new CustomEvent(PLAN_REMINDER_KEY, { detail: pref }));
 }
 
-/**
- * (Re)schedule the active plan's daily reminder through the notifier. Idempotent:
- * cancels the pending one first, then schedules the next occurrence of the chosen
- * time with copy reflecting today's progress. A no-op when the reminder is off,
- * permission isn't granted, there's no active plan, or the time is malformed.
- */
-export async function syncPlanReminder(notifier: Notifier): Promise<void> {
-  await notifier.cancel(PLAN_REMINDER_ID);
-  const pref = readPlanReminderPref();
-  if (!pref.on || notifier.permission() !== "granted") return;
-
-  const plan = await readActivePlan();
-  if (!plan || plan.pausedOn) return; // a paused plan doesn't nudge (#68)
-
-  const at = nextDailyReminder(pref.time, new Date());
-  if (!at) return;
-
-  const { title, body } = planReminderContent(plan, todayStr());
-  await notifier.schedule({
-    id: PLAN_REMINDER_ID,
-    title,
-    body,
-    at: at.toISOString(),
-    tag: PLAN_REMINDER_ID,
+/** (Re)schedule the active plan's daily reminder through the shared orchestration. */
+export function syncPlanReminder(notifier: Notifier): Promise<void> {
+  return coreSyncPlanReminder({
+    notifier,
+    reminders: webReminderStore,
+    plans: webPlanStore,
+    now: () => new Date(),
   });
 }

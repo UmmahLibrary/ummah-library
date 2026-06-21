@@ -141,7 +141,7 @@ export function PrayerTimesView() {
     const saved = read<Coordinates | null>(COORDS_KEY, null);
     setMethod(m);
     setMadhab(mad);
-    setReminders(readPrayerReminderPrefs());
+    void readPrayerReminderPrefs().then(setReminders);
     setPermission(getNotifier().permission());
     if (saved) {
       setCoords(saved);
@@ -195,7 +195,7 @@ export function PrayerTimesView() {
     if (turningOn && getNotifier().permission() === "default") {
       setPermission(await getNotifier().requestPermission());
     }
-    setReminders({ ...setPrayerReminder(name, turningOn) });
+    setReminders({ ...(await setPrayerReminder(name, turningOn)) });
   }
 
   const upcoming = timings ? nextPrayer(timings, now) : null;

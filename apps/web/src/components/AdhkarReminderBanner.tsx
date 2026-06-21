@@ -11,38 +11,12 @@ import {
   remindersEnabled,
   syncAdhkarReminder,
 } from "../lib/adhkar-reminders";
+import { dismissAdhkar, readAdhkarSeen } from "../lib/reminder-store";
 import { WebNotifier } from "../lib/web-notifier";
 
-const SEEN_KEY = "ul.adhkarReminderSeen";
-
-// This feature's own notifier — its cancelAll() must not touch prayer reminders,
-// which run on a separate WebNotifier instance.
+// This feature's own notifier — a per-instance timer map, so its scheduling is
+// independent of the prayer/plan schedulers' notifiers.
 const notifier = new WebNotifier();
-
-function localDate(d = new Date()): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-function readSeen(): string[] {
-  try {
-    const raw = localStorage.getItem(SEEN_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as { date: string; dismissed: string[] };
-    return parsed.date === localDate() ? parsed.dismissed : [];
-  } catch {
-    return [];
-  }
-}
-
-function dismiss(occasion: AdhkarOccasion): void {
-  const dismissed = Array.from(new Set([...readSeen(), occasion]));
-  try {
-    localStorage.setItem(SEEN_KEY, JSON.stringify({ date: localDate(), dismissed }));
-  } catch {
-    /* ignore */
-  }
-}
 
 /**
  * Surfaces the active adhkar reminder while the app is open, and — when the user
@@ -58,7 +32,7 @@ export function AdhkarReminderBanner() {
     const timings = timingsRef.current;
     if (!timings) return;
     const occ = activeAdhkarReminder(timings, new Date());
-    setActive(occ && !readSeen().includes(occ) ? occ : null);
+    setActive(occ && !readAdhkarSeen().includes(occ) ? occ : null);
   }, []);
 
   useEffect(() => {
@@ -73,7 +47,7 @@ export function AdhkarReminderBanner() {
     };
 
     async function start() {
-      if (!remindersEnabled()) {
+      if (!(await remindersEnabled())) {
         setActive(null);
         timingsRef.current = null;
         void notifier.cancelAll();
@@ -117,7 +91,7 @@ export function AdhkarReminderBanner() {
           className="adhkar-reminder-close"
           aria-label="Dismiss"
           onClick={() => {
-            dismiss(active);
+            dismissAdhkar(active);
             setActive(null);
           }}
         >

@@ -28,28 +28,29 @@ export function PlanReminderToggle() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const p = readPlanReminderPref();
-    setOn(p.on);
-    setTime(p.time);
-    setDenied(notifier.permission() === "denied");
-    setReady(true);
+    void readPlanReminderPref().then((p) => {
+      setOn(p.on);
+      setTime(p.time);
+      setDenied(notifier.permission() === "denied");
+      setReady(true);
+    });
   }, []);
 
   async function toggle() {
     if (!on) {
       if (notifier.permission() === "default") await notifier.requestPermission();
       setDenied(notifier.permission() === "denied");
-      setPlanReminderPref({ on: true, time });
+      await setPlanReminderPref({ on: true, time });
       setOn(true);
     } else {
-      setPlanReminderPref({ on: false, time });
+      await setPlanReminderPref({ on: false, time });
       setOn(false);
     }
   }
 
   function changeTime(next: string) {
     setTime(next);
-    setPlanReminderPref({ on, time: next });
+    void setPlanReminderPref({ on, time: next });
   }
 
   if (!ready) return null;

@@ -44,25 +44,25 @@ beforeEach(() => localStorage.clear());
 afterEach(() => localStorage.clear());
 
 describe("plan reminder preference", () => {
-  it("defaults to off at the default time", () => {
-    expect(readPlanReminderPref()).toEqual({ on: false, time: DEFAULT_PLAN_REMINDER_TIME });
+  it("defaults to off at the default time", async () => {
+    expect(await readPlanReminderPref()).toEqual({ on: false, time: DEFAULT_PLAN_REMINDER_TIME });
   });
 
-  it("round-trips a saved preference", () => {
-    setPlanReminderPref({ on: true, time: "07:30" });
-    expect(readPlanReminderPref()).toEqual({ on: true, time: "07:30" });
+  it("round-trips a saved preference", async () => {
+    await setPlanReminderPref({ on: true, time: "07:30" });
+    expect(await readPlanReminderPref()).toEqual({ on: true, time: "07:30" });
   });
 
-  it("falls back safely on a malformed stored value", () => {
+  it("falls back safely on a malformed stored value", async () => {
     localStorage.setItem(PLAN_REMINDER_KEY, "{not json");
-    expect(readPlanReminderPref().on).toBe(false);
+    expect((await readPlanReminderPref()).on).toBe(false);
   });
 });
 
 describe("syncPlanReminder", () => {
   it("schedules a daily nudge when on, granted, and a plan is active", async () => {
     await seedPlan();
-    setPlanReminderPref({ on: true, time: "20:00" });
+    await setPlanReminderPref({ on: true, time: "20:00" });
     const n = new FakeNotifier("granted");
     await syncPlanReminder(n);
 
@@ -75,7 +75,7 @@ describe("syncPlanReminder", () => {
 
   it("is a no-op when the reminder is off", async () => {
     await seedPlan();
-    setPlanReminderPref({ on: false, time: "20:00" });
+    await setPlanReminderPref({ on: false, time: "20:00" });
     const n = new FakeNotifier("granted");
     await syncPlanReminder(n);
     expect(n.scheduled.size).toBe(0);
@@ -83,14 +83,14 @@ describe("syncPlanReminder", () => {
 
   it("is a no-op without notification permission", async () => {
     await seedPlan();
-    setPlanReminderPref({ on: true, time: "20:00" });
+    await setPlanReminderPref({ on: true, time: "20:00" });
     const n = new FakeNotifier("denied");
     await syncPlanReminder(n);
     expect(n.scheduled.size).toBe(0);
   });
 
   it("is a no-op when no plan is active", async () => {
-    setPlanReminderPref({ on: true, time: "20:00" });
+    await setPlanReminderPref({ on: true, time: "20:00" });
     const n = new FakeNotifier("granted");
     await syncPlanReminder(n);
     expect(n.scheduled.size).toBe(0);
