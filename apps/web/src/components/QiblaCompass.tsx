@@ -4,20 +4,9 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { type Coordinates, compassPoint, qiblaDirection } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
-
-// Shared with the prayer-times page — one stored location for both.
-const COORDS_KEY = "ul.prayerCoords";
+import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
 
 type Status = "idle" | "locating" | "ready" | "denied" | "error";
-
-function read<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 /** iOS 13+ gates DeviceOrientation behind an explicit permission prompt. */
 interface OrientationEventStatic {
@@ -56,11 +45,12 @@ export function QiblaCompass() {
 
   // Restore the shared location on mount.
   useEffect(() => {
-    const saved = read<Coordinates | null>(COORDS_KEY, null);
-    if (saved) {
-      setCoords(saved);
-      setStatus("ready");
-    }
+    void webPrayerSettingsStore.read().then(({ coords: saved }) => {
+      if (saved) {
+        setCoords(saved);
+        setStatus("ready");
+      }
+    });
   }, []);
 
   const listenToOrientation = useCallback(() => {
@@ -109,11 +99,7 @@ export function QiblaCompass() {
         const c = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
         setCoords(c);
         setStatus("ready");
-        try {
-          localStorage.setItem(COORDS_KEY, JSON.stringify(c));
-        } catch {
-          /* storage unavailable */
-        }
+        void webPrayerSettingsStore.writeCoords(c);
       },
       () => setStatus("denied"),
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 3600000 },

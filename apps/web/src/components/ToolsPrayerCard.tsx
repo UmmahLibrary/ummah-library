@@ -3,32 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  type Coordinates,
-  DEFAULT_CALCULATION_METHOD,
   OBLIGATORY_PRAYERS,
   PRAYER_LABELS,
   type PrayerTimings,
   nextPrayer,
 } from "@ummahlibrary/core";
 import { Icon, Khatam, N } from "@ummahlibrary/ui";
-
-const COORDS_KEY = "ul.prayerCoords";
-const METHOD_KEY = "ul.prayerMethod";
-const MADHAB_KEY = "ul.prayerMadhab";
-
-function read<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function localDate(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
 
 function fmtTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -62,24 +43,9 @@ export function ToolsPrayerCard() {
 
   useEffect(() => {
     setReady(true);
-    const saved = read<Coordinates | null>(COORDS_KEY, null);
-    if (saved) {
-      const method = localStorage.getItem(METHOD_KEY) ?? DEFAULT_CALCULATION_METHOD;
-      const madhab = localStorage.getItem(MADHAB_KEY) ?? "shafi";
-      const params = new URLSearchParams({
-        lat: String(saved.latitude),
-        lng: String(saved.longitude),
-        date: localDate(new Date()),
-        method,
-        madhab,
-      });
-      fetch(`/api/v1/prayer-times?${params}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d: { timings: PrayerTimings } | null) => {
-          if (d) setTimings(d.timings);
-        })
-        .catch(() => {});
-    }
+    void webPrayerTimingsProvider.getTodaysTimings().then((t) => {
+      if (t) setTimings(t);
+    });
   }, []);
 
   useEffect(() => {
