@@ -3,20 +3,14 @@
 import { useEffect, useState } from "react";
 import type { DivineName } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
-
-const KEY = "ul.asmaLearned";
+import { readLearned, writeLearned } from "../lib/asma-store";
 
 export function AsmaView({ names }: { names: readonly DivineName[] }) {
   const [learned, setLearned] = useState<Record<number, true>>({});
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setLearned(JSON.parse(raw) as Record<number, true>);
-    } catch {
-      /* ignore */
-    }
+    setLearned(readLearned());
     setReady(true);
   }, []);
 
@@ -25,11 +19,7 @@ export function AsmaView({ names }: { names: readonly DivineName[] }) {
       const next = { ...prev };
       if (next[n]) delete next[n];
       else next[n] = true;
-      try {
-        localStorage.setItem(KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
+      writeLearned(next);
       return next;
     });
   }
