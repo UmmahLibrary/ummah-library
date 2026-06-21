@@ -52,5 +52,8 @@ mobile `PrayerSettingsStore` + `PrayerTimingsProvider` — follow next; the shar
 - #71 is delivered on mobile for reading plans; closed-app delivery works via the
   OS scheduler.
 - Reusing the `core` orchestration means web and mobile share one reminder brain.
-- Follow-ups: a time picker (currently the default time), and the mobile prayer
-  adapters to light up adhkar/prayer reminders.
+- Follow-ups (now landed): a time picker for the plan reminder
+  (`@react-native-community/datetimepicker`), and the mobile `PrayerSettingsStore`
+  + `PrayerTimingsProvider` adapters that light up the adhkar (AdhkarScreen toggle)
+  and per-prayer (PrayerTimesScreen) reminder families — all reusing the same
+  `core` orchestration. App's foreground re-sync covers all three families.

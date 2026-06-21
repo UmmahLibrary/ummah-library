@@ -20,6 +20,8 @@ import { KEYS, getJSON, getString, setJSON, setString } from "../storage";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { fmtCountdown, fmtTime, localISODate } from "../utils";
+import { expoNotifier } from "../notifier";
+import { type PrayerReminderPrefs, readPrayerReminderPrefs, setPrayerReminder } from "../prayer-reminders";
 
 type Status = "idle" | "locating" | "loading" | "ready" | "error" | "denied";
 
@@ -50,6 +52,7 @@ export function PrayerTimesScreen() {
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [now, setNow] = useState(() => new Date());
+  const [reminders, setReminders] = useState<PrayerReminderPrefs>({});
   const reqId = useRef(0);
 
   const fetchTimings = useCallback(async (c: Coordinates, m: string, mad: Madhab) => {
@@ -86,6 +89,7 @@ export function PrayerTimesScreen() {
         void fetchTimings(savedCoords, m, mad);
       }
     });
+    void readPrayerReminderPrefs().then(setReminders);
   }, [fetchTimings]);
 
   useEffect(() => {
@@ -118,6 +122,12 @@ export function PrayerTimesScreen() {
     setMadhab(m);
     void setString(KEYS.prayerMadhab, m);
     if (coords) void fetchTimings(coords, method, m);
+  }
+
+  async function toggleReminder(name: PrayerName) {
+    const turningOn = !reminders[name];
+    if (turningOn && expoNotifier.permission() !== "granted") await expoNotifier.requestPermission();
+    setReminders(await setPrayerReminder(name, turningOn));
   }
 
   const upcoming = timings ? nextPrayer(timings, now) : null;
@@ -203,6 +213,16 @@ export function PrayerTimesScreen() {
                   <Text style={[styles.prayerTime, isNext && styles.prayerTimeNext]}>
                     {fmtTime(timings[name])}
                   </Text>
+                  {OBLIGATORY_PRAYERS.includes(name) && (
+                    <Pressable
+                      onPress={() => void toggleReminder(name)}
+                      hitSlop={10}
+                      accessibilityRole="switch"
+                      accessibilityState={{ checked: !!reminders[name] }}
+                    >
+                      <Icon name="bell" size={17} color={reminders[name] ? colors.accent : colors.faint} sw={1.8} />
+                    </Pressable>
+                  )}
                 </View>
               );
             })}
