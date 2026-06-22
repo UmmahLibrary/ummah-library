@@ -6,13 +6,18 @@ import {
   CALCULATION_METHODS,
   type Coordinates,
   DEFAULT_CALCULATION_METHOD,
+  DEFAULT_HIGH_LATITUDE_RULE,
+  type ExtendedPrayerTimings,
+  HIGH_LATITUDE_RULES,
+  type HighLatitudeRuleId,
   type Madhab,
   MADHABS,
   type NotifyPermission,
   OBLIGATORY_PRAYERS,
   PRAYER_LABELS,
   type PrayerName,
-  type PrayerTimings,
+  SUPPLEMENTARY_TIMING_LABELS,
+  SUPPLEMENTARY_TIMING_NAMES,
   TIMING_NAMES,
   nextPrayer,
 } from "@ummahlibrary/core";
@@ -49,7 +54,7 @@ interface WeekDay {
   date: Date;
   label: string;
   isToday: boolean;
-  timings: PrayerTimings | null;
+  timings: ExtendedPrayerTimings | null;
 }
 
 /** The seven days of the current week (Mon–Sun) for the "This week" table. */
@@ -80,7 +85,8 @@ export function PrayerTimesView() {
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [method, setMethod] = useState(DEFAULT_CALCULATION_METHOD);
   const [madhab, setMadhab] = useState<Madhab>("shafi");
-  const [timings, setTimings] = useState<PrayerTimings | null>(null);
+  const [highLat, setHighLat] = useState<HighLatitudeRuleId>(DEFAULT_HIGH_LATITUDE_RULE);
+  const [timings, setTimings] = useState<ExtendedPrayerTimings | null>(null);
   const [week, setWeek] = useState<WeekDay[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [now, setNow] = useState(() => new Date());
@@ -91,7 +97,8 @@ export function PrayerTimesView() {
   const getNotifier = () => (notifierRef.current ??= new WebNotifier());
 
   // Fetch the whole current week in parallel; today's card is derived from it.
-  const fetchTimings = useCallback(async (c: Coordinates, m: string, mad: Madhab) => {
+  const fetchTimings = useCallback(
+    async (c: Coordinates, m: string, mad: Madhab, hlr: HighLatitudeRuleId) => {
     const id = ++reqId.current;
     setStatus("loading");
     try {
@@ -104,10 +111,11 @@ export function PrayerTimesView() {
             date: localDate(d.date),
             method: m,
             madhab: mad,
+            hlr,
           });
           const res = await fetch(`/api/v1/prayer-times?${params}`);
           if (!res.ok) return null;
-          return (await res.json()) as { timings: PrayerTimings };
+          return (await res.json()) as { timings: ExtendedPrayerTimings };
         }),
       );
       if (id !== reqId.current) return;
@@ -120,18 +128,23 @@ export function PrayerTimesView() {
     } catch {
       if (id === reqId.current) setStatus("error");
     }
-  }, []);
+    },
+    [],
+  );
 
   // Restore preferences + last location, and load times if we have a location.
   useEffect(() => {
-    void webPrayerSettingsStore.read().then(({ coords: saved, method: m, madhab: mad }) => {
-      setMethod(m);
-      setMadhab(mad);
-      if (saved) {
-        setCoords(saved);
-        void fetchTimings(saved, m, mad);
-      }
-    });
+    void webPrayerSettingsStore
+      .read()
+      .then(({ coords: saved, method: m, madhab: mad, highLatitudeRule: hlr }) => {
+        setMethod(m);
+        setMadhab(mad);
+        setHighLat(hlr);
+        if (saved) {
+          setCoords(saved);
+          void fetchTimings(saved, m, mad, hlr);
+        }
+      });
     void readPrayerReminderPrefs().then(setReminders);
     setPermission(getNotifier().permission());
   }, [fetchTimings]);
@@ -153,7 +166,7 @@ export function PrayerTimesView() {
         const c = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
         setCoords(c);
         void webPrayerSettingsStore.writeCoords(c);
-        void fetchTimings(c, method, madhab);
+        void fetchTimings(c, method, madhab, highLat);
       },
       () => setStatus("denied"),
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 3600000 },
@@ -163,12 +176,17 @@ export function PrayerTimesView() {
   function changeMethod(m: string) {
     setMethod(m);
     void webPrayerSettingsStore.writeMethod(m);
-    if (coords) void fetchTimings(coords, m, madhab);
+    if (coords) void fetchTimings(coords, m, madhab, highLat);
   }
   function changeMadhab(m: Madhab) {
     setMadhab(m);
     void webPrayerSettingsStore.writeMadhab(m);
-    if (coords) void fetchTimings(coords, method, m);
+    if (coords) void fetchTimings(coords, method, m, highLat);
+  }
+  function changeHighLat(r: HighLatitudeRuleId) {
+    setHighLat(r);
+    void webPrayerSettingsStore.writeHighLatitudeRule(r);
+    if (coords) void fetchTimings(coords, method, madhab, r);
   }
 
   // Flip one prayer's reminder. Asking for notification permission must happen in
@@ -381,6 +399,46 @@ export function PrayerTimesView() {
               );
             })}
           </div>
+
+          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Night</div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 12,
+              marginBottom: 24,
+            }}
+          >
+            {SUPPLEMENTARY_TIMING_NAMES.map((name) => (
+              <div
+                key={name}
+                style={{
+                  ...cardStyle,
+                  padding: "16px 18px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: N.fg }}>
+                    {SUPPLEMENTARY_TIMING_LABELS[name]}
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 700,
+                    color: N.fg,
+                    fontVariantNumeric: "tabular-nums",
+                    flexShrink: 0,
+                  }}
+                >
+                  {timings[name] ? fmtTime(timings[name]) : "—"}
+                </span>
+              </div>
+            ))}
+          </div>
           {OBLIGATORY_PRAYERS.some((p) => reminders[p]) && (
             <p style={{ marginTop: -10, marginBottom: 22, color: N.faint, fontSize: 13 }}>
               {permission === "denied"
@@ -465,6 +523,20 @@ export function PrayerTimesView() {
                 {MADHABS.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12.5, color: N.muted }}>High-latitude rule</span>
+              <select
+                value={highLat}
+                onChange={(e) => changeHighLat(e.target.value as HighLatitudeRuleId)}
+                style={selectStyle}
+              >
+                {HIGH_LATITUDE_RULES.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.label}
                   </option>
                 ))}
               </select>

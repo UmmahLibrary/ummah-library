@@ -18,7 +18,7 @@ function localDate(d = new Date()): string {
 
 export const webPrayerTimingsProvider: PrayerTimingsProvider = {
   getTodaysTimings: async () => {
-    const { coords, method, madhab } = await webPrayerSettingsStore.read();
+    const { coords, method, madhab, highLatitudeRule } = await webPrayerSettingsStore.read();
     if (!coords) return null;
 
     try {
@@ -37,6 +37,7 @@ export const webPrayerTimingsProvider: PrayerTimingsProvider = {
       date: localDate(),
       method,
       madhab,
+      hlr: highLatitudeRule,
     });
     try {
       const res = await fetch(`/api/v1/prayer-times?${params}`);

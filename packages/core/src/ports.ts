@@ -22,7 +22,14 @@ import type { QadaLog } from "./qada";
 import type { HaidLog } from "./haid";
 import type { TasbihRecord } from "./tasbih";
 import type { HifzCard } from "./hifz";
-import type { Coordinates, Madhab, PrayerName, PrayerTimings } from "./prayer";
+import type {
+  Coordinates,
+  ExtendedPrayerTimings,
+  HighLatitudeRuleId,
+  Madhab,
+  PrayerName,
+  PrayerTimings,
+} from "./prayer";
 import type { ActivePlan, PlanTemplate } from "./reading-plans";
 import type { KhatmaPlan } from "./reading-goals";
 
@@ -69,15 +76,19 @@ export interface PrayerTimesQuery {
   /** A calculation-method id (see `CALCULATION_METHODS`). */
   method: string;
   madhab: Madhab;
+  /** High-latitude night-portion rule (see `HIGH_LATITUDE_RULES`); defaults to `"none"`. */
+  highLatitudeRule?: HighLatitudeRuleId;
 }
 
 /**
  * Computes prayer times from coordinates, a date and a method. The astronomy is
  * an external concern (the `adhan` library) kept behind this port so the app
- * depends only on the contract — see ADR 0012.
+ * depends only on the contract — see ADR 0012. The result carries the five
+ * prayers + sunrise plus the supplementary night markers (Imsāk, midnight, last
+ * third); callers needing only the prayers read it as {@link PrayerTimings}.
  */
 export interface PrayerTimesCalculator {
-  calculate(query: PrayerTimesQuery): Promise<PrayerTimings>;
+  calculate(query: PrayerTimesQuery): Promise<ExtendedPrayerTimings>;
 }
 
 /** Platform-neutral notification permission state (no DOM dependency). */
@@ -333,20 +344,24 @@ export interface PrayerSettings {
   method: string;
   /** Juristic madhab for the ʿAsr time. */
   madhab: Madhab;
+  /** High-latitude night-portion rule (see `HIGH_LATITUDE_RULES`). */
+  highLatitudeRule: HighLatitudeRuleId;
 }
 
 /**
  * Persists the reader's prayer-times location and calculation config on-device
- * (ADR 0024): coordinates, calculation method, and madhab — shared by prayer
- * times, qibla, Ramadan, and reminders. Web uses `localStorage`, mobile
- * `AsyncStorage`; a synced adapter (#25) replaces either without touching the
- * prayer-times UI. `read()` applies the defaults; one method per stored key.
+ * (ADR 0024): coordinates, calculation method, madhab, and high-latitude rule —
+ * shared by prayer times, qibla, Ramadan, and reminders. Web uses
+ * `localStorage`, mobile `AsyncStorage`; a synced adapter (#25) replaces either
+ * without touching the prayer-times UI. `read()` applies the defaults; one
+ * setting per stored key.
  */
 export interface PrayerSettingsStore {
   read(): Promise<PrayerSettings>;
   writeCoords(coords: Coordinates | null): Promise<void>;
   writeMethod(method: string): Promise<void>;
   writeMadhab(madhab: Madhab): Promise<void>;
+  writeHighLatitudeRule(rule: HighLatitudeRuleId): Promise<void>;
 }
 
 /**

@@ -5,12 +5,17 @@ import {
   CALCULATION_METHODS,
   type Coordinates,
   DEFAULT_CALCULATION_METHOD,
+  DEFAULT_HIGH_LATITUDE_RULE,
+  type ExtendedPrayerTimings,
+  HIGH_LATITUDE_RULES,
+  type HighLatitudeRuleId,
   type Madhab,
   MADHABS,
   OBLIGATORY_PRAYERS,
   PRAYER_LABELS,
   type PrayerName,
-  type PrayerTimings,
+  SUPPLEMENTARY_TIMING_LABELS,
+  SUPPLEMENTARY_TIMING_NAMES,
   TIMING_NAMES,
   nextPrayer,
 } from "@ummahlibrary/core";
@@ -49,44 +54,55 @@ export function PrayerTimesScreen() {
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [method, setMethod] = useState(DEFAULT_CALCULATION_METHOD);
   const [madhab, setMadhab] = useState<Madhab>("shafi");
-  const [timings, setTimings] = useState<PrayerTimings | null>(null);
+  const [highLat, setHighLat] = useState<HighLatitudeRuleId>(DEFAULT_HIGH_LATITUDE_RULE);
+  const [timings, setTimings] = useState<ExtendedPrayerTimings | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [now, setNow] = useState(() => new Date());
   const [reminders, setReminders] = useState<PrayerReminderPrefs>({});
   const reqId = useRef(0);
 
-  const fetchTimings = useCallback(async (c: Coordinates, m: string, mad: Madhab) => {
-    const id = ++reqId.current;
-    setStatus("loading");
-    try {
-      const t = await api.getPrayerTimes({
-        lat: c.latitude,
-        lng: c.longitude,
-        date: localISODate(new Date()),
-        method: m,
-        madhab: mad,
-      });
-      if (id !== reqId.current) return;
-      setTimings(t as PrayerTimings);
-      setStatus("ready");
-    } catch {
-      if (id === reqId.current) setStatus("error");
-    }
-  }, []);
+  const fetchTimings = useCallback(
+    async (c: Coordinates, m: string, mad: Madhab, hlr: HighLatitudeRuleId) => {
+      const id = ++reqId.current;
+      setStatus("loading");
+      try {
+        const t = await api.getPrayerTimes({
+          lat: c.latitude,
+          lng: c.longitude,
+          date: localISODate(new Date()),
+          method: m,
+          madhab: mad,
+          hlr,
+        });
+        if (id !== reqId.current) return;
+        setTimings(t as ExtendedPrayerTimings);
+        setStatus("ready");
+      } catch {
+        if (id === reqId.current) setStatus("error");
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     void Promise.all([
       getString(KEYS.prayerMethod),
       getString(KEYS.prayerMadhab),
+      getString(KEYS.prayerHighLat),
       getJSON<Coordinates | null>(KEYS.prayerCoords, null),
-    ]).then(([savedMethod, savedMadhab, savedCoords]) => {
+    ]).then(([savedMethod, savedMadhab, savedHighLat, savedCoords]) => {
       const m = savedMethod ?? DEFAULT_CALCULATION_METHOD;
       const mad = (savedMadhab as Madhab) || "shafi";
+      const hlr =
+        savedHighLat && HIGH_LATITUDE_RULES.some((r) => r.id === savedHighLat)
+          ? (savedHighLat as HighLatitudeRuleId)
+          : DEFAULT_HIGH_LATITUDE_RULE;
       setMethod(m);
       setMadhab(mad);
+      setHighLat(hlr);
       if (savedCoords) {
         setCoords(savedCoords);
-        void fetchTimings(savedCoords, m, mad);
+        void fetchTimings(savedCoords, m, mad, hlr);
       }
     });
     void readPrayerReminderPrefs().then(setReminders);
@@ -106,7 +122,7 @@ export function PrayerTimesScreen() {
       const c: Coordinates = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
       setCoords(c);
       void setJSON(KEYS.prayerCoords, c);
-      void fetchTimings(c, method, madhab);
+      void fetchTimings(c, method, madhab, highLat);
     } catch {
       setStatus("error");
     }
@@ -115,13 +131,19 @@ export function PrayerTimesScreen() {
   function changeMethod(m: string) {
     setMethod(m);
     void setString(KEYS.prayerMethod, m);
-    if (coords) void fetchTimings(coords, m, madhab);
+    if (coords) void fetchTimings(coords, m, madhab, highLat);
   }
 
   function changeMadhab(m: Madhab) {
     setMadhab(m);
     void setString(KEYS.prayerMadhab, m);
-    if (coords) void fetchTimings(coords, method, m);
+    if (coords) void fetchTimings(coords, method, m, highLat);
+  }
+
+  function changeHighLat(r: HighLatitudeRuleId) {
+    setHighLat(r);
+    void setString(KEYS.prayerHighLat, r);
+    if (coords) void fetchTimings(coords, method, madhab, r);
   }
 
   async function toggleReminder(name: PrayerName) {
@@ -228,6 +250,22 @@ export function PrayerTimesScreen() {
             })}
           </View>
 
+          <Text style={styles.sectionLabel}>Night</Text>
+          <View style={styles.list}>
+            {SUPPLEMENTARY_TIMING_NAMES.map((name, i) => (
+              <View
+                key={name}
+                style={[styles.row, i < SUPPLEMENTARY_TIMING_NAMES.length - 1 && styles.rowDivider]}
+              >
+                <Icon name="moon" size={20} color={colors.muted} sw={1.8} />
+                <Text style={styles.prayerName}>{SUPPLEMENTARY_TIMING_LABELS[name]}</Text>
+                <Text style={styles.prayerTime}>
+                  {timings[name] ? fmtTime(timings[name]) : "—"}
+                </Text>
+              </View>
+            ))}
+          </View>
+
           <View style={styles.controls}>
             <View style={styles.pickerRow}>
               <Text style={styles.label}>Method</Text>
@@ -257,6 +295,23 @@ export function PrayerTimesScreen() {
                   >
                     <Text style={[styles.chipText, m.id === madhab && styles.chipTextOn]}>
                       {m.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.pickerRow}>
+              <Text style={styles.label}>High-latitude rule</Text>
+              <View style={styles.chips}>
+                {HIGH_LATITUDE_RULES.map((r) => (
+                  <Pressable
+                    key={r.id}
+                    style={[styles.chip, r.id === highLat && styles.chipOn]}
+                    onPress={() => changeHighLat(r.id)}
+                  >
+                    <Text style={[styles.chipText, r.id === highLat && styles.chipTextOn]}>
+                      {r.label}
                     </Text>
                   </Pressable>
                 ))}
@@ -321,6 +376,12 @@ function makeStyles(c: Palette) {
       marginVertical: 6,
     },
     heroSub: { color: c.muted, fontSize: 14 },
+    sectionLabel: {
+      color: c.fg,
+      fontSize: 15,
+      fontFamily: FONT.bold,
+      marginBottom: -6,
+    },
     list: {
       backgroundColor: c.bgElev,
       borderRadius: 14,

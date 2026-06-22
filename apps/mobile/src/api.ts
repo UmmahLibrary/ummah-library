@@ -67,13 +67,21 @@ export const api = {
     getJson<{ verses: { s: number; a: number; t: string }[] }>(`${BASE}/search/corpus`).then(
       (d) => d.verses,
     ),
-  getPrayerTimes: (params: { lat: number; lng: number; date: string; method: string; madhab: string }) => {
+  getPrayerTimes: (params: {
+    lat: number;
+    lng: number;
+    date: string;
+    method: string;
+    madhab: string;
+    hlr?: string;
+  }) => {
     const q = new URLSearchParams({
       lat: String(params.lat),
       lng: String(params.lng),
       date: params.date,
       method: params.method,
       madhab: params.madhab,
+      ...(params.hlr ? { hlr: params.hlr } : {}),
     });
     return getJson<{ timings: Record<string, string> }>(`${BASE}/prayer-times?${q}`).then(
       (d) => d.timings,

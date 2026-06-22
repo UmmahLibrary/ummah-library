@@ -36,6 +36,38 @@ export const PRAYER_LABELS: Record<PrayerName, string> = {
 /** A day's computed times as ISO-8601 instants (UTC), one per timing. */
 export type PrayerTimings = Record<PrayerName, string>;
 
+/**
+ * Computed night markers beyond the five prayers + sunrise: the pre-dawn
+ * fasting cut-off (Imsāk), Islamic midnight, and the start of the last third of
+ * the night (the preferred window for Tahajjud). These are *not* tracked or
+ * reminded like the obligatory prayers, so they sit outside {@link PrayerName}.
+ */
+export const SUPPLEMENTARY_TIMING_NAMES = ["imsak", "midnight", "lastThird"] as const;
+export type SupplementaryTimingName = (typeof SUPPLEMENTARY_TIMING_NAMES)[number];
+
+export const SUPPLEMENTARY_TIMING_LABELS: Record<SupplementaryTimingName, string> = {
+  imsak: "Imsāk",
+  midnight: "Islamic midnight",
+  lastThird: "Last third (Tahajjud)",
+};
+
+/** The supplementary night markers as ISO-8601 instants (UTC). */
+export type SupplementaryTimings = Record<SupplementaryTimingName, string>;
+
+/** The five prayers + sunrise, plus the supplementary night markers. */
+export type ExtendedPrayerTimings = PrayerTimings & SupplementaryTimings;
+
+/**
+ * Imsāk precedes Fajr by this many minutes — the common fixed precautionary
+ * offset used when a method carries no Imsāk angle of its own.
+ */
+export const IMSAK_OFFSET_MINUTES = 10;
+
+/** Imsāk as the instant `offsetMinutes` before Fajr. Pure. */
+export function imsakFromFajr(fajrIso: string, offsetMinutes = IMSAK_OFFSET_MINUTES): string {
+  return new Date(new Date(fajrIso).getTime() - offsetMinutes * 60_000).toISOString();
+}
+
 /** The madhab affects the Asr time (Hanafi uses the later shadow length). */
 export type Madhab = "shafi" | "hanafi";
 
@@ -71,6 +103,33 @@ export const DEFAULT_CALCULATION_METHOD = "MuslimWorldLeague";
 /** Whether a method id is one we offer (used to validate API input). */
 export function isCalculationMethod(id: string): boolean {
   return CALCULATION_METHODS.some((m) => m.id === id);
+}
+
+/**
+ * How to resolve Fajr/Isha where, in high summer, the sun never reaches the
+ * required depression angle and the pure calculation has no answer. `"none"`
+ * keeps the raw method (correct for most latitudes); the others split the night
+ * into portions. Ids map to `adhan`'s `HighLatitudeRule` in the adapter.
+ */
+export type HighLatitudeRuleId = "none" | "MiddleOfTheNight" | "SeventhOfTheNight" | "TwilightAngle";
+
+export interface HighLatitudeRuleInfo {
+  id: HighLatitudeRuleId;
+  label: string;
+}
+
+export const HIGH_LATITUDE_RULES: readonly HighLatitudeRuleInfo[] = [
+  { id: "none", label: "None (standard)" },
+  { id: "MiddleOfTheNight", label: "Middle of the night" },
+  { id: "SeventhOfTheNight", label: "One-seventh of the night" },
+  { id: "TwilightAngle", label: "Angle-based" },
+];
+
+export const DEFAULT_HIGH_LATITUDE_RULE: HighLatitudeRuleId = "none";
+
+/** Whether an id is one of the offered high-latitude rules (validates API input). */
+export function isHighLatitudeRule(id: string): id is HighLatitudeRuleId {
+  return HIGH_LATITUDE_RULES.some((r) => r.id === id);
 }
 
 /**

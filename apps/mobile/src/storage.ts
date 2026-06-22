@@ -31,6 +31,7 @@ export const KEYS = {
   adhkar: "ul.adhkar",
   prayerMethod: "ul.prayerMethod",
   prayerMadhab: "ul.prayerMadhab",
+  prayerHighLat: "ul.prayerHighLat",
   prayerCoords: "ul.prayerCoords",
   prayerLog: "ul.prayerLog",
   qada: "ul.qada",
