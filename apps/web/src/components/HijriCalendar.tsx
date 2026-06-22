@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   type HijriDate,
+  type UpcomingIslamicEvent,
   gregorianToHijri,
   hijriMonth,
   hijriMonthLength,
   hijriToGregorian,
+  islamicEventsInMonth,
+  upcomingIslamicEvents,
 } from "@ummahlibrary/core";
 import { readHijriAdjust, writeHijriAdjust } from "../lib/hijri";
 import { N } from "@ummahlibrary/ui";
@@ -14,33 +17,26 @@ import { N } from "@ummahlibrary/ui";
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const lcard = { background: N.card, border: `1px solid ${N.border}`, borderRadius: 16 } as const;
 
-/**
- * Well-established Islamic observances by fixed Hijri date (month 1–12 → day).
- * Presentational reference data for the "sacred dates" panel; the dates are
- * widely agreed (the festivals themselves follow local sighting).
- */
-const SACRED_DATES: Record<number, { day: number; name: string; note: string }[]> = {
-  1: [
-    { day: 1, name: "Islamic New Year", note: "Start of Muḥarram" },
-    { day: 10, name: "ʿĀshūrāʾ", note: "A day of fasting" },
-  ],
-  3: [{ day: 12, name: "Mawlid an-Nabī ﷺ", note: "Birth of the Prophet" }],
-  7: [{ day: 27, name: "Al-Isrāʾ wal-Miʿrāj", note: "The Night Journey" }],
-  8: [{ day: 15, name: "Laylat al-Barāʾah", note: "Mid-Shaʿbān night" }],
-  9: [
-    { day: 1, name: "First of Ramaḍān", note: "Fasting begins" },
-    { day: 27, name: "Laylat al-Qadr", note: "Sought in the last ten nights" },
-  ],
-  10: [{ day: 1, name: "ʿĪd al-Fiṭr", note: "Festival of breaking the fast" }],
-  12: [
-    { day: 9, name: "Day of ʿArafah", note: "The standing at ʿArafah" },
-    { day: 10, name: "ʿĪd al-Aḍḥā", note: "Festival of the sacrifice" },
-  ],
-};
-
 function localToday(): { year: number; month: number; day: number } {
   const d = new Date();
   return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
+}
+
+/** "Today" / "Tomorrow" / "in N days" for an event countdown. */
+function countdownLabel(daysUntil: number): string {
+  if (daysUntil === 0) return "Today";
+  if (daysUntil === 1) return "Tomorrow";
+  return `in ${daysUntil} days`;
+}
+
+function gregorianFull(g: { year: number; month: number; day: number }): string {
+  return new Date(Date.UTC(g.year, g.month - 1, g.day)).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 /** JS weekday (0=Sun) for a Gregorian civil date, via UTC to avoid DST drift. */
@@ -109,16 +105,126 @@ export function HijriCalendar() {
     return out;
   }, [view, adjust]);
 
+  const upcoming = useMemo<UpcomingIslamicEvent[]>(
+    () => upcomingIslamicEvents(localToday(), 5, adjust),
+    [adjust],
+  );
+
   if (!view || !todayHijri) return <p style={{ color: N.muted, fontFamily: N.ui }}>Loading the calendar…</p>;
 
   const month = hijriMonth(view.month);
-  const events = SACRED_DATES[view.month] ?? [];
+  const events = islamicEventsInMonth(view.month);
   const eventDays = new Set(events.map((e) => e.day));
+  const nextEvent = upcoming[0];
   const isToday = (d: number) =>
     todayHijri.year === view.year && todayHijri.month === view.month && todayHijri.day === d;
 
   return (
     <div>
+      {/* Upcoming events + next-event countdown */}
+      {nextEvent && (
+        <div style={{ marginBottom: 22 }}>
+          <div
+            style={{
+              ...lcard,
+              padding: "18px 20px",
+              marginBottom: 12,
+              background: `linear-gradient(135deg, ${N.cardHi}, ${N.card})`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 11.5,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                  color: N.faint,
+                  fontWeight: 700,
+                  fontFamily: N.ui,
+                }}
+              >
+                Next observance
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: N.fg, fontFamily: N.ui, marginTop: 3 }}>
+                {nextEvent.event.name}
+              </div>
+              <div style={{ fontSize: 13, color: N.faint, fontFamily: N.ui, marginTop: 2 }}>
+                {gregorianFull(nextEvent.gregorian)} · {nextEvent.event.note}
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                color: N.gold,
+                fontFamily: N.ui,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {countdownLabel(nextEvent.daysUntil)}
+            </div>
+          </div>
+          {upcoming.length > 1 && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))",
+                gap: 10,
+              }}
+            >
+              {upcoming.slice(1).map((u) => (
+                <div
+                  key={u.event.id}
+                  style={{
+                    ...lcard,
+                    padding: "12px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: N.fg,
+                        fontFamily: N.ui,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {u.event.name}
+                    </div>
+                    <div style={{ fontSize: 12, color: N.faint, fontFamily: N.ui }}>
+                      {gregorianFull(u.gregorian)}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: N.gold,
+                      fontFamily: N.ui,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {countdownLabel(u.daysUntil)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Month nav */}
       <div
         style={{

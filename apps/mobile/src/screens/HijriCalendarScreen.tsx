@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import {
   type HijriDate,
+  type UpcomingIslamicEvent,
   gregorianToHijri,
   hijriMonth,
   hijriMonthLength,
   hijriToGregorian,
+  islamicEventsInMonth,
+  upcomingIslamicEvents,
 } from "@ummahlibrary/core";
 import { KEYS, getString, setString } from "../storage";
 import { useTheme, type Palette } from "../theme";
@@ -13,6 +16,23 @@ import { weekdayOfGregorian } from "../utils";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 const ADJUST_OPTIONS = [-2, -1, 0, 1, 2] as const;
+
+/** "Today" / "Tomorrow" / "in N days" for an event countdown. */
+function countdownLabel(daysUntil: number): string {
+  if (daysUntil === 0) return "Today";
+  if (daysUntil === 1) return "Tomorrow";
+  return `in ${daysUntil} days`;
+}
+
+function gregorianFull(g: { year: number; month: number; day: number }): string {
+  return new Date(Date.UTC(g.year, g.month - 1, g.day)).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
 
 function todayGregorian() {
   const d = new Date();
@@ -74,12 +94,43 @@ export function HijriCalendarScreen() {
     return out;
   }, [view, adjust]);
 
+  const upcoming = useMemo<UpcomingIslamicEvent[]>(
+    () => upcomingIslamicEvents(todayGregorian(), 5, adjust),
+    [adjust],
+  );
+
   if (!view || !today) return null;
 
   const month = hijriMonth(view.month);
+  const monthEvents = islamicEventsInMonth(view.month);
+  const nextEvent = upcoming[0];
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
+      {nextEvent && (
+        <View style={styles.upcoming}>
+          <View style={styles.nextCard}>
+            <Text style={styles.nextLabel}>Next observance</Text>
+            <View style={styles.nextRow}>
+              <View style={styles.flex1}>
+                <Text style={styles.nextName}>{nextEvent.event.name}</Text>
+                <Text style={styles.nextSub}>{gregorianFull(nextEvent.gregorian)}</Text>
+              </View>
+              <Text style={styles.nextCountdown}>{countdownLabel(nextEvent.daysUntil)}</Text>
+            </View>
+          </View>
+          {upcoming.slice(1).map((u) => (
+            <View key={u.event.id} style={styles.eventRow}>
+              <View style={styles.flex1}>
+                <Text style={styles.eventName}>{u.event.name}</Text>
+                <Text style={styles.eventDate}>{gregorianFull(u.gregorian)}</Text>
+              </View>
+              <Text style={styles.eventCountdown}>{countdownLabel(u.daysUntil)}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
       <View style={styles.nav}>
         <Pressable style={styles.navBtn} onPress={() => step(-1)} accessibilityLabel="Previous month">
           <Text style={styles.navArrow}>‹</Text>
@@ -110,6 +161,28 @@ export function HijriCalendarScreen() {
         })}
       </View>
 
+      <Text style={styles.sectionLabel}>Sacred dates this month</Text>
+      {monthEvents.length === 0 ? (
+        <Text style={styles.note}>No major observances fall in this month.</Text>
+      ) : (
+        <View style={styles.monthList}>
+          {monthEvents.map((e, i) => (
+            <View
+              key={e.id}
+              style={[styles.monthRow, i < monthEvents.length - 1 && styles.monthRowDivider]}
+            >
+              <View style={styles.dayBadge}>
+                <Text style={styles.dayBadgeText}>{e.day}</Text>
+              </View>
+              <View style={styles.flex1}>
+                <Text style={styles.eventName}>{e.name}</Text>
+                <Text style={styles.eventDate}>{e.note}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
       <View style={styles.adjustSection}>
         <Text style={styles.adjustLabel}>
           Date adjustment ({adjust > 0 ? `+${adjust}` : adjust} day{Math.abs(adjust) === 1 ? "" : "s"})
@@ -139,6 +212,70 @@ export function HijriCalendarScreen() {
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { padding: 16, backgroundColor: c.bg },
+    flex1: { flex: 1, minWidth: 0 },
+    upcoming: { marginBottom: 20, gap: 10 },
+    nextCard: {
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.accent,
+      borderRadius: 14,
+      padding: 16,
+    },
+    nextLabel: {
+      color: c.faint,
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      marginBottom: 6,
+    },
+    nextRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+    nextName: { color: c.fg, fontSize: 18, fontWeight: "800" },
+    nextSub: { color: c.muted, fontSize: 13, marginTop: 2 },
+    nextCountdown: { color: c.accent, fontSize: 16, fontWeight: "800" },
+    eventRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    eventName: { color: c.fg, fontSize: 15, fontWeight: "700" },
+    eventDate: { color: c.faint, fontSize: 12, marginTop: 1 },
+    eventCountdown: { color: c.accent, fontSize: 13, fontWeight: "700" },
+    sectionLabel: {
+      color: c.faint,
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      marginBottom: 10,
+    },
+    monthList: {
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 14,
+      marginBottom: 24,
+      overflow: "hidden",
+    },
+    monthRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
+    monthRowDivider: { borderBottomWidth: 1, borderBottomColor: c.borderSoft },
+    dayBadge: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: c.accentSoft,
+      borderWidth: 1,
+      borderColor: c.accent,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    dayBadgeText: { color: c.accent, fontSize: 15, fontWeight: "800" },
     nav: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
     navBtn: {
       paddingHorizontal: 12,
