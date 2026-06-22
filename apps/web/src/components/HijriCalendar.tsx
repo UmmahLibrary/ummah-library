@@ -3,19 +3,26 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   type HijriDate,
-  type UpcomingIslamicEvent,
+  type MonthlyIslamicEvent,
   gregorianToHijri,
   hijriMonth,
   hijriMonthLength,
   hijriToGregorian,
-  islamicEventsInMonth,
-  upcomingIslamicEvents,
+  islamicEventsForMonth,
 } from "@ummahlibrary/core";
 import { readHijriAdjust, writeHijriAdjust } from "../lib/hijri";
 import { N } from "@ummahlibrary/ui";
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const lcard = { background: N.card, border: `1px solid ${N.border}`, borderRadius: 16 } as const;
+const sectionLabel = {
+  fontSize: 12,
+  letterSpacing: 1,
+  textTransform: "uppercase",
+  color: N.faint,
+  fontWeight: 700,
+  fontFamily: N.ui,
+} as const;
 
 function localToday(): { year: number; month: number; day: number } {
   const d = new Date();
@@ -105,126 +112,26 @@ export function HijriCalendar() {
     return out;
   }, [view, adjust]);
 
-  const upcoming = useMemo<UpcomingIslamicEvent[]>(
-    () => upcomingIslamicEvents(localToday(), 5, adjust),
-    [adjust],
+  // The viewed month's observances, resolved to dates + countdowns — the single
+  // labelled source for both the grid markers and the panel beside it.
+  const monthly = useMemo<MonthlyIslamicEvent[]>(
+    () => (view ? islamicEventsForMonth(view.year, view.month, localToday(), adjust) : []),
+    [view, adjust],
   );
 
   if (!view || !todayHijri) return <p style={{ color: N.muted, fontFamily: N.ui }}>Loading the calendar…</p>;
 
   const month = hijriMonth(view.month);
-  const events = islamicEventsInMonth(view.month);
-  const eventDays = new Set(events.map((e) => e.day));
-  const nextEvent = upcoming[0];
+  const eventDays = new Set(monthly.map((m) => m.event.day));
+  // The soonest still-upcoming observance in this month, highlighted as "next".
+  const nextId = monthly
+    .filter((m) => m.daysUntil >= 0)
+    .sort((a, b) => a.daysUntil - b.daysUntil)[0]?.event.id;
   const isToday = (d: number) =>
     todayHijri.year === view.year && todayHijri.month === view.month && todayHijri.day === d;
 
   return (
     <div>
-      {/* Upcoming events + next-event countdown */}
-      {nextEvent && (
-        <div style={{ marginBottom: 22 }}>
-          <div
-            style={{
-              ...lcard,
-              padding: "18px 20px",
-              marginBottom: 12,
-              background: `linear-gradient(135deg, ${N.cardHi}, ${N.card})`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 11.5,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  color: N.faint,
-                  fontWeight: 700,
-                  fontFamily: N.ui,
-                }}
-              >
-                Next observance
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: N.fg, fontFamily: N.ui, marginTop: 3 }}>
-                {nextEvent.event.name}
-              </div>
-              <div style={{ fontSize: 13, color: N.faint, fontFamily: N.ui, marginTop: 2 }}>
-                {gregorianFull(nextEvent.gregorian)} · {nextEvent.event.note}
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                color: N.gold,
-                fontFamily: N.ui,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {countdownLabel(nextEvent.daysUntil)}
-            </div>
-          </div>
-          {upcoming.length > 1 && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))",
-                gap: 10,
-              }}
-            >
-              {upcoming.slice(1).map((u) => (
-                <div
-                  key={u.event.id}
-                  style={{
-                    ...lcard,
-                    padding: "12px 14px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 10,
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: N.fg,
-                        fontFamily: N.ui,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {u.event.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: N.faint, fontFamily: N.ui }}>
-                      {gregorianFull(u.gregorian)}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      color: N.gold,
-                      fontFamily: N.ui,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {countdownLabel(u.daysUntil)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Month nav */}
       <div
         style={{
@@ -281,7 +188,7 @@ export function HijriCalendar() {
         </button>
       </div>
 
-      {/* Two-pane: grid + sacred dates */}
+      {/* Two-pane: grid + this month's observances */}
       <div
         style={{
           display: "grid",
@@ -310,15 +217,15 @@ export function HijriCalendar() {
               return (
                 <div
                   key={cell.day}
-                  title={cell.greg}
+                  title={ev ? `${cell.greg} · observance` : cell.greg}
                   style={{
                     aspectRatio: "1",
                     borderRadius: 10,
                     display: "grid",
                     placeItems: "center",
                     position: "relative",
-                    background: today ? N.goldGrad : ev ? N.goldSoft : "transparent",
-                    border: `1px solid ${today ? "transparent" : ev ? N.gold : N.borderSoft}`,
+                    background: today ? N.goldGrad : "transparent",
+                    border: `1px solid ${today ? "transparent" : N.borderSoft}`,
                     color: today ? N.ink : N.fg,
                     fontWeight: today ? 800 : 500,
                     fontSize: 14.5,
@@ -342,21 +249,101 @@ export function HijriCalendar() {
               );
             })}
           </div>
-        </div>
 
-        {/* Sighting adjustment */}
-        <div>
+          {/* Legend */}
           <div
             style={{
+              display: "flex",
+              gap: 18,
+              marginTop: 16,
               fontSize: 12,
-              letterSpacing: 1,
-              textTransform: "uppercase",
               color: N.faint,
-              fontWeight: 700,
-              margin: "22px 0 12px",
               fontFamily: N.ui,
+              alignItems: "center",
             }}
           >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: 3, background: N.gold }} />
+              Observance
+            </span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{ width: 12, height: 12, borderRadius: 4, background: N.goldGrad }}
+              />
+              Today
+            </span>
+          </div>
+        </div>
+
+        {/* This month's observances + sighting adjustment */}
+        <div>
+          <div style={{ ...sectionLabel, marginBottom: 12 }}>Observances this month</div>
+          {monthly.length === 0 ? (
+            <div style={{ ...lcard, padding: "16px 18px", fontSize: 13.5, color: N.faint, fontFamily: N.ui }}>
+              No major observances fall in this month.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {monthly.map((m) => {
+                const isNext = m.event.id === nextId;
+                const upcoming = m.daysUntil >= 0;
+                return (
+                  <div
+                    key={m.event.id}
+                    style={{
+                      ...lcard,
+                      padding: "14px 16px",
+                      display: "flex",
+                      gap: 14,
+                      alignItems: "center",
+                      borderColor: isNext ? N.gold : N.border,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 11,
+                        background: N.goldSoft,
+                        border: `1px solid ${N.gold}`,
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span style={{ fontSize: 16, fontWeight: 800, color: N.gold, fontFamily: N.ui }}>
+                        {m.event.day}
+                      </span>
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
+                        {m.event.name}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: N.faint, marginTop: 1, fontFamily: N.ui }}>
+                        {gregorianFull(m.gregorian)} · {m.event.note}
+                      </div>
+                    </div>
+                    {upcoming && (
+                      <div
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          color: N.gold,
+                          fontFamily: N.ui,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {countdownLabel(m.daysUntil)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Sighting adjustment */}
+          <div style={{ ...sectionLabel, margin: "22px 0 12px" }}>
             Date adjustment ({adjust > 0 ? `+${adjust}` : adjust} day{Math.abs(adjust) === 1 ? "" : "s"})
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
