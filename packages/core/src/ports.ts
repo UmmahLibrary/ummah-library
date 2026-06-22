@@ -272,6 +272,17 @@ export interface HaidStore {
 }
 
 /**
+ * Persists which achievement badges the user has already been shown (ADR 0024,
+ * 0032), so the unlock toast fires once per badge. The badges themselves are
+ * derived from existing local data (`achievements.ts`), not stored. Web uses
+ * `localStorage`, mobile `AsyncStorage`. `read()` returns `[]` when none seen.
+ */
+export interface AchievementsStore {
+  read(): Promise<string[]>;
+  write(acknowledgedIds: string[]): Promise<void>;
+}
+
+/**
  * Persists the tasbih counter on-device (ADR 0024): the chosen phrase, a running
  * total, and the round size. Web uses `localStorage`, mobile `AsyncStorage`; a
  * synced adapter (#25) replaces either without touching the counter logic

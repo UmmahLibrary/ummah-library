@@ -35,6 +35,7 @@ export const KEYS = {
   prayerLog: "ul.prayerLog",
   qada: "ul.qada",
   haid: "ul.haid",
+  badges: "ul.badges",
   hijriAdjust: "ul.hijriAdjust",
   zakat: "ul.zakat",
   onboarded: "ul.onboarded",

@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "../Type";
 import {
+  type BadgeStats,
   type PrayerTrackerLog,
   computeStreak,
+  evaluateBadges,
   longestStreak,
+  newlyUnlocked,
   prayerStreak,
   totalSavedAyahs,
+  unlockedIds,
 } from "@ummahlibrary/core";
 import { Khatam } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
@@ -13,6 +17,7 @@ import { FONT } from "../fonts";
 import { useLibrary } from "../state/LibraryContext";
 import { surahProgressMap } from "../hifz";
 import { KEYS, getJSON } from "../storage";
+import { mobileAchievementsStore as achievementsStore } from "../achievements-store";
 import { localISODate } from "../utils";
 
 /**
@@ -28,6 +33,7 @@ export function ProfileScreen() {
   const [names, setNames] = useState(0);
   const [prayer, setPrayer] = useState({ streak: 0, best: 0 });
   const [reading, setReading] = useState({ pages: 0, streak: 0 });
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     const today = localISODate(new Date());
@@ -59,16 +65,46 @@ export function ProfileScreen() {
     [String(saved), "Saved verses"],
   ];
 
-  const achievements: [string, string, boolean][] = [
-    ["✦", "First āyah", trackedCount > 0],
-    ["📖", "Memorizer", surahsStarted >= 1],
-    ["🔥", "7-day streak", bestStreak >= 7],
-    ["🌙", "30-day streak", bestStreak >= 30],
-    ["✨", "Ten Names", names >= 10],
-    ["🔖", "Collector", saved >= 5],
-  ];
+  const badgeStats: BadgeStats = {
+    memorized: trackedCount,
+    surahsStarted,
+    prayerStreak: prayer.streak,
+    bestStreak,
+    namesLearned: names,
+    savedVerses: saved,
+  };
+  const badges = evaluateBadges(badgeStats);
+  const earned = badges.filter((b) => b.unlocked).length;
+
+  // Celebrate newly-unlocked badges once (persist the acknowledged ids).
+  useEffect(() => {
+    let cancelled = false;
+    void achievementsStore.read().then((ack) => {
+      if (cancelled) return;
+      const fresh = newlyUnlocked(badgeStats, ack);
+      if (fresh.length > 0) {
+        const first = fresh[0];
+        setToast(
+          fresh.length === 1 && first
+            ? `🎉 Unlocked: ${first.name}`
+            : `🎉 ${fresh.length} new badges unlocked!`,
+        );
+        void achievementsStore.write(unlockedIds(badgeStats));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [trackedCount, surahsStarted, prayer.streak, bestStreak, names, saved]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   return (
+    <View style={styles.root}>
     <ScrollView contentContainerStyle={styles.screen}>
       <View style={styles.header}>
         <View style={styles.headerWatermark} pointerEvents="none">
@@ -92,27 +128,46 @@ export function ProfileScreen() {
         ))}
       </View>
 
-      <Text style={styles.sectionLabel}>Achievements</Text>
+      <Text style={styles.sectionLabel}>
+        Achievements · {earned}/{badges.length}
+      </Text>
       <View style={styles.badgeGrid}>
-        {achievements.map(([g, name, got]) => (
-          <View key={name} style={[styles.badge, !got && styles.badgeLocked]}>
-            <View style={[styles.badgeIcon, got ? styles.badgeIconOn : styles.badgeIconOff]}>
-              <Text style={styles.badgeGlyph}>{g}</Text>
+        {badges.map(({ badge, unlocked }) => (
+          <View key={badge.id} style={[styles.badge, !unlocked && styles.badgeLocked]}>
+            <View style={[styles.badgeIcon, unlocked ? styles.badgeIconOn : styles.badgeIconOff]}>
+              <Text style={styles.badgeGlyph}>{badge.glyph}</Text>
             </View>
-            <Text style={styles.badgeName}>{name}</Text>
-            <Text style={[styles.badgeStatus, got && styles.badgeStatusOn]}>
-              {got ? "Unlocked" : "Locked"}
+            <Text style={styles.badgeName}>{badge.name}</Text>
+            <Text style={[styles.badgeStatus, unlocked && styles.badgeStatusOn]}>
+              {unlocked ? "Unlocked" : "Locked"}
             </Text>
           </View>
         ))}
       </View>
     </ScrollView>
+      {toast && (
+        <View style={styles.toast} pointerEvents="none">
+          <View style={styles.toastPill}>
+            <Text style={styles.toastText}>{toast}</Text>
+          </View>
+        </View>
+      )}
+    </View>
   );
 }
 
 function makeStyles(c: Palette) {
   return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.bg },
     screen: { padding: 18, backgroundColor: c.bg, paddingBottom: 32 },
+    toast: { position: "absolute", left: 16, right: 16, bottom: 24, alignItems: "center" },
+    toastPill: {
+      backgroundColor: c.accent,
+      borderRadius: 999,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+    },
+    toastText: { color: c.ink, fontFamily: FONT.extrabold, fontSize: 14 },
     header: {
       flexDirection: "row",
       alignItems: "center",

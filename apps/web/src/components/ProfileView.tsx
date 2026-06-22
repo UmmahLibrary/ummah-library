@@ -1,7 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { computeStreak, longestStreak, prayerStreak, totalSavedAyahs } from "@ummahlibrary/core";
+import { type CSSProperties, useEffect, useState } from "react";
+import {
+  type BadgeStats,
+  computeStreak,
+  evaluateBadges,
+  longestStreak,
+  newlyUnlocked,
+  prayerStreak,
+  totalSavedAyahs,
+  unlockedIds,
+} from "@ummahlibrary/core";
 import { N, Khatam } from "@ummahlibrary/ui";
 import { countLearned } from "../lib/asma-store";
 import { allRecords, surahProgressMap } from "../lib/hifz-store";
@@ -9,6 +18,7 @@ import { getStreak } from "../lib/hifz-streak";
 import { readPrayerLog, today } from "../lib/prayer-tracker";
 import { readReadingState } from "../lib/reading-goals";
 import { readCollections } from "../lib/collections";
+import { acknowledge, readAcknowledged } from "../lib/achievements";
 
 interface Stats {
   hifzStreak: number;
@@ -30,6 +40,31 @@ const ZERO: Stats = {
   bestStreak: 0,
 };
 
+const toBadgeStats = (s: Stats): BadgeStats => ({
+  memorized: s.memorized,
+  surahsStarted: s.surahsStarted,
+  prayerStreak: s.prayerStreak,
+  bestStreak: s.bestStreak,
+  namesLearned: s.names,
+  savedVerses: s.saved,
+});
+
+const toastStyle: CSSProperties = {
+  position: "fixed",
+  left: "50%",
+  bottom: 24,
+  transform: "translateX(-50%)",
+  background: N.goldGrad,
+  color: N.ink,
+  fontWeight: 800,
+  fontSize: 14,
+  padding: "12px 20px",
+  borderRadius: 999,
+  boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
+  zIndex: 50,
+  fontFamily: N.ui,
+};
+
 /**
  * "Your journey" — a progress dashboard built entirely from the local-first data
  * the app already keeps (Hifz, prayer log, reading log, names learned,
@@ -38,14 +73,15 @@ const ZERO: Stats = {
  */
 export function ProfileView() {
   const [s, setS] = useState<Stats>(ZERO);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     const t = today();
     const hifzStreak = getStreak().count;
-    void Promise.all([readReadingState(), readCollections(), readPrayerLog()]).then(
-      ([reading, collections, log]) => {
+    void Promise.all([readReadingState(), readCollections(), readPrayerLog(), readAcknowledged()]).then(
+      ([reading, collections, log, ack]) => {
         const prayer = prayerStreak(log, t);
-        setS({
+        const next: Stats = {
           hifzStreak,
           memorized: allRecords().length,
           surahsStarted: surahProgressMap(new Date()).size,
@@ -53,10 +89,32 @@ export function ProfileView() {
           names: countLearned(),
           saved: totalSavedAyahs(collections),
           bestStreak: Math.max(hifzStreak, prayer, longestStreak(log), computeStreak(reading.activeDates, t)),
-        });
+        };
+        setS(next);
+
+        const bs = toBadgeStats(next);
+        const fresh = newlyUnlocked(bs, ack);
+        if (fresh.length > 0) {
+          const first = fresh[0];
+          setToast(
+            fresh.length === 1 && first
+              ? `🎉 Unlocked: ${first.name}`
+              : `🎉 ${fresh.length} new badges unlocked!`,
+          );
+          void acknowledge(unlockedIds(bs));
+        }
       },
     );
   }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(id);
+  }, [toast]);
+
+  const badgeProgress = evaluateBadges(toBadgeStats(s));
+  const earned = badgeProgress.filter((b) => b.unlocked).length;
 
   const statCards: [string, string][] = [
     [`${s.hifzStreak} 🔥`, "Hifz streak"],
@@ -65,15 +123,6 @@ export function ProfileView() {
     [String(s.prayerStreak), "Prayer streak"],
     [`${s.names}/99`, "Names learned"],
     [String(s.saved), "Saved verses"],
-  ];
-
-  const badges: [string, string, boolean][] = [
-    ["✦", "First āyah", s.memorized > 0],
-    ["📖", "Memorizer", s.surahsStarted >= 1],
-    ["🔥", "7-day streak", s.bestStreak >= 7],
-    ["🌙", "30-day streak", s.bestStreak >= 30],
-    ["✨", "Ten Names", s.names >= 10],
-    ["🔖", "Collector", s.saved >= 5],
   ];
 
   return (
@@ -152,7 +201,7 @@ export function ProfileView() {
             fontFamily: N.ui,
           }}
         >
-          Achievements
+          Achievements · {earned}/{badgeProgress.length}
         </div>
         <div
           style={{
@@ -161,9 +210,10 @@ export function ProfileView() {
             gap: 12,
           }}
         >
-          {badges.map(([glyph, name, got]) => (
+          {badgeProgress.map(({ badge, unlocked }) => (
             <div
-              key={name}
+              key={badge.id}
+              title={badge.description}
               style={{
                 background: N.card,
                 border: `1px solid ${N.border}`,
@@ -173,7 +223,7 @@ export function ProfileView() {
                 flexDirection: "column",
                 alignItems: "center",
                 gap: 9,
-                opacity: got ? 1 : 0.55,
+                opacity: unlocked ? 1 : 0.55,
               }}
             >
               <div
@@ -184,29 +234,35 @@ export function ProfileView() {
                   display: "grid",
                   placeItems: "center",
                   fontSize: 22,
-                  background: got ? N.goldSoft : "transparent",
-                  border: `1px solid ${got ? N.gold : N.border}`,
+                  background: unlocked ? N.goldSoft : "transparent",
+                  border: `1px solid ${unlocked ? N.gold : N.border}`,
                 }}
               >
-                {glyph}
+                {badge.glyph}
               </div>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: N.fg, textAlign: "center", fontFamily: N.ui }}>
-                {name}
+                {badge.name}
               </div>
               <div
                 style={{
                   fontSize: 10.5,
                   fontWeight: 600,
-                  color: got ? N.gold : N.faint,
+                  color: unlocked ? N.gold : N.faint,
                   fontFamily: N.ui,
                 }}
               >
-                {got ? "Unlocked" : "Locked"}
+                {unlocked ? "Unlocked" : "Locked"}
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {toast && (
+        <div role="status" style={toastStyle}>
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
