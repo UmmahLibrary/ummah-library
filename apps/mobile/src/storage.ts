@@ -33,6 +33,7 @@ export const KEYS = {
   prayerMadhab: "ul.prayerMadhab",
   prayerCoords: "ul.prayerCoords",
   prayerLog: "ul.prayerLog",
+  qada: "ul.qada",
   hijriAdjust: "ul.hijriAdjust",
   zakat: "ul.zakat",
   onboarded: "ul.onboarded",

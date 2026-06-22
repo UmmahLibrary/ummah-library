@@ -18,6 +18,7 @@ import type {
 } from "./entities";
 import type { Collection } from "./collections";
 import type { PrayerTrackerLog } from "./prayer-tracker";
+import type { QadaLog } from "./qada";
 import type { TasbihRecord } from "./tasbih";
 import type { HifzCard } from "./hifz";
 import type { Coordinates, Madhab, PrayerName, PrayerTimings } from "./prayer";
@@ -245,6 +246,17 @@ export interface LibraryStore {
 export interface PrayerTrackerStore {
   read(): Promise<PrayerTrackerLog>;
   write(log: PrayerTrackerLog): Promise<void>;
+}
+
+/**
+ * Persists the qaḍāʾ (missed-prayer) backlog on-device (ADR 0024, 0030): how
+ * many of each obligatory prayer are owed. Web uses `localStorage`, mobile
+ * `AsyncStorage`; a synced adapter (#25) replaces either without touching the
+ * backlog maths (`qada.ts`). `read()` returns an empty log when nothing is owed.
+ */
+export interface QadaStore {
+  read(): Promise<QadaLog>;
+  write(log: QadaLog): Promise<void>;
 }
 
 /**

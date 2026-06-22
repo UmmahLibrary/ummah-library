@@ -18,6 +18,7 @@ export * from "./search";
 export * from "./hadith";
 export * from "./prayer";
 export * from "./prayer-tracker";
+export * from "./qada";
 export * from "./qibla";
 export * from "./hijri";
 export * from "./zakat";
