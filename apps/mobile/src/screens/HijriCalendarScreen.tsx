@@ -2,13 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import {
   type HijriDate,
-  type UpcomingIslamicEvent,
+  type MonthlyIslamicEvent,
   gregorianToHijri,
   hijriMonth,
   hijriMonthLength,
   hijriToGregorian,
-  islamicEventsInMonth,
-  upcomingIslamicEvents,
+  islamicEventsForMonth,
 } from "@ummahlibrary/core";
 import { KEYS, getString, setString } from "../storage";
 import { useTheme, type Palette } from "../theme";
@@ -94,43 +93,23 @@ export function HijriCalendarScreen() {
     return out;
   }, [view, adjust]);
 
-  const upcoming = useMemo<UpcomingIslamicEvent[]>(
-    () => upcomingIslamicEvents(todayGregorian(), 5, adjust),
-    [adjust],
+  // The viewed month's observances — one labelled source for the grid dots and
+  // the panel below it.
+  const monthly = useMemo<MonthlyIslamicEvent[]>(
+    () => (view ? islamicEventsForMonth(view.year, view.month, todayGregorian(), adjust) : []),
+    [view, adjust],
   );
 
   if (!view || !today) return null;
 
   const month = hijriMonth(view.month);
-  const eventDays = new Set(islamicEventsInMonth(view.month).map((e) => e.day));
-  const nextEvent = upcoming[0];
+  const eventDays = new Set(monthly.map((m) => m.event.day));
+  const nextId = monthly
+    .filter((m) => m.daysUntil >= 0)
+    .sort((a, b) => a.daysUntil - b.daysUntil)[0]?.event.id;
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
-      {nextEvent && (
-        <View style={styles.upcoming}>
-          <View style={styles.nextCard}>
-            <Text style={styles.nextLabel}>Next observance</Text>
-            <View style={styles.nextRow}>
-              <View style={styles.flex1}>
-                <Text style={styles.nextName}>{nextEvent.event.name}</Text>
-                <Text style={styles.nextSub}>{gregorianFull(nextEvent.gregorian)}</Text>
-              </View>
-              <Text style={styles.nextCountdown}>{countdownLabel(nextEvent.daysUntil)}</Text>
-            </View>
-          </View>
-          {upcoming.slice(1).map((u) => (
-            <View key={u.event.id} style={styles.eventRow}>
-              <View style={styles.flex1}>
-                <Text style={styles.eventName}>{u.event.name}</Text>
-                <Text style={styles.eventDate}>{gregorianFull(u.gregorian)}</Text>
-              </View>
-              <Text style={styles.eventCountdown}>{countdownLabel(u.daysUntil)}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
       <View style={styles.nav}>
         <Pressable style={styles.navBtn} onPress={() => step(-1)} accessibilityLabel="Previous month">
           <Text style={styles.navArrow}>‹</Text>
@@ -154,7 +133,7 @@ export function HijriCalendarScreen() {
             today.year === view.year && today.month === view.month && today.day === cell.day;
           const isEvent = eventDays.has(cell.day);
           return (
-            <View key={cell.day} style={[styles.cell, isToday && styles.cellToday, isEvent && !isToday && styles.cellEvent]}>
+            <View key={cell.day} style={[styles.cell, isToday && styles.cellToday]}>
               <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>{cell.day}</Text>
               <Text style={[styles.gregLabel, isToday && styles.gregLabelToday]}>{cell.gregLabel}</Text>
               {isEvent && !isToday && <View style={styles.eventDot} />}
@@ -162,6 +141,43 @@ export function HijriCalendarScreen() {
           );
         })}
       </View>
+
+      <View style={styles.legend}>
+        <View style={styles.legendItem}>
+          <View style={styles.legendDot} />
+          <Text style={styles.legendText}>Observance</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={styles.legendToday} />
+          <Text style={styles.legendText}>Today</Text>
+        </View>
+      </View>
+
+      <Text style={styles.sectionLabel}>Observances this month</Text>
+      {monthly.length === 0 ? (
+        <Text style={styles.note}>No major observances fall in this month.</Text>
+      ) : (
+        <View style={styles.monthList}>
+          {monthly.map((m) => {
+            const up = m.daysUntil >= 0;
+            return (
+              <View
+                key={m.event.id}
+                style={[styles.monthRow, m.event.id === nextId && styles.monthRowNext]}
+              >
+                <View style={styles.dayBadge}>
+                  <Text style={styles.dayBadgeText}>{m.event.day}</Text>
+                </View>
+                <View style={styles.flex1}>
+                  <Text style={styles.eventName}>{m.event.name}</Text>
+                  <Text style={styles.eventDate}>{gregorianFull(m.gregorian)} · {m.event.note}</Text>
+                </View>
+                {up && <Text style={styles.eventCountdown}>{countdownLabel(m.daysUntil)}</Text>}
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       <View style={styles.adjustSection}>
         <Text style={styles.adjustLabel}>
@@ -193,40 +209,6 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { padding: 16, backgroundColor: c.bg },
     flex1: { flex: 1, minWidth: 0 },
-    upcoming: { marginBottom: 20, gap: 10 },
-    nextCard: {
-      backgroundColor: c.bgElev,
-      borderWidth: 1,
-      borderColor: c.accent,
-      borderRadius: 14,
-      padding: 16,
-    },
-    nextLabel: {
-      color: c.faint,
-      fontSize: 11,
-      fontWeight: "700",
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      marginBottom: 6,
-    },
-    nextRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-    nextName: { color: c.fg, fontSize: 18, fontWeight: "800" },
-    nextSub: { color: c.muted, fontSize: 13, marginTop: 2 },
-    nextCountdown: { color: c.accent, fontSize: 16, fontWeight: "800" },
-    eventRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-      backgroundColor: c.bgElev,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-    },
-    eventName: { color: c.fg, fontSize: 15, fontWeight: "700" },
-    eventDate: { color: c.faint, fontSize: 12, marginTop: 1 },
-    eventCountdown: { color: c.accent, fontSize: 13, fontWeight: "700" },
     nav: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
     navBtn: {
       paddingHorizontal: 12,
@@ -242,7 +224,7 @@ function makeStyles(c: Palette) {
     grid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      marginBottom: 24,
+      marginBottom: 12,
       backgroundColor: c.bgElev,
       borderWidth: 1,
       borderColor: c.border,
@@ -264,7 +246,6 @@ function makeStyles(c: Palette) {
       justifyContent: "center",
       borderRadius: 9,
     },
-    cellEvent: { backgroundColor: c.accentSoft },
     eventDot: {
       position: "absolute",
       bottom: 4,
@@ -278,6 +259,46 @@ function makeStyles(c: Palette) {
     dayNumToday: { color: c.ink, fontWeight: "800" },
     gregLabel: { color: c.faint, fontSize: 8 },
     gregLabelToday: { color: c.ink },
+    legend: { flexDirection: "row", gap: 18, alignItems: "center", marginBottom: 22 },
+    legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+    legendDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.accent },
+    legendToday: { width: 12, height: 12, borderRadius: 4, backgroundColor: c.accent },
+    legendText: { color: c.faint, fontSize: 12 },
+    sectionLabel: {
+      color: c.faint,
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      marginBottom: 10,
+    },
+    monthList: { gap: 10, marginBottom: 24 },
+    monthRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    monthRowNext: { borderColor: c.accent },
+    dayBadge: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: c.accentSoft,
+      borderWidth: 1,
+      borderColor: c.accent,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    dayBadgeText: { color: c.accent, fontSize: 15, fontWeight: "800" },
+    eventName: { color: c.fg, fontSize: 15, fontWeight: "700" },
+    eventDate: { color: c.faint, fontSize: 12, marginTop: 1 },
+    eventCountdown: { color: c.accent, fontSize: 13, fontWeight: "700" },
     adjustSection: { gap: 10 },
     adjustLabel: { color: c.fg, fontSize: 13, fontWeight: "600" },
     chips: { flexDirection: "row", gap: 8 },

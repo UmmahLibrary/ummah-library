@@ -114,3 +114,34 @@ export function upcomingIslamicEvents(
   resolved.sort((a, b) => a.daysUntil - b.daysUntil);
   return resolved.slice(0, Math.max(0, count));
 }
+
+/** An observance resolved within a specific Hijri month, with a signed countdown. */
+export interface MonthlyIslamicEvent {
+  event: IslamicEvent;
+  /** Gregorian date of the event in the requested Hijri year. */
+  gregorian: GregorianDate;
+  /** Whole days from `today`: negative if already passed, 0 = today. */
+  daysUntil: number;
+}
+
+/**
+ * The observances in a given Hijri month (of a specific Hijri year), in day
+ * order, each resolved to its Gregorian date with a signed day countdown from
+ * `today`. This is the labelled companion to a month grid: every marker the grid
+ * draws has a named row here, in the same scope. Pure; the clock is injected.
+ */
+export function islamicEventsForMonth(
+  hijriYear: number,
+  hijriMonth: number,
+  today: GregorianDate,
+  adjustmentDays = 0,
+): MonthlyIslamicEvent[] {
+  const todayNum = dayNumber(today);
+  return islamicEventsInMonth(hijriMonth).map((event) => {
+    const gregorian = hijriToGregorian(
+      { year: hijriYear, month: hijriMonth, day: event.day },
+      adjustmentDays,
+    );
+    return { event, gregorian, daysUntil: dayNumber(gregorian) - todayNum };
+  });
+}
