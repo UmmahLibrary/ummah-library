@@ -344,62 +344,8 @@ export function HijriCalendar() {
           </div>
         </div>
 
-        {/* Sacred dates + adjustment */}
+        {/* Sighting adjustment */}
         <div>
-          <div
-            style={{
-              fontSize: 12,
-              letterSpacing: 1,
-              textTransform: "uppercase",
-              color: N.faint,
-              fontWeight: 700,
-              marginBottom: 12,
-              fontFamily: N.ui,
-            }}
-          >
-            Sacred dates this month
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {events.length === 0 && (
-              <div style={{ ...lcard, padding: "16px 18px", fontSize: 13.5, color: N.faint, fontFamily: N.ui }}>
-                No major observances fall in this month.
-              </div>
-            )}
-            {events.map((e) => (
-              <div
-                key={e.day}
-                style={{
-                  ...lcard,
-                  padding: "16px 18px",
-                  display: "flex",
-                  gap: 14,
-                  alignItems: "center",
-                  borderColor: isToday(e.day) ? N.gold : N.border,
-                }}
-              >
-                <div
-                  style={{
-                    width: 46,
-                    height: 46,
-                    borderRadius: 11,
-                    background: N.goldSoft,
-                    border: `1px solid ${N.gold}`,
-                    display: "grid",
-                    placeItems: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <span style={{ fontSize: 17, fontWeight: 800, color: N.gold, fontFamily: N.ui }}>{e.day}</span>
-                </div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>{e.name}</div>
-                  <div style={{ fontSize: 12.5, color: N.faint, marginTop: 1, fontFamily: N.ui }}>{e.note}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Sighting adjustment */}
           <div
             style={{
               fontSize: 12,

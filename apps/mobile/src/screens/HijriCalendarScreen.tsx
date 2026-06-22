@@ -102,7 +102,7 @@ export function HijriCalendarScreen() {
   if (!view || !today) return null;
 
   const month = hijriMonth(view.month);
-  const monthEvents = islamicEventsInMonth(view.month);
+  const eventDays = new Set(islamicEventsInMonth(view.month).map((e) => e.day));
   const nextEvent = upcoming[0];
 
   return (
@@ -152,36 +152,16 @@ export function HijriCalendarScreen() {
           if (cell === null) return <View key={`pad-${i}`} style={styles.cell} />;
           const isToday =
             today.year === view.year && today.month === view.month && today.day === cell.day;
+          const isEvent = eventDays.has(cell.day);
           return (
-            <View key={cell.day} style={[styles.cell, isToday && styles.cellToday]}>
+            <View key={cell.day} style={[styles.cell, isToday && styles.cellToday, isEvent && !isToday && styles.cellEvent]}>
               <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>{cell.day}</Text>
               <Text style={[styles.gregLabel, isToday && styles.gregLabelToday]}>{cell.gregLabel}</Text>
+              {isEvent && !isToday && <View style={styles.eventDot} />}
             </View>
           );
         })}
       </View>
-
-      <Text style={styles.sectionLabel}>Sacred dates this month</Text>
-      {monthEvents.length === 0 ? (
-        <Text style={styles.note}>No major observances fall in this month.</Text>
-      ) : (
-        <View style={styles.monthList}>
-          {monthEvents.map((e, i) => (
-            <View
-              key={e.id}
-              style={[styles.monthRow, i < monthEvents.length - 1 && styles.monthRowDivider]}
-            >
-              <View style={styles.dayBadge}>
-                <Text style={styles.dayBadgeText}>{e.day}</Text>
-              </View>
-              <View style={styles.flex1}>
-                <Text style={styles.eventName}>{e.name}</Text>
-                <Text style={styles.eventDate}>{e.note}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
 
       <View style={styles.adjustSection}>
         <Text style={styles.adjustLabel}>
@@ -247,35 +227,6 @@ function makeStyles(c: Palette) {
     eventName: { color: c.fg, fontSize: 15, fontWeight: "700" },
     eventDate: { color: c.faint, fontSize: 12, marginTop: 1 },
     eventCountdown: { color: c.accent, fontSize: 13, fontWeight: "700" },
-    sectionLabel: {
-      color: c.faint,
-      fontSize: 12,
-      fontWeight: "700",
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      marginBottom: 10,
-    },
-    monthList: {
-      backgroundColor: c.bgElev,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: 14,
-      marginBottom: 24,
-      overflow: "hidden",
-    },
-    monthRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
-    monthRowDivider: { borderBottomWidth: 1, borderBottomColor: c.borderSoft },
-    dayBadge: {
-      width: 40,
-      height: 40,
-      borderRadius: 10,
-      backgroundColor: c.accentSoft,
-      borderWidth: 1,
-      borderColor: c.accent,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    dayBadgeText: { color: c.accent, fontSize: 15, fontWeight: "800" },
     nav: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
     navBtn: {
       paddingHorizontal: 12,
@@ -312,6 +263,15 @@ function makeStyles(c: Palette) {
       alignItems: "center",
       justifyContent: "center",
       borderRadius: 9,
+    },
+    cellEvent: { backgroundColor: c.accentSoft },
+    eventDot: {
+      position: "absolute",
+      bottom: 4,
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.accent,
     },
     cellToday: { backgroundColor: c.accent },
     dayNum: { color: c.fg, fontSize: 13, fontWeight: "600" },
