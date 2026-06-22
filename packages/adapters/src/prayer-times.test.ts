@@ -50,4 +50,41 @@ describe("AdhanPrayerTimes", () => {
     });
     expect(Number.isFinite(new Date(t.fajr).getTime())).toBe(true);
   });
+
+  it("derives the supplementary night markers", async () => {
+    const t = await calc.calculate({
+      coordinates: MAKKAH,
+      date: "2026-01-01",
+      method: "UmmAlQura",
+      madhab: "shafi",
+    });
+    // Imsāk is a fixed 10 minutes before Fajr.
+    expect(new Date(t.fajr).getTime() - new Date(t.imsak).getTime()).toBe(10 * 60_000);
+    // Midnight and the last third fall after Maghrib and run into the next day.
+    const maghrib = new Date(t.maghrib).getTime();
+    expect(new Date(t.midnight).getTime()).toBeGreaterThan(maghrib);
+    expect(new Date(t.lastThird).getTime()).toBeGreaterThan(new Date(t.midnight).getTime());
+  });
+
+  it("reshapes Isha at high latitude via the night-portion rule", async () => {
+    // London in midsummer: the standard angle pushes Isha very late; the
+    // one-seventh-of-the-night rule pulls it earlier into a real night.
+    const LONDON = { latitude: 51.5074, longitude: -0.1278 };
+    const q = { coordinates: LONDON, date: "2026-06-21", method: "MuslimWorldLeague", madhab: "shafi" } as const;
+    const standard = await calc.calculate(q);
+    const ruled = await calc.calculate({ ...q, highLatitudeRule: "SeventhOfTheNight" });
+    expect(Number.isFinite(new Date(standard.isha).getTime())).toBe(true);
+    expect(Number.isFinite(new Date(ruled.isha).getTime())).toBe(true);
+    // The rule changes the result, moving Isha earlier.
+    expect(ruled.isha).not.toBe(standard.isha);
+    expect(new Date(ruled.isha).getTime()).toBeLessThan(new Date(standard.isha).getTime());
+  });
+
+  it("leaves the result unchanged at a normal latitude when a rule is set", async () => {
+    const q = { coordinates: MAKKAH, date: "2026-01-01", method: "UmmAlQura", madhab: "shafi" } as const;
+    const plain = await calc.calculate(q);
+    const ruled = await calc.calculate({ ...q, highLatitudeRule: "TwilightAngle" });
+    expect(ruled.isha).toBe(plain.isha);
+    expect(ruled.fajr).toBe(plain.fajr);
+  });
 });

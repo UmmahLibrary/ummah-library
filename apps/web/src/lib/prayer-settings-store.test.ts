@@ -10,21 +10,30 @@ describe("webPrayerSettingsStore", () => {
       coords: null,
       method: "MuslimWorldLeague",
       madhab: "shafi",
+      highLatitudeRule: "none",
     });
   });
 
-  it("round-trips coords, method, and madhab under the existing keys", async () => {
+  it("round-trips coords, method, madhab, and the high-latitude rule", async () => {
     await store.writeCoords({ latitude: 21.42, longitude: 39.83 });
     await store.writeMethod("Egyptian");
     await store.writeMadhab("hanafi");
+    await store.writeHighLatitudeRule("SeventhOfTheNight");
 
     expect(await store.read()).toEqual({
       coords: { latitude: 21.42, longitude: 39.83 },
       method: "Egyptian",
       madhab: "hanafi",
+      highLatitudeRule: "SeventhOfTheNight",
     });
     expect(localStorage.getItem("ul.prayerCoords")).toBe('{"latitude":21.42,"longitude":39.83}');
     expect(localStorage.getItem("ul.prayerMethod")).toBe("Egyptian");
+    expect(localStorage.getItem("ul.prayerHighLat")).toBe("SeventhOfTheNight");
+  });
+
+  it("ignores an unknown stored high-latitude rule", async () => {
+    localStorage.setItem("ul.prayerHighLat", "bogus");
+    expect((await store.read()).highLatitudeRule).toBe("none");
   });
 
   it("clears the stored location when coords are written null", async () => {

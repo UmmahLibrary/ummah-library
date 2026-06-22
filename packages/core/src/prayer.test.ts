@@ -2,8 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   CALCULATION_METHODS,
   DEFAULT_CALCULATION_METHOD,
+  DEFAULT_HIGH_LATITUDE_RULE,
+  HIGH_LATITUDE_RULES,
+  IMSAK_OFFSET_MINUTES,
   type PrayerTimings,
+  SUPPLEMENTARY_TIMING_LABELS,
+  SUPPLEMENTARY_TIMING_NAMES,
+  imsakFromFajr,
   isCalculationMethod,
+  isHighLatitudeRule,
   nextPrayer,
   prayerReminders,
 } from "./prayer";
@@ -26,6 +33,47 @@ describe("CALCULATION_METHODS", () => {
 
   it("rejects an unknown method id", () => {
     expect(isCalculationMethod("NotAMethod")).toBe(false);
+  });
+});
+
+describe("imsakFromFajr", () => {
+  it("places Imsāk the default offset before Fajr", () => {
+    expect(imsakFromFajr(timings.fajr)).toBe("2026-06-07T02:50:00.000Z");
+  });
+
+  it("honours a custom offset", () => {
+    expect(imsakFromFajr(timings.fajr, 30)).toBe("2026-06-07T02:30:00.000Z");
+  });
+
+  it("defaults to the published offset constant", () => {
+    const expected = new Date(
+      new Date(timings.fajr).getTime() - IMSAK_OFFSET_MINUTES * 60_000,
+    ).toISOString();
+    expect(imsakFromFajr(timings.fajr)).toBe(expected);
+  });
+});
+
+describe("HIGH_LATITUDE_RULES", () => {
+  it("offers the default rule and rejects unknown ids", () => {
+    expect(isHighLatitudeRule(DEFAULT_HIGH_LATITUDE_RULE)).toBe(true);
+    expect(isHighLatitudeRule("NotARule")).toBe(false);
+  });
+
+  it("includes the three adhan rules plus 'none'", () => {
+    expect(HIGH_LATITUDE_RULES.map((r) => r.id)).toEqual([
+      "none",
+      "MiddleOfTheNight",
+      "SeventhOfTheNight",
+      "TwilightAngle",
+    ]);
+  });
+});
+
+describe("supplementary timings", () => {
+  it("labels every supplementary marker", () => {
+    for (const name of SUPPLEMENTARY_TIMING_NAMES) {
+      expect(SUPPLEMENTARY_TIMING_LABELS[name]).toBeTruthy();
+    }
   });
 });
 

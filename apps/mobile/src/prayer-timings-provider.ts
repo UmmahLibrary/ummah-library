@@ -13,7 +13,7 @@ import { localISODate } from "./utils";
 
 export const mobilePrayerTimingsProvider: PrayerTimingsProvider = {
   getTodaysTimings: async () => {
-    const { coords, method, madhab } = await mobilePrayerSettingsStore.read();
+    const { coords, method, madhab, highLatitudeRule } = await mobilePrayerSettingsStore.read();
     if (!coords) return null;
 
     const date = localISODate(new Date());
@@ -30,6 +30,7 @@ export const mobilePrayerTimingsProvider: PrayerTimingsProvider = {
         date,
         method,
         madhab,
+        hlr: highLatitudeRule,
       })) as PrayerTimings;
       await setJSON(KEYS.adhkarTimings, { date, timings });
       return timings;
