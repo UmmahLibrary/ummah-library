@@ -34,6 +34,7 @@ export interface IslamicEvent {
  */
 export const ISLAMIC_EVENTS: readonly IslamicEvent[] = [
   { id: "islamic-new-year", month: 1, day: 1, name: "Islamic New Year", note: "Start of Muḥarram" },
+  { id: "tasua", month: 1, day: 9, name: "Tāsūʿāʾ", note: "Ninth of Muḥarram — fasted before ʿĀshūrāʾ" },
   { id: "ashura", month: 1, day: 10, name: "ʿĀshūrāʾ", note: "A day of fasting" },
   { id: "mawlid", month: 3, day: 12, name: "Mawlid an-Nabī ﷺ", note: "Birth of the Prophet" },
   { id: "isra-miraj", month: 7, day: 27, name: "Al-Isrāʾ wal-Miʿrāj", note: "The Night Journey" },
@@ -41,8 +42,11 @@ export const ISLAMIC_EVENTS: readonly IslamicEvent[] = [
   { id: "ramadan-begins", month: 9, day: 1, name: "First of Ramaḍān", note: "Fasting begins" },
   { id: "laylat-al-qadr", month: 9, day: 27, name: "Laylat al-Qadr", note: "Sought in the last ten nights" },
   { id: "eid-al-fitr", month: 10, day: 1, name: "ʿĪd al-Fiṭr", note: "Festival of breaking the fast" },
+  { id: "dhul-hijjah-begins", month: 12, day: 1, name: "Dhū al-Ḥijjah begins", note: "The first ten days begin" },
+  { id: "tarwiyah", month: 12, day: 8, name: "Day of Tarwiyah", note: "Pilgrims set out for Minā" },
   { id: "arafah", month: 12, day: 9, name: "Day of ʿArafah", note: "The standing at ʿArafah" },
   { id: "eid-al-adha", month: 12, day: 10, name: "ʿĪd al-Aḍḥā", note: "Festival of the sacrifice" },
+  { id: "tashriq", month: 12, day: 11, name: "Days of Tashrīq", note: "Days of takbīr (11–13 Dhū al-Ḥijjah)" },
 ];
 
 /** The events that fall in a given Hijri month (1–12), in day order. */

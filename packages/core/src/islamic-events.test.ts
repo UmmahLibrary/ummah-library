@@ -27,8 +27,14 @@ describe("ISLAMIC_EVENTS", () => {
 describe("islamicEventsInMonth", () => {
   it("returns the observances for a month, in day order", () => {
     const m1 = islamicEventsInMonth(1).map((e) => e.id);
-    expect(m1).toEqual(["islamic-new-year", "ashura"]);
-    expect(islamicEventsInMonth(12).map((e) => e.id)).toEqual(["arafah", "eid-al-adha"]);
+    expect(m1).toEqual(["islamic-new-year", "tasua", "ashura"]);
+    expect(islamicEventsInMonth(12).map((e) => e.id)).toEqual([
+      "dhul-hijjah-begins",
+      "tarwiyah",
+      "arafah",
+      "eid-al-adha",
+      "tashriq",
+    ]);
   });
 
   it("returns nothing for a month with no major observance", () => {
@@ -41,11 +47,11 @@ describe("upcomingIslamicEvents", () => {
 
   it("resolves the next events soonest-first with a day countdown", () => {
     const up = upcomingIslamicEvents(today, 3);
-    expect(up.map((u) => u.event.id)).toEqual(["ashura", "mawlid", "isra-miraj"]);
+    expect(up.map((u) => u.event.id)).toEqual(["tasua", "ashura", "mawlid"]);
     const next = up[0]!;
-    expect(next.daysUntil).toBe(4);
-    expect(next.gregorian).toEqual({ year: 2026, month: 6, day: 26 });
-    expect(next.hijri).toEqual({ year: 1448, month: 1, day: 10 });
+    expect(next.daysUntil).toBe(3);
+    expect(next.gregorian).toEqual({ year: 2026, month: 6, day: 25 });
+    expect(next.hijri).toEqual({ year: 1448, month: 1, day: 9 });
   });
 
   it("never returns a past event and stays sorted", () => {
@@ -82,7 +88,7 @@ describe("upcomingIslamicEvents", () => {
     const shifted = upcomingIslamicEvents(today, 1, 1)[0]!;
     // A +1-day adjustment moves the Gregorian date of the same event one day earlier.
     expect(shifted.event.id).toBe(base.event.id);
-    expect(shifted.gregorian).toEqual({ year: 2026, month: 6, day: 25 });
+    expect(shifted.gregorian).toEqual({ year: 2026, month: 6, day: 24 });
   });
 });
 
@@ -90,25 +96,31 @@ describe("islamicEventsForMonth", () => {
   const today = { year: 2026, month: 6, day: 22 };
 
   it("resolves a month's observances with a signed countdown", () => {
-    // Muḥarram 1448: New Year (1) has passed, ʿĀshūrāʾ (10) is 4 days away.
+    // Muḥarram 1448: New Year (1) has passed; ʿĀshūrāʾ (10) is 4 days away.
     const m = islamicEventsForMonth(1448, 1, today);
-    expect(m.map((e) => e.event.id)).toEqual(["islamic-new-year", "ashura"]);
+    expect(m.map((e) => e.event.id)).toEqual(["islamic-new-year", "tasua", "ashura"]);
     expect(m[0]!.daysUntil).toBeLessThan(0); // New Year already passed
-    expect(m[1]!.daysUntil).toBe(4); // ʿĀshūrāʾ upcoming
-    expect(m[1]!.gregorian).toEqual({ year: 2026, month: 6, day: 26 });
+    const ashura = m.find((e) => e.event.id === "ashura")!;
+    expect(ashura.daysUntil).toBe(4);
+    expect(ashura.gregorian).toEqual({ year: 2026, month: 6, day: 26 });
   });
 
   it("stays in day order and is empty for a month with no observance", () => {
     expect(islamicEventsForMonth(1448, 12, today).map((e) => e.event.id)).toEqual([
+      "dhul-hijjah-begins",
+      "tarwiyah",
       "arafah",
       "eid-al-adha",
+      "tashriq",
     ]);
     expect(islamicEventsForMonth(1448, 2, today)).toEqual([]);
   });
 
   it("resolves the same event later in a future Hijri year", () => {
-    const thisYear = islamicEventsForMonth(1448, 1, today)[1]!; // ʿĀshūrāʾ 1448
-    const nextYear = islamicEventsForMonth(1449, 1, today)[1]!; // ʿĀshūrāʾ 1449
+    const pick = (year: number) =>
+      islamicEventsForMonth(year, 1, today).find((e) => e.event.id === "ashura")!;
+    const thisYear = pick(1448);
+    const nextYear = pick(1449);
     expect(nextYear.daysUntil).toBeGreaterThan(thisYear.daysUntil);
     expect(nextYear.gregorian.year).toBe(2027);
   });
