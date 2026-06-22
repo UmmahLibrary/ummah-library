@@ -5,17 +5,20 @@ import { useEffect, useState } from "react";
 import {
   OBLIGATORY_PRAYERS,
   PRAYER_LABELS,
+  type HaidLog,
   type PrayerStatus,
   type PrayerTrackerLog,
-  longestStreak,
+  isDatePaused,
+  longestPrayerStreakWithPause,
   onTimeRate,
   prayedCount,
-  prayerStreak,
+  prayerStreakWithPause,
   recentDays,
   statusFor,
 } from "@ummahlibrary/core";
 import { Icon, N } from "@ummahlibrary/ui";
 import { PRAYER_TRACKER_EVENT, cyclePrayer, readPrayerLog, today } from "../lib/prayer-tracker";
+import { HAID_EVENT, readHaid } from "../lib/haid";
 
 // A warm bronze for "late", distinct from the gold used for "on time".
 const LATE = "#C98A57";
@@ -45,15 +48,23 @@ function weekdayInitial(date: string): string {
 export function PrayerTracker() {
   const [ready, setReady] = useState(false);
   const [log, setLog] = useState<PrayerTrackerLog>({});
+  const [haid, setHaid] = useState<HaidLog>([]);
   const [todayStr, setTodayStr] = useState("");
 
   useEffect(() => {
     setTodayStr(today());
-    void readPrayerLog().then(setLog);
+    const refresh = () => {
+      void readPrayerLog().then(setLog);
+      void readHaid().then(setHaid);
+    };
+    refresh();
     setReady(true);
-    const onChange = () => void readPrayerLog().then(setLog);
-    window.addEventListener(PRAYER_TRACKER_EVENT, onChange);
-    return () => window.removeEventListener(PRAYER_TRACKER_EVENT, onChange);
+    window.addEventListener(PRAYER_TRACKER_EVENT, refresh);
+    window.addEventListener(HAID_EVENT, refresh);
+    return () => {
+      window.removeEventListener(PRAYER_TRACKER_EVENT, refresh);
+      window.removeEventListener(HAID_EVENT, refresh);
+    };
   }, []);
 
   if (!ready) return null;
@@ -63,9 +74,9 @@ export function PrayerTracker() {
 
   const stats: [string, string][] = [
     [`${prayedCount(todayLog)}/5`, "Prayed today"],
-    [`${prayerStreak(log, todayStr)} 🔥`, "Day streak"],
+    [`${prayerStreakWithPause(log, haid, todayStr)} 🔥`, "Day streak"],
     [`${onTimeRate(log, todayStr)}%`, "On time (30d)"],
-    [`${longestStreak(log)}`, "Best streak"],
+    [`${longestPrayerStreakWithPause(log, haid)}`, "Best streak"],
   ];
 
   return (
@@ -164,6 +175,7 @@ export function PrayerTracker() {
             <Legend swatch={{ background: N.gold }}>On time</Legend>
             <Legend swatch={{ background: LATE }}>Late</Legend>
             <Legend swatch={{ border: `1px solid ${N.border}` }}>Missed</Legend>
+            <Legend swatch={{ border: `1px dashed ${N.muted}` }}>Paused</Legend>
           </div>
         </div>
         <div
@@ -190,18 +202,25 @@ export function PrayerTracker() {
               </div>
               {days.map((d) => {
                 const st = d.statuses[pi] ?? "none";
+                const dayPaused = isDatePaused(haid, d.date);
                 return (
                   <div
                     key={d.date}
-                    title={`${PRAYER_LABELS[p]} · ${weekdayInitial(d.date)}: ${statusLabel(st)}`}
+                    title={`${PRAYER_LABELS[p]} · ${weekdayInitial(d.date)}: ${
+                      dayPaused ? "Paused" : statusLabel(st)
+                    }`}
                     style={{
                       aspectRatio: "1",
                       width: "100%",
                       maxWidth: 30,
                       margin: "0 auto",
                       borderRadius: 7,
-                      background: st === "none" ? "transparent" : statusColor(st),
-                      border: st === "none" ? `1px solid ${N.border}` : "none",
+                      background: dayPaused || st === "none" ? "transparent" : statusColor(st),
+                      border: dayPaused
+                        ? `1px dashed ${N.muted}`
+                        : st === "none"
+                          ? `1px solid ${N.border}`
+                          : "none",
                     }}
                   />
                 );

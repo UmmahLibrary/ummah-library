@@ -3,24 +3,30 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import {
   OBLIGATORY_PRAYERS,
   PRAYER_LABELS,
+  type HaidLog,
   type PrayerStatus,
   type PrayerTrackerLog,
   type QadaLog,
   adjustQada,
-  longestStreak,
+  currentPeriod,
+  isDatePaused,
+  longestPrayerStreakWithPause,
   nextPrayerStatus,
   onTimeRate,
   owedFor,
+  periodLength,
   prayedCount,
-  prayerStreak,
+  prayerStreakWithPause,
   recentDays,
   setPrayerStatus,
   statusFor,
+  togglePauseToday,
   totalOwed,
 } from "@ummahlibrary/core";
 import { useTheme, type Palette } from "../theme";
 import { mobilePrayerTrackerStore as prayerStore } from "../prayer-tracker-store";
 import { mobileQadaStore as qadaStore } from "../qada-store";
+import { mobileHaidStore as haidStore } from "../haid-store";
 import { localISODate } from "../utils";
 
 const STATUS_LABEL: Record<PrayerStatus, string> = {
@@ -38,17 +44,27 @@ export function PrayerTrackerScreen() {
 
   const [log, setLog] = useState<PrayerTrackerLog>({});
   const [qada, setQadaLog] = useState<QadaLog>({});
+  const [haid, setHaid] = useState<HaidLog>([]);
   const today = localISODate(new Date());
 
   useEffect(() => {
     void prayerStore.read().then(setLog);
     void qadaStore.read().then(setQadaLog);
+    void haidStore.read().then(setHaid);
   }, []);
 
   function adjustQadaFor(prayer: (typeof OBLIGATORY_PRAYERS)[number], delta: number) {
     setQadaLog((prev) => {
       const next = adjustQada(prev, prayer, delta);
       void qadaStore.write(next);
+      return next;
+    });
+  }
+
+  function toggleHaid() {
+    setHaid((prev) => {
+      const next = togglePauseToday(prev, today);
+      void haidStore.write(next);
       return next;
     });
   }
@@ -63,11 +79,13 @@ export function PrayerTrackerScreen() {
 
   const todayLog = log[today];
   const days = recentDays(log, today, 7);
+  const haidCurrent = currentPeriod(haid);
+  const haidDays = haidCurrent ? periodLength(haidCurrent, today) : 0;
   const stats: [string, string][] = [
     [`${prayedCount(todayLog)}/5`, "Prayed today"],
-    [`${prayerStreak(log, today)} 🔥`, "Day streak"],
+    [`${prayerStreakWithPause(log, haid, today)} 🔥`, "Day streak"],
     [`${onTimeRate(log, today)}%`, "On time (30d)"],
-    [`${longestStreak(log)}`, "Best streak"],
+    [`${longestPrayerStreakWithPause(log, haid)}`, "Best streak"],
   ];
 
   return (
@@ -120,6 +138,7 @@ export function PrayerTrackerScreen() {
         <Legend color={colors.accent} label="On time" colors={colors} />
         <Legend color={LATE} label="Late" colors={colors} />
         <Legend color={colors.border} label="Missed" colors={colors} outline />
+        <Legend color={colors.muted} label="Paused" colors={colors} outline />
       </View>
       <View style={styles.grid}>
         {OBLIGATORY_PRAYERS.map((p, pi) => (
@@ -127,20 +146,48 @@ export function PrayerTrackerScreen() {
             <Text style={styles.gridLabel}>{PRAYER_LABELS[p]}</Text>
             {days.map((d) => {
               const st = d.statuses[pi] ?? "none";
+              const dayPaused = isDatePaused(haid, d.date);
               return (
                 <View
                   key={d.date}
                   style={[
                     styles.cell,
-                    st === "none"
-                      ? { borderWidth: 1, borderColor: colors.border }
-                      : { backgroundColor: statusColor(st) },
+                    dayPaused
+                      ? { borderWidth: 1, borderStyle: "dashed", borderColor: colors.muted }
+                      : st === "none"
+                        ? { borderWidth: 1, borderColor: colors.border }
+                        : { backgroundColor: statusColor(st) },
                   ]}
                 />
               );
             })}
           </View>
         ))}
+      </View>
+
+      <Text style={styles.sectionLabel}>Cycle pause · ḥayḍ</Text>
+      <View style={styles.haidCard}>
+        <View style={styles.haidInfo}>
+          <Text style={[styles.haidStatus, { color: haidCurrent ? colors.accent : colors.fg }]}>
+            {haidCurrent ? `Paused — day ${haidDays}` : "Tracking active"}
+          </Text>
+          <Text style={styles.haidHint}>
+            {haidCurrent
+              ? `Since ${haidCurrent.start}. Prayers aren’t counted as missed; your streak is held.`
+              : "On your period? Pause tracking — those days won’t break your streak."}
+          </Text>
+        </View>
+        <Pressable
+          onPress={toggleHaid}
+          style={[styles.haidBtn, haidCurrent ? styles.haidBtnOutline : null]}
+          accessibilityLabel={haidCurrent ? "End cycle pause" : "Start cycle pause"}
+        >
+          <Text
+            style={[styles.haidBtnText, { color: haidCurrent ? colors.fg : colors.accent }]}
+          >
+            {haidCurrent ? "End pause" : "Start pause"}
+          </Text>
+        </Pressable>
       </View>
 
       <Text style={styles.sectionLabel}>Make-up prayers · qaḍāʾ ({totalOwed(qada)} owed)</Text>
@@ -258,6 +305,29 @@ function makeStyles(c: Palette) {
     gridRow: { flexDirection: "row", alignItems: "center", gap: 7 },
     gridLabel: { color: c.muted, fontSize: 12.5, fontWeight: "600", width: 56 },
     cell: { flex: 1, aspectRatio: 1, maxWidth: 34, borderRadius: 7 },
+    haidCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 14,
+      padding: 16,
+    },
+    haidInfo: { flex: 1 },
+    haidStatus: { fontSize: 15, fontWeight: "800" },
+    haidHint: { color: c.faint, fontSize: 12.5, marginTop: 4 },
+    haidBtn: {
+      backgroundColor: c.accentSoft,
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderWidth: 1,
+      borderColor: "transparent",
+    },
+    haidBtnOutline: { backgroundColor: "transparent", borderColor: c.border },
+    haidBtnText: { fontSize: 14, fontWeight: "700" },
     qadaList: { gap: 8 },
     qadaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     qadaName: { color: c.fg, fontSize: 14, fontWeight: "700" },

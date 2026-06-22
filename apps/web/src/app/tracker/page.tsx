@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { PrayerTracker } from "../../components/PrayerTracker";
+import { CyclePause } from "../../components/CyclePause";
 import { QadaTracker } from "../../components/QadaTracker";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function PrayerTrackerPage() {
       maxW={820}
     >
       <PrayerTracker />
+      <CyclePause />
       <QadaTracker />
     </NoorPageFrame>
   );
