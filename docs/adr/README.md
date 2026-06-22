@@ -39,6 +39,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0028](0028-persistence-enforcement.md)       | Persistence behind store adapters is lint-enforced (amends 0024) | Accepted |
 | [0029](0029-mobile-notifier.md)               | Mobile notifications: ExpoNotifier behind the Notifier port       | Accepted |
 | [0030](0030-qada-tracker.md)                  | Qaḍāʾ tracker: missed-prayer backlog behind a store port          | Accepted |
+| [0031](0031-haid-pause.md)                    | Ḥayḍ pause: menstrual pause preserves the prayer streak           | Accepted |
 
 ## Writing a new ADR
 

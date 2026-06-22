@@ -19,6 +19,7 @@ import type {
 import type { Collection } from "./collections";
 import type { PrayerTrackerLog } from "./prayer-tracker";
 import type { QadaLog } from "./qada";
+import type { HaidLog } from "./haid";
 import type { TasbihRecord } from "./tasbih";
 import type { HifzCard } from "./hifz";
 import type { Coordinates, Madhab, PrayerName, PrayerTimings } from "./prayer";
@@ -257,6 +258,17 @@ export interface PrayerTrackerStore {
 export interface QadaStore {
   read(): Promise<QadaLog>;
   write(log: QadaLog): Promise<void>;
+}
+
+/**
+ * Persists the ḥayḍ (menstruation) pause log on-device (ADR 0024, 0031): the
+ * date ranges during which prayer tracking is paused. Web uses `localStorage`,
+ * mobile `AsyncStorage`; a synced adapter (#25) replaces either without touching
+ * the pause maths (`haid.ts`). `read()` returns an empty log when nothing is set.
+ */
+export interface HaidStore {
+  read(): Promise<HaidLog>;
+  write(log: HaidLog): Promise<void>;
 }
 
 /**
