@@ -5,17 +5,22 @@ import {
   PRAYER_LABELS,
   type PrayerStatus,
   type PrayerTrackerLog,
+  type QadaLog,
+  adjustQada,
   longestStreak,
   nextPrayerStatus,
   onTimeRate,
+  owedFor,
   prayedCount,
   prayerStreak,
   recentDays,
   setPrayerStatus,
   statusFor,
+  totalOwed,
 } from "@ummahlibrary/core";
 import { useTheme, type Palette } from "../theme";
 import { mobilePrayerTrackerStore as prayerStore } from "../prayer-tracker-store";
+import { mobileQadaStore as qadaStore } from "../qada-store";
 import { localISODate } from "../utils";
 
 const STATUS_LABEL: Record<PrayerStatus, string> = {
@@ -32,11 +37,21 @@ export function PrayerTrackerScreen() {
     s === "ontime" ? colors.accent : s === "late" ? LATE : colors.border;
 
   const [log, setLog] = useState<PrayerTrackerLog>({});
+  const [qada, setQadaLog] = useState<QadaLog>({});
   const today = localISODate(new Date());
 
   useEffect(() => {
     void prayerStore.read().then(setLog);
+    void qadaStore.read().then(setQadaLog);
   }, []);
+
+  function adjustQadaFor(prayer: (typeof OBLIGATORY_PRAYERS)[number], delta: number) {
+    setQadaLog((prev) => {
+      const next = adjustQada(prev, prayer, delta);
+      void qadaStore.write(next);
+      return next;
+    });
+  }
 
   function cycle(prayer: (typeof OBLIGATORY_PRAYERS)[number]) {
     setLog((prev) => {
@@ -127,6 +142,38 @@ export function PrayerTrackerScreen() {
           </View>
         ))}
       </View>
+
+      <Text style={styles.sectionLabel}>Make-up prayers · qaḍāʾ ({totalOwed(qada)} owed)</Text>
+      <View style={styles.qadaList}>
+        {OBLIGATORY_PRAYERS.map((p) => {
+          const owed = owedFor(qada, p);
+          return (
+            <View key={p} style={styles.qadaRow}>
+              <Text style={styles.qadaName}>{PRAYER_LABELS[p]}</Text>
+              <View style={styles.qadaCtrls}>
+                <Pressable
+                  style={[styles.step, owed === 0 && styles.stepDisabled]}
+                  disabled={owed === 0}
+                  onPress={() => adjustQadaFor(p, -1)}
+                  accessibilityLabel={`Make up one ${PRAYER_LABELS[p]}`}
+                >
+                  <Text style={styles.stepMark}>−</Text>
+                </Pressable>
+                <Text style={[styles.qadaCount, { color: owed ? colors.accent : colors.faint }]}>
+                  {owed}
+                </Text>
+                <Pressable
+                  style={styles.step}
+                  onPress={() => adjustQadaFor(p, 1)}
+                  accessibilityLabel={`Record a missed ${PRAYER_LABELS[p]}`}
+                >
+                  <Text style={styles.stepMark}>+</Text>
+                </Pressable>
+              </View>
+            </View>
+          );
+        })}
+      </View>
     </ScrollView>
   );
 }
@@ -211,5 +258,22 @@ function makeStyles(c: Palette) {
     gridRow: { flexDirection: "row", alignItems: "center", gap: 7 },
     gridLabel: { color: c.muted, fontSize: 12.5, fontWeight: "600", width: 56 },
     cell: { flex: 1, aspectRatio: 1, maxWidth: 34, borderRadius: 7 },
+    qadaList: { gap: 8 },
+    qadaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+    qadaName: { color: c.fg, fontSize: 14, fontWeight: "700" },
+    qadaCtrls: { flexDirection: "row", alignItems: "center", gap: 12 },
+    step: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.accentSoft,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    stepDisabled: { backgroundColor: "transparent", opacity: 0.5 },
+    stepMark: { color: c.accent, fontSize: 20, fontWeight: "700", lineHeight: 22 },
+    qadaCount: { minWidth: 26, textAlign: "center", fontSize: 16, fontWeight: "800" },
   });
 }

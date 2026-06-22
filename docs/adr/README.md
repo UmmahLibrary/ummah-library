@@ -38,6 +38,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0027](0027-generated-theme-css.md)           | Theme CSS generated from one token source (amends 0023)          | Accepted |
 | [0028](0028-persistence-enforcement.md)       | Persistence behind store adapters is lint-enforced (amends 0024) | Accepted |
 | [0029](0029-mobile-notifier.md)               | Mobile notifications: ExpoNotifier behind the Notifier port       | Accepted |
+| [0030](0030-qada-tracker.md)                  | Qaḍāʾ tracker: missed-prayer backlog behind a store port          | Accepted |
 
 ## Writing a new ADR
 

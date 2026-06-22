@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { PrayerTracker } from "../../components/PrayerTracker";
+import { QadaTracker } from "../../components/QadaTracker";
 
 export const metadata: Metadata = {
   title: "Prayer Tracker",
@@ -19,6 +20,7 @@ export default function PrayerTrackerPage() {
       maxW={820}
     >
       <PrayerTracker />
+      <QadaTracker />
     </NoorPageFrame>
   );
 }
