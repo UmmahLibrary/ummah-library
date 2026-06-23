@@ -74,4 +74,12 @@ Baseline before any code: lint ✓, typecheck ✓ (8/8), `pnpm exec vitest run` 
   typecheck ✓, `pnpm test:coverage` ✓ (exit 0, **625 tests**, web/lib functions
   96.65 ≥ 95). PASS.
 
+- S7 — server endpoint: `apps/web/src/app/api/sync/` — `sync-store.ts`
+  (`SyncStore` + `InMemorySyncStore` + fetch-based `UpstashSyncStore`, no SDK +
+  `syncStoreFromEnv`), `handler.ts` (`handleSync`: Bearer auth, entry
+  validation/size caps, converge via core `mergeEntries`, persist), thin
+  `route.ts` (`POST`, `no-store`, 501 when unprovisioned). 14 tests (handler +
+  store via stubbed fetch). VERIFY: web typecheck ✓, lint ✓, `pnpm test:coverage`
+  ✓ (exit 0, **639 tests**). PASS.
+
 <!-- entries appended below, one line per step -->
