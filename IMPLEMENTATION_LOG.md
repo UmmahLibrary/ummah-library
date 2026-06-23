@@ -68,4 +68,10 @@ Baseline before any code: lint ✓, typecheck ✓ (8/8), `pnpm exec vitest run` 
   TS 5.7 `Uint8Array<ArrayBufferLike>` vs `<ArrayBuffer>` typing on the AES-GCM
   iv. VERIFY: web typecheck ✓, cipher test ✓ (7), lint ✓. PASS.
 
+- S6 — web transport adapter: `apps/web/src/lib/sync/http-sync-backend.ts`
+  implements the core `SyncBackend` (one POST to `/api/sync`, `accountId` as a
+  Bearer header, ciphertext-only body) + 4 tests (injected fetch). VERIFY: web
+  typecheck ✓, `pnpm test:coverage` ✓ (exit 0, **625 tests**, web/lib functions
+  96.65 ≥ 95). PASS.
+
 <!-- entries appended below, one line per step -->
