@@ -49,4 +49,16 @@ Baseline before any code: lint ✓, typecheck ✓ (8/8), `pnpm exec vitest run` 
   0003 + 0006; records the E2EE/zero-PII/Upstash model. Docs only (lint/typecheck/
   test unaffected); prettier ✓. PASS.
 
+- S2 — core ports: `Cipher`, `SyncBackend`, `SyncStateStore` added to
+  `ports.ts` (+ `Hlc`/`SyncEntry`/`SyncRecord` import). Type-only, coverage-excluded.
+- S3 — core sync primitives: `sync.ts` (HLC `hlcInit`/`hlcTick`/`hlcCompare`,
+  `encodeHlc`/`parseHlc`, `SyncEntry`, `mergeEntries` LWW) + `sync.test.ts`
+  (15 tests). 100% coverage.
+- S4 — core sync engine: `sync-engine.ts` (`runSync` orchestrator, mirrors
+  `reminders.ts`; no minted clocks; skips unknown-key + undecryptable entries) +
+  `sync-engine.test.ts` (5 tests, fakes incl. a `mergeEntries`-based fake server).
+  100% coverage. Exported from `index.ts`.
+  VERIFY: lint ✓, typecheck 8/8 ✓, `pnpm test:coverage` ✓ (exit 0, **614 tests**,
+  core aggregate 99.63/96.22/100/99.63 ≥ 95/88/95/95). PASS.
+
 <!-- entries appended below, one line per step -->

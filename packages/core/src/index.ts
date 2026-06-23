@@ -31,6 +31,8 @@ export * from "./reading-goals";
 export * from "./reading-plans";
 export * from "./reminders";
 export * from "./backup";
+export * from "./sync";
+export * from "./sync-engine";
 export * from "./collections";
 export * from "./tasbih";
 export type * from "./entities";

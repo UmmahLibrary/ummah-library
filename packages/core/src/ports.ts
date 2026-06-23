@@ -32,6 +32,7 @@ import type {
 } from "./prayer";
 import type { ActivePlan, PlanTemplate } from "./reading-plans";
 import type { KhatmaPlan } from "./reading-goals";
+import type { Hlc, SyncEntry, SyncRecord } from "./sync";
 
 /** Access to the Arabic Quran text and surah structure. */
 export interface QuranRepository {
@@ -404,4 +405,45 @@ export interface ReminderStore {
   writePlan(pref: PlanReminderPref): Promise<void>;
   writePrayers(prefs: Partial<Record<PrayerName, boolean>>): Promise<void>;
   writeAdhkarOn(on: boolean): Promise<void>;
+}
+
+/**
+ * Client-side cryptography for sync (ADR 0033), behind a port so `core` never
+ * touches WebCrypto or native crypto. An instance is "unlocked" — the platform
+ * adapter constructs it from the user's recovery secret — and exposes only what
+ * the engine needs. The server-facing `accountId` and per-key `entryId` are keyed
+ * hashes derived from the secret, never the secret itself; the `dataKey` that
+ * encrypts values never leaves the device.
+ */
+export interface Cipher {
+  /** The opaque account id the server stores under; identifies a blob, not a person. */
+  accountId(): Promise<string>;
+  /** Stable opaque id for a logical key — a keyed hash of the key name. */
+  entryId(keyName: string): Promise<string>;
+  /** Encrypt a value; returns base64 ciphertext and the base64 nonce used. */
+  encrypt(plaintext: string): Promise<{ ciphertext: string; nonce: string }>;
+  /** Decrypt a value, or `null` when authentication fails (foreign/corrupt data). */
+  decrypt(ciphertext: string, nonce: string): Promise<string | null>;
+}
+
+/**
+ * The sync transport (ADR 0033): exchange the device's encrypted entries with the
+ * server in one round trip and get the converged set back. Implemented as an HTTP
+ * adapter; the server only ever stores what {@link SyncEntry} exposes (opaque id,
+ * clock, ciphertext).
+ */
+export interface SyncBackend {
+  exchange(accountId: string, entries: readonly SyncEntry[]): Promise<readonly SyncEntry[]>;
+}
+
+/**
+ * The local side the sync engine reads and writes (ADR 0033). `all()` must
+ * enumerate **every** managed `ul.*` key — `value: null` when unset — so the
+ * engine can map the server's opaque ids back to keys and discover values first
+ * set on another device. `apply` installs a winning remote value (`null` ⇒
+ * delete) at its clock, without minting a new one.
+ */
+export interface SyncStateStore {
+  all(): Promise<readonly SyncRecord[]>;
+  apply(key: string, value: string | null, hlc: Hlc): Promise<void>;
 }
