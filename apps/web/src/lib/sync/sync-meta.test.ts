@@ -51,4 +51,19 @@ describe("sync-meta", () => {
     expect(hlc.node).toBe(NODE);
     expect(hlc.millis).toBe(50);
   });
+
+  it("leaves a never-seen absent key at the zero clock (a fresh device can't clobber)", () => {
+    // KEY absent with no prior meta: absence is "unknown", not "deleted", so the
+    // clock must stay at hlcInit — anything on the server then wins LWW.
+    reconcile([KEY], new Date(9999), NODE);
+    expect(clockFor(KEY, NODE)).toEqual({ millis: 0, counter: 0, node: NODE });
+  });
+
+  it("mints a tombstone when a key that had a value becomes null (real deletion)", () => {
+    localStorage.setItem(KEY, "[1]");
+    reconcile([KEY], new Date(1000), NODE);
+    localStorage.removeItem(KEY); // genuine deletion of an existing value
+    reconcile([KEY], new Date(2000), NODE);
+    expect(clockFor(KEY, NODE).millis).toBe(2000); // advanced ⇒ deletion propagates
+  });
 });

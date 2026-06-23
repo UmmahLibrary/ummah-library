@@ -46,15 +46,23 @@ function hashValue(value: string | null): string {
 /**
  * Bump the clock of every managed key whose value changed locally since the last
  * sync. A local write therefore carries this device's node, while millis/counter
- * advance monotonically from the prior stamp; a key with no meta yet is stamped as
- * a first local write. Persists only when something actually changed.
+ * advance monotonically from the prior stamp; a key with an existing value but no
+ * meta yet is stamped as a first local write. Persists only when something changed.
+ *
+ * Crucially, an **absent key with no prior meta is left untouched** (clock stays at
+ * the zero `hlcInit`): on a brand-new device "I don't have this key" means *unknown*,
+ * not *deleted*. Stamping it at `now` would make the fresh device's emptiness win
+ * last-writer-wins and wipe data set on another device. A tombstone is only minted
+ * when a key that *did* have a value (prior meta) becomes null — a real deletion.
  */
 export function reconcile(keys: readonly string[], now: Date, node: string): void {
   const meta = readMeta();
   let changed = false;
   for (const key of keys) {
-    const hash = hashValue(getItem(key));
+    const raw = getItem(key);
     const prev = meta[key];
+    if (raw === null && !prev) continue; // never-seen absent key — not a deletion
+    const hash = hashValue(raw);
     if (prev && prev.hash === hash) continue;
     const base = prev ? (parseHlc(prev.hlc) ?? hlcInit(node)) : hlcInit(node);
     const ticked = hlcTick(base, now);
