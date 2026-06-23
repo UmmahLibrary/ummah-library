@@ -1,0 +1,54 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { clockFor, reconcile, setClock } from "./sync-meta";
+
+beforeEach(() => localStorage.clear());
+afterEach(() => localStorage.clear());
+
+const NODE = "node-a";
+const KEY = "ul.bookmarks";
+
+describe("sync-meta", () => {
+  it("stamps a new key as a first local write", () => {
+    localStorage.setItem(KEY, "[1]");
+    reconcile([KEY], new Date(1000), NODE);
+    const hlc = clockFor(KEY, NODE);
+    expect(hlc.node).toBe(NODE);
+    expect(hlc.millis).toBe(1000);
+  });
+
+  it("bumps the clock when the value changes", () => {
+    localStorage.setItem(KEY, "[1]");
+    reconcile([KEY], new Date(1000), NODE);
+    localStorage.setItem(KEY, "[1,2]");
+    reconcile([KEY], new Date(2000), NODE);
+    expect(clockFor(KEY, NODE).millis).toBe(2000);
+  });
+
+  it("does not bump when the value is unchanged", () => {
+    localStorage.setItem(KEY, "[1]");
+    reconcile([KEY], new Date(1000), NODE);
+    reconcile([KEY], new Date(5000), NODE);
+    expect(clockFor(KEY, NODE).millis).toBe(1000);
+  });
+
+  it("clockFor returns a fresh clock for an unknown key", () => {
+    expect(clockFor("ul.unknown", NODE)).toEqual({ millis: 0, counter: 0, node: NODE });
+  });
+
+  it("setClock records the remote stamp and suppresses a false change", () => {
+    setClock(KEY, "[9]", { millis: 42, counter: 0, node: "remote" });
+    expect(clockFor(KEY, NODE)).toEqual({ millis: 42, counter: 0, node: "remote" });
+    localStorage.setItem(KEY, "[9]"); // same value the remote installed
+    reconcile([KEY], new Date(9999), NODE);
+    expect(clockFor(KEY, NODE)).toEqual({ millis: 42, counter: 0, node: "remote" });
+  });
+
+  it("a local write after a remote apply carries this node", () => {
+    setClock(KEY, "[9]", { millis: 42, counter: 0, node: "remote" });
+    localStorage.setItem(KEY, "[9,10]"); // genuine local change
+    reconcile([KEY], new Date(50), NODE);
+    const hlc = clockFor(KEY, NODE);
+    expect(hlc.node).toBe(NODE);
+    expect(hlc.millis).toBe(50);
+  });
+});
