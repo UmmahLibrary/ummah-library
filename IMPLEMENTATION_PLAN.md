@@ -19,7 +19,7 @@ One secret (a generated recovery code; BIP39 words = later polish) derives, via 
 KDF, two independent values:
 
 - `accountId = HKDF(secret, "account-id")` — opaque key the server stores under; names no one.
-- `dataKey   = HKDF(secret, "data-key")`   — AES-256-GCM key; never leaves the device.
+- `dataKey   = HKDF(secret, "data-key")` — AES-256-GCM key; never leaves the device.
 
 Each `ul.*` key syncs as `{ id = HMAC(dataKey, keyName), hlc, ciphertext, nonce }`
 — the server can't read or even label the data.

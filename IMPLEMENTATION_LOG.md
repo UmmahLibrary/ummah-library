@@ -45,4 +45,8 @@ Baseline before any code: lint ✓, typecheck ✓ (8/8), `pnpm exec vitest run` 
 - SETUP — branch `feat/account-sync` created from `665a986`; plan + log written;
   green baseline established. PASS.
 
+- S1 — ADR 0033 (`docs/adr/0033-account-sync.md`) + README index row; amends
+  0003 + 0006; records the E2EE/zero-PII/Upstash model. Docs only (lint/typecheck/
+  test unaffected); prettier ✓. PASS.
+
 <!-- entries appended below, one line per step -->
