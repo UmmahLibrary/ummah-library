@@ -61,4 +61,11 @@ Baseline before any code: lint ✓, typecheck ✓ (8/8), `pnpm exec vitest run` 
   VERIFY: lint ✓, typecheck 8/8 ✓, `pnpm test:coverage` ✓ (exit 0, **614 tests**,
   core aggregate 99.63/96.22/100/99.63 ≥ 95/88/95/95). PASS.
 
+- S5 — web crypto adapter: `apps/web/src/lib/sync/web-crypto-cipher.ts`
+  implements the core `Cipher` (PBKDF2→HKDF key derivation, AES-256-GCM seal,
+  HMAC entry ids, `generateRecoveryPhrase`) + 7 tests (run under jsdom — Node
+  WebCrypto is present; verified cross-device decrypt + wrong-key→null). Fixed a
+  TS 5.7 `Uint8Array<ArrayBufferLike>` vs `<ArrayBuffer>` typing on the AES-GCM
+  iv. VERIFY: web typecheck ✓, cipher test ✓ (7), lint ✓. PASS.
+
 <!-- entries appended below, one line per step -->
