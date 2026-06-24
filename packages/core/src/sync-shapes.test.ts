@@ -8,10 +8,12 @@ import { describe, expect, it } from "vitest";
 import { MANAGED_KEYS } from "./sync-keys";
 import {
   ELEMENT_SEP,
+  INNER_SEP,
   SYNC_SHAPES,
   arrayKeyedShape,
   explodeKey,
   isMapKey,
+  nestedRecordShape,
   parseElementKey,
   recordShape,
   setShape,
@@ -59,6 +61,32 @@ describe("setShape", () => {
   });
   it("drops non-string members", () => {
     expect(setShape().explode(["a", 3, null]).size).toBe(1);
+  });
+});
+
+describe("nestedRecordShape", () => {
+  const s = nestedRecordShape();
+  it("explodes Record<outer, Record<inner, V>> into one element per (outer, inner) pair", () => {
+    const els = s.explode({ "2026-06-24": { Fajr: "ontime", Dhuhr: "late" }, "2026-06-25": { Fajr: "none" } });
+    expect(els.size).toBe(3);
+    expect(els.get(`2026-06-24${INNER_SEP}Fajr`)).toBe('"ontime"');
+    expect(els.get(`2026-06-25${INNER_SEP}Fajr`)).toBe('"none"');
+  });
+  it("rebuilds the nested record (round-trip)", () => {
+    const whole = { "2026-06-24": { Fajr: "ontime" }, "2026-06-25": { Fajr: "none", Isha: "late" } };
+    expect(JSON.parse(s.rebuild(s.explode(whole)))).toEqual(whole);
+  });
+  it("merging different (date, prayer) elements yields both — the Phase-2 win", () => {
+    // device A marked Fajr, device B marked Dhuhr, same day → union, no clobber
+    const merged = new Map([
+      ...s.explode({ "2026-06-24": { Fajr: "ontime" } }),
+      ...s.explode({ "2026-06-24": { Dhuhr: "late" } }),
+    ]);
+    expect(JSON.parse(s.rebuild(merged))).toEqual({ "2026-06-24": { Dhuhr: "late", Fajr: "ontime" } });
+  });
+  it("tolerates a wrong-shaped value or non-object inner", () => {
+    expect(s.explode(null).size).toBe(0);
+    expect(s.explode({ "2026-06-24": "not an object" }).size).toBe(0);
   });
 });
 

@@ -65,4 +65,9 @@ export const MANAGED_KEYS: readonly string[] = [
   "ul.ramadanFasts",
   "ul.badges",
   "ul.readingActive",
+  // Phase 2 — date-keyed logs. prayerLog/ramadanWorship merge per (date, item) via
+  // the nested shape, so marking different prayers/items on the same day converges.
+  "ul.readingLog",
+  "ul.prayerLog",
+  "ul.ramadanWorship",
 ];

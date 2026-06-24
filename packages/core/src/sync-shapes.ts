@@ -36,6 +36,14 @@ const SCALAR: ScalarShape = { kind: "scalar" };
  */
 export const ELEMENT_SEP = String.fromCharCode(0);
 
+/**
+ * Separator WITHIN an element id for a two-level map (`nestedRecordShape`) — joins
+ * the outer and inner keys (e.g. `date<US>prayer`). A distinct control char (US,
+ * 0x1f) so it can't be confused with {@link ELEMENT_SEP} (NUL) and never appears in
+ * an ISO date, prayer-name enum, or worship-item id.
+ */
+export const INNER_SEP = String.fromCharCode(31);
+
 /** `mapKey` + the element id → the synthetic key that gets hashed into a wire entry id. */
 export function explodeKey(mapKey: string, id: ElementId): string {
   return mapKey + ELEMENT_SEP + id;
@@ -130,6 +138,41 @@ export function arrayKeyedShape(keyOf: (item: Record<string, unknown>) => unknow
   };
 }
 
+/**
+ * A two-level map `Record<outerId, Record<innerId, V>>` (e.g. `ul.prayerLog`
+ * date→prayer→status, `ul.ramadanWorship` date→item→done). Each (outer, inner) pair
+ * is its OWN element keyed by `outerId + INNER_SEP + innerId`, so marking different
+ * prayers/items on the same day from two devices merges instead of one day's whole
+ * record clobbering the other.
+ */
+export function nestedRecordShape(): MapShape {
+  return {
+    kind: "map",
+    explode: (whole) => {
+      const out = new Map<ElementId, string>();
+      if (whole !== null && typeof whole === "object" && !Array.isArray(whole)) {
+        for (const [outer, inner] of Object.entries(whole as Record<string, unknown>)) {
+          if (inner !== null && typeof inner === "object" && !Array.isArray(inner)) {
+            for (const [innerKey, v] of Object.entries(inner as Record<string, unknown>)) {
+              out.set(outer + INNER_SEP + innerKey, JSON.stringify(v));
+            }
+          }
+        }
+      }
+      return out;
+    },
+    rebuild: (elements) => {
+      const obj: Record<string, Record<string, unknown>> = {};
+      for (const [id, v] of [...elements.entries()].sort(byKeyAsc)) {
+        const i = id.indexOf(INNER_SEP);
+        if (i < 0) continue; // malformed compound id — skip
+        (obj[id.slice(0, i)] ??= {})[id.slice(i + 1)] = JSON.parse(v) as unknown;
+      }
+      return JSON.stringify(obj);
+    },
+  };
+}
+
 /** A set stored as `string[]` (e.g. `ul.badges`, `ul.readingActive`); presence is the element, deletion a tombstone. */
 export function setShape(): MapShape {
   return {
@@ -144,12 +187,12 @@ export function setShape(): MapShape {
 }
 
 /**
- * The shape of every map key (Phase 1, ADR 0034 §5 — bounded keys). Any key NOT
- * listed here is a scalar (v1 whole-value LWW). Phase 2 adds the date-keyed logs
- * (`ul.prayerLog`, `ul.readingLog`, `ul.ramadanWorship`); Phase 3 adds `ul.hifz`,
- * gated on the incremental-pull cursor.
+ * The shape of every map key. Any key NOT listed here is a scalar (v1 whole-value
+ * LWW). Phase 1 (ADR 0034 §5) = bounded keys; Phase 2 = the date-keyed logs below;
+ * Phase 3 adds `ul.hifz`, gated on the incremental-pull cursor.
  */
 export const SYNC_SHAPES: Record<string, SyncShape> = {
+  // Phase 1 — bounded keys
   "ul.ayahNotes": recordShape(),
   "ul.qada": recordShape(),
   "ul.asmaLearned": recordShape(),
@@ -158,6 +201,10 @@ export const SYNC_SHAPES: Record<string, SyncShape> = {
   "ul.haid": arrayKeyedShape((p) => p.start),
   "ul.badges": setShape(),
   "ul.readingActive": setShape(),
+  // Phase 2 — date-keyed logs (≈1 element/day; the nested ones merge per date+item)
+  "ul.readingLog": recordShape(),
+  "ul.prayerLog": nestedRecordShape(),
+  "ul.ramadanWorship": nestedRecordShape(),
 };
 
 /** The merge shape of a key — scalar unless registered as a map. */
