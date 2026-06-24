@@ -9,6 +9,7 @@
  */
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -23,6 +24,7 @@ import {
   type ThemeKey,
 } from "@ummahlibrary/ui";
 import { KEYS, getString, setString } from "./storage";
+import { onSyncApplied } from "./lib/sync/sync-events";
 
 export type { Palette, ThemeKey };
 
@@ -61,13 +63,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     Appearance.getColorScheme() === "light" ? "ivory" : "obsidian",
   );
 
-  useEffect(() => {
-    void getString(KEYS.theme).then((saved) => {
-      if (!saved) return;
-      const key = VALID.has(saved) ? (saved as ThemeKey) : LEGACY[saved];
-      if (key) setThemeKey(key);
-    });
+  const loadTheme = useCallback(async () => {
+    const saved = await getString(KEYS.theme);
+    if (!saved) return;
+    const key = VALID.has(saved) ? (saved as ThemeKey) : LEGACY[saved];
+    if (key) setThemeKey(key);
   }, []);
+
+  // Load on mount, and re-apply when a sync round pulls a theme from another device.
+  useEffect(() => {
+    void loadTheme();
+    return onSyncApplied(() => void loadTheme());
+  }, [loadTheme]);
 
   const setTheme = (key: ThemeKey) => {
     setThemeKey(key);

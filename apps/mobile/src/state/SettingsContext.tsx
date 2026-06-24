@@ -17,6 +17,7 @@ import type { QuranScript, Translation } from "@ummahlibrary/core";
 import { api, type TafsirMeta } from "../api";
 import { mobileSettingsStore as store } from "./settings-store";
 import { readTafsirCompare, writeTafsirCompare } from "../tafsir-compare-store";
+import { onSyncApplied } from "../lib/sync/sync-events";
 import { RECITER, TAFSIRS } from "../plugins";
 import { defaultEditions, MAX_SCALE, MIN_SCALE, type ReadingMode } from "../types";
 
@@ -71,24 +72,23 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [catalogue, setCatalogue] = useState<Translation[]>([]);
   const [tafsirs, setTafsirs] = useState<TafsirMeta[]>([]);
 
+  const loadPrefs = useCallback(async () => {
+    const s = await store.read();
+    if (s.editions && s.editions.length > 0) setEditionsState(s.editions);
+    if (s.readingMode === "translation" || s.readingMode === "reading" || s.readingMode === "reading-tr")
+      setReadingModeState(s.readingMode);
+    if (s.readingTranslation) setReadingTranslationState(s.readingTranslation);
+    if (s.reciter) setReciterIdState(s.reciter);
+    if (s.tafsir) setTafsirIdState(s.tafsir);
+    if (s.scale != null) setScaleState(clampScale(s.scale));
+    if (s.transliteration != null) setTransliterationState(s.transliteration);
+    if (s.wordTransliteration != null) setWordTransliterationState(s.wordTransliteration);
+    if (s.tapToHear != null) setTapToHearState(s.tapToHear);
+    if (s.script === "uthmani" || s.script === "indopak") setScriptState(s.script);
+  }, []);
+
   useEffect(() => {
-    void store.read().then((s) => {
-      if (s.editions && s.editions.length > 0) setEditionsState(s.editions);
-      if (
-        s.readingMode === "translation" ||
-        s.readingMode === "reading" ||
-        s.readingMode === "reading-tr"
-      )
-        setReadingModeState(s.readingMode);
-      if (s.readingTranslation) setReadingTranslationState(s.readingTranslation);
-      if (s.reciter) setReciterIdState(s.reciter);
-      if (s.tafsir) setTafsirIdState(s.tafsir);
-      if (s.scale != null) setScaleState(clampScale(s.scale));
-      if (s.transliteration != null) setTransliterationState(s.transliteration);
-      if (s.wordTransliteration != null) setWordTransliterationState(s.wordTransliteration);
-      if (s.tapToHear != null) setTapToHearState(s.tapToHear);
-      if (s.script === "uthmani" || s.script === "indopak") setScriptState(s.script);
-    });
+    void loadPrefs();
     void readTafsirCompare().then(setTafsirCompareState);
     void api
       .listTranslationCatalog()
@@ -98,7 +98,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       .listTafsirs()
       .then(setTafsirs)
       .catch(() => setTafsirs([]));
-  }, []);
+    // Re-read prefs when a sync round pulls in a remote change (the catalogue is static).
+    return onSyncApplied(() => void loadPrefs());
+  }, [loadPrefs]);
 
   const setEditions = useCallback((ids: string[]) => {
     const next = ids.length > 0 ? ids : defaultEditions();

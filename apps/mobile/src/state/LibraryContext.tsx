@@ -24,6 +24,7 @@ import {
 } from "@ummahlibrary/core";
 import { KEYS, getJSON, isObjectRecord, setJSON } from "../storage";
 import { mobileLibraryStore as library } from "./library-store";
+import { onSyncApplied } from "../lib/sync/sync-events";
 import { EMPTY_STREAK, advanceStreak, type StreakData } from "../hifz";
 
 export interface HifzRecord {
@@ -83,34 +84,38 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    void (async () => {
-      const [bm, lr, hz, st, log, cols, nts] = await Promise.all([
-        library.readBookmarks(),
-        getJSON<{ surah: number } | null>(KEYS.lastRead, null, isObjectRecord),
-        getJSON<HifzStore>(KEYS.hifz, {}, isObjectRecord),
-        getJSON<StreakData>(
-          KEYS.hifzStreak,
-          EMPTY_STREAK,
-          (v) =>
-            isObjectRecord(v) &&
-            typeof (v as StreakData).count === "number" &&
-            typeof (v as StreakData).lastDate === "string",
-        ),
-        getJSON<HifzActivityLog>(KEYS.hifzReviewLog, {}, isObjectRecord),
-        library.readCollections(),
-        library.readNotes(),
-      ]);
-      setBookmarks(bm);
-      setLastReadState(lr?.surah ?? null);
-      setHifz(hz);
-      setStreak(st);
-      setReviewLog(log);
-      setCollections(cols);
-      setNotes(nts);
-      setReady(true);
-    })();
+  const load = useCallback(async () => {
+    const [bm, lr, hz, st, log, cols, nts] = await Promise.all([
+      library.readBookmarks(),
+      getJSON<{ surah: number } | null>(KEYS.lastRead, null, isObjectRecord),
+      getJSON<HifzStore>(KEYS.hifz, {}, isObjectRecord),
+      getJSON<StreakData>(
+        KEYS.hifzStreak,
+        EMPTY_STREAK,
+        (v) =>
+          isObjectRecord(v) &&
+          typeof (v as StreakData).count === "number" &&
+          typeof (v as StreakData).lastDate === "string",
+      ),
+      getJSON<HifzActivityLog>(KEYS.hifzReviewLog, {}, isObjectRecord),
+      library.readCollections(),
+      library.readNotes(),
+    ]);
+    setBookmarks(bm);
+    setLastReadState(lr?.surah ?? null);
+    setHifz(hz);
+    setStreak(st);
+    setReviewLog(log);
+    setCollections(cols);
+    setNotes(nts);
+    setReady(true);
   }, []);
+
+  // Load on mount, and re-hydrate when a sync round pulls in remote changes.
+  useEffect(() => {
+    void load();
+    return onSyncApplied(() => void load());
+  }, [load]);
 
   const updateCollections = useCallback((next: Collection[]) => {
     setCollections(next);
