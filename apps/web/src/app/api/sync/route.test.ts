@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { POST } from "./route";
+import { OPTIONS, POST } from "./route";
 
 function post(body: unknown, auth?: string): Request {
   return new Request("http://localhost/api/sync", {
@@ -33,5 +33,18 @@ describe("POST /api/sync (dev fallback)", () => {
       body: "{nope",
     });
     expect((await POST(bad)).status).toBe(400);
+  });
+
+  it("sets open CORS on the POST response (extension calls it cross-origin)", async () => {
+    const res = await POST(post({ entries: [] }, AUTH));
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+  });
+
+  it("answers the CORS preflight so the extension's authenticated POST can proceed", () => {
+    const res = OPTIONS();
+    expect(res.status).toBe(204);
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    expect(res.headers.get("access-control-allow-methods")).toContain("POST");
+    expect(res.headers.get("access-control-allow-headers")).toContain("authorization");
   });
 });
