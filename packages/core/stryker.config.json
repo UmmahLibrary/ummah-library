@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Mutation testing scoped to packages/core (the pure, deterministic domain logic). Run with `pnpm --filter @ummahlibrary/core mutation`. NOT wired into CI yet (no break threshold) — measure the score first, then ratchet a `thresholds.break` when ready, mirroring the coverage gates in vitest.config.ts.",
+  "packageManager": "pnpm",
+  "testRunner": "vitest",
+  "plugins": ["@stryker-mutator/vitest-runner"],
+  "vitest": { "configFile": "vitest.stryker.config.ts" },
+  "coverageAnalysis": "perTest",
+  "reporters": ["html", "clear-text", "progress"],
+  "htmlReporter": { "fileName": "reports/mutation/index.html" },
+  "mutate": [
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "!src/index.ts",
+    "!src/entities.ts",
+    "!src/ports.ts"
+  ],
+  "thresholds": { "high": 90, "low": 80, "break": null }
+}

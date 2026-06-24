@@ -22,11 +22,14 @@
     "apps/web/src/lib": { "statements": 80.09, "branches": 82, "functions": 96.71, "lines": 80.09, "gate": { "statements": 55, "branches": 73, "functions": 95, "lines": 55 }, "status": "ABOVE_GATE", "cycle2": "79.78/80.98", "note": "cycle 3 hardened store read() boundaries (bookmarks/hifz/plan/settings/sync-meta)" }
   },
   "mutation": {
-    "tool": "none-installed",
-    "method": "adversarial manual mutation analysis + property-based pinning (this run)",
+    "tool": "@stryker-mutator/core@9.6.1 + vitest-runner (installed, scoped to packages/core)",
+    "config": "packages/core/stryker.config.json (+ vitest.stryker.config.ts); run via `pnpm --filter @ummahlibrary/core mutation`",
+    "ci_gate": "none yet (thresholds.break=null) — config-only by request; measure the score, then ratchet a break threshold",
+    "method": "adversarial manual mutation analysis + property-based pinning (this run); Stryker available to measure",
     "score": null,
+    "smoke_test": "verified on src/qibla.ts (16 tests, most mutants killed, ~12s) — toolchain works",
     "survivors_killed_this_run": ["hlcCompare total-order (property)", "mergeEntries tie/convergence (property)", "encodeHlc/parseHlc round-trip (property)", "zakat >= niṣāb boundary", "reading-plans estimateMinutes formula", "qibla bearing range (property)"],
-    "status": "Stryker scoped to packages/core recommended for CI to get a measured score"
+    "status": "Config-only setup landed. Run a full pass to get the baseline, then add thresholds.break to gate."
   },
   "fuzz": {
     "native_fuzzers": "N/A — pure TS domain, no parser binaries",

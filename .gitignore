@@ -50,3 +50,8 @@ Thumbs.db
 
 # Mobile web-preview screenshots (scripts/shot.mjs output — dev-only)
 apps/mobile/.preview/
+
+# Stryker mutation testing (packages/core)
+.stryker-tmp/
+reports/mutation/
+stryker.log

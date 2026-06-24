@@ -469,3 +469,27 @@ seeds; **35 reachable defects fixed** (cycle 1: 11 incl. core-purity; cycle 2: 6
 tracked, and justified** — a further re-run should resume at threshold and exit quickly
 unless new code lands. Mutation measurement (Stryker) is the one unmet convergence
 criterion, deferred to CI by design.
+
+---
+
+## Stryker mutation testing — config-only setup (2026-06-24)
+
+Added `@stryker-mutator/core` + `@stryker-mutator/vitest-runner` (v9.6.1) scoped to
+`packages/core`, with `packages/core/stryker.config.json` and a dedicated
+`vitest.stryker.config.ts` (a non-default name so the root `vitest.workspace.ts`
+never auto-loads it — the workspace's sibling-package paths don't resolve inside
+Stryker's per-package sandbox). Run with `pnpm --filter @ummahlibrary/core mutation`.
+
+**No CI gate** (`thresholds.break: null`) — by request. Smoke-tested on `src/qibla.ts`
+(16 tests, most mutants killed, ~12s); the toolchain works. Next step when wanted:
+run a full pass to get the baseline mutation score, then set `thresholds.break` at/just
+below it (a ratchet, mirroring the coverage gates) before wiring it into CI.
+
+**Pre-existing issue discovered (NOT caused by this work, NOT fixed here):** `pnpm test`
+(the turbo per-package run, as in the CLAUDE.md loop) fails for the four packages without
+their own `vitest.config` (core/data/adapters/mobile): each package's `vitest run` finds
+the root `vitest.workspace.ts` and mis-resolves its project paths relative to the package
+dir (e.g. `packages/adapters/packages/core`). Confirmed it fails with the Stryker files
+removed too. The working test command is `pnpm test:coverage` (the workspace run from root)
+— what this whole QA effort used (739 tests, gated). Worth fixing separately (give those
+packages a local `vitest.config`, or adjust the turbo `test` task).
