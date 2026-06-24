@@ -18,7 +18,7 @@ import {
   unwrapElement,
   wrapElement,
 } from "@ummahlibrary/core";
-import { clockFor, metaKeys, reconcileValues, setClock } from "./sync-meta";
+import { clockFor, metaKeys, readCursor, reconcileValues, setClock, writeCursor } from "./sync-meta";
 import { getItem, removeItem, setItem } from "./storage";
 import { getNodeId } from "./sync-node";
 
@@ -96,5 +96,7 @@ export function createWebSyncStateStore(keys: readonly string[] = MANAGED_KEYS):
       if (!env || !keySet.has(env.mk) || shapeOf(env.mk).kind !== "map") return null;
       return explodeKey(env.mk, env.k);
     },
+    getCursor: async () => readCursor(),
+    setCursor: async (cursor) => writeCursor(cursor),
   };
 }

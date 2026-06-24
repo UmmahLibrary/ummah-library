@@ -32,7 +32,7 @@ describe("createHttpSyncBackend", () => {
 
     const out = await backend.exchange("acct-123", [entry("a")]);
 
-    expect(out).toEqual(server);
+    expect(out.entries).toEqual(server);
     expect(calls).toHaveLength(1);
     expect(calls[0]!.url).toBe("/api/sync");
     expect(calls[0]!.init.method).toBe("POST");
@@ -52,7 +52,16 @@ describe("createHttpSyncBackend", () => {
   it("treats a missing entries field as an empty set", async () => {
     const { fetchImpl } = stubFetch({ body: {} });
     const backend = createHttpSyncBackend({ fetchImpl });
-    expect(await backend.exchange("x", [])).toEqual([]);
+    expect((await backend.exchange("x", [])).entries).toEqual([]);
+  });
+
+  it("sends the cursor and returns the server's cursor + more flag (ADR 0035)", async () => {
+    const { fetchImpl, calls } = stubFetch({ body: { entries: [], cursor: 42, more: true } });
+    const backend = createHttpSyncBackend({ fetchImpl });
+    const out = await backend.exchange("x", [], 7);
+    expect(JSON.parse(calls[0]!.init.body as string)).toEqual({ entries: [], cursor: 7 });
+    expect(out.cursor).toBe(42);
+    expect(out.more).toBe(true);
   });
 
   it("throws on a non-ok response", async () => {
@@ -67,6 +76,6 @@ describe("createHttpSyncBackend", () => {
     const emptyNode = { id: "c", hlc: { millis: 1, counter: 0, node: "" }, ciphertext: "c", nonce: "iv" };
     const { fetchImpl } = stubFetch({ body: { entries: [good, nonFiniteClock, emptyNode] } });
     const backend = createHttpSyncBackend({ fetchImpl });
-    expect(await backend.exchange("x", [])).toEqual([good]); // only the well-formed entry survives
+    expect((await backend.exchange("x", [])).entries).toEqual([good]); // only the well-formed entry survives
   });
 });

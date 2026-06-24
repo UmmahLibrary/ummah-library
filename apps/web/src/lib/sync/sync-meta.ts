@@ -132,6 +132,21 @@ export function metaKeys(): string[] {
   return Object.keys(readMeta());
 }
 
+const CURSOR_KEY = "ul.sync.cursor";
+
+/** The highest server version this device has applied (ADR 0035 incremental pull); 0 if unset. */
+export function readCursor(): number {
+  const raw = getItem(CURSOR_KEY);
+  if (raw === null) return 0;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 ? n : 0;
+}
+
+/** Persist the server's new cursor after a successful sync round. */
+export function writeCursor(cursor: number): void {
+  setItem(CURSOR_KEY, String(cursor));
+}
+
 /** The current clock for a key (a fresh clock if it has no meta yet). */
 export function clockFor(key: string, node: string): Hlc {
   const prev = readMeta()[key];

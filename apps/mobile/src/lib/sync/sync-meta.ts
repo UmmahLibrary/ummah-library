@@ -72,6 +72,21 @@ export async function saveMeta(meta: Meta): Promise<void> {
   await setItem(META_KEY, JSON.stringify(meta));
 }
 
+const CURSOR_KEY = "ul.sync.cursor";
+
+/** The highest server version this device has applied (ADR 0035 incremental pull); 0 if unset. */
+export async function readCursor(): Promise<number> {
+  const raw = await getItem(CURSOR_KEY);
+  if (raw === null) return 0;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 ? n : 0;
+}
+
+/** Persist the server's new cursor after a successful sync round. */
+export async function writeCursor(cursor: number): Promise<void> {
+  await setItem(CURSOR_KEY, String(cursor));
+}
+
 /** FNV-1a — a tiny non-cryptographic hash, only used to detect a changed value. */
 function hashValue(value: string | null): string {
   if (value === null) return "_";

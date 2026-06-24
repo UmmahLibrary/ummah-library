@@ -87,6 +87,25 @@ export interface SyncRecord {
   key: string;
   value: string | null;
   hlc: Hlc;
+  /**
+   * v3 (ADR 0035): whether this entry changed locally since its last successful
+   * push and so needs sending. Omitted ⇒ treated as dirty (push it) — preserving
+   * the v1/v2 "push everything" behaviour for stores that don't track it.
+   */
+  dirty?: boolean;
+}
+
+/**
+ * The server's reply to one exchange (ADR 0035). `entries` is the converged set —
+ * or, when the client sent a `cursor`, only the delta newer than it. `cursor` is
+ * the server's new high-water version to send next time (absent ⇒ the server
+ * doesn't version, so the client falls back to whole-set sync). `more` means the
+ * server truncated the delta to a page; the client should sync again.
+ */
+export interface SyncExchangeResult {
+  entries: readonly SyncEntry[];
+  cursor?: number;
+  more?: boolean;
 }
 
 /** The outcome of merging two sides. */

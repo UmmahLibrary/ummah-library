@@ -45,6 +45,13 @@ describe("createWebSyncStateStore", () => {
     expect(records.some((r) => r.key === KEY)).toBe(true);
   });
 
+  it("persists and reports the incremental-pull cursor (ADR 0035)", async () => {
+    const store = createWebSyncStateStore([KEY]);
+    expect(await store.getCursor!()).toBe(0);
+    await store.setCursor!(42);
+    expect(await store.getCursor!()).toBe(42);
+  });
+
   describe("element-merge (v2) for a map key", () => {
     const NOTES = "ul.ayahNotes";
 

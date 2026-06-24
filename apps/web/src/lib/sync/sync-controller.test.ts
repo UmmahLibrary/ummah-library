@@ -20,7 +20,7 @@ describe("createSyncController", () => {
       ],
       apply: vi.fn(async () => {}),
     };
-    const exchange = vi.fn(async (_id: string, entries: readonly SyncEntry[]) => entries);
+    const exchange = vi.fn(async (_id: string, entries: readonly SyncEntry[]) => ({ entries }));
     const backend: SyncBackend = { exchange };
     const controller = createSyncController(fakeCipher, { backend, state });
 
@@ -30,7 +30,7 @@ describe("createSyncController", () => {
   });
 
   it("builds a working controller from a recovery secret", async () => {
-    const exchange = vi.fn(async () => []);
+    const exchange = vi.fn(async () => ({ entries: [] }));
     const controller = await createSyncControllerFromSecret("ABCDE-ABCDE-ABCDE-ABCDE-ABCDE", {
       backend: { exchange },
       state: { all: async () => [], apply: async () => {} },

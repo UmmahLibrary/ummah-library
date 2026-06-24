@@ -34,7 +34,7 @@ import type {
 } from "./prayer";
 import type { ActivePlan, PlanTemplate } from "./reading-plans";
 import type { KhatmaPlan } from "./reading-goals";
-import type { Hlc, SyncEntry, SyncRecord } from "./sync";
+import type { Hlc, SyncEntry, SyncExchangeResult, SyncRecord } from "./sync";
 import type { SurahTiming } from "./audio";
 
 /** Access to the Arabic Quran text and surah structure. */
@@ -526,13 +526,17 @@ export interface Cipher {
 }
 
 /**
- * The sync transport (ADR 0033): exchange the device's encrypted entries with the
- * server in one round trip and get the converged set back. Implemented as an HTTP
- * adapter; the server only ever stores what {@link SyncEntry} exposes (opaque id,
- * clock, ciphertext).
+ * The sync transport (ADR 0033/0035): push the device's encrypted entries and get
+ * the converged set back — or, when a `cursor` is supplied, only the delta newer
+ * than it (ADR 0035 incremental pull). Implemented as an HTTP adapter; the server
+ * only ever stores what {@link SyncEntry} exposes (opaque id, clock, ciphertext).
  */
 export interface SyncBackend {
-  exchange(accountId: string, entries: readonly SyncEntry[]): Promise<readonly SyncEntry[]>;
+  exchange(
+    accountId: string,
+    entries: readonly SyncEntry[],
+    cursor?: number,
+  ): Promise<SyncExchangeResult>;
 }
 
 /**
@@ -554,4 +558,17 @@ export interface SyncStateStore {
    * round without learning any value shapes; stores with only scalar keys omit it.
    */
   identify?(plaintext: string): string | null;
+  /**
+   * Optional (v3 incremental pull, ADR 0035): the highest server version this
+   * device has applied. The engine sends it so the server can return only the
+   * newer delta. Omit it (with {@link setCursor}) to keep whole-set sync.
+   */
+  getCursor?(): Promise<number>;
+  /** Persist the server's new high-water cursor after a successful round (ADR 0035). */
+  setCursor?(cursor: number): Promise<void>;
+  /**
+   * Mark these (synthetic) keys as pushed — clears their dirty state so a
+   * steady-state round pushes nothing (ADR 0035). Called after a successful push.
+   */
+  markPushed?(keys: readonly string[]): Promise<void>;
 }

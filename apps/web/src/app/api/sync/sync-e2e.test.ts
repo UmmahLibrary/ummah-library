@@ -35,12 +35,13 @@ function memDevice(node: string, initial: string | null) {
 /** The server side: one HTTP round trip modelled as a direct handleSync call. */
 function makeBackend(server: InMemorySyncStore): SyncBackend {
   return {
-    exchange: async (accountId, entries) => {
+    exchange: async (accountId, entries, cursor) => {
       const res = await handleSync(
-        { authorization: `Bearer ${accountId}`, body: { entries } },
+        { authorization: `Bearer ${accountId}`, body: { entries, cursor } },
         server,
       );
-      return (res.body as { entries?: SyncEntry[] }).entries ?? [];
+      const body = res.body as { entries?: SyncEntry[]; cursor?: number; more?: boolean };
+      return { entries: body.entries ?? [], cursor: body.cursor, more: body.more };
     },
   };
 }
