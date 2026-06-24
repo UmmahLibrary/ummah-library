@@ -80,6 +80,22 @@ describe("AdhanPrayerTimes", () => {
     expect(new Date(ruled.isha).getTime()).toBeLessThan(new Date(standard.isha).getTime());
   });
 
+  it("degrades to empty strings at a polar latitude instead of throwing (polar day)", async () => {
+    // Svalbard in midsummer: adhan returns Invalid Date for Fajr/sunrise/Isha.
+    // `.toISOString()` throws on those, so the whole request used to reject —
+    // the five prayers + sunrise must degrade like the Sunnah markers do.
+    const SVALBARD = { latitude: 78.9, longitude: 11.9 };
+    const t = await calc.calculate({
+      coordinates: SVALBARD,
+      date: "2026-06-21",
+      method: "MuslimWorldLeague",
+      madhab: "shafi",
+    });
+    expect(t.fajr).toBe(""); // invalid → empty, not a thrown RangeError
+    expect(t.imsak).toBe(""); // never synthesised from an empty Fajr (no 1970)
+    expect(Number.isFinite(new Date(t.dhuhr).getTime())).toBe(true); // dhuhr still valid
+  });
+
   it("leaves the result unchanged at a normal latitude when a rule is set", async () => {
     const q = { coordinates: MAKKAH, date: "2026-01-01", method: "UmmAlQura", madhab: "shafi" } as const;
     const plain = await calc.calculate(q);

@@ -81,4 +81,17 @@ describe("hifz store", () => {
     expect(s1.dueCount).toBe(1);
     expect(s1.avgStrength).toBe(0);
   });
+
+  it("treats a corrupt/peer-synced non-object ul.hifz as empty (never crashes a consumer)", () => {
+    // A peer device or corrupt storage can leave ul.hifz as null/array/scalar;
+    // Object.entries(null) / `in null` / null[key] would throw in the consumers.
+    for (const bad of ["null", "[]", "42", '"oops"']) {
+      localStorage.setItem("ul.hifz", bad);
+      expect(allRecords()).toEqual([]);
+      expect(dueRecords(new Date("2026-06-14T00:00:00.000Z"))).toEqual([]);
+      expect(isTracked({ sura: 1, aya: 1 })).toBe(false);
+      expect(getCard({ sura: 1, aya: 1 })).toBeNull();
+    }
+    localStorage.removeItem("ul.hifz");
+  });
 });

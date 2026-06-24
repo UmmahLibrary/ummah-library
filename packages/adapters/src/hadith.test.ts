@@ -95,6 +95,21 @@ describe("HttpHadithRepository", () => {
     expect(await repo.getCollection("eng-bukhari")).toMatchObject({ sections: {}, hadiths: [] });
   });
 
+  it("degrades on a malformed 200 body (no metadata/hadiths) instead of throwing", async () => {
+    const { fn } = fakeFetch({ error: "rate limited" }); // ok:true, wrong shape
+    const repo = new HttpHadithRepository(new PluginRegistry([bukhari]), fn);
+    // Falls back to the plugin name and an empty hadith list, never a TypeError.
+    expect(await repo.getSection("eng-bukhari", 1)).toMatchObject({
+      name: "Sahih al-Bukhari",
+      hadiths: [],
+    });
+    expect(await repo.getCollection("eng-bukhari")).toMatchObject({
+      name: "Sahih al-Bukhari",
+      sections: {},
+      hadiths: [],
+    });
+  });
+
   it("returns null for an unknown collection or a failed fetch", async () => {
     const ok = fakeFetch(COLLECTION);
     const repo = new HttpHadithRepository(new PluginRegistry([bukhari]), ok.fn);

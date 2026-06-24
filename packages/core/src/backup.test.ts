@@ -17,6 +17,13 @@ describe("isBackupKey", () => {
     expect(isBackupKey("theme")).toBe(false);
     expect(isBackupKey("other.key")).toBe(false);
   });
+
+  it("excludes the device-local sync sidecar (never export the E2EE secret or clone a node id)", () => {
+    expect(isBackupKey("ul.sync.secret")).toBe(false); // the E2EE account root
+    expect(isBackupKey("ul.sync.node")).toBe(false); // per-device HLC tiebreaker
+    expect(isBackupKey("ul.sync.meta")).toBe(false);
+    expect(isBackupKey("ul.sync.enabled")).toBe(false);
+  });
 });
 
 describe("buildBackup", () => {
@@ -45,6 +52,11 @@ describe("validateBackup", () => {
   });
   it("rejects malformed (non-string) data values", () => {
     expect(validateBackup({ ...valid, data: { "ul.x": 5 } }).length).toBeGreaterThan(0);
+  });
+  it("rejects an array as data (would spread numeric indices into bare keys on import)", () => {
+    // typeof [] === "object", so an array slips the plain-object check; on import
+    // it would write keys "0","1" outside the ul. namespace that can never be reclaimed.
+    expect(validateBackup({ ...valid, data: ["a", "b"] }).length).toBeGreaterThan(0);
   });
 });
 

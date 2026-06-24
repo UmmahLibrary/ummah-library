@@ -100,6 +100,21 @@ describe("validatePlugin", () => {
       "hadith: sectionUrlTemplate must contain {section}",
     );
   });
+
+  it("reports (does not throw on) a manifest missing the url template entirely", () => {
+    // Manifests are JSON.parse'd and cast `as ContentPlugin`, so the field may be
+    // absent at runtime; the validator must flag it, not crash on `.includes`.
+    const tafsirNoTemplate = { ...ibnKathir } as Partial<TafsirPlugin>;
+    delete tafsirNoTemplate.surahUrlTemplate;
+    expect(validatePlugin(tafsirNoTemplate as TafsirPlugin)).toContain(
+      "tafsir: surahUrlTemplate must contain {surah}",
+    );
+    const hadithNoTemplate = { ...bukhari } as Partial<HadithPlugin>;
+    delete hadithNoTemplate.sectionUrlTemplate;
+    expect(validatePlugin(hadithNoTemplate as HadithPlugin)).toContain(
+      "hadith: sectionUrlTemplate must contain {section}",
+    );
+  });
 });
 
 describe("PluginRegistry", () => {

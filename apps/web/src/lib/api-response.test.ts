@@ -15,4 +15,11 @@ describe("apiJson", () => {
     expect(res.headers.get("x-test")).toBe("y");
     expect(res.headers.get("access-control-allow-origin")).toBe("*");
   });
+
+  it("never caches a 4xx error response (so a transient 400 / later-resolved 404 isn't pinned)", () => {
+    expect(apiJson({ error: "bad" }, { status: 400 }).headers.get("cache-control")).toBe("no-store");
+    expect(apiJson({ error: "missing" }, { status: 404 }).headers.get("cache-control")).toBe("no-store");
+    // success stays cacheable
+    expect(apiJson({ ok: true }).headers.get("cache-control")).toContain("max-age=3600");
+  });
 });

@@ -39,6 +39,18 @@ function toHex(bytes: Uint8Array): string {
   return s;
 }
 
+/**
+ * Canonical form of a recovery secret used for key derivation: NFKC-normalized,
+ * upper-cased, with every non-alphanumeric stripped. So the same logical code
+ * typed on a second device with different case, spacing or hyphenation (e.g.
+ * "abcde fghjk" vs "ABCDE-FGHJK") derives the SAME account instead of silently
+ * forking a new, empty one. Applied at the one derivation choke point below so
+ * "generate" and "enter existing" can never diverge.
+ */
+export function canonicalizeRecoverySecret(secret: string): string {
+  return secret.normalize("NFKC").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
 /** A fresh, high-entropy recovery code (~120 bits), grouped for easy transcription. */
 export function generateRecoveryPhrase(): string {
   const n = RECOVERY_GROUPS * RECOVERY_GROUP_LEN;
@@ -72,7 +84,7 @@ function hkdf(info: string): HkdfParams {
  * step (PBKDF2 by design); do it once when sync is enabled and reuse the instance.
  */
 export async function createWebCryptoCipher(secret: string): Promise<Cipher> {
-  const root = await deriveRoot(secret);
+  const root = await deriveRoot(canonicalizeRecoverySecret(secret));
   const dataKey = await crypto.subtle.deriveKey(
     hkdf("data-key"),
     root,

@@ -16,16 +16,28 @@ function localDate(d = new Date()): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+/** Cache identity: the day PLUS every input that changes the result, so a
+ *  location/method/madhab/high-latitude change invalidates the cache same-day. */
+function cacheKey(
+  coords: { latitude: number; longitude: number },
+  method: string,
+  madhab: string,
+  hlr: string,
+): string {
+  return `${localDate()}|${coords.latitude},${coords.longitude}|${method}|${madhab}|${hlr}`;
+}
+
 export const webPrayerTimingsProvider: PrayerTimingsProvider = {
   getTodaysTimings: async () => {
     const { coords, method, madhab, highLatitudeRule } = await webPrayerSettingsStore.read();
     if (!coords) return null;
 
+    const key = cacheKey(coords, method, madhab, highLatitudeRule);
     try {
       const raw = localStorage.getItem(TIMINGS_KEY);
       if (raw) {
-        const cached = JSON.parse(raw) as { date: string; timings: PrayerTimings };
-        if (cached.date === localDate()) return cached.timings;
+        const cached = JSON.parse(raw) as { key?: string; timings: PrayerTimings };
+        if (cached.key === key) return cached.timings;
       }
     } catch {
       /* fall through to refetch */
@@ -44,7 +56,7 @@ export const webPrayerTimingsProvider: PrayerTimingsProvider = {
       if (!res.ok) return null;
       const data = (await res.json()) as { timings: PrayerTimings };
       try {
-        localStorage.setItem(TIMINGS_KEY, JSON.stringify({ date: localDate(), timings: data.timings }));
+        localStorage.setItem(TIMINGS_KEY, JSON.stringify({ key, timings: data.timings }));
       } catch {
         /* ignore cache write failure */
       }

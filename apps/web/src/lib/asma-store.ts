@@ -8,7 +8,10 @@ const KEY = "ul.asmaLearned";
 export function readLearned(): Record<number, true> {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Record<number, true>) : {};
+    if (!raw) return {};
+    // countLearned does Object.keys(...), which throws on a non-object value.
+    const v = JSON.parse(raw) as unknown;
+    return v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Record<number, true>) : {};
   } catch {
     return {};
   }

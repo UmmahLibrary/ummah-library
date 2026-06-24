@@ -86,8 +86,10 @@ export const DUAS: readonly Dua[] = [
 
 /** The day's duʿā — deterministic by date (clock injectable, ADR rule). */
 export function duaOfToday(now: Date = new Date()): Dua {
-  const dayOfYear = Math.floor(
-    (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86_400_000,
-  );
+  // Day-of-year computed wholly in UTC so the same instant maps to the same duʿā
+  // on every machine (core purity — AGENTS.md rule 3). Mixing a local-time
+  // year-start with the absolute epoch would leak the host timezone.
+  const yearStart = Date.UTC(now.getUTCFullYear(), 0, 0);
+  const dayOfYear = Math.floor((now.getTime() - yearStart) / 86_400_000);
   return DUAS[dayOfYear % DUAS.length]!;
 }

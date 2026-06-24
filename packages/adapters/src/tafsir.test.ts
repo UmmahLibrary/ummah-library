@@ -55,6 +55,12 @@ describe("HttpTafsirRepository", () => {
     expect(await repo.getSurahTafsir("nope", 1)).toEqual([]);
   });
 
+  it("returns [] on a malformed 200 body (not an array)", async () => {
+    const { fn } = fakeFetch({ error: "rate limited" }); // ok:true, wrong shape
+    const repo = new HttpTafsirRepository(new PluginRegistry([ibnKathir]), fn);
+    expect(await repo.getSurahTafsir("en-ibn-kathir", 1)).toEqual([]);
+  });
+
   it("coerces numeric-string surah/ayah (some editions return strings)", async () => {
     const { fn } = fakeFetch([{ surah: "1", ayah: "1", text: "Commentary on 1:1" }]);
     const repo = new HttpTafsirRepository(new PluginRegistry([ibnKathir]), fn);

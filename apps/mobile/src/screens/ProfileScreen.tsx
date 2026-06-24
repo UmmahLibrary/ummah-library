@@ -16,7 +16,7 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useLibrary } from "../state/LibraryContext";
 import { surahProgressMap } from "../hifz";
-import { KEYS, getJSON } from "../storage";
+import { KEYS, getJSON, isObjectRecord } from "../storage";
 import { mobileAchievementsStore as achievementsStore } from "../achievements-store";
 import { localISODate } from "../utils";
 
@@ -37,15 +37,15 @@ export function ProfileScreen() {
 
   useEffect(() => {
     const today = localISODate(new Date());
-    void getJSON<Record<number, true>>(KEYS.asmaLearned, {}).then((m) =>
+    void getJSON<Record<number, true>>(KEYS.asmaLearned, {}, isObjectRecord).then((m) =>
       setNames(Object.keys(m).length),
     );
-    void getJSON<PrayerTrackerLog>(KEYS.prayerLog, {}).then((log) =>
+    void getJSON<PrayerTrackerLog>(KEYS.prayerLog, {}, isObjectRecord).then((log) =>
       setPrayer({ streak: prayerStreak(log, today), best: longestStreak(log) }),
     );
     void Promise.all([
-      getJSON<Record<string, number>>(KEYS.readingLog, {}),
-      getJSON<string[]>(KEYS.readingActive, []),
+      getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord),
+      getJSON<string[]>(KEYS.readingActive, [], Array.isArray),
     ]).then(([log, active]) => {
       const pages = Object.values(log).reduce((a, b) => a + b, 0);
       setReading({ pages, streak: computeStreak(active, today) });

@@ -37,4 +37,12 @@ describe("webSettingsStore", () => {
     expect(localStorage.getItem("ul.scale")).toBe("1.4");
     expect(localStorage.getItem("ul.reciter")).toBe("alafasy");
   });
+
+  it("rejects a corrupt/peer-synced scale or editions of the wrong shape", async () => {
+    localStorage.setItem("ul.scale", '"big"'); // a string, not a number → NaN font size
+    localStorage.setItem("ul.editions", '{"not":"an array"}');
+    const s = await store.read();
+    expect(s.scale).toBeNull(); // falls back; consumers use the default scale
+    expect(s.editions).toBeNull();
+  });
 });

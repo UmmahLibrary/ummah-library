@@ -123,13 +123,15 @@ export function validatePlugin(plugin: ContentPlugin): string[] {
   if (!plugin.name) errors.push("missing name");
   if (!plugin.language) errors.push("missing language");
   if (plugin.kind === "translation" && !plugin.source) errors.push("translation: missing source");
-  if (plugin.kind === "tafsir" && !plugin.surahUrlTemplate.includes("{surah}")) {
+  // `?.` guards a manifest that was JSON.parse'd and cast `as ContentPlugin` but
+  // is missing the field at runtime — report the problem instead of throwing.
+  if (plugin.kind === "tafsir" && !plugin.surahUrlTemplate?.includes("{surah}")) {
     errors.push("tafsir: surahUrlTemplate must contain {surah}");
   }
   if (plugin.kind === "reciter" && !/\{surah/.test(plugin.audioUrlTemplate)) {
     errors.push("reciter: audioUrlTemplate must contain {surah}");
   }
-  if (plugin.kind === "hadith" && !plugin.sectionUrlTemplate.includes("{section}")) {
+  if (plugin.kind === "hadith" && !plugin.sectionUrlTemplate?.includes("{section}")) {
     errors.push("hadith: sectionUrlTemplate must contain {section}");
   }
   return errors;

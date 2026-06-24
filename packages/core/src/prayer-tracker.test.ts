@@ -99,6 +99,13 @@ describe("onTimeRate", () => {
   it("is zero with nothing logged", () => {
     expect(onTimeRate({}, "2026-06-13")).toBe(0);
   });
+
+  it("rounds the percentage (2 of 3 on time → 67, pinning Math.round vs floor/trunc)", () => {
+    const log: PrayerTrackerLog = {
+      "2026-06-13": { fajr: "ontime", dhuhr: "ontime", asr: "late" },
+    };
+    expect(onTimeRate(log, "2026-06-13", 30)).toBe(67); // 2/3 = 66.6… → 67
+  });
 });
 
 describe("recentDays", () => {

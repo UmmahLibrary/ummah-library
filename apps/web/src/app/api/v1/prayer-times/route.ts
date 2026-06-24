@@ -1,5 +1,10 @@
 import { prayerTimes } from "@ummahlibrary/api";
-import { DEFAULT_HIGH_LATITUDE_RULE, isCalculationMethod, isHighLatitudeRule } from "@ummahlibrary/core";
+import {
+  DEFAULT_HIGH_LATITUDE_RULE,
+  isCalculationMethod,
+  isHighLatitudeRule,
+  isValidDateString,
+} from "@ummahlibrary/core";
 import { apiJson } from "../../../../lib/api-response";
 
 // Depends on the caller's coordinates and date, so it can't be prerendered.
@@ -18,7 +23,9 @@ export async function GET(req: Request) {
   if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
     return apiJson({ error: "bad_coordinates" }, { status: 400 });
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  // Strict calendar validation (rejects 2026-02-30 etc.), not just the digit shape,
+  // so the echoed `date` always matches the day actually computed.
+  if (!isValidDateString(date)) {
     return apiJson({ error: "bad_date" }, { status: 400 });
   }
   const resolvedMethod = isCalculationMethod(method) ? method : "MuslimWorldLeague";

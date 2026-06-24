@@ -136,7 +136,31 @@ const LAST_VERSE: VerseKey = { sura: 114, aya: 6 };
 
 /** Whether a string is a real `YYYY-MM-DD` calendar date. */
 export function isValidDateString(date: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(`${date}T00:00:00Z`));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const t = Date.parse(`${date}T00:00:00Z`);
+  // Reject impossible days that JS silently rolls over (Feb 30 → Mar 2): the
+  // parsed instant must serialise back to the very same calendar day.
+  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === date;
+}
+
+/**
+ * Structural guard that a parsed value is a usable {@link ActivePlan}. Both the
+ * web and mobile `PlanStore.read()` adapters apply it at the storage boundary so a
+ * corrupt or peer-synced (#25) plan — missing its template, an empty unit list, or
+ * a non-numeric cursor — is dropped rather than reaching the schedule math (e.g.
+ * `planDuration`) and throwing at render.
+ */
+export function isActivePlan(v: unknown): v is ActivePlan {
+  if (v === null || typeof v !== "object") return false;
+  const p = v as Record<string, unknown>;
+  if (typeof p.startDate !== "string" || !Number.isFinite(p.unitsRead)) return false;
+  const t = p.template as Record<string, unknown> | null;
+  if (t === null || typeof t !== "object" || typeof t.schedule !== "object" || t.schedule === null) {
+    return false;
+  }
+  const r = t.range as Record<string, unknown> | null;
+  if (r === null || typeof r !== "object") return false;
+  return Array.isArray(r.units) && r.units.length > 0;
 }
 
 // ── Unit ↔ Quran-structure conversions (reuse ./quran-structure) ────────────
@@ -237,10 +261,22 @@ function refToOrdinal(ref: VerseKey): number {
   return n;
 }
 
-/** A rough reading estimate in minutes for a verse span (~6.3s per ayah). */
-function estimateMinutes(start: VerseKey, end: VerseKey): number {
-  const ayahs = refToOrdinal(end) - refToOrdinal(start) + 1;
+/** A rough reading estimate in minutes for a count of ayahs (~6.3s per ayah). */
+function minutesForAyahs(ayahs: number): number {
   return Math.max(1, Math.round((ayahs * 6.3) / 60));
+}
+
+/**
+ * Ayahs covered by a unit slice, summed per unit. A contiguous slice equals the
+ * linear span, but a listed/non-contiguous day (e.g. sūrahs [1,36,55]) must sum
+ * each unit's own length rather than the span from the first to the last unit.
+ */
+function sliceAyahs(unit: PlanUnit, slice: number[]): number {
+  let ayahs = 0;
+  for (const u of slice) {
+    ayahs += refToOrdinal(unitEndRef(unit, u)) - refToOrdinal(unitStartRef(unit, u)) + 1;
+  }
+  return ayahs;
 }
 
 // ── Range builders + the launch catalogue ───────────────────────────────────
@@ -496,7 +532,7 @@ function buildPortion(range: PlanRange, day: number, from: number, to: number): 
     endRef,
     target: unitTarget(unit, fromUnit),
     label: portionLabel(unit, slice),
-    est: `~${estimateMinutes(startRef, endRef)} min`,
+    est: `~${minutesForAyahs(sliceAyahs(unit, slice))} min`,
     empty: false,
   };
 }

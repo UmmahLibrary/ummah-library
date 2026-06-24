@@ -17,11 +17,14 @@ export const mobilePrayerTimingsProvider: PrayerTimingsProvider = {
     if (!coords) return null;
 
     const date = localISODate(new Date());
-    const cached = await getJSON<{ date: string; timings: PrayerTimings } | null>(
+    // Cache identity = day + every input that changes the result, so a location/
+    // method/madhab/high-latitude change invalidates the cache the same day.
+    const key = `${date}|${coords.latitude},${coords.longitude}|${method}|${madhab}|${highLatitudeRule ?? ""}`;
+    const cached = await getJSON<{ key?: string; timings: PrayerTimings } | null>(
       KEYS.adhkarTimings,
       null,
     );
-    if (cached && cached.date === date) return cached.timings;
+    if (cached && cached.key === key) return cached.timings;
 
     try {
       const timings = (await api.getPrayerTimes({
@@ -32,7 +35,7 @@ export const mobilePrayerTimingsProvider: PrayerTimingsProvider = {
         madhab,
         hlr: highLatitudeRule,
       })) as PrayerTimings;
-      await setJSON(KEYS.adhkarTimings, { date, timings });
+      await setJSON(KEYS.adhkarTimings, { key, timings });
       return timings;
     } catch {
       return null;

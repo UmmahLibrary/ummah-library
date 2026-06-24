@@ -12,7 +12,10 @@ export const webQadaStore: QadaStore = {
   read: async () => {
     try {
       const raw = localStorage.getItem(KEY);
-      return raw ? (JSON.parse(raw) as QadaLog) : {};
+      if (!raw) return {};
+      // A corrupt/peer-synced non-object would crash the core qada maths (Object.entries / indexing).
+      const v = JSON.parse(raw) as unknown;
+      return v !== null && typeof v === "object" && !Array.isArray(v) ? (v as QadaLog) : {};
     } catch {
       return {};
     }

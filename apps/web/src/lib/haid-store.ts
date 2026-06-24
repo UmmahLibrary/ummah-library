@@ -12,7 +12,10 @@ export const webHaidStore: HaidStore = {
   read: async () => {
     try {
       const raw = localStorage.getItem(KEY);
-      return raw ? (JSON.parse(raw) as HaidLog) : [];
+      if (!raw) return [];
+      // A corrupt/peer-synced non-array would crash the pause maths (.some/.find/.map/.sort).
+      const v = JSON.parse(raw) as unknown;
+      return Array.isArray(v) ? (v as HaidLog) : [];
     } catch {
       return [];
     }

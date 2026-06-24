@@ -11,6 +11,18 @@ import type { SyncStore } from "./sync-store";
 
 const MAX_ENTRIES = 500;
 const MAX_CIPHERTEXT = 64 * 1024;
+const MAX_NONCE = 256;
+const MAX_NODE = 128;
+
+/**
+ * A clock field must be a non-negative safe integer. Rejects `NaN`/`Infinity`
+ * (reachable via `1e400` in a JSON body), `1e308` (finite but past the safe
+ * range), and negative/fractional values — any of which would corrupt the
+ * last-writer-wins ordering in `hlcCompare`.
+ */
+function isClockInt(v: unknown): boolean {
+  return typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= Number.MAX_SAFE_INTEGER;
+}
 
 export interface SyncResult {
   status: number;
@@ -28,13 +40,17 @@ function isValidEntry(v: unknown): v is SyncEntry {
   if (typeof v !== "object" || v === null) return false;
   const e = v as Record<string, unknown>;
   if (typeof e.id !== "string" || e.id.length === 0 || e.id.length > 128) return false;
-  if (typeof e.nonce !== "string") return false;
+  if (typeof e.nonce !== "string" || e.nonce.length > MAX_NONCE) return false;
   if (e.ciphertext !== null && typeof e.ciphertext !== "string") return false;
   if (typeof e.ciphertext === "string" && e.ciphertext.length > MAX_CIPHERTEXT) return false;
   const h = e.hlc as Record<string, unknown> | null;
   if (typeof h !== "object" || h === null) return false;
   return (
-    typeof h.millis === "number" && typeof h.counter === "number" && typeof h.node === "string"
+    isClockInt(h.millis) &&
+    isClockInt(h.counter) &&
+    typeof h.node === "string" &&
+    h.node.length >= 1 &&
+    h.node.length <= MAX_NODE
   );
 }
 
@@ -51,7 +67,9 @@ export async function handleSync(
   if (entries.length > MAX_ENTRIES) return { status: 413, body: { error: "too many entries" } };
   if (!entries.every(isValidEntry)) return { status: 400, body: { error: "malformed entry" } };
 
-  const stored = await store.get(accountId);
+  // Re-validate the stored set on read: a value persisted before this hardening
+  // (or hand-edited in Redis) must not poison the merge with a malformed clock.
+  const stored = (await store.get(accountId)).filter(isValidEntry);
   const merged = mergeEntries(stored, entries).merged;
   await store.set(accountId, merged);
   return { status: 200, body: { entries: merged } };

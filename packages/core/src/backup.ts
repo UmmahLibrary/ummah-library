@@ -17,9 +17,17 @@ export const BACKUP_APP = "ummah-library";
  */
 export const BACKUP_KEY_PREFIX = "ul.";
 
+/**
+ * The device-local sync sidecar. It is **never** part of a backup: `ul.sync.secret`
+ * is the E2EE account root (exporting it would leak the key into a plaintext file),
+ * and `ul.sync.node`/`ul.sync.meta` are per-device — restoring them onto another
+ * device would clone the node id and collide the HLC tiebreaker.
+ */
+export const SYNC_KEY_PREFIX = "ul.sync.";
+
 /** Whether a storage key belongs to the app's local-first data (and the backup). */
 export function isBackupKey(key: string): boolean {
-  return key.startsWith(BACKUP_KEY_PREFIX);
+  return key.startsWith(BACKUP_KEY_PREFIX) && !key.startsWith(SYNC_KEY_PREFIX);
 }
 
 /** A portable snapshot of the user's local data (keys → their stored strings). */
@@ -46,8 +54,9 @@ export function validateBackup(value: unknown): string[] {
   if (b.app !== BACKUP_APP) errors.push("This file isn’t an Ummah Library backup.");
   if (typeof b.version !== "number") errors.push("Missing backup version.");
   else if (b.version > BACKUP_VERSION) errors.push("Backup is from a newer version of the app.");
-  if (typeof b.data !== "object" || b.data === null) errors.push("Backup has no data.");
-  else if (!Object.values(b.data).every((v) => typeof v === "string")) {
+  if (typeof b.data !== "object" || b.data === null || Array.isArray(b.data)) {
+    errors.push("Backup has no data.");
+  } else if (!Object.values(b.data).every((v) => typeof v === "string")) {
     errors.push("Backup data is malformed.");
   }
   return errors;

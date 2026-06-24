@@ -56,11 +56,13 @@ export function parseHlc(s: string): Hlc | null {
   const i1 = s.indexOf(":");
   const i2 = s.indexOf(":", i1 + 1);
   if (i1 < 0 || i2 < 0) return null;
-  const millis = Number(s.slice(0, i1));
-  const counter = Number(s.slice(i1 + 1, i2));
+  const ms = s.slice(0, i1);
+  const ct = s.slice(i1 + 1, i2);
   const node = s.slice(i2 + 1);
-  if (!Number.isFinite(millis) || !Number.isFinite(counter) || node === "") return null;
-  return { millis, counter, node };
+  // Strict plain-decimal fields: `Number()` would otherwise coerce "" → 0, hex,
+  // exponent, sign and whitespace, fabricating a clock from malformed input.
+  if (!/^\d+$/.test(ms) || !/^\d+$/.test(ct) || node === "") return null;
+  return { millis: Number(ms), counter: Number(ct), node };
 }
 
 /**

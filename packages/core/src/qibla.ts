@@ -38,6 +38,9 @@ export type CompassPoint = (typeof COMPASS_POINTS)[number];
 
 /** The nearest 8-point compass label for a bearing in degrees (0–360). */
 export function compassPoint(bearing: number): CompassPoint {
+  // A non-finite bearing (e.g. from corrupt coordinates) would index the array
+  // with NaN and return undefined, breaking the non-null contract — fall back to N.
+  if (!Number.isFinite(bearing)) return COMPASS_POINTS[0];
   const i = Math.round(((bearing % 360) + 360) / 45) % 8;
   return COMPASS_POINTS[i]!;
 }

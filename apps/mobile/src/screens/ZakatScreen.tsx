@@ -6,7 +6,7 @@ import {
   calculateZakat,
 } from "@ummahlibrary/core";
 import { Khatam } from "@ummahlibrary/ui";
-import { KEYS, getJSON, setJSON } from "../storage";
+import { KEYS, getJSON, isObjectRecord, setJSON } from "../storage";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 
@@ -42,7 +42,7 @@ export function ZakatScreen() {
   const [state, setState] = useState<ZakatState>(DEFAULT);
 
   useEffect(() => {
-    void getJSON<Partial<ZakatState>>(KEYS.zakat, {}).then((saved) => {
+    void getJSON<Partial<ZakatState>>(KEYS.zakat, {}, isObjectRecord).then((saved) => {
       setState({
         ...DEFAULT,
         ...saved,

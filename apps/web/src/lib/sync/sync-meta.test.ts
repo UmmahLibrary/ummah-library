@@ -43,6 +43,28 @@ describe("sync-meta", () => {
     expect(clockFor(KEY, NODE)).toEqual({ millis: 42, counter: 0, node: "remote" });
   });
 
+  it("drops a structurally-corrupt clock from the sidecar rather than trusting it", () => {
+    // A corrupt/peer-synced ul.sync.meta with a bad structural clock must not be
+    // carried into clockFor → hlcCompare/hlcTick (where it produces NaN ordering).
+    localStorage.setItem(
+      "ul.sync.meta",
+      JSON.stringify({ [KEY]: { hlc: { millis: "abc", counter: null, node: 42 }, hash: "h" } }),
+    );
+    expect(clockFor(KEY, NODE)).toEqual({ millis: 0, counter: 0, node: NODE }); // fresh, not garbage
+  });
+
+  it("preserves a large valid clock losslessly through setClock → clockFor", () => {
+    // The legacy encoded-string form would round-trip a big millis/counter through
+    // parseHlc; structural storage must preserve it exactly so an applied remote
+    // entry is never re-applied (the cycle-1 infinite-re-apply regression).
+    setClock(KEY, "[1]", { millis: 9_000_000_000_000_000, counter: 3, node: "remote-device" });
+    expect(clockFor(KEY, NODE)).toEqual({
+      millis: 9_000_000_000_000_000,
+      counter: 3,
+      node: "remote-device",
+    });
+  });
+
   it("a local write after a remote apply carries this node", () => {
     setClock(KEY, "[9]", { millis: 42, counter: 0, node: "remote" });
     localStorage.setItem(KEY, "[9,10]"); // genuine local change

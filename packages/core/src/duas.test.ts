@@ -28,7 +28,8 @@ describe("duaOfToday", () => {
   it("cycles through the collection across consecutive days", () => {
     const refs = new Set<string>();
     for (let i = 0; i < DUAS.length; i++) {
-      const date = new Date(2026, 0, 1 + i);
+      // UTC instants so the day-of-year stepping is deterministic across hosts.
+      const date = new Date(Date.UTC(2026, 0, 1 + i));
       refs.add(duaOfToday(date).ref);
     }
     expect(refs.size).toBe(DUAS.length);
@@ -36,5 +37,24 @@ describe("duaOfToday", () => {
 
   it("defaults to the current date when called without an argument", () => {
     expect(DUAS).toContain(duaOfToday());
+  });
+
+  it("is timezone-independent: the same instant maps to the same duʿā in any TZ (core purity)", () => {
+    // A just-after-UTC-midnight instant: a local clock west of UTC is still on
+    // the previous day, so a local-time computation would pick a different duʿā.
+    const instant = new Date("2026-01-01T00:30:00Z");
+    const original = process.env.TZ;
+    try {
+      process.env.TZ = "UTC";
+      const utc = duaOfToday(instant).ref;
+      process.env.TZ = "America/Los_Angeles";
+      const west = duaOfToday(instant).ref;
+      process.env.TZ = "Pacific/Kiritimati";
+      const east = duaOfToday(instant).ref;
+      expect(west).toBe(utc);
+      expect(east).toBe(utc);
+    } finally {
+      process.env.TZ = original;
+    }
   });
 });

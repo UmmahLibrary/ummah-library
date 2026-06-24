@@ -11,7 +11,7 @@ import {
 } from "@ummahlibrary/core";
 import { Khatam, Icon, type IconName } from "@ummahlibrary/ui";
 import { api } from "../api";
-import { KEYS, getJSON, getString, setJSON } from "../storage";
+import { KEYS, getJSON, getString, isObjectRecord, setJSON } from "../storage";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 import { fmtCountdown, fmtTime, localISODate } from "../utils";
@@ -53,11 +53,11 @@ export function RamadanScreen({ navigation }: Props) {
   }, []);
 
   useEffect(() => {
-    void getJSON<Record<number, true>>(KEYS.ramadanFasts, {}).then(setFasts);
-    void getJSON<Record<string, Record<string, true>>>(KEYS.ramadanWorship, {}).then((m) =>
+    void getJSON<Record<number, true>>(KEYS.ramadanFasts, {}, isObjectRecord).then(setFasts);
+    void getJSON<Record<string, Record<string, true>>>(KEYS.ramadanWorship, {}, isObjectRecord).then((m) =>
       setWorship(m[today] ?? {}),
     );
-    void getJSON<Record<string, number>>(KEYS.readingLog, {}).then((log) =>
+    void getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord).then((log) =>
       setPagesRead(Object.values(log).reduce((a, b) => a + b, 0)),
     );
     void (async () => {
@@ -96,7 +96,7 @@ export function RamadanScreen({ navigation }: Props) {
       const next = { ...prev };
       if (next[key]) delete next[key];
       else next[key] = true;
-      void getJSON<Record<string, Record<string, true>>>(KEYS.ramadanWorship, {}).then((m) =>
+      void getJSON<Record<string, Record<string, true>>>(KEYS.ramadanWorship, {}, isObjectRecord).then((m) =>
         setJSON(KEYS.ramadanWorship, { ...m, [today]: next }),
       );
       return next;

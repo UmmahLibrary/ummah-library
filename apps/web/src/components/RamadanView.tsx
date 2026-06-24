@@ -21,10 +21,13 @@ function localDate(d: Date): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
-function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function fmtTime(src: string | Date): string {
+  const d = typeof src === "string" ? new Date(src) : src;
+  if (Number.isNaN(d.getTime())) return "—"; // polar-empty timing → Invalid Date
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 function countdown(target: Date, now: Date): string {
+  if (Number.isNaN(target.getTime())) return "—";
   let s = Math.max(0, Math.floor((target.getTime() - now.getTime()) / 1000));
   const h = Math.floor(s / 3600);
   s -= h * 3600;

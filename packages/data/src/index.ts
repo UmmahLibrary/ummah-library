@@ -138,7 +138,12 @@ export class FileTranslationRepository implements TranslationRepository {
   }
 
   #loadEdition(translationId: string): VerseRecord[] | null {
-    if (!(translationId in this.#loadIndex().translations)) return null;
+    // Own-property check, not `in`: `in` walks the prototype chain, so an edition
+    // like "constructor"/"__proto__" would pass and then readFileSync would throw
+    // ENOENT (→ a 500). An unknown edition must return null, like any other.
+    if (!Object.prototype.hasOwnProperty.call(this.#loadIndex().translations, translationId)) {
+      return null;
+    }
     let verses = this.#editions.get(translationId);
     if (!verses) {
       verses = loadJson<{ verses: VerseRecord[] }>(`translations/${translationId}.json`).verses;

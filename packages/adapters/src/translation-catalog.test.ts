@@ -84,4 +84,18 @@ describe("HttpTranslationCatalog", () => {
     const catalog = new HttpTranslationCatalog(fn, BASE);
     expect(await catalog.getSurahTranslation("nope", 1)).toEqual([]);
   });
+
+  it("returns [] on a 200 whose body has no chapter array (malformed CDN payload)", async () => {
+    const { fn } = fakeFetch({ [`${BASE}/editions/eng-mustafakhattaba/1.json`]: { notchapter: [] } });
+    const catalog = new HttpTranslationCatalog(fn, BASE);
+    expect(await catalog.getSurahTranslation("eng-mustafakhattaba", 1)).toEqual([]);
+  });
+
+  it("getTranslatedAyah returns the matching ayah, or null when absent", async () => {
+    const { fn } = fakeFetch({ [`${BASE}/editions/eng-mustafakhattaba/1.json`]: SURAH_1 });
+    const catalog = new HttpTranslationCatalog(fn, BASE);
+    const hit = await catalog.getTranslatedAyah("eng-mustafakhattaba", { sura: 1, aya: 2 });
+    expect(hit?.text).toBe("All praise is for Allah");
+    expect(await catalog.getTranslatedAyah("eng-mustafakhattaba", { sura: 1, aya: 999 })).toBeNull();
+  });
 });

@@ -13,7 +13,14 @@ export interface StoredAdhkar {
 export function readStored(): StoredAdhkar | null {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as StoredAdhkar) : null;
+    if (!raw) return null;
+    // A corrupt/peer-synced value must have a usable `counts` map, else the per-day
+    // reset logic crashes on `stored.counts[id]`. Anything else resets to null.
+    const v = JSON.parse(raw) as unknown;
+    const counts = v !== null && typeof v === "object" ? (v as { counts?: unknown }).counts : undefined;
+    return counts !== null && typeof counts === "object" && !Array.isArray(counts)
+      ? (v as StoredAdhkar)
+      : null;
   } catch {
     return null;
   }

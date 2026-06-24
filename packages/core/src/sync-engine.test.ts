@@ -126,6 +126,18 @@ describe("runSync", () => {
     expect(out.applied).toBe(0);
   });
 
+  it("only auto-skips a never-set key at the exact zero clock (pins the counter sub-clause)", async () => {
+    const backend = new FakeBackend();
+    const a = new FakeState(["ul.x"]);
+    // A null value but a non-zero counter is NOT the untouched hlcInit {0,0} clock,
+    // so it must still be pushed as a tombstone — pinning `r.hlc.counter === 0` in
+    // the skip guard (a mutant dropping that sub-clause would wrongly skip it).
+    a.set("ul.x", null, at(0, 1, "a"));
+    const out = await runSync({ cipher, backend, state: a });
+    expect(out.pushed).toBe(1);
+    expect(backend.store.get("acct-1")).toHaveLength(1);
+  });
+
   it("ignores server entries for keys this build does not manage", async () => {
     const backend = new FakeBackend();
     const d = new FakeState(["ul.x"]);

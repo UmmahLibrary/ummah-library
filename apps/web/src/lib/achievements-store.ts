@@ -12,7 +12,10 @@ export const webAchievementsStore: AchievementsStore = {
   read: async () => {
     try {
       const raw = localStorage.getItem(KEY);
-      return raw ? (JSON.parse(raw) as string[]) : [];
+      if (!raw) return [];
+      // A corrupt/peer-synced non-array would crash the shown-badge `.includes` checks.
+      const v = JSON.parse(raw) as unknown;
+      return Array.isArray(v) ? (v as string[]) : [];
     } catch {
       return [];
     }

@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import type { DivineName } from "@ummahlibrary/core";
 import { Khatam } from "@ummahlibrary/ui";
 import { api } from "../api";
-import { KEYS, getJSON, setJSON } from "../storage";
+import { KEYS, getJSON, isObjectRecord, setJSON } from "../storage";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 
@@ -18,7 +18,7 @@ export function NamesScreen() {
 
   useEffect(() => {
     let active = true;
-    void Promise.all([api.listNames(), getJSON<Record<number, true>>(KEYS.asmaLearned, {})])
+    void Promise.all([api.listNames(), getJSON<Record<number, true>>(KEYS.asmaLearned, {}, isObjectRecord)])
       .then(([fetched, saved]) => {
         if (!active) return;
         setNames(fetched);

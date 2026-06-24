@@ -40,7 +40,10 @@ export function currentPeriod(log: HaidLog): HaidPeriod | undefined {
 /** Inclusive length of a period in days, measured to `asOf` while it is open. */
 export function periodLength(period: HaidPeriod, asOf: string): number {
   const end = period.end ?? asOf;
-  return Math.max(1, daysBetween(period.start, end) + 1);
+  const days = daysBetween(period.start, end) + 1;
+  // Math.max(1, NaN) is NaN, so a corrupt/foreign date string would break the
+  // documented "never below 1" guarantee — clamp non-finite results explicitly.
+  return Number.isFinite(days) ? Math.max(1, days) : 1;
 }
 
 /**

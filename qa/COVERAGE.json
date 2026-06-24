@@ -1,0 +1,57 @@
+{
+  "$schema": "internal://qa/coverage",
+  "baseline_date": "2026-06-24",
+  "cycle": 15,
+  "test_run": {
+    "command": "pnpm test:coverage",
+    "test_files_passed": 121,
+    "tests_passed": 739,
+    "tests_passed_baseline": 685,
+    "tests_added_cycle1": 22,
+    "tests_added_cycle2": 12,
+    "tests_added_cycle3": 5,
+    "tests_added_cycle4": 5,
+    "tests_failed": 0,
+    "threshold_failures": 0,
+    "loop": { "lint": "pass", "typecheck": "pass", "test": "pass", "build": "pass" }
+  },
+  "coverage": {
+    "packages/core/src": { "statements": 99.63, "branches": 96.47, "functions": 100, "lines": 99.63, "gate": { "statements": 95, "branches": 88, "functions": 95, "lines": 95 }, "status": "ABOVE_GATE", "branches_baseline": 96.25 },
+    "packages/adapters/src": { "statements": 98.77, "branches": 88, "functions": 97.05, "lines": 98.77, "gate": { "statements": 95, "branches": 82, "functions": 90, "lines": 95 }, "status": "ABOVE_GATE" },
+    "packages/data/src": { "statements": 94.92, "branches": 89.09, "functions": 92.3, "lines": 94.92, "gate": { "statements": 85, "branches": 78, "functions": 72, "lines": 85 }, "status": "ABOVE_GATE", "cycle1": "90.44/85.71", "note": "cycle 2 closed FileAdhkar/Asma adapters + prototype-key edition path" },
+    "apps/web/src/lib": { "statements": 80.09, "branches": 82, "functions": 96.71, "lines": 80.09, "gate": { "statements": 55, "branches": 73, "functions": 95, "lines": 55 }, "status": "ABOVE_GATE", "cycle2": "79.78/80.98", "note": "cycle 3 hardened store read() boundaries (bookmarks/hifz/plan/settings/sync-meta)" }
+  },
+  "mutation": {
+    "tool": "none-installed",
+    "method": "adversarial manual mutation analysis + property-based pinning (this run)",
+    "score": null,
+    "survivors_killed_this_run": ["hlcCompare total-order (property)", "mergeEntries tie/convergence (property)", "encodeHlc/parseHlc round-trip (property)", "zakat >= niṣāb boundary", "reading-plans estimateMinutes formula", "qibla bearing range (property)"],
+    "status": "Stryker scoped to packages/core recommended for CI to get a measured score"
+  },
+  "fuzz": {
+    "native_fuzzers": "N/A — pure TS domain, no parser binaries",
+    "property_based": {
+      "harness": "packages/core/src/invariants.property.test.ts (seeded mulberry32, QA_SEED override)",
+      "cases_per_property": 2000,
+      "properties": ["hlcCompare total order", "encodeHlc∘parseHlc round-trip", "mergeEntries convergence/commutativity/idempotence", "qibla bearing ∈ [0,360)", "zakat niṣāb boundary + monotonicity"],
+      "confirmation_seeds_clean": [20260624, 777001, 1234567, 20260625],
+      "status": "PASS — 0 failures across base + 3 fresh-seed confirmation runs (~30k cases)"
+    }
+  },
+  "non_functional": {
+    "load_stress_soak": "N/A — local-first static app; only POST /api/sync is stateful (size/shape caps now hardened). Documented in QA_LOG.",
+    "chaos": "N/A — no orchestrated infra"
+  },
+  "convergence": {
+    "inventory_complete": true,
+    "coverage_met": true,
+    "mutation_met": "partial — manual + property pinning; Stryker measurement deferred to CI",
+    "fuzz_budget_met": true,
+    "non_functional_met": "N/A (justified)",
+    "suite_green": true,
+    "confirmation_pass_clean": true,
+    "converged": "Re-ran to 3 consecutive dry cycles (13, 14, 15) on fresh frontiers (v1 routes, polar-timing, component logic, audio/notifier, shell/hooks). Cycle 12 found a polar-timing display class incl. 2 web render crashes (toISOString on an Invalid-Date fajr fallback) — fixed. 42 reachable defects fixed across 9 productive cycles; 739 tests; loop green; property confirmation across 14 seeds. Stopped per the 3-dry rule.",
+    "cycle2_note": "Cycle 2 swept the L5 web-lib / L6 REST-route frontier cycle 1 skipped and found 13 real issues (2 high). Diagnosis per prompt: cycle-1 convergence was PARTIAL (that frontier was unexercised), not a persistence failure. Fixed the 2 high + 6 medium/low; documented the rest. A few web-store findings could not be verified (subagent session limit) — treated conservatively and listed as residual, NOT claimed clean.",
+    "cycle3_note": "Cycle 3 closed the systemic store-read()/sync-apply() corrupt-value class (the #1 cycle-2 residual). Reproduced + fixed the render-path crashes inline (no subagents, avoiding the cycle-2 session limit): bookmarks/library, hifz, plan-store all crashed on a valid-JSON-wrong-shape (peer-synced) value; plus settings scale NaN and the sync-meta structural-hlc gap. Each guarded at read() to fall back gracefully, fail-first verified. Remaining: prayer-settings enums (low, server re-validates today), prayer-timings cache key (medium), prayer-times date echo (low), Stryker score."
+  }
+}

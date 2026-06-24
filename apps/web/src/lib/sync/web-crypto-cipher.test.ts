@@ -52,6 +52,20 @@ describe("createWebCryptoCipher", () => {
     expect(await other.decrypt(a.ciphertext, a.nonce)).toBeNull(); // wrong key (E2EE property)
   });
 
+  it("links case/spacing/hyphen variants of the same recovery code to one account", async () => {
+    // A second device transcribing the phrase differently must derive the SAME
+    // account, not a silent empty fork.
+    const canonical = await createWebCryptoCipher("ABCDE-FGHJK-MNPQR-STVWX-YZ234");
+    const lower = await createWebCryptoCipher("abcde-fghjk-mnpqr-stvwx-yz234");
+    const spaced = await createWebCryptoCipher("ABCDE FGHJK MNPQR STVWX YZ234");
+    expect(await lower.accountId()).toBe(await canonical.accountId());
+    expect(await spaced.accountId()).toBe(await canonical.accountId());
+    expect(await lower.entryId("ul.x")).toBe(await canonical.entryId("ul.x"));
+    // A genuinely different code still derives a different account.
+    const other = await createWebCryptoCipher("ZZZZZ-FGHJK-MNPQR-STVWX-YZ234");
+    expect(await other.accountId()).not.toBe(await canonical.accountId());
+  });
+
   it("lets a second device with the same secret read the first's data", async () => {
     const deviceA = await createWebCryptoCipher("shared-phrase");
     const deviceB = await createWebCryptoCipher("shared-phrase");

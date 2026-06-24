@@ -12,7 +12,10 @@ export const webPrayerTrackerStore: PrayerTrackerStore = {
   read: async () => {
     try {
       const raw = localStorage.getItem(LOG_KEY);
-      return raw ? (JSON.parse(raw) as PrayerTrackerLog) : {};
+      if (!raw) return {};
+      // A corrupt/peer-synced non-object would crash the tracker stats (Object.entries / indexing).
+      const v = JSON.parse(raw) as unknown;
+      return v !== null && typeof v === "object" && !Array.isArray(v) ? (v as PrayerTrackerLog) : {};
     } catch {
       return {};
     }
