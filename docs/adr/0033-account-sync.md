@@ -105,7 +105,16 @@ non-extractable WebCrypto key in IndexedDB — is a later option.) The Settings 
   the net.
 - **Landed since:** the pure engine + web crypto/transport/server seams, wiring over
   the live `ul.*` stores, the managed-key fan-out (reader/prayer settings, last-read
-  position), and the recovery-phrase Settings UI with background sync.
-- **Deferred:** the mobile/extension ciphers, Upstash provisioning + deploy, and the
-  v2 refinements (element-level merge for set/map keys, atomic server merge under
-  concurrent push, an incremental pull cursor).
+  position), the recovery-phrase Settings UI with background sync, and the **mobile
+  adapter** — a pure-JS (`@noble/hashes`+`@noble/ciphers`) `Cipher` that is byte-for-byte
+  compatible with the web WebCrypto one (PBKDF2→HKDF→AES-256-GCM/HMAC, including the
+  64-byte HMAC key WebCrypto derives by default; a cross-platform interop test pins it),
+  an AsyncStorage `SyncStateStore` + clock sidecar, and a "Sync across devices" Settings
+  screen that syncs on launch and on foreground (`AppState`). The managed-key set now
+  lives in `core` (`sync-keys.ts`) as the single shared contract across platforms.
+- **Deferred:** the extension cipher + CORS on `/api/sync`; Upstash provisioning +
+  deploy; a **live in-app/in-tab refresh** after a synced value is applied (today a
+  pulled change surfaces on the next read/navigation or app relaunch — the in-memory
+  React contexts re-read on mount, not on a sync event; true on web and mobile alike);
+  and the v2 refinements (element-level merge for set/map keys, atomic server merge
+  under concurrent push, an incremental pull cursor).

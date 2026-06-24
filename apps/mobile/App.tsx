@@ -26,6 +26,7 @@ import { syncAdhkarReminder } from "./src/adhkar-reminders";
 import { syncPrayerReminders } from "./src/prayer-reminders";
 import { syncSunnahFastReminder } from "./src/sunnah-fast-reminders";
 import { syncIslamicEventReminders } from "./src/islamic-event-reminders";
+import { syncIfEnabled } from "./src/lib/sync/sync-runtime";
 import type { RootStackParamList } from "./src/navigation/types";
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -149,7 +150,9 @@ export default function App() {
   const [fontsLoaded] = useFonts(fontMap);
 
   // Prime the notifier, then keep every reminder family scheduled — re-syncing on
-  // foreground so the schedule rolls to the next day after one fires (#71).
+  // foreground so the schedule rolls to the next day after one fires (#71). Also
+  // run cross-device sync (#25) on launch and on foreground; it's a no-op unless
+  // the user has opted in, and failures (offline/unprovisioned) are swallowed.
   useEffect(() => {
     const syncAll = () => {
       void syncPlanReminder();
@@ -157,6 +160,7 @@ export default function App() {
       void syncPrayerReminders();
       void syncSunnahFastReminder();
       void syncIslamicEventReminders();
+      void syncIfEnabled().catch(() => {});
     };
     void initNotifier().then(syncAll);
     const sub = AppState.addEventListener("change", (s) => {

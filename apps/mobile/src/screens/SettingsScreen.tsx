@@ -11,6 +11,7 @@ import { RECITER, RECITERS } from "../plugins";
 import { MAX_SCALE, MIN_SCALE } from "../types";
 import { clearCache, getCacheStats } from "../offlineCache";
 import { clearAllData, exportBackup, importBackup, itemCount } from "../backup";
+import { SyncSection } from "../components/SyncSection";
 
 /** "1.2 MB", "845 KB", "0 B" — for the cached-content size shown in Settings. */
 function formatBytes(bytes: number): string {
@@ -341,6 +342,8 @@ export function SettingsScreen() {
           </Pressable>
         </View>
       </View>
+
+      <SyncSection />
 
       <Text style={styles.sectionLabel}>About</Text>
       <Text style={styles.muted}>
