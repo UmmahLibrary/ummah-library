@@ -4,7 +4,7 @@
  * plan logic lives in `@ummahlibrary/core` — so a synced adapter (#25) can
  * replace it without touching the feature. Mirrors the mobile adapter.
  */
-import type { ActivePlan, PlanStore } from "@ummahlibrary/core";
+import { type PlanStore, isActivePlan } from "@ummahlibrary/core";
 
 const KEY = "ul.readingPlan";
 
@@ -12,7 +12,11 @@ export const webPlanStore: PlanStore = {
   read: async () => {
     try {
       const raw = localStorage.getItem(KEY);
-      return raw ? (JSON.parse(raw) as ActivePlan) : null;
+      if (!raw) return null;
+      // Drop a corrupt/peer-synced plan (missing template, empty units, bad
+      // cursor) so it can't reach planDuration and throw at render.
+      const v = JSON.parse(raw) as unknown;
+      return isActivePlan(v) ? v : null;
     } catch {
       return null;
     }

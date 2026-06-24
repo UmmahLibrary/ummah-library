@@ -14,6 +14,7 @@ import {
   daysAheadBehind,
   effectiveToday,
   extendPlan,
+  isActivePlan,
   isDayComplete,
   isPaused,
   isPlanComplete,
@@ -80,6 +81,30 @@ describe("date helpers", () => {
     expect(isValidDateString("2026-06-15")).toBe(true);
     expect(isValidDateString("2026-13-01")).toBe(false);
     expect(isValidDateString("nope")).toBe(false);
+    // Impossible calendar days must be rejected, not silently rolled into the
+    // next month (Feb 30 → Mar 2), which would desync end-date from duration.
+    expect(isValidDateString("2026-02-30")).toBe(false);
+    expect(isValidDateString("2026-04-31")).toBe(false);
+    expect(isValidDateString("2025-02-29")).toBe(false); // 2025 is not a leap year
+    expect(isValidDateString("2024-02-29")).toBe(true); // 2024 is a leap year
+  });
+
+  it("isActivePlan accepts a real plan and rejects corrupt/peer-synced shapes", () => {
+    const good = activatePlan(templateById("ramadan-khatm")!, "2026-03-01");
+    expect(isActivePlan(good)).toBe(true);
+    for (const bad of [
+      null,
+      {},
+      "oops",
+      5,
+      [],
+      { template: null, startDate: "2026-01-01", unitsRead: 0 },
+      { template: { schedule: { kind: "fixed" }, range: { units: [] } }, startDate: "2026-01-01", unitsRead: 0 }, // empty units
+      { template: good.template, startDate: "2026-01-01", unitsRead: Number.NaN }, // non-finite cursor
+      { template: good.template, startDate: 20260101, unitsRead: 0 }, // non-string date
+    ]) {
+      expect(isActivePlan(bad)).toBe(false);
+    }
   });
 });
 
@@ -228,6 +253,14 @@ describe("unitsRemaining + percentComplete", () => {
     expect(unitsRemaining(plan)).toBe(18);
     expect(percentComplete(plan)).toBe(40);
   });
+
+  it("clamps an over-total cursor (a deserialized plan can exceed total) to 100% / 0 left", () => {
+    // ActivePlan is local-first state with no runtime validation; a shrunk
+    // template total can leave unitsRead > total. Pins the Math.min / Math.max guards.
+    const over = { ...ramadan(), unitsRead: 999 };
+    expect(percentComplete(over)).toBe(100);
+    expect(unitsRemaining(over)).toBe(0);
+  });
   it("is 0% fresh and 100% done", () => {
     expect(percentComplete(ramadan())).toBe(0);
     expect(percentComplete(setUnitsRead(ramadan(), 30))).toBe(100);
@@ -283,7 +316,7 @@ describe("materializeDay", () => {
     expect(day.target).toEqual({ kind: "juz", juz: 1 });
     expect(day.startRef).toEqual({ sura: 1, aya: 1 });
     expect(day.endRef).toEqual({ sura: 2, aya: 141 }); // verse before juzʾ 2
-    expect(day.est).toMatch(/^~\d+ min$/);
+    expect(day.est).toBe("~16 min"); // 148 ayahs × ~6.3s — pins the estimate formula
     expect(day.empty).toBe(false);
   });
 
@@ -308,7 +341,11 @@ describe("materializeDay", () => {
 
   it("lists a non-contiguous multi-unit portion", () => {
     const plan = activatePlan(tpl(surahList([1, 36, 55]), { kind: "fixed", unitsPerDay: 3 }), START);
-    expect(materializeDay(plan, 1).label).toBe("Sūrah 1, Sūrah 36, Sūrah 55");
+    const day = materializeDay(plan, 1);
+    expect(day.label).toBe("Sūrah 1, Sūrah 36, Sūrah 55");
+    // Estimate sums the three short sūrahs (7+83+78 = 168 ayahs), not the linear
+    // mushaf span Sūrah 1 → Sūrah 55, which would be ~30× larger.
+    expect(day.est).toBe("~18 min");
   });
 
   it("resolves page and ayah units", () => {

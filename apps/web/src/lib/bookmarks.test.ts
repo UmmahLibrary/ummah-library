@@ -15,4 +15,10 @@ describe("bookmarks", () => {
     expect(await toggleBookmark(36)).toEqual([2]);
     expect(await readBookmarks()).toEqual([2]);
   });
+
+  it("treats a corrupt/peer-synced non-array ul.bookmarks as empty (no .includes crash)", async () => {
+    localStorage.setItem("ul.bookmarks", '"not-an-array"');
+    expect(await readBookmarks()).toEqual([]);
+    expect(await toggleBookmark(36)).toEqual([36]); // recovers cleanly, no spread-string garbage
+  });
 });

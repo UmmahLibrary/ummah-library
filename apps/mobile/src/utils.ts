@@ -15,11 +15,14 @@ export function adhkarToday(d = new Date()): string {
 /** Format an ISO timestamp or Date as a short locale time (e.g. "5:32 AM"). */
 export function fmtTime(src: string | Date): string {
   const d = typeof src === "string" ? new Date(src) : src;
+  // A polar-invalid prayer time arrives as "" (→ Invalid Date); show a dash, not "Invalid Date".
+  if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 /** Human-readable countdown: "2h 15m" or "8m". Returns "0m" when target is past. */
 export function fmtCountdown(target: Date, now: Date): string {
+  if (Number.isNaN(target.getTime())) return "—"; // invalid target (e.g. a polar empty Fajr)
   const secs = Math.max(0, Math.floor((target.getTime() - now.getTime()) / 1000));
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs - h * 3600) / 60);

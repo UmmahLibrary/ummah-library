@@ -5,9 +5,9 @@
  * touching the tracker. Mirrors web.
  */
 import type { PrayerTrackerLog, PrayerTrackerStore } from "@ummahlibrary/core";
-import { KEYS, getJSON, setJSON } from "./storage";
+import { KEYS, getJSON, isObjectRecord, setJSON } from "./storage";
 
 export const mobilePrayerTrackerStore: PrayerTrackerStore = {
-  read: () => getJSON<PrayerTrackerLog>(KEYS.prayerLog, {}),
+  read: () => getJSON<PrayerTrackerLog>(KEYS.prayerLog, {}, isObjectRecord),
   write: (log) => setJSON(KEYS.prayerLog, log),
 };

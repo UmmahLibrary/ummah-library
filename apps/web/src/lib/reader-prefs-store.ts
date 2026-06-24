@@ -16,7 +16,12 @@ const WBW_KEY = "ul.wbw";
 export function readLastRead(): number | null {
   try {
     const raw = localStorage.getItem(LAST_READ_KEY);
-    return raw ? ((JSON.parse(raw) as { surah?: number }).surah ?? null) : null;
+    if (!raw) return null;
+    // Read during render/scroll-restore: a corrupt/peer-synced null would crash on
+    // `.surah`; a non-number surah must not flow through as a bogus value.
+    const v = JSON.parse(raw) as unknown;
+    const surah = v !== null && typeof v === "object" ? (v as { surah?: unknown }).surah : undefined;
+    return typeof surah === "number" ? surah : null;
   } catch {
     return null;
   }

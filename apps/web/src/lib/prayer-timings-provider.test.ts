@@ -37,6 +37,20 @@ describe("webPrayerTimingsProvider", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("refetches the same day when the location changes (no stale cached city)", async () => {
+    setCoords(); // Makkah
+    const fetchMock = vi.fn(
+      async () => ({ ok: true, json: async () => ({ timings: TIMINGS }) }) as unknown as Response,
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await provider.getTodaysTimings(); // caches for Makkah
+    localStorage.setItem("ul.prayerCoords", JSON.stringify({ latitude: 51.5, longitude: -0.13 })); // move
+    await provider.getTodaysTimings(); // must refetch, not serve the Makkah cache
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("returns null on a non-ok response", async () => {
     setCoords();
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false }) as Response));

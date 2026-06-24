@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   adhkarToday,
   fmtCountdown,
+  fmtTime,
   localISODate,
   weekdayOfGregorian,
 } from "./utils";
@@ -38,6 +39,18 @@ describe("fmtCountdown", () => {
     const now = new Date(10000);
     const target = new Date(0);
     expect(fmtCountdown(target, now)).toBe("0m");
+  });
+
+  it("returns a dash for an invalid target (a polar empty Fajr → Invalid Date)", () => {
+    expect(fmtCountdown(new Date(""), new Date(0))).toBe("—");
+  });
+});
+
+describe("fmtTime", () => {
+  it("formats a valid instant and dashes an empty/invalid one (polar timing)", () => {
+    expect(fmtTime("2026-06-21T12:00:00Z")).toMatch(/\d/); // some time rendered
+    expect(fmtTime("")).toBe("—"); // empty polar timing, not "Invalid Date"
+    expect(fmtTime(new Date("nope"))).toBe("—");
   });
 });
 

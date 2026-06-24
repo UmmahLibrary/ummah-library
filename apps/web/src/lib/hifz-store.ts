@@ -57,7 +57,10 @@ export interface HifzRecord {
 
 function read(): Store {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "{}") as Store;
+    const v = JSON.parse(localStorage.getItem(KEY) ?? "{}") as unknown;
+    // Must be a plain object map: a corrupt or peer-synced null / array / scalar
+    // would crash Object.entries / `in` / indexing in the consumers below.
+    return v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Store) : {};
   } catch {
     return {};
   }

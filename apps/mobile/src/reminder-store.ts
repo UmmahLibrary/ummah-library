@@ -11,13 +11,18 @@ import {
   type ReminderPrefs,
   type ReminderStore,
 } from "@ummahlibrary/core";
-import { KEYS, getJSON, getString, setJSON, setString } from "./storage";
+import { KEYS, getJSON, getString, isObjectRecord, setJSON, setString } from "./storage";
 
 export const mobileReminderStore: ReminderStore = {
   read: async (): Promise<ReminderPrefs> => {
+    // Object guards: a corrupt/peer-synced null would crash on `plan.on` / `prayers[p]`.
     const [plan, prayers, adhkar] = await Promise.all([
-      getJSON<PlanReminderPref>(KEYS.planReminder, { on: false, time: DEFAULT_PLAN_REMINDER_TIME }),
-      getJSON<Partial<Record<PrayerName, boolean>>>(KEYS.prayerReminders, {}),
+      getJSON<PlanReminderPref>(
+        KEYS.planReminder,
+        { on: false, time: DEFAULT_PLAN_REMINDER_TIME },
+        isObjectRecord,
+      ),
+      getJSON<Partial<Record<PrayerName, boolean>>>(KEYS.prayerReminders, {}, isObjectRecord),
       getString(KEYS.adhkarReminders),
     ]);
     return {

@@ -39,10 +39,12 @@ export class HttpHadithRepository implements HadithRepository {
     if (!plugin || plugin.kind !== "hadith") return null;
     const response = await this.#fetch(hadithSectionUrl(plugin, section));
     if (!response.ok) return null;
-    const data = (await response.json()) as FawazHadithSection;
-
-    const name = data.metadata.section[String(section)] ?? data.metadata.name;
-    const hadiths = this.#mapHadiths(collectionId, data.hadiths);
+    // Guard a malformed 200 body (CDN error/placeholder) — fall back to the
+    // plugin name and an empty hadith list rather than dereferencing undefined.
+    const data = (await response.json()) as Partial<FawazHadithSection> | null;
+    const meta = data?.metadata;
+    const name = meta?.section?.[String(section)] ?? meta?.name ?? plugin.name;
+    const hadiths = this.#mapHadiths(collectionId, data?.hadiths);
     return { collectionId, section, name, hadiths };
   }
 
@@ -52,19 +54,19 @@ export class HttpHadithRepository implements HadithRepository {
     const response = await this.#fetch(hadithCollectionUrl(plugin));
     if (!response.ok) return null;
     const data = (await response.json()) as {
-      metadata: { name: string; sections?: Record<string, string> };
-      hadiths: FawazHadithSection["hadiths"];
-    };
+      metadata?: { name?: string; sections?: Record<string, string> };
+      hadiths?: FawazHadithSection["hadiths"];
+    } | null;
     return {
       collectionId,
-      name: data.metadata.name,
-      sections: data.metadata.sections ?? {},
-      hadiths: this.#mapHadiths(collectionId, data.hadiths),
+      name: data?.metadata?.name ?? plugin.name,
+      sections: data?.metadata?.sections ?? {},
+      hadiths: this.#mapHadiths(collectionId, data?.hadiths),
     };
   }
 
-  #mapHadiths(collectionId: string, hadiths: FawazHadithSection["hadiths"]): Hadith[] {
-    return hadiths.map((h) => ({
+  #mapHadiths(collectionId: string, hadiths: FawazHadithSection["hadiths"] | undefined): Hadith[] {
+    return (Array.isArray(hadiths) ? hadiths : []).map((h) => ({
       collectionId,
       number: h.hadithnumber,
       text: h.text,

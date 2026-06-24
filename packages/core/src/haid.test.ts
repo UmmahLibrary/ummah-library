@@ -66,6 +66,13 @@ describe("periodLength", () => {
     expect(periodLength({ start: "2026-06-10" }, "2026-06-10")).toBe(1);
     expect(periodLength({ start: "2026-06-10" }, "2026-06-01")).toBe(1);
   });
+
+  it("honours the 'never below 1' contract even for an unparseable date (corrupt/foreign state)", () => {
+    // HaidPeriod.start is a plain string; corrupt or externally-synced state can
+    // carry a non-date. Math.max(1, NaN) is NaN, so the floor must be explicit.
+    expect(periodLength({ start: "not-a-date" }, "2026-06-10")).toBe(1);
+    expect(periodLength({ start: "2026-06-10", end: "garbage" }, "2026-06-10")).toBe(1);
+  });
 });
 
 describe("startPause", () => {

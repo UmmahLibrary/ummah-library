@@ -6,13 +6,13 @@
  * logic. Mirrors web.
  */
 import type { Collection, LibraryStore } from "@ummahlibrary/core";
-import { KEYS, getJSON, setJSON } from "../storage";
+import { KEYS, getJSON, isObjectRecord, setJSON } from "../storage";
 
 export const mobileLibraryStore: LibraryStore = {
-  readBookmarks: () => getJSON<number[]>(KEYS.bookmarks, []),
+  readBookmarks: () => getJSON<number[]>(KEYS.bookmarks, [], Array.isArray),
   writeBookmarks: (surahs) => setJSON(KEYS.bookmarks, surahs),
-  readCollections: () => getJSON<Collection[]>(KEYS.collections, []),
+  readCollections: () => getJSON<Collection[]>(KEYS.collections, [], Array.isArray),
   writeCollections: (collections) => setJSON(KEYS.collections, collections),
-  readNotes: () => getJSON<Record<string, string>>(KEYS.ayahNotes, {}),
+  readNotes: () => getJSON<Record<string, string>>(KEYS.ayahNotes, {}, isObjectRecord),
   writeNotes: (notes) => setJSON(KEYS.ayahNotes, notes),
 };

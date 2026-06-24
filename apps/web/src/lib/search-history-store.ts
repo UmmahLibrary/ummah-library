@@ -7,7 +7,10 @@ const KEY = "ul.searchHistory";
 export function readHistory(): string[] {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
+    if (!raw) return [];
+    // A corrupt/peer-synced non-array would crash consumers (.includes/.filter/.slice).
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? (v as string[]) : [];
   } catch {
     return [];
   }

@@ -73,6 +73,17 @@ describe("encodeHlc / parseHlc", () => {
     expect(parseHlc("12:y:node")).toBeNull();
     expect(parseHlc("12:4:")).toBeNull();
   });
+  it("rejects numeric fields Number() would silently coerce (strict decimal)", () => {
+    // Number("")===0, Number("0x10")===16, Number("1e3")===1000, Number(" 12")===12 —
+    // each would fabricate a clock from malformed input, so they must be rejected.
+    expect(parseHlc(":4:node")).toBeNull(); // empty millis
+    expect(parseHlc("12::node")).toBeNull(); // empty counter
+    expect(parseHlc("0x10:4:node")).toBeNull();
+    expect(parseHlc("1e3:4:node")).toBeNull();
+    expect(parseHlc("-1:4:node")).toBeNull();
+    expect(parseHlc("1.5:4:node")).toBeNull();
+    expect(parseHlc(" 12:4:node")).toBeNull();
+  });
 });
 
 describe("mergeEntries", () => {
@@ -99,10 +110,15 @@ describe("mergeEntries", () => {
     expect(localWins.outgoing).toEqual([newer]);
   });
 
-  it("treats identical clocks as a no-op (local kept, neither bucket)", () => {
-    const a = entry("x", at(10), "same");
-    const r = mergeEntries([a], [entry("x", at(10), "same")]);
-    expect(r.merged).toEqual([a]);
+  it("treats identical clocks as a no-op, keeping the LOCAL entry by reference", () => {
+    // Same clock, different value: the tie must resolve to local (pins the
+    // documented contract — merged.push(a), not push(b)).
+    const localEntry = entry("x", at(10), "mine");
+    const remoteEntry = entry("x", at(10), "theirs");
+    const r = mergeEntries([localEntry], [remoteEntry]);
+    expect(r.merged).toHaveLength(1);
+    expect(r.merged[0]).toBe(localEntry); // reference identity, not just deep-equal
+    expect(r.merged[0]!.ciphertext).toBe("mine");
     expect(r.incoming).toEqual([]);
     expect(r.outgoing).toEqual([]);
   });

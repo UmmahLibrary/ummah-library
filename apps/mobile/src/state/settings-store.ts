@@ -6,17 +6,25 @@
  * settings UI. Mirrors web.
  */
 import type { SettingsStore, StoredSettings } from "@ummahlibrary/core";
-import { KEYS, getJSON, getString, setJSON, setString } from "../storage";
+import {
+  KEYS,
+  getJSON,
+  getString,
+  isFiniteNumber,
+  isStringArray,
+  setJSON,
+  setString,
+} from "../storage";
 
 export const mobileSettingsStore: SettingsStore = {
   read: async (): Promise<StoredSettings> => {
     const [editions, readingMode, readingTranslation, reciter, tafsir, scale] = await Promise.all([
-      getJSON<string[] | null>(KEYS.editions, null),
+      getJSON<string[] | null>(KEYS.editions, null, isStringArray),
       getString(KEYS.readingMode),
       getString(KEYS.readingTranslation),
       getString(KEYS.reciter),
       getString(KEYS.tafsir),
-      getJSON<number | null>(KEYS.scale, null),
+      getJSON<number | null>(KEYS.scale, null, isFiniteNumber),
     ]);
     return { editions, readingMode, readingTranslation, reciter, tafsir, scale };
   },

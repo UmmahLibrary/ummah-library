@@ -47,6 +47,20 @@ describe("calculateZakat", () => {
     expect(r.zakatDue).toBe(0);
   });
 
+  it("zakat is due when wealth exactly reaches the niṣāb (inclusive boundary, >=)", () => {
+    // Doctrinally load-bearing: zakat is owed once wealth *reaches* the niṣāb, so
+    // the boundary is inclusive. Pins `>=` against a `>` regression.
+    const nisab = nisabValue("silver", GOLD, SILVER);
+    const at = calculateZakat({ ...base, assets: { cash: nisab }, nisabBasis: "silver" });
+    expect(at.netWealth).toBe(nisab);
+    expect(at.meetsNisab).toBe(true);
+    expect(at.zakatDue).toBeCloseTo(nisab * ZAKAT_RATE, 6);
+    // A hair below the niṣāb is exempt.
+    const below = calculateZakat({ ...base, assets: { cash: nisab - 0.01 }, nisabBasis: "silver" });
+    expect(below.meetsNisab).toBe(false);
+    expect(below.zakatDue).toBe(0);
+  });
+
   it("deducts liabilities before testing the niṣāb", () => {
     const r = calculateZakat({
       ...base,

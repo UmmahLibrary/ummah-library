@@ -9,24 +9,30 @@ import {
   DEFAULT_CALCULATION_METHOD,
   DEFAULT_HIGH_LATITUDE_RULE,
   type HighLatitudeRuleId,
-  type Madhab,
   type PrayerSettingsStore,
+  isCalculationMethod,
   isHighLatitudeRule,
 } from "@ummahlibrary/core";
-import { KEYS, getJSON, getString, setJSON, setString } from "./storage";
+import { KEYS, getJSON, getString, isObjectRecord, setJSON, setString } from "./storage";
+
+const validCoords = (v: unknown): boolean =>
+  v === null ||
+  (isObjectRecord(v) &&
+    Number.isFinite((v as Coordinates).latitude) &&
+    Number.isFinite((v as Coordinates).longitude));
 
 export const mobilePrayerSettingsStore: PrayerSettingsStore = {
   read: async () => {
     const [coords, method, madhab, highLat] = await Promise.all([
-      getJSON<Coordinates | null>(KEYS.prayerCoords, null),
+      getJSON<Coordinates | null>(KEYS.prayerCoords, null, validCoords),
       getString(KEYS.prayerMethod),
       getString(KEYS.prayerMadhab),
       getString(KEYS.prayerHighLat),
     ]);
     return {
       coords,
-      method: method ?? DEFAULT_CALCULATION_METHOD,
-      madhab: (madhab as Madhab) || "shafi",
+      method: method && isCalculationMethod(method) ? method : DEFAULT_CALCULATION_METHOD,
+      madhab: madhab === "hanafi" || madhab === "shafi" ? madhab : "shafi",
       highLatitudeRule: highLat && isHighLatitudeRule(highLat) ? highLat : DEFAULT_HIGH_LATITUDE_RULE,
     };
   },

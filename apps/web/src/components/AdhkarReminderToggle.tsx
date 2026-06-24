@@ -36,8 +36,9 @@ export function AdhkarReminderToggle() {
     void ensureTodaysTimings().then((timings) => {
       if (cancelled || !timings) return;
       const next = nextAdhkarReminder(timings, new Date());
+      // Guard a polar-empty timing: an invalid next.at must not render "Invalid Date".
       setNextLabel(
-        next
+        next && !Number.isNaN(new Date(next.at).getTime())
           ? `Next: ${next.occasion} adhkar at ${new Date(next.at).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",

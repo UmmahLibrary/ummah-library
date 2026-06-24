@@ -7,6 +7,7 @@ import {
   writeEditions,
   writeReadingTranslation,
 } from "./editions";
+import { webSettingsStore } from "./settings-store";
 
 beforeEach(() => localStorage.clear());
 afterEach(() => localStorage.clear());
@@ -31,5 +32,13 @@ describe("editions selection", () => {
     expect(await readReadingTranslation()).toBeNull();
     await writeReadingTranslation("eng-sahih");
     expect(await readReadingTranslation()).toBe("eng-sahih");
+  });
+
+  it("falls back to defaults when stored editions is a corrupt non-array (peer-synced/corrupt)", async () => {
+    // A peer device or corrupt storage can leave ul.editions as a non-array;
+    // readEditions must not return it (consumers would crash on .map / new Set()).
+    const spy = vi.spyOn(webSettingsStore, "read").mockResolvedValue({ editions: "eng" } as never);
+    expect(await readEditions()).toEqual(DEFAULT_EDITIONS);
+    spy.mockRestore();
   });
 });

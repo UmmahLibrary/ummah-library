@@ -153,7 +153,7 @@ export function SearchScreen({ navigation }: Props) {
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    void getJSON<string[]>(KEYS.searchHistory, []).then(setHistory);
+    void getJSON<string[]>(KEYS.searchHistory, [], Array.isArray).then(setHistory);
     if (!indexCache) indexCache = api.listSurahs().then(buildIndex);
     let active = true;
     void indexCache.then((items) => {

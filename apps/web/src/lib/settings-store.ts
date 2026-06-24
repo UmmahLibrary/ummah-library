@@ -15,14 +15,21 @@ const RECITER_KEY = "ul.reciter";
 const TAFSIR_KEY = "ul.tafsir";
 const SCALE_KEY = "ul.scale";
 
-function getJSON<T>(key: string, fallback: T): T {
+function getJSON<T>(key: string, fallback: T, isValid?: (v: unknown) => boolean): T {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    if (!raw) return fallback;
+    const v = JSON.parse(raw) as unknown;
+    // Reject a valid-JSON value of the wrong shape (corrupt or peer-synced via
+    // #25) so e.g. a non-number scale can't become a NaN font size downstream.
+    return isValid && !isValid(v) ? fallback : (v as T);
   } catch {
     return fallback;
   }
 }
+const isStringArray = (v: unknown): boolean =>
+  Array.isArray(v) && v.every((x) => typeof x === "string");
+const isFiniteNumber = (v: unknown): boolean => typeof v === "number" && Number.isFinite(v);
 function getStr(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -40,12 +47,12 @@ function setItem(key: string, value: string): void {
 
 export const webSettingsStore: SettingsStore = {
   read: async (): Promise<StoredSettings> => ({
-    editions: getJSON<string[] | null>(EDITIONS_KEY, null),
+    editions: getJSON<string[] | null>(EDITIONS_KEY, null, isStringArray),
     readingMode: getStr(READING_MODE_KEY),
     readingTranslation: getStr(READING_TR_KEY),
     reciter: getStr(RECITER_KEY),
     tafsir: getStr(TAFSIR_KEY),
-    scale: getJSON<number | null>(SCALE_KEY, null),
+    scale: getJSON<number | null>(SCALE_KEY, null, isFiniteNumber),
   }),
   writeEditions: async (ids) => setItem(EDITIONS_KEY, JSON.stringify(ids)),
   writeReadingMode: async (mode) => setItem(READING_MODE_KEY, mode),

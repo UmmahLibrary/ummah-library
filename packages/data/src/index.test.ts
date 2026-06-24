@@ -11,6 +11,8 @@ import {
 import { describe, expect, it } from "vitest";
 import {
   BundledPlanCatalog,
+  FileAdhkarRepository,
+  FileAsmaRepository,
   FileHadithRepository,
   FileQuranRepository,
   FileTranslationRepository,
@@ -83,6 +85,15 @@ describe("FileTranslationRepository", () => {
   it("returns [] for an unknown edition", async () => {
     expect(await translations.getSurahTranslation("xx-nope", 1)).toEqual([]);
   });
+
+  it("treats an Object.prototype property name as an unknown edition (no ENOENT crash)", async () => {
+    // `constructor`/`__proto__`/`toString` pass a naive `in` check and would
+    // readFileSync a missing file → 500. They must behave like any unknown edition.
+    for (const id of ["constructor", "__proto__", "toString", "hasOwnProperty"]) {
+      expect(await translations.getSurahTranslation(id, 1)).toEqual([]);
+      expect(await translations.getTranslatedAyah(id, { sura: 1, aya: 1 })).toBeNull();
+    }
+  });
 });
 
 describe("datasets agree with the core structural invariants", () => {
@@ -150,6 +161,28 @@ describe("BundledPlanCatalog", () => {
   it("finds a template by id and misses gracefully", async () => {
     expect((await planCatalog.byId("ramadan-khatm"))?.name).toBe("Ramaḍān Khatm");
     expect(await planCatalog.byId("nope")).toBeNull();
+  });
+});
+
+describe("FileAdhkarRepository + FileAsmaRepository", () => {
+  const adhkarRepo = new FileAdhkarRepository();
+  const asmaRepo = new FileAsmaRepository();
+
+  it("serves the bundled adhkar and actually filters by occasion", async () => {
+    const all = await adhkarRepo.all();
+    const morning = await adhkarRepo.byOccasion("morning");
+    const evening = await adhkarRepo.byOccasion("evening");
+    expect(all.length).toBeGreaterThan(0);
+    expect(morning.length).toBeGreaterThan(0);
+    expect(evening.length).toBeGreaterThan(0);
+    // A strict subset proves byOccasion filters (not returns the whole set), and
+    // morning ≠ evening proves the occasion argument is actually passed through.
+    expect(morning.length).toBeLessThan(all.length);
+    expect(morning.length).not.toBe(evening.length);
+  });
+
+  it("serves the 99 Names of Allah", async () => {
+    expect(await asmaRepo.all()).toHaveLength(99);
   });
 });
 

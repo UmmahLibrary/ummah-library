@@ -32,7 +32,9 @@ export class HttpTafsirRepository implements TafsirRepository {
     if (!plugin || plugin.kind !== "tafsir") return [];
     const response = await this.#fetch(tafsirSurahUrl(plugin, surahNumber));
     if (!response.ok) return [];
-    const entries = (await response.json()) as SpaTafsirEntry[];
+    // Guard a malformed 200 body (CDN error/placeholder) rather than crashing on `.map`.
+    const data = (await response.json()) as SpaTafsirEntry[] | null;
+    const entries = Array.isArray(data) ? data : [];
     return entries.map((e) => ({
       sura: Number(e.surah),
       aya: Number(e.ayah),

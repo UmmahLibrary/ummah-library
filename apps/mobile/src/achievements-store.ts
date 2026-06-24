@@ -7,6 +7,6 @@ import type { AchievementsStore } from "@ummahlibrary/core";
 import { KEYS, getJSON, setJSON } from "./storage";
 
 export const mobileAchievementsStore: AchievementsStore = {
-  read: () => getJSON<string[]>(KEYS.badges, []),
+  read: () => getJSON<string[]>(KEYS.badges, [], Array.isArray),
   write: (ids) => setJSON(KEYS.badges, ids),
 };

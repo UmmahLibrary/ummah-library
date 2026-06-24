@@ -11,11 +11,14 @@ import {
 import { Icon, Khatam, N } from "@ummahlibrary/ui";
 import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
 
-function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function fmtTime(src: string | Date): string {
+  const d = typeof src === "string" ? new Date(src) : src;
+  if (Number.isNaN(d.getTime())) return "—"; // polar-empty timing → Invalid Date
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function countdown(target: Date, now: Date): string {
+  if (Number.isNaN(target.getTime())) return "—";
   let s = Math.max(0, Math.floor((target.getTime() - now.getTime()) / 1000));
   const h = Math.floor(s / 3600);
   s -= h * 3600;
@@ -124,7 +127,7 @@ export function ToolsPrayerCard() {
               {PRAYER_LABELS[next.name]}
             </span>
             <span style={{ fontSize: 20, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
-              {fmtTime(next.at.toISOString())}
+              {fmtTime(next.at)}
             </span>
           </div>
           <div style={{ fontSize: 13.5, color: N.muted, fontFamily: N.ui, marginBottom: 16 }}>

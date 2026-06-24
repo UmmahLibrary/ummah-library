@@ -12,7 +12,24 @@ import type {
   Madhab,
   PrayerSettingsStore,
 } from "@ummahlibrary/core";
-import { DEFAULT_CALCULATION_METHOD, DEFAULT_HIGH_LATITUDE_RULE, isHighLatitudeRule } from "@ummahlibrary/core";
+import {
+  DEFAULT_CALCULATION_METHOD,
+  DEFAULT_HIGH_LATITUDE_RULE,
+  isCalculationMethod,
+  isHighLatitudeRule,
+} from "@ummahlibrary/core";
+
+/** A usable coordinate pair (finite lat/lng) — guards a corrupt/peer-synced value. */
+function validCoords(v: unknown): Coordinates | null {
+  if (v === null || typeof v !== "object") return null;
+  const c = v as { latitude?: unknown; longitude?: unknown };
+  return typeof c.latitude === "number" &&
+    Number.isFinite(c.latitude) &&
+    typeof c.longitude === "number" &&
+    Number.isFinite(c.longitude)
+    ? (v as Coordinates)
+    : null;
+}
 
 const COORDS_KEY = "ul.prayerCoords";
 const METHOD_KEY = "ul.prayerMethod";
@@ -27,17 +44,19 @@ export const webPrayerSettingsStore: PrayerSettingsStore = {
     let highLatitudeRule: HighLatitudeRuleId = DEFAULT_HIGH_LATITUDE_RULE;
     try {
       const raw = localStorage.getItem(COORDS_KEY);
-      coords = raw ? (JSON.parse(raw) as Coordinates) : null;
+      coords = raw ? validCoords(JSON.parse(raw) as unknown) : null;
     } catch {
       /* storage unavailable */
     }
     try {
-      method = localStorage.getItem(METHOD_KEY) ?? DEFAULT_CALCULATION_METHOD;
+      const m = localStorage.getItem(METHOD_KEY);
+      method = m && isCalculationMethod(m) ? m : DEFAULT_CALCULATION_METHOD;
     } catch {
       /* keep default */
     }
     try {
-      madhab = (localStorage.getItem(MADHAB_KEY) as Madhab) || "shafi";
+      const md = localStorage.getItem(MADHAB_KEY);
+      madhab = md === "hanafi" || md === "shafi" ? md : "shafi";
     } catch {
       /* keep default */
     }

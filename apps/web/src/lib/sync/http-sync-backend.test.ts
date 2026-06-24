@@ -60,4 +60,13 @@ describe("createHttpSyncBackend", () => {
     const backend = createHttpSyncBackend({ fetchImpl });
     await expect(backend.exchange("x", [])).rejects.toThrow("429");
   });
+
+  it("drops malformed entries from an untrusted server reply (clock-poisoning guard)", async () => {
+    const good = entry("a");
+    const nonFiniteClock = { id: "b", hlc: { millis: Infinity, counter: 0, node: "x" }, ciphertext: "c", nonce: "iv" };
+    const emptyNode = { id: "c", hlc: { millis: 1, counter: 0, node: "" }, ciphertext: "c", nonce: "iv" };
+    const { fetchImpl } = stubFetch({ body: { entries: [good, nonFiniteClock, emptyNode] } });
+    const backend = createHttpSyncBackend({ fetchImpl });
+    expect(await backend.exchange("x", [])).toEqual([good]); // only the well-formed entry survives
+  });
 });

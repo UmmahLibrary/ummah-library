@@ -47,4 +47,12 @@ describe("compassPoint", () => {
     expect(compassPoint(360)).toBe("N");
     expect(COMPASS_POINTS).toContain(compassPoint(123.4));
   });
+
+  it("returns a valid compass point (never undefined) for a non-finite bearing", () => {
+    // qiblaDirection yields NaN for corrupt/non-finite coordinates; compassPoint's
+    // non-null return type must hold rather than indexing the array with NaN.
+    expect(COMPASS_POINTS).toContain(compassPoint(NaN));
+    expect(COMPASS_POINTS).toContain(compassPoint(Infinity));
+    expect(COMPASS_POINTS).toContain(compassPoint(-Infinity));
+  });
 });

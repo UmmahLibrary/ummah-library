@@ -20,7 +20,7 @@ import {
   compareVerseKeys,
   isDue,
 } from "@ummahlibrary/core";
-import { KEYS, getJSON, setJSON } from "../storage";
+import { KEYS, getJSON, isObjectRecord, setJSON } from "../storage";
 import { mobileLibraryStore as library } from "./library-store";
 import { EMPTY_STREAK, advanceStreak, type StreakData } from "../hifz";
 
@@ -81,9 +81,16 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     void (async () => {
       const [bm, lr, hz, st, cols, nts] = await Promise.all([
         library.readBookmarks(),
-        getJSON<{ surah: number } | null>(KEYS.lastRead, null),
-        getJSON<HifzStore>(KEYS.hifz, {}),
-        getJSON<StreakData>(KEYS.hifzStreak, EMPTY_STREAK),
+        getJSON<{ surah: number } | null>(KEYS.lastRead, null, isObjectRecord),
+        getJSON<HifzStore>(KEYS.hifz, {}, isObjectRecord),
+        getJSON<StreakData>(
+          KEYS.hifzStreak,
+          EMPTY_STREAK,
+          (v) =>
+            isObjectRecord(v) &&
+            typeof (v as StreakData).count === "number" &&
+            typeof (v as StreakData).lastDate === "string",
+        ),
         library.readCollections(),
         library.readNotes(),
       ]);

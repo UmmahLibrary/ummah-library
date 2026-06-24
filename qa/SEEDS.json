@@ -1,0 +1,28 @@
+{
+  "$schema": "internal://qa/seeds",
+  "note": "Every seed used, so all runs reproduce. Logic in packages/core is deterministic (clock injected). The property harness (invariants.property.test.ts) seeds a mulberry32 PRNG; set QA_SEED=<n> to override the base seed.",
+  "fastcheck_base_seed": 20260624,
+  "property_harness": "packages/core/src/invariants.property.test.ts",
+  "per_property_seed_derivation": "base SEED xored per property (0x1111 encode/parse, 0x2222 merge, 0x3333 qibla, 0x4444 zakat)",
+  "runs": [
+    { "cycle": 0, "purpose": "baseline — no randomized exploration yet", "seed": null },
+    { "cycle": 1, "purpose": "property invariants — default run (in suite)", "seed": 20260624 },
+    { "cycle": 1, "purpose": "confirmation pass — fresh seed", "seed": 777001, "result": "clean" },
+    { "cycle": 1, "purpose": "confirmation pass — fresh seed", "seed": 1234567, "result": "clean" },
+    { "cycle": 1, "purpose": "confirmation pass — fresh seed", "seed": 20260625, "result": "clean" },
+    { "cycle": 2, "purpose": "confirmation pass — fresh seed", "seed": 424242, "result": "clean" },
+    { "cycle": 2, "purpose": "confirmation pass — fresh seed", "seed": 90909090, "result": "clean" },
+    { "cycle": 2, "purpose": "confirmation pass — fresh seed", "seed": 31415926, "result": "clean" },
+    { "cycle": 2, "purpose": "confirmation pass — fresh seed", "seed": 271828, "result": "clean" },
+    { "cycle": 3, "purpose": "confirmation pass — fresh seed", "seed": 141421, "result": "clean" },
+    { "cycle": 4, "purpose": "confirmation pass — fresh seed", "seed": 161803, "result": "clean" },
+    { "cycle": 5, "purpose": "confirmation pass — fresh seed", "seed": 223606, "result": "clean" },
+    { "cycle": 6, "purpose": "confirmation pass — fresh seed", "seed": 362880, "result": "clean" },
+    { "cycle": 7, "purpose": "confirmation pass — fresh seed", "seed": 514229, "result": "clean" },
+    { "cycle": 8, "purpose": "confirmation pass — fresh seed", "seed": 832040, "result": "clean" },
+    { "cycle": 9, "purpose": "dry-cycle confirmation", "seed": 1346269, "result": "clean" },
+    { "cycle": 10, "purpose": "dry-cycle confirmation", "seed": 2178309, "result": "clean" },
+    { "cycle": 12, "purpose": "polar-timing fix + loop", "seed": 832040, "result": "clean" },
+    { "cycle": 15, "purpose": "3-dry final confirmation", "seed": 3524578, "result": "clean" }
+  ]
+}

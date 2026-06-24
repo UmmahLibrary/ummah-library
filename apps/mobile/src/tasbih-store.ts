@@ -5,9 +5,16 @@
  * touching the feature. Mirrors web.
  */
 import type { TasbihRecord, TasbihStore } from "@ummahlibrary/core";
-import { KEYS, getJSON, setJSON } from "./storage";
+import { KEYS, getJSON, isObjectRecord, setJSON } from "./storage";
+
+const isTasbihRecord = (v: unknown): boolean =>
+  v === null ||
+  (isObjectRecord(v) &&
+    typeof (v as TasbihRecord).total === "number" &&
+    typeof (v as TasbihRecord).target === "number" &&
+    typeof (v as TasbihRecord).phraseId === "string");
 
 export const mobileTasbihStore: TasbihStore = {
-  read: () => getJSON<TasbihRecord | null>(KEYS.tasbih, null),
+  read: () => getJSON<TasbihRecord | null>(KEYS.tasbih, null, isTasbihRecord),
   write: (record) => setJSON(KEYS.tasbih, record),
 };

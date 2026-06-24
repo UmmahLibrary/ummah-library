@@ -44,6 +44,23 @@ describe("webPlanStore (PlanStore adapter)", () => {
     localStorage.setItem("ul.readingPlan", "{not json");
     expect(await webPlanStore.read()).toBeNull();
   });
+
+  it("reads null for a structurally-corrupt plan (valid JSON, wrong shape)", async () => {
+    // A peer-synced or corrupt ul.readingPlan that parses but lacks a usable
+    // template/units would make planDuration throw at render — drop it instead.
+    const corrupt = [
+      "{}",
+      '{"template":{"range":{"units":[]},"schedule":{"kind":"fixed","unitsPerDay":1}},"startDate":"2026-01-01","unitsRead":0}',
+      '{"template":null,"startDate":"2026-01-01","unitsRead":0}',
+      '"oops"',
+      "5",
+      "[]",
+    ];
+    for (const bad of corrupt) {
+      localStorage.setItem("ul.readingPlan", bad);
+      expect(await webPlanStore.read()).toBeNull();
+    }
+  });
 });
 
 describe("reading-plan glue", () => {

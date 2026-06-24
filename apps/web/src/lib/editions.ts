@@ -40,7 +40,9 @@ export function defaultEditions(): string[] {
 
 export async function readEditions(): Promise<string[]> {
   const ed = (await store.read()).editions;
-  return ed ?? defaultEditions();
+  // The contract is string[]; a corrupt or peer-synced ul.editions of any other
+  // shape would make consumers crash on .map / new Set(), so fall back to defaults.
+  return Array.isArray(ed) && ed.every((x) => typeof x === "string") ? ed : defaultEditions();
 }
 
 export async function writeEditions(ids: string[]): Promise<void> {

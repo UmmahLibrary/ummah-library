@@ -38,11 +38,15 @@ function localDate(d: Date): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function fmtTime(src: string | Date): string {
+  const d = typeof src === "string" ? new Date(src) : src;
+  // A polar-invalid timing is "" (→ Invalid Date); show a dash, not "Invalid Date" / a throw.
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function countdown(target: Date, now: Date): string {
+  if (Number.isNaN(target.getTime())) return "—"; // invalid target (e.g. a polar empty Fajr)
   let s = Math.max(0, Math.floor((target.getTime() - now.getTime()) / 1000));
   const h = Math.floor(s / 3600);
   s -= h * 3600;
@@ -308,7 +312,7 @@ export function PrayerTimesView() {
                   {PRAYER_LABELS[next.name]}
                 </span>
                 <span style={{ fontSize: 26, fontWeight: 700, color: N.fg }}>
-                  {fmtTime(next.at.toISOString())}
+                  {fmtTime(next.at)}
                 </span>
               </div>
               <div style={{ fontSize: 14, color: N.muted }}>

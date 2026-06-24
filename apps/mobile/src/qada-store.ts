@@ -5,9 +5,9 @@
  * `@ummahlibrary/core`.
  */
 import type { QadaLog, QadaStore } from "@ummahlibrary/core";
-import { KEYS, getJSON, setJSON } from "./storage";
+import { KEYS, getJSON, isObjectRecord, setJSON } from "./storage";
 
 export const mobileQadaStore: QadaStore = {
-  read: () => getJSON<QadaLog>(KEYS.qada, {}),
+  read: () => getJSON<QadaLog>(KEYS.qada, {}, isObjectRecord),
   write: (log) => setJSON(KEYS.qada, log),
 };

@@ -62,21 +62,23 @@ export class AdhanPrayerTimes implements PrayerTimesCalculator {
     const when = new Date(`${date}T12:00:00Z`);
     const t = new PrayerTimes(coords, when, params);
     const sunnah = new SunnahTimes(t);
-    const fajr = t.fajr.toISOString();
 
-    // The Sunnah times span into the next day's Fajr, so near the polar circle
-    // they can be invalid even when today's prayers are not; `.toISOString()`
-    // throws on an invalid Date, so fall back to an empty string the UI skips.
+    // `.toISOString()` throws on an invalid Date, and near the poles adhan can
+    // return an invalid Date for the five prayers + sunrise too — not only the
+    // Sunnah markers. Route EVERY instant through this guard so a polar day
+    // degrades to empty strings the UI skips, never an unhandled rejection.
     const iso = (d: Date) => (Number.isNaN(d.getTime()) ? "" : d.toISOString());
+    const fajr = iso(t.fajr);
 
     return Promise.resolve({
       fajr,
-      sunrise: t.sunrise.toISOString(),
-      dhuhr: t.dhuhr.toISOString(),
-      asr: t.asr.toISOString(),
-      maghrib: t.maghrib.toISOString(),
-      isha: t.isha.toISOString(),
-      imsak: imsakFromFajr(fajr),
+      sunrise: iso(t.sunrise),
+      dhuhr: iso(t.dhuhr),
+      asr: iso(t.asr),
+      maghrib: iso(t.maghrib),
+      isha: iso(t.isha),
+      // Don't synthesise Imsāk from an empty Fajr (`new Date("")` → 1970 / throw).
+      imsak: fajr ? imsakFromFajr(fajr) : "",
       midnight: iso(sunnah.middleOfTheNight),
       lastThird: iso(sunnah.lastThirdOfTheNight),
     });

@@ -49,7 +49,8 @@ export class HttpTranslationCatalog implements TranslationRepository {
     this.#editions ??= (async () => {
       const res = await this.#fetch(`${this.#base}/editions.json`);
       if (!res.ok) return [];
-      const data = (await res.json()) as Record<string, FawazEdition>;
+      const data = (await res.json()) as Record<string, FawazEdition> | null;
+      if (!data || typeof data !== "object") return [];
       return Object.values(data)
         .map(
           (e): Translation => ({
@@ -69,10 +70,17 @@ export class HttpTranslationCatalog implements TranslationRepository {
     translationId: string,
     surahNumber: number,
   ): Promise<readonly TranslatedAyah[]> {
-    const res = await this.#fetch(`${this.#base}/editions/${translationId}/${surahNumber}.json`);
+    // Encode the id: it can be an unvalidated REST path param, so a raw `?`/`#`/`..`
+    // must not reshape the CDN URL (the sibling adapters gate via a plugin registry).
+    const res = await this.#fetch(
+      `${this.#base}/editions/${encodeURIComponent(translationId)}/${surahNumber}.json`,
+    );
     if (!res.ok) return [];
-    const data = (await res.json()) as FawazChapter;
-    return data.chapter.map((v) => ({
+    // A 200 can still carry a non-conforming body (CDN error/placeholder page,
+    // rate-limit JSON); guard the shape rather than crashing on `.map`.
+    const data = (await res.json()) as Partial<FawazChapter> | null;
+    const rows = Array.isArray(data?.chapter) ? data.chapter : [];
+    return rows.map((v) => ({
       sura: v.chapter,
       aya: v.verse,
       translationId,

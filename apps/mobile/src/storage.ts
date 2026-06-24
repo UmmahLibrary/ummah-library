@@ -48,14 +48,31 @@ export const KEYS = {
   adhkarTimings: "ul.adhkarTimings",
 } as const;
 
-export async function getJSON<T>(key: string, fallback: T): Promise<T> {
+export async function getJSON<T>(
+  key: string,
+  fallback: T,
+  isValid?: (v: unknown) => boolean,
+): Promise<T> {
   try {
     const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    if (!raw) return fallback;
+    const v = JSON.parse(raw) as unknown;
+    // Reject a valid-JSON value of the wrong shape (corrupt or peer-synced via
+    // #25) so a non-array/non-object/NaN value can't crash a consumer downstream.
+    return isValid && !isValid(v) ? fallback : (v as T);
   } catch {
     return fallback;
   }
 }
+
+/** A plain object map (not null, not an array) — for object-shaped stores. */
+export const isObjectRecord = (v: unknown): boolean =>
+  v !== null && typeof v === "object" && !Array.isArray(v);
+/** A finite number — guards numeric prefs (e.g. font scale) against NaN/Infinity. */
+export const isFiniteNumber = (v: unknown): boolean => typeof v === "number" && Number.isFinite(v);
+/** A string[] — guards list prefs (e.g. editions). */
+export const isStringArray = (v: unknown): boolean =>
+  Array.isArray(v) && v.every((x) => typeof x === "string");
 
 export async function setJSON(key: string, value: unknown): Promise<void> {
   try {
