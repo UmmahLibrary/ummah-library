@@ -545,4 +545,13 @@ export interface SyncBackend {
 export interface SyncStateStore {
   all(): Promise<readonly SyncRecord[]>;
   apply(key: string, value: string | null, hlc: Hlc): Promise<void>;
+  /**
+   * Optional (v2 element-level merge, ADR 0034): resolve an incoming entry whose
+   * opaque id this device never generated — a collection element first created on
+   * another device. Given the decrypted plaintext (a self-describing element
+   * envelope), return the synthetic key to `apply` it under, or `null` if it isn't
+   * an element this build manages. Lets the engine discover new elements in one
+   * round without learning any value shapes; stores with only scalar keys omit it.
+   */
+  identify?(plaintext: string): string | null;
 }

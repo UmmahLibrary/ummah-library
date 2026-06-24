@@ -39,6 +39,7 @@ export * from "./backup";
 export * from "./sync";
 export * from "./sync-engine";
 export * from "./sync-keys";
+export * from "./sync-shapes";
 export * from "./collections";
 export * from "./tasbih";
 export * from "./audio";

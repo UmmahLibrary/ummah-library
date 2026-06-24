@@ -40,7 +40,7 @@ describe("handleSync", () => {
   });
 
   it("rejects too many entries with 413", async () => {
-    const entries = Array.from({ length: 501 }, (_, i) => entry(`id${i}`, 1));
+    const entries = Array.from({ length: 2001 }, (_, i) => entry(`id${i}`, 1));
     const r = await handleSync({ authorization: auth, body: { entries } }, new InMemorySyncStore());
     expect(r.status).toBe(413);
   });

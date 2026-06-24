@@ -21,19 +21,20 @@ describe("MANAGED_KEYS", () => {
     expect(MANAGED_KEYS).not.toContain("ul.sync.node");
   });
 
-  it("excludes collection/log/counter keys that need element-level merge (v2)", () => {
+  it("manages the Phase-1 element-merged collection/set keys (v2, ADR 0034)", () => {
+    for (const key of ["ul.ayahNotes", "ul.collections", "ul.qada", "ul.haid", "ul.badges"]) {
+      expect(MANAGED_KEYS).toContain(key);
+    }
+  });
+
+  it("still excludes counters and the Phase-2/3 keys (hifz, date logs)", () => {
     for (const key of [
-      "ul.collections",
-      "ul.ayahNotes",
-      "ul.hifz",
-      "ul.hifz.streak",
-      "ul.prayerLog",
-      "ul.qada",
-      "ul.haid",
-      "ul.tasbih2",
-      "ul.searchHistory",
-      "ul.badges",
-      "ul.readingLog",
+      "ul.hifz", // Phase 3 — gated on the incremental-pull cursor
+      "ul.hifz.streak", // counter
+      "ul.tasbih", // counter
+      "ul.prayerLog", // Phase 2 — date log
+      "ul.readingLog", // Phase 2 — date log
+      "ul.searchHistory", // weak identity, low value
     ]) {
       expect(MANAGED_KEYS).not.toContain(key);
     }

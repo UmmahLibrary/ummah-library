@@ -16,6 +16,7 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
 }));
 vi.mock("./crypto-random", () => ({ randomBytes: () => new Uint8Array(0), randomId: () => "node-A" }));
 
+import { explodeKey } from "@ummahlibrary/core";
 import { createMobileSyncStateStore } from "./mobile-sync-state-store";
 
 beforeEach(() => mem.clear());
@@ -61,5 +62,39 @@ describe("createMobileSyncStateStore", () => {
     const theme = (await store.all()).find((r) => r.key === "ul.theme")!;
     expect(theme.value).toBeNull();
     expect(theme.hlc).toEqual(tombHlc);
+  });
+});
+
+describe("createMobileSyncStateStore — element-merge (v2) for a map key", () => {
+  const NOTES = "ul.ayahNotes";
+
+  it("flattens a map key into one self-describing record per element", async () => {
+    mem.set(NOTES, JSON.stringify({ "2:255": "kursi", "1:1": "fatiha" }));
+    const records = await createMobileSyncStateStore([NOTES]).all();
+    expect(records).toHaveLength(2);
+    expect(records.every((r) => r.key.startsWith(NOTES))).toBe(true);
+    const one = records.find((r) => r.key.endsWith("1:1"))!;
+    expect(JSON.parse(one.value!)).toEqual({ mk: NOTES, k: "1:1", v: '"fatiha"' });
+  });
+
+  it("apply() recomposes the owning map; a tombstone removes only that element", async () => {
+    mem.set(NOTES, JSON.stringify({ "1:1": "a", "2:2": "b" }));
+    const store = createMobileSyncStateStore([NOTES]);
+    await store.apply(explodeKey(NOTES, "3:3"), JSON.stringify({ mk: NOTES, k: "3:3", v: '"c"' }), {
+      millis: 9,
+      counter: 0,
+      node: "peer",
+    });
+    expect(JSON.parse(mem.get(NOTES)!)).toEqual({ "1:1": "a", "2:2": "b", "3:3": "c" });
+    await store.apply(explodeKey(NOTES, "1:1"), null, { millis: 10, counter: 0, node: "peer" });
+    expect(JSON.parse(mem.get(NOTES)!)).toEqual({ "2:2": "b", "3:3": "c" });
+  });
+
+  it("identify() resolves an element born on another device", async () => {
+    const store = createMobileSyncStateStore([NOTES]);
+    expect(store.identify!(JSON.stringify({ mk: NOTES, k: "5:5", v: '"x"' }))).toBe(
+      explodeKey(NOTES, "5:5"),
+    );
+    expect(store.identify!('"bare scalar"')).toBeNull();
   });
 });

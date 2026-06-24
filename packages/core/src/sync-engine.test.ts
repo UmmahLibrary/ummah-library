@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Cipher, SyncBackend, SyncStateStore } from "./ports";
 import { type Hlc, type SyncEntry, hlcInit, mergeEntries } from "./sync";
 import { runSync } from "./sync-engine";
+import { explodeKey, isMapKey, parseElementKey, unwrapElement, wrapElement } from "./sync-shapes";
 
 const at = (millis: number, counter = 0, node = "a"): Hlc => ({ millis, counter, node });
 
@@ -49,6 +50,46 @@ class FakeState implements SyncStateStore {
   }
   async apply(key: string, value: string | null, hlc: Hlc): Promise<void> {
     this.data.set(key, { value, hlc });
+  }
+}
+
+/**
+ * An element-merged state over one real map key (`ul.ayahNotes`), using the actual
+ * `sync-shapes` helpers. Each element is flattened to a synthetic key and carries a
+ * self-describing payload; `identify` resolves an element first seen on another
+ * device. Exercises the v2 engine path end to end.
+ */
+class FakeElementState implements SyncStateStore {
+  private readonly map = new Map<string, string>(); // elementId -> element-JSON value
+  private readonly clocks = new Map<string, Hlc>(); // synthetic key -> hlc
+  private readonly mapKey = "ul.ayahNotes";
+  setEl(id: string, value: string, hlc: Hlc): void {
+    this.map.set(id, value);
+    this.clocks.set(explodeKey(this.mapKey, id), hlc);
+  }
+  getEl(id: string): string | null {
+    return this.map.get(id) ?? null;
+  }
+  async all() {
+    return [...this.map.entries()].map(([id, value]) => {
+      const synthetic = explodeKey(this.mapKey, id);
+      return {
+        key: synthetic,
+        value: wrapElement(this.mapKey, id, value),
+        hlc: this.clocks.get(synthetic) ?? hlcInit("node"),
+      };
+    });
+  }
+  async apply(key: string, value: string | null, hlc: Hlc): Promise<void> {
+    const p = parseElementKey(key);
+    if (!p) return;
+    if (value === null) this.map.delete(p.id);
+    else this.map.set(p.id, unwrapElement(value)?.v ?? value);
+    this.clocks.set(key, hlc);
+  }
+  identify(plaintext: string): string | null {
+    const env = unwrapElement(plaintext);
+    return env && isMapKey(env.mk) ? explodeKey(env.mk, env.k) : null;
   }
 }
 
@@ -136,6 +177,36 @@ describe("runSync", () => {
     const out = await runSync({ cipher, backend, state: a });
     expect(out.pushed).toBe(1);
     expect(backend.store.get("acct-1")).toHaveLength(1);
+  });
+
+  it("discovers an element first created on another device via the identify hook (v2)", async () => {
+    const backend = new FakeBackend();
+    const a = new FakeElementState();
+    a.setEl("2:255", '"my note"', at(10));
+    const b = new FakeElementState(); // has never seen 2:255 — its id isn't in b's keyById
+
+    await runSync({ cipher, backend, state: a }); // A pushes the element
+    const out = await runSync({ cipher, backend, state: b }); // B must DISCOVER it
+
+    expect(b.getEl("2:255")).toBe('"my note"');
+    expect(out.applied).toBe(1);
+  });
+
+  it("merges different elements from two devices without clobbering (the v2 win)", async () => {
+    const backend = new FakeBackend();
+    const a = new FakeElementState();
+    a.setEl("1:1", '"alpha"', at(10, 0, "a"));
+    const b = new FakeElementState();
+    b.setEl("2:2", '"beta"', at(10, 0, "b"));
+
+    await runSync({ cipher, backend, state: a }); // server: {1:1}
+    await runSync({ cipher, backend, state: b }); // server: {1:1, 2:2}; b discovers 1:1
+    await runSync({ cipher, backend, state: a }); // a discovers 2:2
+
+    for (const dev of [a, b]) {
+      expect(dev.getEl("1:1")).toBe('"alpha"');
+      expect(dev.getEl("2:2")).toBe('"beta"'); // neither write clobbered the other
+    }
   });
 
   it("ignores server entries for keys this build does not manage", async () => {
