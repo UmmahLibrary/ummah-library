@@ -13,9 +13,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "mutation": "stryker run",
     "clean": "rm -rf .turbo node_modules"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }
