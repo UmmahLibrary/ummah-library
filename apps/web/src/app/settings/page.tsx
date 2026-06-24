@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { ThemePicker } from "../../components/ThemePicker";
+import { SyncSettings } from "../../components/SyncSettings";
 import { DataBackup } from "../../components/DataBackup";
 
 export const metadata: Metadata = {
   title: "Settings",
   description:
-    "Export and import your Ummah Library data — bookmarks, Hifz progress, reading goals and settings — as a local backup file. No account, no server.",
+    "Sync your Ummah Library data across devices — end-to-end encrypted, no account — or export and import it as a local backup file. Bookmarks, Hifz progress, reading goals and settings.",
   alternates: { canonical: "/settings" },
 };
 
@@ -20,6 +21,9 @@ export default function SettingsPage() {
       maxW={620}
     >
       <ThemePicker />
+      <div style={{ height: 1, background: "var(--noor-border)", margin: "30px 0" }} />
+      <SyncSettings />
+      <div style={{ height: 1, background: "var(--noor-border)", margin: "30px 0" }} />
       <DataBackup />
     </NoorPageFrame>
   );

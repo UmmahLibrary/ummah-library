@@ -15,7 +15,7 @@ import { type SyncEntry, mergeEntries } from "./sync";
 
 /** What one {@link runSync} round did — for the status UI and tests. */
 export interface SyncOutcome {
-  /** Managed keys pushed (the full namespace). */
+  /** Entries pushed — the keys this device has actually set (never-set keys are skipped). */
   pushed: number;
   /** Entries the server returned. */
   pulled: number;
@@ -44,7 +44,12 @@ export async function runSync(deps: SyncDeps): Promise<SyncOutcome> {
   const local: SyncEntry[] = [];
   for (const r of records) {
     const id = await cipher.entryId(r.key);
-    keyById.set(id, r.key);
+    keyById.set(id, r.key); // map every managed key so incoming ids resolve…
+    // …but a key this device never set — absent at the zero clock — carries no
+    // information. Skipping it stops a fresh device flooding the exchange with
+    // meaningless tombstones (which, with distinct node ids, the other side would
+    // otherwise "apply" as no-op deletes and miscount).
+    if (r.value === null && r.hlc.millis === 0 && r.hlc.counter === 0) continue;
     if (r.value === null) {
       local.push({ id, hlc: r.hlc, ciphertext: null, nonce: "" });
     } else {
