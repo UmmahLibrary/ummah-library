@@ -14,7 +14,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
-import { reciterAudioUrl, type ReciterPlugin, type VerseKey } from "@ummahlibrary/core";
+import {
+  clampPlaybackRate,
+  reciterAudioUrl,
+  repeatRange,
+  type ReciterPlugin,
+  type VerseKey,
+} from "@ummahlibrary/core";
+import { KEYS, getString, setString } from "../storage";
 
 const STALL_MS = 8000;
 const POLL_MS = 60;
@@ -61,7 +68,12 @@ export interface SurahAudio {
   activeWord: number;
   loop: boolean;
   setLoop: (on: boolean) => void;
+  /** Playback speed (clamped to [0.5, 2]); persisted across sessions. */
+  rate: number;
+  setRate: (rate: number) => void;
   playFrom: (verses: VerseKey[], start: VerseKey, advance: boolean) => void;
+  /** Loop the inclusive A→B range `count` times (Infinity = until stopped). */
+  playRange: (verses: VerseKey[], from: VerseKey, to: VerseKey, count: number) => void;
   stop: () => void;
 }
 
@@ -70,12 +82,14 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
   const [buffering, setBuffering] = useState(false);
   const [activeWord, setActiveWord] = useState(-1);
   const [loop, setLoopState] = useState(false);
+  const [rate, setRateState] = useState(1);
 
   const playerRef = useRef<AudioPlayer | null>(null);
   const tokenRef = useRef(0);
   const settleRef = useRef<(() => void) | null>(null);
   // A ref so the running playback loop reads the latest value, not a stale closure.
   const loopRef = useRef(false);
+  const rateRef = useRef(1);
   // Set when the app returns to the foreground so the next poll tick force-pushes
   // the word highlight. While backgrounded the JS poll is throttled and React
   // never commits its `setActiveWord` calls, so on return the highlight can sit
@@ -90,9 +104,35 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
     return () => sub.remove();
   }, []);
 
+  // Restore the saved playback speed once.
+  useEffect(() => {
+    void getString(KEYS.audioRate).then((saved) => {
+      if (saved === null) return;
+      const r = clampPlaybackRate(Number(saved));
+      rateRef.current = r;
+      setRateState(r);
+    });
+  }, []);
+
   const setLoop = useCallback((on: boolean) => {
     loopRef.current = on;
     setLoopState(on);
+  }, []);
+
+  const setRate = useCallback((next: number) => {
+    const r = clampPlaybackRate(next);
+    rateRef.current = r;
+    setRateState(r);
+    void setString(KEYS.audioRate, String(r));
+    try {
+      // Apply to the live player at once (pitch-corrected so the voice keeps its tone).
+      if (playerRef.current) {
+        playerRef.current.shouldCorrectPitch = true;
+        playerRef.current.playbackRate = r;
+      }
+    } catch {
+      /* no active player */
+    }
   }, []);
 
   // The one persistent player, created lazily and re-sourced with replace().
@@ -101,6 +141,13 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
       playerRef.current = createAudioPlayer({ uri: src });
     } else {
       playerRef.current.replace({ uri: src });
+    }
+    try {
+      // Re-assert the chosen speed after every (re-)source — replace() can reset it.
+      playerRef.current.shouldCorrectPitch = true;
+      playerRef.current.playbackRate = rateRef.current;
+    } catch {
+      /* rate unsupported on this platform */
     }
     return playerRef.current;
   }, []);
@@ -123,17 +170,18 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
     }
   }, []);
 
-  const playFrom = useCallback(
-    (verses: VerseKey[], start: VerseKey, advance: boolean) => {
-      const startIdx = verses.findIndex((v) => v.sura === start.sura && v.aya === start.aya);
-      if (startIdx < 0) return;
-      const queue = advance ? verses.slice(startIdx) : [verses[startIdx]!];
+  // One playback session over `queue`, repeated per `repeat`: null = a whole-list
+  // loop driven live by `loopRef`; a number = that many passes (Infinity = until
+  // stopped). The per-āyah engine below is shared by "play from here" and "loop A→B".
+  const startSession = useCallback(
+    (queue: VerseKey[], startKey: VerseKey, repeat: number | null) => {
+      if (queue.length === 0) return;
       const token = ++tokenRef.current;
       // Settle any in-flight āyah loop now so its poll/listener tear down at
       // once, and flip the UI to "playing" immediately (the audio itself still
       // has to fetch timings/buffer, but the button responds instantly).
       settleRef.current?.();
-      setPlayingKey(verseKeyOf(start));
+      setPlayingKey(verseKeyOf(startKey));
       setBuffering(true);
       setActiveWord(-1);
 
@@ -149,6 +197,7 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
         // Bring the notification/lock-screen controls up exactly once per
         // session (see below) — rebuilding them per āyah would flicker.
         let lockActive = false;
+        let plays = 0;
 
         do {
           for (const v of queue) {
@@ -298,8 +347,13 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
 
             if (tokenRef.current !== token) return;
           }
-          // Repeat the whole range while loop is on (read live via the ref).
-        } while (loopRef.current && tokenRef.current === token);
+          plays += 1;
+          // Repeat: a whole-list loop reads `loopRef` live; an A→B range runs a
+          // fixed number of passes (Infinity ⇒ until stopped).
+        } while (
+          tokenRef.current === token &&
+          (repeat === null ? loopRef.current : plays < repeat)
+        );
 
         if (tokenRef.current === token) {
           try {
@@ -318,6 +372,24 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
     [reciter, ensurePlayer],
   );
 
+  const playFrom = useCallback(
+    (verses: VerseKey[], start: VerseKey, advance: boolean) => {
+      const startIdx = verses.findIndex((v) => v.sura === start.sura && v.aya === start.aya);
+      if (startIdx < 0) return;
+      const queue = advance ? verses.slice(startIdx) : [verses[startIdx]!];
+      startSession(queue, start, null);
+    },
+    [startSession],
+  );
+
+  const playRange = useCallback(
+    (verses: VerseKey[], from: VerseKey, to: VerseKey, count: number) => {
+      const queue = repeatRange(verses, verseKeyOf(from), verseKeyOf(to));
+      if (queue[0]) startSession(queue, queue[0], count);
+    },
+    [startSession],
+  );
+
   // Tear the player down when the screen leaves so no poll/interval lingers,
   // and clear the notification so it can't outlive the reader.
   useEffect(() => {
@@ -334,5 +406,16 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
     };
   }, []);
 
-  return { playingKey, buffering, activeWord, loop, setLoop, playFrom, stop };
+  return {
+    playingKey,
+    buffering,
+    activeWord,
+    loop,
+    setLoop,
+    rate,
+    setRate,
+    playFrom,
+    playRange,
+    stop,
+  };
 }

@@ -29,6 +29,7 @@ import { useLibrary } from "../state/LibraryContext";
 import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
 import { DEFAULT_EDITION } from "../types";
 import { ReaderControls } from "../components/ReaderControls";
+import { AudioRangeControls } from "../components/AudioRangeControls";
 import { ReadingTranslationPicker } from "../components/ReadingTranslationPicker";
 import { TranslationManager } from "../components/TranslationManager";
 import { AyahView, type TrLine } from "../components/AyahView";
@@ -178,7 +179,13 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     const text = trMap.get(id)?.get(aya);
     if (!text) return null;
     const m: Translation | undefined = metaById.get(id);
-    return { id, name: m?.name ?? id, text, direction: m?.direction ?? "ltr", language: m?.language ?? "en" };
+    return {
+      id,
+      name: m?.name ?? id,
+      text,
+      direction: m?.direction ?? "ltr",
+      language: m?.language ?? "en",
+    };
   };
 
   // Stable per-ayah view-models so non-playing rows skip re-render during audio.
@@ -335,8 +342,16 @@ export function SurahReaderScreen({ navigation, route }: Props) {
             : reciter.name}
         </Text>
         <Pressable onPress={() => audio.setLoop(!audio.loop)} hitSlop={8} accessibilityLabel="Loop">
-          <Icon name="repeat" size={20} color={audio.loop ? colors.accent : colors.muted} sw={1.8} />
+          <Icon
+            name="repeat"
+            size={20}
+            color={audio.loop ? colors.accent : colors.muted}
+            sw={1.8}
+          />
         </Pressable>
+      </View>
+      <View style={styles.audioExtras}>
+        <AudioRangeControls audio={audio} verses={verses} />
       </View>
     </>
   );
@@ -438,7 +453,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
                 return text ? (
                   <Text key={a.aya}>
                     <Text style={styles.flowNum}>{a.aya}. </Text>
-                    {text}{"  "}
+                    {text}
+                    {"  "}
                   </Text>
                 ) : null;
               })}
@@ -515,7 +531,13 @@ function makeStyles(c: Palette) {
     error: { color: c.error, fontSize: 15 },
     content: { paddingHorizontal: 18, paddingBottom: 40 },
     head: { alignItems: "center", paddingVertical: 14 },
-    crest: { width: 94, height: 94, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+    crest: {
+      width: 94,
+      height: 94,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 4,
+    },
     crestAr: {
       position: "absolute",
       color: c.accentHi,
@@ -546,6 +568,7 @@ function makeStyles(c: Palette) {
       paddingVertical: 12,
       marginBottom: 4,
     },
+    audioExtras: { marginBottom: 10 },
     audioPlay: {
       width: 42,
       height: 42,
@@ -562,7 +585,13 @@ function makeStyles(c: Palette) {
       marginVertical: 12,
       fontFamily: FONT.ar,
     },
-    mushaf: { color: c.fg, textAlign: "right", writingDirection: "rtl", marginTop: 8, fontFamily: FONT.ar },
+    mushaf: {
+      color: c.fg,
+      textAlign: "right",
+      writingDirection: "rtl",
+      marginTop: 8,
+      fontFamily: FONT.ar,
+    },
     endMarker: { color: c.accent, fontSize: 18, fontFamily: FONT.ar },
     flow: { color: c.fg, marginTop: 4 },
     flowNum: { color: c.accent, fontWeight: "700" },

@@ -11,6 +11,7 @@ export const KEYS = {
   readingTranslation: "ul.readingTranslation",
   tafsir: "ul.tafsir",
   reciter: "ul.reciter",
+  audioRate: "ul.audioRate",
   scale: "ul.scale",
   theme: "ul.theme",
   bookmarks: "ul.bookmarks",
