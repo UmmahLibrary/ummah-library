@@ -8,6 +8,7 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
+import { AudioRangeControls } from "../components/AudioRangeControls";
 import { DEFAULT_EDITION } from "../types";
 import type { ReadStackParamList } from "../navigation/types";
 
@@ -71,13 +72,16 @@ export function JuzReaderScreen({ route }: Props) {
         const inRange = surah.ayahs.filter(
           (a) => a.aya >= p.from && (p.toExclusive === null || a.aya < p.toExclusive),
         );
-        return inRange.map((a, i): Line => ({
-          sura: p.sura,
-          aya: a.aya,
-          arabic: a.text,
-          translation: trByAya.get(a.aya) ?? "",
-          surahHeader: i === 0 ? `${surah.surah.transliteration} · ${surah.surah.englishName}` : undefined,
-        }));
+        return inRange.map(
+          (a, i): Line => ({
+            sura: p.sura,
+            aya: a.aya,
+            arabic: a.text,
+            translation: trByAya.get(a.aya) ?? "",
+            surahHeader:
+              i === 0 ? `${surah.surah.transliteration} · ${surah.surah.englishName}` : undefined,
+          }),
+        );
       }),
     )
       .then((groups) => {
@@ -90,10 +94,7 @@ export function JuzReaderScreen({ route }: Props) {
     };
   }, [juz, edition]);
 
-  const verses = useMemo(
-    () => (lines ?? []).map((l) => ({ sura: l.sura, aya: l.aya })),
-    [lines],
-  );
+  const verses = useMemo(() => (lines ?? []).map((l) => ({ sura: l.sura, aya: l.aya })), [lines]);
 
   if (error) {
     return (
@@ -133,6 +134,9 @@ export function JuzReaderScreen({ route }: Props) {
           <Text style={[styles.loopText, audio.loop && styles.loopTextOn]}>🔁 Loop</Text>
         </Pressable>
       </View>
+      <View style={styles.audioExtras}>
+        <AudioRangeControls audio={audio} verses={verses} />
+      </View>
 
       {lines.map((l) => {
         const key = verseKeyOf(l);
@@ -167,6 +171,7 @@ function makeStyles(c: Palette) {
     error: { color: c.error, fontSize: 15 },
     content: { paddingHorizontal: 18, paddingBottom: 40 },
     audioBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
+    audioExtras: { marginBottom: 12 },
     audioPlay: {
       paddingVertical: 8,
       paddingHorizontal: 18,
