@@ -61,11 +61,18 @@ than rejecting the whole batch) ship here too.
   more}` wire on the web + mobile backends; and the **delta-pull cursor activated**
   on the web + mobile stores (`getCursor`/`setCursor`). Backward-compatible — a
   store without a cursor still whole-set syncs.
-- **Deferred (the remaining Phase-3 completion):** the **dirty/bounded push** (so a
-  steady-state round uploads ~nothing and a large set pages under the cap), which is
-  the prerequisite for **enabling `ul.hifz`**; the **atomic Upstash merge** (Lua/tx)
-  — the one part that needs live Redis to verify; and **tombstone pruning** +
-  **graceful overflow**. These land together once Upstash is provisioned.
+- **Landed since (provisioning readiness):** the **atomic merge** is now a
+  per-account lock around the read→merge→write (`lock.ts`) — an in-process lock for
+  dev/tests, a `SET NX PX` Upstash lock for production (written; live-verified on
+  provisioning); **per-IP rate limiting** with `429 + Retry-After` (`rate-limit.ts`,
+  in-process + Upstash, fails open); and a **provisioning runbook**
+  (`docs/launch/sync-provisioning.md`). The in-process lock + limiter are unit-tested
+  (incl. a two-push no-lost-update test).
+- **Deferred (the remaining Phase-3 completion, gated on Upstash):** the
+  **dirty/bounded push** (so a steady-state round uploads ~nothing and a large set
+  pages under the cap), which is the prerequisite for **enabling `ul.hifz`**;
+  **tombstone pruning**; and **graceful overflow**. These land once Upstash is
+  provisioned and the above can be verified end to end.
 
 ## Consequences
 
