@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { N } from "@ummahlibrary/ui";
 import type { SyncOutcome } from "@ummahlibrary/core";
 import { readBookmarks, toggleBookmark } from "../../lib/bookmarks";
+import { readLastRead, writeLastRead } from "../../lib/reader-prefs-store";
 import { generateRecoveryPhrase } from "../../lib/sync/web-crypto-cipher";
 import {
   type SyncController,
@@ -41,12 +42,14 @@ export default function SyncDevPage() {
   const [secret, setSecret] = useState("");
   const [controller, setController] = useState<SyncController | null>(null);
   const [bookmarks, setBookmarks] = useState<number[]>([]);
+  const [lastRead, setLastRead] = useState<number | null>(null);
   const [outcome, setOutcome] = useState<SyncOutcome | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(() => {
     void readBookmarks().then(setBookmarks);
+    setLastRead(readLastRead());
   }, []);
 
   useEffect(() => {
@@ -80,6 +83,11 @@ export default function SyncDevPage() {
 
   const toggle = useCallback(async (surah: number) => {
     setBookmarks(await toggleBookmark(surah));
+  }, []);
+
+  const setLast = useCallback((surah: number) => {
+    writeLastRead(surah);
+    setLastRead(surah);
   }, []);
 
   return (
@@ -163,6 +171,22 @@ export default function SyncDevPage() {
           {DEMO_SURAHS.map((s) => (
             <button key={s} type="button" style={button} onClick={() => void toggle(s)}>
               {bookmarks.includes(s) ? `− ${s}` : `+ ${s}`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={card}>
+        <div style={{ fontWeight: 700, marginBottom: 8, color: N.fg }}>
+          4 · Last-read position (a synced setting)
+        </div>
+        <div style={{ fontSize: 14, marginBottom: 10, color: N.fg }}>
+          {lastRead ? `Last read: surah ${lastRead}` : "No last-read position yet."}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[2, 18, 36].map((s) => (
+            <button key={s} type="button" style={button} onClick={() => setLast(s)}>
+              Set {s}
             </button>
           ))}
         </div>
