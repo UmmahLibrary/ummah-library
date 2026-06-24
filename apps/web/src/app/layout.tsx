@@ -5,6 +5,7 @@ import { ServiceWorkerRegister } from "../components/ServiceWorkerRegister";
 import { AdhkarReminderBanner } from "../components/AdhkarReminderBanner";
 import { PrayerReminderScheduler } from "../components/PrayerReminderScheduler";
 import { PlanReminderScheduler } from "../components/PlanReminderScheduler";
+import { SyncBootstrap } from "../components/SyncBootstrap";
 import { AppShellWrapper } from "../components/AppShellWrapper";
 import { SITE_URL } from "../lib/site";
 // Noor palette (all themes) — generated from packages/ui/src/themes.ts (ADR 0027).
@@ -94,6 +95,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <AdhkarReminderBanner />
         <PrayerReminderScheduler />
         <PlanReminderScheduler />
+        <SyncBootstrap />
         <AppShellWrapper>{children}</AppShellWrapper>
         <ServiceWorkerRegister />
       </body>

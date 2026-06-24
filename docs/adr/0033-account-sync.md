@@ -74,6 +74,17 @@ WebCrypto; mobile gets a native one. The server endpoint
 (`/api/sync`) persists ciphertext to **Upstash Redis** over its REST API (no SDK
 dependency) behind a small injectable store, reusing the same pure `mergeEntries`.
 
+**5. The secret rests on the device; sync runs in the background.** Once enabled,
+the recovery phrase is stored in `localStorage` (under `ul.sync.*`, which sync never
+syncs) so sync survives reloads without re-entry. This matches the local-first trust
+model: the device is already the trust boundary — every `ul.*` value is plaintext on
+it — so the secret resting beside that data adds no on-device exposure the data
+didn't already have. The E2EE protects data **in transit and on the server**, not
+against someone holding the unlocked device. (Hardening the at-rest secret — e.g. a
+non-extractable WebCrypto key in IndexedDB — is a later option.) The Settings section
+(`SyncSettings`) generates, reveals, and tears down the phrase; an app-wide
+`SyncBootstrap` syncs on load and when the tab regains focus.
+
 ## Consequences
 
 - **Good:** true multi-device continuity while keeping the local-first promise —
@@ -92,8 +103,9 @@ dependency) behind a small injectable store, reusing the same pure `mergeEntries
 - **Recovery is the user's.** E2EE means the maintainer **cannot** help a user who
   loses their phrase — the explicit trade for zero-knowledge. The backup file is
   the net.
-- **Deferred:** wiring the engine over the live `ul.*` stores with change events,
-  the recovery-phrase UI, the mobile/extension ciphers, Upstash provisioning +
-  deploy, and the v2 refinements (element-level merge, atomic server merge under
-  concurrent push, an incremental pull cursor) are follow-ups; this ADR records
-  the model and lands the pure engine + web crypto/transport/server seams.
+- **Landed since:** the pure engine + web crypto/transport/server seams, wiring over
+  the live `ul.*` stores, the managed-key fan-out (reader/prayer settings, last-read
+  position), and the recovery-phrase Settings UI with background sync.
+- **Deferred:** the mobile/extension ciphers, Upstash provisioning + deploy, and the
+  v2 refinements (element-level merge for set/map keys, atomic server merge under
+  concurrent push, an incremental pull cursor).

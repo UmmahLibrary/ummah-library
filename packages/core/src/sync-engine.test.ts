@@ -63,8 +63,19 @@ describe("runSync", () => {
     const out = await runSync({ cipher, backend, state: b });
 
     expect(b.get("ul.x")).toBe("hello");
-    expect(out.applied).toBe(1); // only ul.x; ul.y is a tombstone tie
-    expect(out.pushed).toBe(2);
+    expect(out.applied).toBe(1); // only ul.x
+    expect(out.pushed).toBe(0); // b never set anything, so it pushes nothing
+  });
+
+  it("does not push keys this device never set", async () => {
+    const backend = new FakeBackend();
+    const a = new FakeState(["ul.x", "ul.y", "ul.z"]);
+    a.set("ul.x", "v", at(10));
+
+    const out = await runSync({ cipher, backend, state: a });
+
+    expect(out.pushed).toBe(1); // ul.x only; ul.y and ul.z were never set
+    expect(backend.store.get("acct-1")).toHaveLength(1);
   });
 
   it("resolves a conflict in favour of the newer clock, on every device", async () => {
