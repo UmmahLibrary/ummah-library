@@ -436,8 +436,10 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
 }
 /* While audio is actively playing, the reciting highlight (.ayah--playing) is
    the single indicator — hide the reading marker so two āyāt are never lit at
-   once (e.g. you scroll ahead while a verse recites). */
-body.audio-playing .ayah--current {
+   once (e.g. you scroll ahead while a verse recites). The `:not(.ayah--playing)`
+   is essential: the reciting āyah carries BOTH classes, and without it this
+   higher-specificity rule would wipe the reciting highlight too. */
+body.audio-playing .ayah--current:not(.ayah--playing) {
   background: transparent;
   box-shadow: none;
 }
