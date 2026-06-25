@@ -120,7 +120,23 @@ export function SurahReaderClient({
     [pages],
   );
   const lastPageRef = useRef(0);
-  const lastAyaRef = useRef(0);
+  const currentAyaRef = useRef(0);
+
+  // Mark, persist, and remember the reader's current āyah. The marker (a soft
+  // gold bar) shows where you are; the same āyah is saved as the resume point
+  // and is where the dock ▶ starts playback from.
+  const markCurrentAya = useCallback(
+    (aya: number) => {
+      if (aya <= 0 || aya === currentAyaRef.current) return;
+      currentAyaRef.current = aya;
+      document
+        .querySelectorAll(".ayah--current")
+        .forEach((el) => el.classList.remove("ayah--current"));
+      document.getElementById(`${surah.number}:${aya}`)?.classList.add("ayah--current");
+      writeLastRead(surah.number, aya, surah.ayahCount);
+    },
+    [surah.number, surah.ayahCount],
+  );
 
   // Restore persisted reading mode on mount. The mode is restored pre-paint into
   // `data-reading-mode` by the layout bootstrap (the sole sync read, for FOUC).
@@ -172,11 +188,8 @@ export function SurahReaderClient({
       }
     });
     if (aya === 0 && current > 0) aya = pageFirstAya.get(current) ?? 0;
-    if (aya > 0 && aya !== lastAyaRef.current) {
-      lastAyaRef.current = aya;
-      writeLastRead(surah.number, aya, surah.ayahCount);
-    }
-  }, [pageFirstAya, surah.number, surah.ayahCount]);
+    if (aya > 0) markCurrentAya(aya);
+  }, [pageFirstAya, markCurrentAya]);
 
   // Count the opening page so short sūrahs (no scroll) still register.
   useEffect(() => {
@@ -546,11 +559,12 @@ export function SurahReaderClient({
         verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
         reciters={reciters}
         variant="dock"
-        onAyah={(v) => {
-          // Listening advances the resume position too, not just scrolling.
-          lastAyaRef.current = v.aya;
-          writeLastRead(v.sura, v.aya, surah.ayahCount);
-        }}
+        // Listening advances the current/resume āyah too, not just scrolling.
+        onAyah={(v) => markCurrentAya(v.aya)}
+        // The dock ▶ starts from the āyah you're on, not the surah start.
+        startVerse={() =>
+          currentAyaRef.current > 0 ? { sura: surah.number, aya: currentAyaRef.current } : null
+        }
       />
     </>
   );
