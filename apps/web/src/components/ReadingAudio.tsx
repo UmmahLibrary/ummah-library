@@ -75,11 +75,14 @@ export function ReadingAudio({
   verses,
   reciters,
   variant = "inline",
+  onAyah,
 }: {
   verses: Verse[];
   reciters: ReciterPlugin[];
   /** "inline" = compact bar inside content (juzʾ); "dock" = fixed bottom player (surah reader). */
   variant?: "inline" | "dock";
+  /** Called when an āyah starts playing — lets the reader advance its resume position. */
+  onAyah?: (verse: Verse) => void;
 }) {
   const [reciterId, setReciterId] = useState(reciters[0]?.id ?? "");
   const [current, setCurrent] = useState<string | null>(null);
@@ -264,6 +267,7 @@ export function ReadingAudio({
         setCurrent(key);
         setIsPlaying(true);
         highlightAyah(key);
+        onAyah?.(verse);
       },
       () => stop(),
     );
