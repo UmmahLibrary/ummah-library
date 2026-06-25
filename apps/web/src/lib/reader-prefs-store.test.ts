@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   readLastRead,
+  readLastReadFull,
   readLoop,
   readScroll,
   readWordByWord,
@@ -29,6 +30,29 @@ describe("reader-prefs-store", () => {
   it("returns null last-read on a malformed value", () => {
     localStorage.setItem("ul.lastRead", "{nope");
     expect(readLastRead()).toBeNull();
+  });
+
+  it("round-trips the last-read āyah position and progress total", () => {
+    writeLastRead(2, 153, 286);
+    expect(readLastReadFull()).toEqual({ surah: 2, aya: 153, total: 286 });
+    expect(readLastRead()).toBe(2);
+  });
+
+  it("preserves the stored āyah when re-opening the same surah (surah-only write)", () => {
+    writeLastRead(2, 153, 286);
+    writeLastRead(2); // reader mount records the surah again
+    expect(readLastReadFull()).toEqual({ surah: 2, aya: 153, total: 286 });
+  });
+
+  it("resets the āyah when the last-read surah changes", () => {
+    writeLastRead(2, 153, 286);
+    writeLastRead(5); // opened a different surah
+    expect(readLastReadFull()).toEqual({ surah: 5 });
+  });
+
+  it("reads back a legacy surah-only record without an āyah", () => {
+    localStorage.setItem("ul.lastRead", JSON.stringify({ surah: 18 }));
+    expect(readLastReadFull()).toEqual({ surah: 18 });
   });
 
   it("round-trips the word-by-word toggle", () => {

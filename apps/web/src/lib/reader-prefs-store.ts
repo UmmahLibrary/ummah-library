@@ -14,25 +14,61 @@ const RATE_KEY = "ul.audioRate";
 // Mirrors the event key exported by components/WordByWord.
 const WBW_KEY = "ul.wbw";
 
-/** The surah number the reader last opened, or `null`. */
-export function readLastRead(): number | null {
+/** The last-read position: the surah, the furthest āyah reached, and that
+ *  surah's āyah count at write time (so the home card can show progress). */
+export interface LastRead {
+  surah: number;
+  aya?: number;
+  total?: number;
+}
+
+/** Parse the stored last-read record, tolerating corrupt / peer-synced values.
+ *  Read during render/scroll-restore: a corrupt null would crash on `.surah`;
+ *  a non-number surah must not flow through as a bogus value. */
+function parseLastRead(): LastRead | null {
   try {
     const raw = localStorage.getItem(LAST_READ_KEY);
     if (!raw) return null;
-    // Read during render/scroll-restore: a corrupt/peer-synced null would crash on
-    // `.surah`; a non-number surah must not flow through as a bogus value.
     const v = JSON.parse(raw) as unknown;
-    const surah =
-      v !== null && typeof v === "object" ? (v as { surah?: unknown }).surah : undefined;
-    return typeof surah === "number" ? surah : null;
+    if (v === null || typeof v !== "object") return null;
+    const o = v as { surah?: unknown; aya?: unknown; total?: unknown };
+    if (typeof o.surah !== "number") return null;
+    const rec: LastRead = { surah: o.surah };
+    if (typeof o.aya === "number") rec.aya = o.aya;
+    if (typeof o.total === "number") rec.total = o.total;
+    return rec;
   } catch {
     return null;
   }
 }
 
-export function writeLastRead(surah: number): void {
+/** The surah number the reader last opened, or `null`. */
+export function readLastRead(): number | null {
+  return parseLastRead()?.surah ?? null;
+}
+
+/** The full last-read position (surah + āyah + total), or `null`. */
+export function readLastReadFull(): LastRead | null {
+  return parseLastRead();
+}
+
+/**
+ * Record the last-read position. The reader writes the surah on mount and then
+ * `(surah, aya, total)` as it scrolls. A surah-only write preserves any āyah
+ * already stored for that same surah, so re-opening a surah doesn't reset the
+ * spot before the first scroll refines it.
+ */
+export function writeLastRead(surah: number, aya?: number, total?: number): void {
   try {
-    localStorage.setItem(LAST_READ_KEY, JSON.stringify({ surah }));
+    let rec: LastRead = { surah };
+    if (typeof aya === "number") {
+      rec.aya = aya;
+      if (typeof total === "number") rec.total = total;
+    } else {
+      const prev = parseLastRead();
+      if (prev && prev.surah === surah) rec = prev;
+    }
+    localStorage.setItem(LAST_READ_KEY, JSON.stringify(rec));
   } catch {
     /* storage unavailable */
   }

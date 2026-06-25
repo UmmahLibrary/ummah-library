@@ -19,6 +19,7 @@ import { ReadingTracker } from "./ReadingTracker";
 import { PlanReaderChip } from "./PlanReaderChip";
 import { recordMushafPage } from "../lib/reading-goals";
 import { writeReadingMode } from "../lib/reader-prefs";
+import { writeLastRead } from "../lib/reader-prefs-store";
 
 type ReadingMode = "translation" | "reading" | "reading-tr";
 
@@ -112,7 +113,14 @@ export function SurahReaderClient({
   const [progress, setProgress] = useState(0);
   const [mode, setMode] = useState<ReadingMode>("translation");
   const pages = useMemo(() => pagesOf(surah.number, ayahs), [surah.number, ayahs]);
+  // First āyah of each Madani page — the resume position for the continuous
+  // Reading/Mushaf modes, which have no per-āyah anchors to measure.
+  const pageFirstAya = useMemo(
+    () => new Map(pages.map((p) => [p.page, p.ayahs[0]?.aya ?? 0])),
+    [pages],
+  );
   const lastPageRef = useRef(0);
+  const lastAyaRef = useRef(0);
 
   // Restore persisted reading mode on mount. The mode is restored pre-paint into
   // `data-reading-mode` by the layout bootstrap (the sole sync read, for FOUC).
@@ -150,7 +158,22 @@ export function SurahReaderClient({
       lastPageRef.current = current;
       void recordMushafPage(current);
     }
-  }, []);
+    // Remember the āyah at the current reading line so the home "Continue
+    // reading" card can resume here. Verse mode has precise per-āyah anchors; the
+    // continuous Reading/Mushaf modes fall back to the current page's opening āyah.
+    let aya = 0;
+    box.querySelectorAll<HTMLElement>(".ayah").forEach((el) => {
+      if (el.offsetParent !== null && el.offsetTop <= top) {
+        const n = Number(el.id.split(":")[1]);
+        if (n > aya) aya = n;
+      }
+    });
+    if (aya === 0 && current > 0) aya = pageFirstAya.get(current) ?? 0;
+    if (aya > 0 && aya !== lastAyaRef.current) {
+      lastAyaRef.current = aya;
+      writeLastRead(surah.number, aya, surah.ayahCount);
+    }
+  }, [pageFirstAya, surah.number, surah.ayahCount]);
 
   // Count the opening page so short sūrahs (no scroll) still register.
   useEffect(() => {
