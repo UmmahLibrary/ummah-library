@@ -9,8 +9,8 @@ import { revealAyah, revealWord, totalWords } from "@ummahlibrary/core";
 const AYAH_SEL = ".mode-translation .ayah-ar";
 
 /**
- * Memorize / hide-and-peek mode (#134): a self-contained floating control that
- * conceals the Arabic so you can recite from memory, then reveals it — one word,
+ * Recite — hide & peek (#134): a self-contained floating control that conceals
+ * the Arabic so you can recite from memory, then reveals it — one word,
  * one āyah, or all at once — or tap any word to peek it.
  *
  * It drives the existing reader markup directly (the `peek-on` body class blurs
@@ -102,7 +102,7 @@ export function MemorizeBar() {
       <div style={shell}>
         <button type="button" onClick={toggleOn} style={pill(false)} aria-pressed={false}>
           <Icon name="eye" size={16} />
-          <span style={{ fontWeight: 700 }}>Memorize</span>
+          <span style={{ fontWeight: 700 }}>Recite</span>
         </button>
       </div>
     );
@@ -113,7 +113,7 @@ export function MemorizeBar() {
       <div style={tray}>
         <button type="button" onClick={toggleOn} style={pill(true)} aria-pressed={true}>
           <Icon name="eye" size={16} color={N.ink} />
-          <span style={{ fontWeight: 700 }}>Memorize</span>
+          <span style={{ fontWeight: 700 }}>Recite</span>
         </button>
         <div style={divider} aria-hidden="true" />
         <Ctl onClick={() => setRevealed((r) => revealWord(r, total()))}>Peek word</Ctl>
@@ -143,7 +143,7 @@ export function MemorizeBar() {
         >
           Translation
         </button>
-        <button type="button" onClick={toggleOn} style={closeBtn} aria-label="Exit memorize mode">
+        <button type="button" onClick={toggleOn} style={closeBtn} aria-label="Exit recite mode">
           <Icon name="close" size={15} />
         </button>
       </div>
