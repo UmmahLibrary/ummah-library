@@ -282,9 +282,13 @@ export function ReadingAudio({
     if (isPlaying && audio) {
       audio.pause();
       setIsPlaying(false);
+      // Drop the reciting highlight on pause so it can't linger on one āyah while
+      // the reader's current marker sits on another (the resume marker takes over).
+      highlightAyah(null);
     } else if (current && audio) {
       void audio.play();
       setIsPlaying(true);
+      highlightAyah(current);
     } else {
       // A fresh ▶ begins at the reader's current āyah (where you are), not the
       // surah start; fall back to the first verse before anything is marked.
@@ -292,6 +296,13 @@ export function ReadingAudio({
       if (start) playAll(start);
     }
   }
+
+  // Flag the body while audio actively plays, so the reader can hide its current
+  // marker and leave the reciting highlight as the sole indicator (see CSS).
+  useEffect(() => {
+    document.body.classList.toggle("audio-playing", isPlaying);
+    return () => document.body.classList.remove("audio-playing");
+  }, [isPlaying]);
 
   useEffect(() => {
     function onClick(event: MouseEvent) {

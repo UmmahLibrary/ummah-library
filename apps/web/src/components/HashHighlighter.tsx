@@ -6,9 +6,9 @@ import { useEffect } from "react";
 export function HashHighlighter() {
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const clearTimers = () => {
-      for (const t of timers) clearTimeout(t);
-      timers.length = 0;
+    let userTookOver = false;
+    const cancel = () => {
+      userTookOver = true;
     };
 
     function apply() {
@@ -17,40 +17,43 @@ export function HashHighlighter() {
       document.querySelectorAll(".ayah--target").forEach((e) => e.classList.remove("ayah--target"));
       const el = document.getElementById(id);
       if (!el) return;
-      // restart the flash animation
+      userTookOver = false;
+      // Flash once, then drop the class so it doesn't linger on the āyah.
       el.classList.remove("ayah--target");
       void el.offsetWidth;
       el.classList.add("ayah--target");
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      // Translations and word-by-word load after mount and grow the āyāt above
-      // the target, pushing it down — so the first scroll lands several āyāt
-      // early. Re-centre a few times as the layout settles. A user scroll cancels
-      // the pending corrections (see `cancel`), so we never fight a deliberate move.
-      clearTimers();
-      for (const delay of [150, 400, 800]) {
-        timers.push(
-          setTimeout(() => {
-            const node = document.getElementById(id);
-            if (!node) return;
-            const r = node.getBoundingClientRect();
-            const offCentre = Math.abs((r.top + r.bottom) / 2 - window.innerHeight / 2);
-            if (offCentre > 80) node.scrollIntoView({ block: "center" });
-          }, delay),
-        );
-      }
+      timers.push(setTimeout(() => el.classList.remove("ayah--target"), 1500));
+      // Position once, instantly — a single jump, not a smooth scroll that the
+      // async translation layout-shift then fights (which read as "shaky").
+      el.scrollIntoView({ block: "center" });
+      // Translations load after mount and shift the layout; the browser's
+      // scroll-anchoring keeps the āyah in place, so only nudge it back in the
+      // rare case it was actually pushed off-screen — and never after the user
+      // has taken over the scroll.
+      timers.push(
+        setTimeout(() => {
+          if (userTookOver) return;
+          const node = document.getElementById(id);
+          if (!node) return;
+          const r = node.getBoundingClientRect();
+          if (r.bottom < 90 || r.top > window.innerHeight - 90) {
+            node.scrollIntoView({ block: "center" });
+          }
+        }, 650),
+      );
     }
 
     apply();
     window.addEventListener("hashchange", apply);
-    window.addEventListener("wheel", clearTimers, { passive: true });
-    window.addEventListener("touchmove", clearTimers, { passive: true });
-    window.addEventListener("keydown", clearTimers);
+    window.addEventListener("wheel", cancel, { passive: true });
+    window.addEventListener("touchmove", cancel, { passive: true });
+    window.addEventListener("keydown", cancel);
     return () => {
       window.removeEventListener("hashchange", apply);
-      window.removeEventListener("wheel", clearTimers);
-      window.removeEventListener("touchmove", clearTimers);
-      window.removeEventListener("keydown", clearTimers);
-      clearTimers();
+      window.removeEventListener("wheel", cancel);
+      window.removeEventListener("touchmove", cancel);
+      window.removeEventListener("keydown", cancel);
+      for (const t of timers) clearTimeout(t);
     };
   }, []);
 
