@@ -3,12 +3,17 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import {
   OBLIGATORY_PRAYERS,
   PRAYER_LABELS,
+  type FastingQadaLog,
   type HaidLog,
   type PrayerStatus,
   type PrayerTrackerLog,
   type QadaLog,
+  adjustFastingMadeUp,
   adjustQada,
   currentPeriod,
+  fastingMadeUp,
+  fastingQadaOwed,
+  fastingQadaRemaining,
   isDatePaused,
   longestPrayerStreakWithPause,
   nextPrayerStatus,
@@ -27,6 +32,8 @@ import { useTheme, type Palette } from "../theme";
 import { mobilePrayerTrackerStore as prayerStore } from "../prayer-tracker-store";
 import { mobileQadaStore as qadaStore } from "../qada-store";
 import { mobileHaidStore as haidStore } from "../haid-store";
+import { mobileFastingQadaStore as fastingQadaStore } from "../fasting-qada-store";
+import { KEYS, getString } from "../storage";
 import { localISODate } from "../utils";
 
 const STATUS_LABEL: Record<PrayerStatus, string> = {
@@ -45,12 +52,19 @@ export function PrayerTrackerScreen() {
   const [log, setLog] = useState<PrayerTrackerLog>({});
   const [qada, setQadaLog] = useState<QadaLog>({});
   const [haid, setHaid] = useState<HaidLog>([]);
+  const [fastingQada, setFastingQada] = useState<FastingQadaLog>({ madeUp: 0 });
+  const [hijriAdjust, setHijriAdjust] = useState(0);
   const today = localISODate(new Date());
 
   useEffect(() => {
     void prayerStore.read().then(setLog);
     void qadaStore.read().then(setQadaLog);
     void haidStore.read().then(setHaid);
+    void fastingQadaStore.read().then(setFastingQada);
+    void getString(KEYS.hijriAdjust).then((raw) => {
+      const n = Number(raw);
+      if (Number.isFinite(n)) setHijriAdjust(n);
+    });
   }, []);
 
   function adjustQadaFor(prayer: (typeof OBLIGATORY_PRAYERS)[number], delta: number) {
@@ -69,6 +83,14 @@ export function PrayerTrackerScreen() {
     });
   }
 
+  function adjustFasting(delta: number, owed: number) {
+    setFastingQada((prev) => {
+      const next = adjustFastingMadeUp(prev, delta, owed);
+      void fastingQadaStore.write(next);
+      return next;
+    });
+  }
+
   function cycle(prayer: (typeof OBLIGATORY_PRAYERS)[number]) {
     setLog((prev) => {
       const next = setPrayerStatus(prev, today, prayer, nextPrayerStatus(statusFor(prev[today], prayer)));
@@ -81,6 +103,9 @@ export function PrayerTrackerScreen() {
   const days = recentDays(log, today, 7);
   const haidCurrent = currentPeriod(haid);
   const haidDays = haidCurrent ? periodLength(haidCurrent, today) : 0;
+  const fastingOwed = fastingQadaOwed(haid, today, hijriAdjust);
+  const fastingRemaining = fastingQadaRemaining(fastingQada, fastingOwed);
+  const fastingDone = fastingMadeUp(fastingQada, fastingOwed);
   const stats: [string, string][] = [
     [`${prayedCount(todayLog)}/5`, "Prayed today"],
     [`${prayerStreakWithPause(log, haid, today)} 🔥`, "Day streak"],
@@ -221,6 +246,45 @@ export function PrayerTrackerScreen() {
           );
         })}
       </View>
+
+      <Text style={styles.sectionLabel}>
+        Make-up fasts · ṣawm qaḍāʾ ({fastingRemaining} to make up)
+      </Text>
+      {fastingOwed === 0 ? (
+        <Text style={styles.fastingHint}>
+          No fasts to make up. Days missed during a ḥayḍ pause in Ramaḍān appear here automatically.
+        </Text>
+      ) : (
+        <View style={styles.qadaList}>
+          <View style={styles.qadaRow}>
+            <Text style={styles.qadaName}>Ramaḍān fasts</Text>
+            <View style={styles.qadaCtrls}>
+              <Pressable
+                style={[styles.step, fastingRemaining === 0 && styles.stepDisabled]}
+                disabled={fastingRemaining === 0}
+                onPress={() => adjustFasting(1, fastingOwed)}
+                accessibilityLabel="Mark one fast made up"
+              >
+                <Text style={styles.stepMark}>−</Text>
+              </Pressable>
+              <Text style={[styles.qadaCount, { color: fastingRemaining ? colors.accent : colors.faint }]}>
+                {fastingRemaining}
+              </Text>
+              <Pressable
+                style={[styles.step, fastingDone === 0 && styles.stepDisabled]}
+                disabled={fastingDone === 0}
+                onPress={() => adjustFasting(-1, fastingOwed)}
+                accessibilityLabel="Undo one made-up fast"
+              >
+                <Text style={styles.stepMark}>+</Text>
+              </Pressable>
+            </View>
+          </View>
+          <Text style={styles.fastingHint}>
+            {fastingDone} of {fastingOwed} made up. Tap − as you fast each one back.
+          </Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -345,5 +409,6 @@ function makeStyles(c: Palette) {
     stepDisabled: { backgroundColor: "transparent", opacity: 0.5 },
     stepMark: { color: c.accent, fontSize: 20, fontWeight: "700", lineHeight: 22 },
     qadaCount: { minWidth: 26, textAlign: "center", fontSize: 16, fontWeight: "800" },
+    fastingHint: { color: c.faint, fontSize: 12.5, marginTop: 6 },
   });
 }

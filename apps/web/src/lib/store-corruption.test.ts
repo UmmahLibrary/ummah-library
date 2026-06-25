@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { webQadaStore } from "./qada-store";
 import { webPrayerTrackerStore } from "./prayer-tracker-store";
 import { webHaidStore } from "./haid-store";
+import { webFastingQadaStore } from "./fasting-qada-store";
 import { readHistory } from "./search-history-store";
 import { webAchievementsStore } from "./achievements-store";
 import { readLearned } from "./asma-store";
@@ -26,9 +27,11 @@ describe("store read() corrupt-value hardening (web)", () => {
       localStorage.setItem("ul.qada", bad);
       localStorage.setItem("ul.prayerLog", bad);
       localStorage.setItem("ul.asmaLearned", bad);
+      localStorage.setItem("ul.fastingQada", bad);
       expect(await webQadaStore.read()).toEqual({});
       expect(await webPrayerTrackerStore.read()).toEqual({});
       expect(readLearned()).toEqual({});
+      expect(await webFastingQadaStore.read()).toEqual({ madeUp: 0 });
     }
   });
 

@@ -42,6 +42,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0031](0031-haid-pause.md)                    | Ḥayḍ pause: menstrual pause preserves the prayer streak                | Accepted |
 | [0032](0032-achievements.md)                  | Achievements: declarative badge engine over existing local data        | Accepted |
 | [0033](0033-account-sync.md)                  | Cross-device sync: opt-in, E2E-encrypted, zero-PII (amends 0003, 0006) | Accepted |
+| [0034](0034-fasting-qada.md)                  | Fasting qaḍāʾ: make-up fasts derived from the ḥayḍ pause ∩ Ramaḍān     | Accepted |
 
 ## Writing a new ADR
 
