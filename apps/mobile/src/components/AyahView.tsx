@@ -28,6 +28,17 @@ interface Props {
   scale: number;
   onPlayFrom: (aya: number) => void;
   onPlayOne: (aya: number) => void;
+  /** Memorize / hide-and-peek (#134). */
+  peek?: boolean;
+  /** Global word index of this āyah's first word, for the shared reveal cursor. */
+  peekStart?: number;
+  /** How many words (globally, in reading order) are revealed. */
+  peekRevealed?: number;
+  /** Global indices of words revealed ad-hoc by tapping. */
+  peekExtra?: ReadonlySet<number>;
+  /** Also conceal the translation while memorizing. */
+  peekHideTr?: boolean;
+  onPeekWord?: (globalIndex: number) => void;
 }
 
 /**
@@ -47,6 +58,12 @@ function AyahViewImpl({
   scale,
   onPlayFrom,
   onPlayOne,
+  peek = false,
+  peekStart = 0,
+  peekRevealed = 0,
+  peekExtra,
+  peekHideTr = false,
+  onPeekWord,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -86,22 +103,39 @@ function AyahViewImpl({
 
       <Text
         style={[styles.arabic, { fontSize: 26 * scale, lineHeight: 50 * scale }]}
-        onPress={() => onPlayFrom(aya)}
+        onPress={peek ? undefined : () => onPlayFrom(aya)}
       >
-        {/* Only the playing āyah splits into per-word spans (for highlighting);
-            every other āyah renders as a single text node, which keeps long
-            surahs cheap to scroll. */}
-        {playing
-          ? words.map((w, i) => (
-              <Text key={i} style={i === activeWord ? styles.wordActive : undefined}>
-                {w}
-                {i < words.length - 1 ? " " : ""}
-              </Text>
-            ))
-          : arabic}
+        {/* In peek mode every word is a tappable span — concealed until the
+            reveal cursor reaches it or it's tapped. Otherwise only the playing
+            āyah splits into per-word spans (for highlighting); every other āyah
+            renders as a single text node, which keeps long surahs cheap to scroll. */}
+        {peek
+          ? words.map((w, i) => {
+              const gi = peekStart + i;
+              const shown = gi < peekRevealed || peekExtra?.has(gi);
+              return (
+                <Text
+                  key={i}
+                  onPress={() => onPeekWord?.(gi)}
+                  style={shown ? undefined : styles.wordHidden}
+                >
+                  {w}
+                  {i < words.length - 1 ? " " : ""}
+                </Text>
+              );
+            })
+          : playing
+            ? words.map((w, i) => (
+                <Text key={i} style={i === activeWord ? styles.wordActive : undefined}>
+                  {w}
+                  {i < words.length - 1 ? " " : ""}
+                </Text>
+              ))
+            : arabic}
       </Text>
 
-      {translations.map((t) => (
+      {!peekHideTr &&
+        translations.map((t) => (
         <View key={t.id} style={styles.tr}>
           {translations.length > 1 && <Text style={styles.trName}>{t.name}</Text>}
           <Text
@@ -143,6 +177,8 @@ function makeStyles(c: Palette) {
     actions: { flexDirection: "row", alignItems: "center", gap: 20 },
     arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
     wordActive: { color: c.accent },
+    // Concealed word: keep its footprint (a hint of length) but hide the glyphs.
+    wordHidden: { color: "transparent", backgroundColor: c.borderSoft },
     tr: { marginTop: 12 },
     trName: { color: c.faint, fontSize: 12, marginBottom: 3, fontFamily: FONT.medium },
     trText: { color: c.muted },

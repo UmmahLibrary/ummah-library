@@ -603,6 +603,40 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   text-align: right;
 }
 
+/* ---- Memorize: hide & peek (#134) ---- */
+/* Peek operates on the per-word verse layout; force it visible whatever reading
+   mode is selected, so the .ayah-ar .w spans are always present to conceal. */
+body.peek-on .mode-translation {
+  display: block !important;
+}
+body.peek-on .mode-reading,
+body.peek-on .mode-reading-tr {
+  display: none !important;
+}
+/* Conceal each Arabic word; a tap or a reveal control lifts the blur. */
+body.peek-on .ayah-ar .w {
+  filter: blur(7px);
+  cursor: pointer;
+  user-select: none;
+  transition: filter 0.18s ease;
+}
+body.peek-on .ayah-ar .w.w--peek {
+  filter: none;
+  user-select: auto;
+}
+/* Optionally conceal the translations too. */
+body.peek-on.peek-hide-tr .ayah-tr {
+  filter: blur(6px);
+  user-select: none;
+  transition: filter 0.18s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.peek-on .ayah-ar .w,
+  body.peek-on.peek-hide-tr .ayah-tr {
+    transition: none;
+  }
+}
+
 /* ---- Prayer times ---- */
 .prayer-cta {
   display: flex;

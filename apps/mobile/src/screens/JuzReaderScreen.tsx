@@ -1,7 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { JUZ_STARTS, TOTAL_JUZ, resolveActiveTranslation, type VerseKey } from "@ummahlibrary/core";
+import {
+  JUZ_STARTS,
+  TOTAL_JUZ,
+  resolveActiveTranslation,
+  revealAyah,
+  revealWord,
+  totalWords,
+  type VerseKey,
+} from "@ummahlibrary/core";
 import { api } from "../api";
 import { RECITER, RECITERS } from "../plugins";
 import { useTheme, type Palette } from "../theme";
@@ -9,6 +17,7 @@ import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
 import { AudioRangeControls } from "../components/AudioRangeControls";
+import { MemorizeBar } from "../components/MemorizeBar";
 import { DEFAULT_EDITION } from "../types";
 import type { ReadStackParamList } from "../navigation/types";
 
@@ -49,6 +58,12 @@ export function JuzReaderScreen({ route }: Props) {
   const edition = resolveActiveTranslation(editions, readingTranslation, DEFAULT_EDITION);
   const [lines, setLines] = useState<Line[] | null>(null);
   const [error, setError] = useState(false);
+
+  // Memorize / hide-and-peek (#134) — ephemeral, so a juzʾ never opens hidden.
+  const [peek, setPeek] = useState(false);
+  const [revealed, setRevealed] = useState(0);
+  const [peekExtra, setPeekExtra] = useState<Set<number>>(new Set());
+  const [hideTr, setHideTr] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -96,6 +111,32 @@ export function JuzReaderScreen({ route }: Props) {
 
   const verses = useMemo(() => (lines ?? []).map((l) => ({ sura: l.sura, aya: l.aya })), [lines]);
 
+  // Peek geometry: per-āyah words and the global index each āyah starts at, so the
+  // shared reveal cursor maps onto every word in reading order.
+  const peekWords = useMemo(() => (lines ?? []).map((l) => l.arabic.split(" ")), [lines]);
+  const wordsPerAyah = useMemo(() => peekWords.map((w) => w.length), [peekWords]);
+  const peekStarts = useMemo(() => {
+    const starts: number[] = [];
+    let acc = 0;
+    for (const c of wordsPerAyah) {
+      starts.push(acc);
+      acc += c;
+    }
+    return starts;
+  }, [wordsPerAyah]);
+  const peekTotal = useMemo(() => totalWords(wordsPerAyah), [wordsPerAyah]);
+
+  const onPeekWord = useCallback((gi: number) => setPeekExtra((p) => new Set(p).add(gi)), []);
+  const togglePeek = useCallback(() => {
+    setPeek((p) => {
+      const next = !p;
+      setRevealed(0);
+      setPeekExtra(new Set());
+      if (!next) setHideTr(false);
+      return next;
+    });
+  }, []);
+
   if (error) {
     return (
       <View style={styles.center}>
@@ -137,8 +178,26 @@ export function JuzReaderScreen({ route }: Props) {
       <View style={styles.audioExtras}>
         <AudioRangeControls audio={audio} verses={verses} />
       </View>
+      <View style={styles.memorize}>
+        <MemorizeBar
+          on={peek}
+          hideTr={hideTr}
+          onToggle={togglePeek}
+          onPeekWord={() => setRevealed((r) => revealWord(r, peekTotal))}
+          onRevealAyah={() => setRevealed((r) => revealAyah(r, wordsPerAyah))}
+          onShowAll={() => {
+            setRevealed(peekTotal);
+            setPeekExtra(new Set());
+          }}
+          onHideAll={() => {
+            setRevealed(0);
+            setPeekExtra(new Set());
+          }}
+          onToggleTr={() => setHideTr((v) => !v)}
+        />
+      </View>
 
-      {lines.map((l) => {
+      {lines.map((l, i) => {
         const key = verseKeyOf(l);
         const playing = audio.playingKey === key;
         return (
@@ -146,12 +205,28 @@ export function JuzReaderScreen({ route }: Props) {
             {l.surahHeader && <Text style={styles.surahHeader}>{l.surahHeader}</Text>}
             <Pressable
               style={[styles.ayah, playing && styles.ayahPlaying]}
-              onPress={() => audio.playFrom(verses, l, true)}
+              onPress={peek ? undefined : () => audio.playFrom(verses, l, true)}
             >
               <Text style={[styles.arabic, { fontSize: 24 * scale, lineHeight: 44 * scale }]}>
-                {l.arabic} <Text style={styles.marker}>﴿{l.aya}﴾</Text>
+                {peek
+                  ? peekWords[i].map((w, wi) => {
+                      const gi = peekStarts[i]! + wi;
+                      const shown = gi < revealed || peekExtra.has(gi);
+                      return (
+                        <Text
+                          key={wi}
+                          onPress={() => onPeekWord(gi)}
+                          style={shown ? undefined : styles.wordHidden}
+                        >
+                          {w}
+                          {wi < peekWords[i]!.length - 1 ? " " : ""}
+                        </Text>
+                      );
+                    })
+                  : l.arabic}{" "}
+                <Text style={styles.marker}>﴿{l.aya}﴾</Text>
               </Text>
-              {l.translation ? (
+              {l.translation && !hideTr ? (
                 <Text style={[styles.tr, { fontSize: 15 * scale, lineHeight: 23 * scale }]}>
                   {l.translation}
                 </Text>
@@ -172,6 +247,7 @@ function makeStyles(c: Palette) {
     content: { paddingHorizontal: 18, paddingBottom: 40 },
     audioBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
     audioExtras: { marginBottom: 12 },
+    memorize: { marginBottom: 14 },
     audioPlay: {
       paddingVertical: 8,
       paddingHorizontal: 18,
@@ -210,6 +286,7 @@ function makeStyles(c: Palette) {
     },
     ayahPlaying: { backgroundColor: c.bgElev, borderBottomColor: "transparent" },
     arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
+    wordHidden: { color: "transparent", backgroundColor: c.borderSoft },
     marker: { color: c.accent, fontSize: 17, fontFamily: FONT.ar },
     tr: { color: c.fg, marginTop: 10 },
   });

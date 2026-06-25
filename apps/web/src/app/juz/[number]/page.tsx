@@ -19,6 +19,7 @@ import { ReadingTranslationFlow } from "../../../components/ReadingTranslationFl
 import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
 import { SITE_URL } from "../../../lib/site";
 import { WordByWord } from "../../../components/WordByWord";
+import { MemorizeBar } from "../../../components/MemorizeBar";
 
 const RECITERS = pluginRegistry.byKind("reciter");
 
@@ -142,6 +143,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
       </header>
 
       <ReadingModeToggle />
+      <MemorizeBar />
 
       <div className="mode-translation">
         <EditionManager />
