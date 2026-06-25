@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NoorHomePage } from "./NoorHomePage";
@@ -75,5 +75,24 @@ describe("NoorHomePage tabs", () => {
     // Within the Meccan group, surahs keep surah-number order (Al-Fātiḥah 1 before Al-ʿAlaq 96)
     // — the opposite of the old chronological ordering, which proves the regrouping.
     expect(positionOf(/Al-Fātiḥah/)).toBeLessThan(positionOf(/Al-ʿAlaq/));
+  });
+});
+
+describe("NoorHomePage continue-reading card", () => {
+  afterEach(() => localStorage.clear());
+
+  it("resumes at the stored āyah via a #sura:aya deep link (not the surah start)", () => {
+    localStorage.setItem("ul.lastRead", JSON.stringify({ surah: 2, aya: 153, total: 286 }));
+    render(<NoorHomePage surahs={surahs} />);
+
+    const resume = screen.getByRole("link", { name: /Continue reading/i });
+    expect(resume.getAttribute("href")).toBe("/surah/2#2:153");
+  });
+
+  it("falls back to opening Al-Fātiḥah when nothing has been read yet", () => {
+    render(<NoorHomePage surahs={surahs} />);
+
+    const start = screen.getByRole("link", { name: /Start reading/i });
+    expect(start.getAttribute("href")).toBe("/surah/1");
   });
 });

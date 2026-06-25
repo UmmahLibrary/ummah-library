@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
-import { JUZ_STARTS, TOTAL_JUZ } from "@ummahlibrary/core";
+import { useEffect, useState } from "react";
+import { JUZ_STARTS, TOTAL_JUZ, ayahKey, juzNumberOf } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import { HomeHeroCards } from "./HomeHeroCards";
 import { HomeVerseOfDay } from "./HomeVerseOfDay";
+import { readLastReadFull, type LastRead } from "../lib/reader-prefs-store";
 import { useSearch } from "./shell/SearchContext";
 
 interface Surah {
@@ -319,6 +320,132 @@ function RevGroups({ surahs }: { surahs: Surah[] }) {
   );
 }
 
+/**
+ * "Continue reading" card — resolves the reader's real last-read position from
+ * the reader-prefs store and resumes at the exact āyah (`#sura:aya`, scrolled to
+ * by `HashHighlighter`). Before hydration, and for first-time readers, it gently
+ * falls back to opening at Al-Fātiḥah instead of a misleading fixed position.
+ */
+function ContinueReadingCard({ surahs }: { surahs: Surah[] }) {
+  const [lr, setLr] = useState<LastRead | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setLr(readLastReadFull());
+    setMounted(true);
+  }, []);
+
+  const byNumber = new Map(surahs.map((s) => [s.number, s]));
+  const resolved = (mounted && lr && byNumber.get(lr.surah)) || byNumber.get(1);
+  if (!resolved) return null;
+
+  const isResume = mounted && !!lr && lr.surah === resolved.number;
+  const aya = isResume ? (lr!.aya ?? 1) : 1;
+  const total = (isResume && lr!.total) || resolved.ayahCount;
+  const pct = total > 0 ? Math.min(100, Math.round((aya / total) * 100)) : 0;
+  let juz = 1;
+  try {
+    juz = juzNumberOf({ sura: resolved.number, aya });
+  } catch {
+    /* an out-of-range stored āyah → keep the surah's opening juzʾ */
+  }
+  const href =
+    aya > 1
+      ? `/surah/${resolved.number}#${ayahKey({ sura: resolved.number, aya })}`
+      : `/surah/${resolved.number}`;
+
+  return (
+    <Link
+      href={href}
+      style={{
+        display: "block",
+        borderRadius: 16,
+        padding: 24,
+        background: `linear-gradient(135deg, ${N.cardHi}, ${N.card})`,
+        border: `1px solid ${N.border}`,
+        position: "relative",
+        overflow: "hidden",
+        textDecoration: "none",
+        marginBottom: 16,
+        transition: "border-color .15s",
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{ position: "absolute", right: -30, top: -30, pointerEvents: "none" }}
+      >
+        <Khatam size={150} color={N.gold} sw={1.2} opacity={0.1} />
+      </div>
+      <div
+        style={{
+          fontSize: 11.5,
+          letterSpacing: 1.2,
+          textTransform: "uppercase",
+          color: N.faint,
+          fontWeight: 700,
+          marginBottom: 12,
+          fontFamily: N.ui,
+        }}
+      >
+        {isResume ? "Continue reading" : "Start reading"}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: "clamp(20px,3vw,25px)",
+              fontWeight: 800,
+              letterSpacing: -0.5,
+              color: N.fg,
+              fontFamily: N.ui,
+            }}
+          >
+            {resolved.transliteration}
+          </div>
+          <div style={{ fontSize: 14, color: N.muted, marginTop: 3, fontFamily: N.ui }}>
+            Ayah {aya} · {resolved.englishName} · Juzʾ {juz}
+          </div>
+        </div>
+        <div className="noor-ar" style={{ fontSize: 40, color: N.goldHi }}>
+          {resolved.name}
+        </div>
+      </div>
+      <div
+        style={{
+          marginTop: 18,
+          height: 6,
+          borderRadius: 3,
+          background: N.bg,
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ width: `${pct}%`, height: "100%", background: N.goldGrad }} />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginTop: 8,
+          fontSize: 12.5,
+          color: N.faint,
+          fontFamily: N.ui,
+        }}
+      >
+        <span>{isResume ? `${pct}% through the surah` : "Begin from the first āyah"}</span>
+        <span style={{ color: N.gold, fontWeight: 600 }}>{isResume ? "Resume →" : "Open →"}</span>
+      </div>
+    </Link>
+  );
+}
+
 export function NoorHomePage({ surahs }: Props) {
   const { query } = useSearch();
   const [tab, setTab] = useState<"surah" | "juz" | "rev">("surah");
@@ -389,95 +516,8 @@ export function NoorHomePage({ surahs }: Props) {
         {/* Next prayer + today's reading summary */}
         <HomeHeroCards />
 
-        {/* Continue reading card */}
-        <Link
-          href="/surah/2"
-          style={{
-            display: "block",
-            borderRadius: 16,
-            padding: 24,
-            background: `linear-gradient(135deg, ${N.cardHi}, ${N.card})`,
-            border: `1px solid ${N.border}`,
-            position: "relative",
-            overflow: "hidden",
-            textDecoration: "none",
-            marginBottom: 16,
-            transition: "border-color .15s",
-          }}
-        >
-          <div
-            aria-hidden="true"
-            style={{ position: "absolute", right: -30, top: -30, pointerEvents: "none" }}
-          >
-            <Khatam size={150} color={N.gold} sw={1.2} opacity={0.1} />
-          </div>
-          <div
-            style={{
-              fontSize: 11.5,
-              letterSpacing: 1.2,
-              textTransform: "uppercase",
-              color: N.faint,
-              fontWeight: 700,
-              marginBottom: 12,
-              fontFamily: N.ui,
-            }}
-          >
-            Continue reading
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: "clamp(20px,3vw,25px)",
-                  fontWeight: 800,
-                  letterSpacing: -0.5,
-                  color: N.fg,
-                  fontFamily: N.ui,
-                }}
-              >
-                Al-Baqarah
-              </div>
-              <div style={{ fontSize: 14, color: N.muted, marginTop: 3, fontFamily: N.ui }}>
-                Ayah 153 · The Cow · Juzʾ 2
-              </div>
-            </div>
-            <div className="noor-ar" style={{ fontSize: 40, color: N.goldHi }}>
-              البقرة
-            </div>
-          </div>
-          <div
-            style={{
-              marginTop: 18,
-              height: 6,
-              borderRadius: 3,
-              background: N.bg,
-              overflow: "hidden",
-            }}
-          >
-            <div style={{ width: "54%", height: "100%", background: N.goldGrad }} />
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: 8,
-              fontSize: 12.5,
-              color: N.faint,
-              fontFamily: N.ui,
-            }}
-          >
-            <span>54% through the surah</span>
-            <span style={{ color: N.gold, fontWeight: 600 }}>Resume →</span>
-          </div>
-        </Link>
+        {/* Continue reading card — driven by the real last-read position */}
+        <ContinueReadingCard surahs={surahs} />
 
         {/* Verse of the day — deterministic per calendar date, resolved client-side */}
         <HomeVerseOfDay
