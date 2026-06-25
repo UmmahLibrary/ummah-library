@@ -4,8 +4,8 @@ import { Icon } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 
 /**
- * Memorize / hide-and-peek controls (#134) for the mobile readers. Collapsed it
- * is a single "Memorize" pill; expanded it reveals the recitation testing
+ * Recite — hide & peek controls (#134) for the mobile readers. Collapsed it
+ * is a single "Recite" pill; expanded it reveals the recitation testing
  * controls. State lives in the screen — this is the presentation only, so the
  * surah and juzʾ readers share one bar.
  */
@@ -33,9 +33,9 @@ export function MemorizeBar({
 
   if (!on) {
     return (
-      <Pressable style={styles.pill} onPress={onToggle} accessibilityLabel="Memorize mode">
+      <Pressable style={styles.pill} onPress={onToggle} accessibilityLabel="Recite mode">
         <Icon name="eye" size={15} color={colors.accent} />
-        <Text style={styles.pillText}>Memorize</Text>
+        <Text style={styles.pillText}>Recite</Text>
       </Pressable>
     );
   }
@@ -46,10 +46,10 @@ export function MemorizeBar({
         <Pressable
           style={[styles.pill, styles.pillOn]}
           onPress={onToggle}
-          accessibilityLabel="Exit memorize mode"
+          accessibilityLabel="Exit recite mode"
         >
           <Icon name="eye" size={15} color={colors.ink} />
-          <Text style={[styles.pillText, styles.pillTextOn]}>Memorize</Text>
+          <Text style={[styles.pillText, styles.pillTextOn]}>Recite</Text>
         </Pressable>
         <Pressable
           style={[styles.ctl, hideTr && styles.ctlOn]}
