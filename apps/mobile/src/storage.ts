@@ -14,6 +14,7 @@ export const KEYS = {
   reciter: "ul.reciter",
   audioRate: "ul.audioRate",
   scale: "ul.scale",
+  transliteration: "ul.transliteration",
   theme: "ul.theme",
   bookmarks: "ul.bookmarks",
   collections: "ul.collections",
@@ -75,6 +76,8 @@ export const isFiniteNumber = (v: unknown): boolean => typeof v === "number" && 
 /** A string[] — guards list prefs (e.g. editions). */
 export const isStringArray = (v: unknown): boolean =>
   Array.isArray(v) && v.every((x) => typeof x === "string");
+/** A boolean — guards on/off prefs (e.g. transliteration). */
+export const isBoolean = (v: unknown): boolean => typeof v === "boolean";
 
 export async function setJSON(key: string, value: unknown): Promise<void> {
   try {

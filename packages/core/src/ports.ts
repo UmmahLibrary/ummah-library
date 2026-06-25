@@ -319,6 +319,8 @@ export interface StoredSettings {
   tafsir: string | null;
   /** Reading font scale. */
   scale: number | null;
+  /** Show the per-āyah Latin transliteration line under the Arabic (#150). */
+  transliteration: boolean | null;
 }
 
 /**
@@ -335,6 +337,8 @@ export interface SettingsStore {
   writeReciter(id: string): Promise<void>;
   writeTafsir(id: string): Promise<void>;
   writeScale(scale: number): Promise<void>;
+  /** Toggle the per-āyah transliteration line (#150). */
+  writeTransliteration(on: boolean): Promise<void>;
 }
 
 /** The reader's prayer-times location and calculation config as persisted. */

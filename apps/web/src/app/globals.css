@@ -1873,6 +1873,13 @@ body.peek-on.peek-hide-tr .ayah-tr {
   font-size: 0.8rem;
   margin-inline-end: 0.4rem;
 }
+/* Latin transliteration line (#150), shown between the Arabic and translations. */
+.ayah-translit {
+  color: var(--faint);
+  font-style: italic;
+  font-size: calc(0.95rem * var(--reading-scale, 1));
+  margin-bottom: 0.35rem;
+}
 
 /* ---- Nav ---- */
 .reader-nav {

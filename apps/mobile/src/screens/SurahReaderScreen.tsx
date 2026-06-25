@@ -30,7 +30,7 @@ import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { useLibrary } from "../state/LibraryContext";
 import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
-import { DEFAULT_EDITION } from "../types";
+import { DEFAULT_EDITION, TRANSLIT_EDITION } from "../types";
 import { ReaderControls } from "../components/ReaderControls";
 import { AudioRangeControls } from "../components/AudioRangeControls";
 import { MemorizeBar } from "../components/MemorizeBar";
@@ -56,11 +56,13 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     readingTranslation,
     reciterId,
     scale,
+    transliteration,
     catalogue,
     setEditions,
     setReadingMode,
     setReadingTranslation,
     setScale,
+    setTransliteration,
   } = settings;
   const { setLastRead, isBookmarked, toggleBookmark } = useLibrary();
 
@@ -70,6 +72,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   const [meta, setMeta] = useState<Surah | null>(null);
   const [ayahs, setAyahs] = useState<Ayah[] | null>(null);
   const [trMap, setTrMap] = useState<Map<string, Map<number, string>>>(new Map());
+  const [translitMap, setTranslitMap] = useState<Map<number, string>>(new Map());
   const [error, setError] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
 
@@ -182,6 +185,24 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     };
   }, [n, editions]);
 
+  // Fetch the transliteration edition for this surah only while the toggle is on.
+  useEffect(() => {
+    if (!transliteration) {
+      setTranslitMap(new Map());
+      return;
+    }
+    let active = true;
+    api
+      .getCatalogTranslation(TRANSLIT_EDITION, n)
+      .then((rows) => {
+        if (active) setTranslitMap(new Map(rows.map((t) => [t.aya, t.text])));
+      })
+      .catch(() => active && setTranslitMap(new Map()));
+    return () => {
+      active = false;
+    };
+  }, [n, transliteration]);
+
   const verses = useMemo(() => (ayahs ?? []).map((a) => ({ sura: n, aya: a.aya })), [ayahs, n]);
   const metaById = useMemo(() => new Map(catalogue.map((e) => [e.id, e])), [catalogue]);
 
@@ -206,11 +227,12 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         key: verseKeyOf({ sura: n, aya: a.aya }),
         arabic: a.text,
         words: a.text.split(" "),
+        transliteration: transliteration ? (translitMap.get(a.aya) ?? null) : null,
         translations: editions
           .map((id) => trLineFor(id, a.aya))
           .filter((x): x is TrLine => x !== null),
       })),
-    [ayahs, editions, trMap, metaById, n],
+    [ayahs, editions, trMap, metaById, n, transliteration, translitMap],
   );
 
   // Peek geometry: each āyah's word count and the global index of its first word,
@@ -261,6 +283,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         arabic={item.arabic}
         words={item.words}
         translations={item.translations}
+        transliteration={item.transliteration}
         activeWord={playingKey === item.key ? activeWord : -1}
         playing={playingKey === item.key}
         scale={scale}
@@ -377,6 +400,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         onMode={setReadingMode}
         scale={scale}
         onScale={setScale}
+        transliteration={transliteration}
+        onTransliteration={setTransliteration}
         onManage={() => setManagerOpen(true)}
       />
 
@@ -460,7 +485,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           data={rows}
           keyExtractor={(r) => r.key}
           renderItem={renderItem}
-          extraData={`${playingKey ?? ""}:${activeWord}:${scale}:${peek}:${revealed}:${peekExtra.size}:${hideTr}`}
+          extraData={`${playingKey ?? ""}:${activeWord}:${scale}:${peek}:${revealed}:${peekExtra.size}:${hideTr}:${transliteration}:${translitMap.size}`}
           contentContainerStyle={styles.content}
           onViewableItemsChanged={onViewable}
           viewabilityConfig={viewabilityConfig}

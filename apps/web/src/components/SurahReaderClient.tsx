@@ -5,6 +5,7 @@ import Link from "next/link";
 import { type ReciterPlugin, pageNumberOf } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import { AyahTranslations } from "./AyahTranslations";
+import { AyahTransliteration } from "./AyahTransliteration";
 import { AyahActions } from "./AyahActions";
 import { AyahStar } from "./AyahStar";
 import { ReadingAudio } from "./ReadingAudio";
@@ -484,6 +485,7 @@ export function SurahReaderClient({
                           ﴿{toArabicDigits(ayah.aya)}﴾
                         </button>
                       </p>
+                      <AyahTransliteration surah={surah.number} aya={ayah.aya} />
                       <AyahTranslations surah={surah.number} aya={ayah.aya} />
                       <AyahActions surah={surah.number} aya={ayah.aya} tafsirs={tafsirs} />
                     </div>

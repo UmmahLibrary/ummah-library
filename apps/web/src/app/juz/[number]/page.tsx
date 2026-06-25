@@ -14,6 +14,7 @@ import { ReadingModeToggle } from "../../../components/ReadingModeToggle";
 import { EditionManager } from "../../../components/EditionManager";
 import { ReadingTranslationPicker } from "../../../components/ReadingTranslationPicker";
 import { AyahTranslations } from "../../../components/AyahTranslations";
+import { AyahTransliteration } from "../../../components/AyahTransliteration";
 import { AyahStar } from "../../../components/AyahStar";
 import { ReadingTranslationFlow } from "../../../components/ReadingTranslationFlow";
 import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
@@ -179,6 +180,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
                     ﴿{toArabicDigits(ayah.aya)}﴾
                   </button>
                 </p>
+                <AyahTransliteration surah={section.surah.number} aya={ayah.aya} />
                 <AyahTranslations surah={section.surah.number} aya={ayah.aya} />
                 <div className="ayah-actions">
                   <button
