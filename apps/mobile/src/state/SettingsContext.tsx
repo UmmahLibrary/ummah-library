@@ -16,6 +16,7 @@ import {
 import type { Translation } from "@ummahlibrary/core";
 import { api, type TafsirMeta } from "../api";
 import { mobileSettingsStore as store } from "./settings-store";
+import { readTafsirCompare, writeTafsirCompare } from "../tafsir-compare-store";
 import { RECITER, TAFSIRS } from "../plugins";
 import { DEFAULT_EDITIONS, MAX_SCALE, MIN_SCALE, type ReadingMode } from "../types";
 
@@ -25,6 +26,8 @@ interface SettingsValue {
   readingTranslation: string | null;
   reciterId: string;
   tafsirId: string;
+  /** Editions shown side by side in the per-āyah tafsir panel (#141); [] = just tafsirId. */
+  tafsirCompare: string[];
   scale: number;
   catalogue: Translation[];
   tafsirs: TafsirMeta[];
@@ -33,6 +36,7 @@ interface SettingsValue {
   setReadingTranslation: (id: string) => void;
   setReciterId: (id: string) => void;
   setTafsirId: (id: string) => void;
+  setTafsirCompare: (ids: string[]) => void;
   setScale: (scale: number) => void;
 }
 
@@ -46,6 +50,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [readingTranslation, setReadingTranslationState] = useState<string | null>(null);
   const [reciterId, setReciterIdState] = useState<string>(RECITER.id);
   const [tafsirId, setTafsirIdState] = useState<string>(TAFSIRS[0].id);
+  const [tafsirCompare, setTafsirCompareState] = useState<string[]>([]);
   const [scale, setScaleState] = useState<number>(1);
   const [catalogue, setCatalogue] = useState<Translation[]>([]);
   const [tafsirs, setTafsirs] = useState<TafsirMeta[]>([]);
@@ -60,6 +65,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (s.tafsir) setTafsirIdState(s.tafsir);
       if (s.scale != null) setScaleState(clampScale(s.scale));
     });
+    void readTafsirCompare().then(setTafsirCompareState);
     void api
       .listTranslationCatalog()
       .then(setCatalogue)
@@ -96,6 +102,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     void store.writeTafsir(id);
   }, []);
 
+  const setTafsirCompare = useCallback((ids: string[]) => {
+    setTafsirCompareState(ids);
+    void writeTafsirCompare(ids);
+  }, []);
+
   const setScale = useCallback((next: number) => {
     const clamped = clampScale(next);
     setScaleState(clamped);
@@ -109,6 +120,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       readingTranslation,
       reciterId,
       tafsirId,
+      tafsirCompare,
       scale,
       catalogue,
       tafsirs,
@@ -117,6 +129,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setReadingTranslation,
       setReciterId,
       setTafsirId,
+      setTafsirCompare,
       setScale,
     }),
     [
@@ -125,6 +138,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       readingTranslation,
       reciterId,
       tafsirId,
+      tafsirCompare,
       scale,
       catalogue,
       tafsirs,
@@ -133,6 +147,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setReadingTranslation,
       setReciterId,
       setTafsirId,
+      setTafsirCompare,
       setScale,
     ],
   );
