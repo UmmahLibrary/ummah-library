@@ -76,6 +76,7 @@ export function ReadingAudio({
   reciters,
   variant = "inline",
   onAyah,
+  startVerse,
 }: {
   verses: Verse[];
   reciters: ReciterPlugin[];
@@ -83,6 +84,9 @@ export function ReadingAudio({
   variant?: "inline" | "dock";
   /** Called when an āyah starts playing — lets the reader advance its resume position. */
   onAyah?: (verse: Verse) => void;
+  /** Where a fresh ▶ should begin (the reader's current āyah). Falls back to the
+   *  first verse when it returns null. */
+  startVerse?: () => Verse | null;
 }) {
   const [reciterId, setReciterId] = useState(reciters[0]?.id ?? "");
   const [current, setCurrent] = useState<string | null>(null);
@@ -281,8 +285,11 @@ export function ReadingAudio({
     } else if (current && audio) {
       void audio.play();
       setIsPlaying(true);
-    } else if (versesRef.current[0]) {
-      playAll(versesRef.current[0]);
+    } else {
+      // A fresh ▶ begins at the reader's current āyah (where you are), not the
+      // surah start; fall back to the first verse before anything is marked.
+      const start = startVerse?.() ?? versesRef.current[0];
+      if (start) playAll(start);
     }
   }
 
