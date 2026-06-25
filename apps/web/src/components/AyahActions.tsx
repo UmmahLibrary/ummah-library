@@ -12,28 +12,11 @@ import { N, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
 import { newId, readCollections, readNote, writeCollections, writeNote } from "../lib/collections";
 import { isTracked, removeCard, setCard } from "../lib/hifz-store";
-import { TAFSIR_KEY, readTafsir } from "../lib/tafsir";
+import { TafsirCompare } from "./TafsirCompare";
 
 interface TafsirMeta {
   id: string;
   name: string;
-}
-interface TafsirResponse {
-  entries: { sura: number; aya: number; text: string }[];
-}
-
-// One shared tafsir fetch per (edition, surah); every ayah's toggle reuses it.
-const tafsirCache = new Map<string, Promise<Map<number, string>>>();
-function loadSurahTafsir(tafsirId: string, surah: number): Promise<Map<number, string>> {
-  const key = `${tafsirId}:${surah}`;
-  let pending = tafsirCache.get(key);
-  if (!pending) {
-    pending = fetch(`/api/v1/surahs/${surah}/tafsirs/${tafsirId}`)
-      .then((res) => (res.ok ? (res.json() as Promise<TafsirResponse>) : { entries: [] }))
-      .then((data) => new Map(data.entries.map((e) => [e.aya, e.text])));
-    tafsirCache.set(key, pending);
-  }
-  return pending;
 }
 
 /** A quick-action button in the per-ayah row: icon + label, gold when active. */
@@ -134,11 +117,6 @@ export function AyahActions({
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Tafsir state (selected edition shared via localStorage + the TafsirPicker event).
-  const [tafsirId, setTafsirId] = useState(tafsirs[0]?.id ?? "");
-  const [tafsirState, setTafsirState] = useState<"loading" | "ready" | "empty">("loading");
-  const [tafsirText, setTafsirText] = useState("");
-
   const savedIds = new Set(collectionsWithAyah(collections, ref));
   const saved = savedIds.size > 0;
 
@@ -153,30 +131,6 @@ export function AyahActions({
     block.classList.toggle("ayah-hifz", tracked);
     return () => { block.classList.remove("ayah-hifz"); };
   }, [tracked]);
-
-  useEffect(() => {
-    void readTafsir(tafsirs[0]?.id ?? "").then(setTafsirId);
-    const onChange = (e: Event) => setTafsirId((e as CustomEvent<string>).detail);
-    window.addEventListener(TAFSIR_KEY, onChange as EventListener);
-    return () => window.removeEventListener(TAFSIR_KEY, onChange as EventListener);
-  }, [tafsirs]);
-
-  useEffect(() => {
-    if (!tafsirOpen || !tafsirId) return;
-    let active = true;
-    setTafsirState("loading");
-    loadSurahTafsir(tafsirId, surah)
-      .then((byAya) => {
-        if (!active) return;
-        const entry = byAya.get(aya);
-        setTafsirText(entry ?? "");
-        setTafsirState(entry ? "ready" : "empty");
-      })
-      .catch(() => active && setTafsirState("empty"));
-    return () => {
-      active = false;
-    };
-  }, [tafsirOpen, tafsirId, surah, aya]);
 
   function flash(message: string) {
     setToast(message);
@@ -281,8 +235,6 @@ export function AyahActions({
     void readNote(ref).then(setNote);
     setSaveOpen(true);
   }
-
-  const tafsirName = tafsirs.find((t) => t.id === tafsirId)?.name ?? "Tafsir";
 
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
@@ -403,31 +355,7 @@ export function AyahActions({
         </div>
       )}
 
-      {tafsirOpen && (
-        <div className="tafsir">
-          <div
-            style={{
-              fontSize: 11.5,
-              letterSpacing: 1,
-              textTransform: "uppercase",
-              color: N.gold,
-              fontWeight: 700,
-              fontFamily: N.ui,
-              margin: "10px 0 6px",
-            }}
-          >
-            Tafsīr · {tafsirName}
-          </div>
-          <div className="tafsir-body">
-            {tafsirState === "loading" && <span className="tafsir-muted">Loading…</span>}
-            {tafsirState === "empty" && (
-              <span className="tafsir-muted">No tafsir for this āyah.</span>
-            )}
-            {tafsirState === "ready" &&
-              tafsirText.split("\n").map((p, i) => (p.trim() ? <p key={i}>{p}</p> : null))}
-          </div>
-        </div>
-      )}
+      {tafsirOpen && <TafsirCompare surah={surah} aya={aya} tafsirs={tafsirs} />}
     </div>
   );
 }
