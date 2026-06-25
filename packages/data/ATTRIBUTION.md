@@ -61,6 +61,18 @@ of its author/publisher and is included under the upstream terms.
 > guardrail). To swap or add a translation, edit the `TRANSLATIONS` list in
 > `scripts/ingest.ts` — no other code changes required.
 
+## Transliteration (runtime — #150)
+
+The reader's per-āyah **Latin transliteration** line is **not bundled**. Like the
+full translation catalogue (ADR 0011) it is fetched at runtime, by edition id,
+from [`fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api).
+
+- **Edition:** `ara-quran-la` — a verbatim Latin transliteration of the Arabic.
+- **Upstream source:** [Tanzil](https://tanzil.net).
+- **License:** Creative Commons **Attribution 3.0** (CC-BY 3.0) — same notice as
+  the Arabic text above. The transliteration is shown verbatim, attributed; no
+  scholar review is required (mechanical romanisation, not interpretation).
+
 ## 99 Names of Allah — `asma.json`
 
 - **Source:** the Names are from the **Qurʾān and Sunnah** (public domain). The

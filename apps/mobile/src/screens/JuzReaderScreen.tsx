@@ -18,7 +18,7 @@ import { useSettings } from "../state/SettingsContext";
 import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
 import { AudioRangeControls } from "../components/AudioRangeControls";
 import { MemorizeBar } from "../components/MemorizeBar";
-import { DEFAULT_EDITION } from "../types";
+import { DEFAULT_EDITION, TRANSLIT_EDITION } from "../types";
 import type { ReadStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "JuzReader">;
@@ -28,6 +28,8 @@ interface Line {
   aya: number;
   arabic: string;
   translation: string;
+  /** Latin transliteration line (#150); empty when the toggle is off. */
+  transliteration: string;
   surahHeader?: string;
 }
 
@@ -50,7 +52,7 @@ function juzRange(juz: number): { sura: number; from: number; toExclusive: numbe
 export function JuzReaderScreen({ route }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { editions, readingTranslation, reciterId, scale } = useSettings();
+  const { editions, readingTranslation, reciterId, scale, transliteration } = useSettings();
   const reciter = RECITERS.find((r) => r.id === reciterId) ?? RECITER;
   const audio = useSurahAudio(reciter);
 
@@ -79,11 +81,15 @@ export function JuzReaderScreen({ route }: Props) {
     const parts = juzRange(Number(juz));
     Promise.all(
       parts.map(async (p) => {
-        const [surah, tr] = await Promise.all([
+        const [surah, tr, translit] = await Promise.all([
           api.getSurah(p.sura),
           api.getCatalogTranslation(edition, p.sura).catch(() => []),
+          transliteration
+            ? api.getCatalogTranslation(TRANSLIT_EDITION, p.sura).catch(() => [])
+            : Promise.resolve([]),
         ]);
         const trByAya = new Map(tr.map((t) => [t.aya, t.text]));
+        const translitByAya = new Map(translit.map((t) => [t.aya, t.text]));
         const inRange = surah.ayahs.filter(
           (a) => a.aya >= p.from && (p.toExclusive === null || a.aya < p.toExclusive),
         );
@@ -93,6 +99,7 @@ export function JuzReaderScreen({ route }: Props) {
             aya: a.aya,
             arabic: a.text,
             translation: trByAya.get(a.aya) ?? "",
+            transliteration: translitByAya.get(a.aya) ?? "",
             surahHeader:
               i === 0 ? `${surah.surah.transliteration} · ${surah.surah.englishName}` : undefined,
           }),
@@ -107,7 +114,7 @@ export function JuzReaderScreen({ route }: Props) {
       active = false;
       audio.stop();
     };
-  }, [juz, edition]);
+  }, [juz, edition, transliteration]);
 
   const verses = useMemo(() => (lines ?? []).map((l) => ({ sura: l.sura, aya: l.aya })), [lines]);
 
@@ -226,6 +233,11 @@ export function JuzReaderScreen({ route }: Props) {
                   : l.arabic}{" "}
                 <Text style={styles.marker}>﴿{l.aya}﴾</Text>
               </Text>
+              {l.transliteration && !hideTr ? (
+                <Text style={[styles.translit, { fontSize: 14 * scale, lineHeight: 22 * scale }]}>
+                  {l.transliteration}
+                </Text>
+              ) : null}
               {l.translation && !hideTr ? (
                 <Text style={[styles.tr, { fontSize: 15 * scale, lineHeight: 23 * scale }]}>
                   {l.translation}
@@ -288,6 +300,7 @@ function makeStyles(c: Palette) {
     arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
     wordHidden: { color: "transparent", backgroundColor: c.borderSoft },
     marker: { color: c.accent, fontSize: 17, fontFamily: FONT.ar },
+    translit: { color: c.faint, marginTop: 10, fontStyle: "italic" },
     tr: { color: c.fg, marginTop: 10 },
   });
 }

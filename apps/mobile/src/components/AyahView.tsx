@@ -23,6 +23,8 @@ interface Props {
   arabic: string;
   words: string[];
   translations: TrLine[];
+  /** Latin transliteration line shown under the Arabic (#150); null when off. */
+  transliteration?: string | null;
   activeWord: number;
   playing: boolean;
   scale: number;
@@ -53,6 +55,7 @@ function AyahViewImpl({
   arabic,
   words,
   translations,
+  transliteration,
   activeWord,
   playing,
   scale,
@@ -134,6 +137,12 @@ function AyahViewImpl({
             : arabic}
       </Text>
 
+      {transliteration && !peekHideTr ? (
+        <Text style={[styles.translit, { fontSize: 14 * scale, lineHeight: 22 * scale }]}>
+          {transliteration}
+        </Text>
+      ) : null}
+
       {!peekHideTr &&
         translations.map((t) => (
         <View key={t.id} style={styles.tr}>
@@ -179,6 +188,7 @@ function makeStyles(c: Palette) {
     wordActive: { color: c.accent },
     // Concealed word: keep its footprint (a hint of length) but hide the glyphs.
     wordHidden: { color: "transparent", backgroundColor: c.borderSoft },
+    translit: { color: c.faint, marginTop: 10, fontStyle: "italic", fontFamily: FONT.medium },
     tr: { marginTop: 12 },
     trName: { color: c.faint, fontSize: 12, marginBottom: 3, fontFamily: FONT.medium },
     trText: { color: c.muted },

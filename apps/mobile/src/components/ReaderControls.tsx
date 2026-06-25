@@ -15,12 +15,16 @@ export function ReaderControls({
   onMode,
   scale,
   onScale,
+  transliteration,
+  onTransliteration,
   onManage,
 }: {
   mode: ReadingMode;
   onMode: (m: ReadingMode) => void;
   scale: number;
   onScale: (n: number) => void;
+  transliteration: boolean;
+  onTransliteration: (on: boolean) => void;
   onManage: () => void;
 }) {
   const { colors } = useTheme();
@@ -56,9 +60,22 @@ export function ReaderControls({
             <Text style={styles.scaleText}>A+</Text>
           </Pressable>
         </View>
-        <Pressable style={styles.manage} onPress={onManage}>
-          <Text style={styles.manageText}>⚙ Translations</Text>
-        </Pressable>
+        <View style={styles.rightBtns}>
+          <Pressable
+            style={[styles.toggle, transliteration && styles.toggleOn]}
+            onPress={() => onTransliteration(!transliteration)}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: transliteration }}
+            accessibilityLabel="Transliteration"
+          >
+            <Text style={[styles.toggleText, transliteration && styles.toggleTextOn]}>
+              Aa Translit
+            </Text>
+          </Pressable>
+          <Pressable style={styles.manage} onPress={onManage}>
+            <Text style={styles.manageText}>⚙ Translations</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -79,6 +96,7 @@ function makeStyles(c: Palette) {
     segText: { color: c.muted, fontSize: 13, fontWeight: "600" },
     segTextOn: { color: c.accent },
     rightRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    rightBtns: { flexDirection: "row", gap: 8 },
     scale: { flexDirection: "row", gap: 8 },
     scaleBtn: {
       paddingVertical: 6,
@@ -98,5 +116,16 @@ function makeStyles(c: Palette) {
       backgroundColor: c.bgElev,
     },
     manageText: { color: c.accent, fontSize: 13, fontWeight: "600" },
+    toggle: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.bgElev,
+    },
+    toggleOn: { borderColor: c.accent, backgroundColor: c.accentSoft },
+    toggleText: { color: c.muted, fontSize: 13, fontWeight: "600" },
+    toggleTextOn: { color: c.accent },
   });
 }

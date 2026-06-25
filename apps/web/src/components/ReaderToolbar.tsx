@@ -9,6 +9,7 @@ import { fetchCatalogue } from "../lib/catalogue";
 import { readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
 import { readReciter, readScale, writeReciter, writeScale } from "../lib/reader-prefs";
 import { readWordByWord, writeLastRead, writeWordByWord } from "../lib/reader-prefs-store";
+import { readTransliteration, writeTransliteration } from "../lib/transliteration";
 import { TranslationSettings } from "./TranslationSettings";
 import { TafsirPicker } from "./TafsirPicker";
 import { WBW_KEY } from "./WordByWord";
@@ -49,6 +50,7 @@ export function ReaderToolbar({
   const [bookmarked, setBookmarked] = useState(false);
   const [reciterId, setReciterId] = useState(reciters[0]?.id ?? "");
   const [wbw, setWbw] = useState(false);
+  const [translit, setTranslit] = useState(false);
   const [managing, setManaging] = useState(false);
   const [catalogue, setCatalogue] = useState<EditionChoice[]>([]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(DEFAULT_EDITIONS));
@@ -66,6 +68,7 @@ export function ReaderToolbar({
     const wbwOn = readWordByWord();
     setWbw(wbwOn);
     document.body.classList.toggle("wbw-on", wbwOn);
+    void readTransliteration().then(setTranslit);
     void readEditions().then((ids) => setSelected(new Set(ids)));
     void fetchCatalogue().then(setCatalogue);
   }, [surahNumber, reciters]);
@@ -76,6 +79,12 @@ export function ReaderToolbar({
     document.body.classList.toggle("wbw-on", next);
     writeWordByWord(next);
     window.dispatchEvent(new CustomEvent(WBW_KEY, { detail: next }));
+  }
+
+  function toggleTranslit() {
+    const next = !translit;
+    setTranslit(next);
+    void writeTransliteration(next); // persists + broadcasts `ul.transliteration`
   }
 
   function changeScale(delta: number) {
@@ -213,6 +222,34 @@ export function ReaderToolbar({
                 <Icon name="type" size={15} color={wbw ? N.gold : N.muted} /> Word by word
               </span>
               {wbw && <Icon name="check" size={15} color={N.gold} />}
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleTranslit}
+              aria-pressed={translit}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                width: "100%",
+                marginTop: 8,
+                padding: "9px 11px",
+                borderRadius: 10,
+                border: `1px solid ${translit ? N.gold : N.border}`,
+                background: translit ? N.goldSoft : N.card,
+                color: translit ? N.gold : N.fg,
+                cursor: "pointer",
+                fontFamily: N.ui,
+                fontSize: 13.5,
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <Icon name="globe" size={15} color={translit ? N.gold : N.muted} /> Transliteration
+              </span>
+              {translit && <Icon name="check" size={15} color={N.gold} />}
             </button>
 
             {tafsirs.length > 1 && (

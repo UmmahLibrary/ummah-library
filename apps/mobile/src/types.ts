@@ -5,5 +5,9 @@ export type ReadingMode = "translation" | "reading" | "reading-tr";
 export const DEFAULT_EDITION = "eng-mustafakhattaba";
 export const DEFAULT_EDITIONS = [DEFAULT_EDITION];
 
+// The catalogue edition for the per-āyah transliteration line (#150) — Tanzil's
+// verbatim Latin transliteration (CC-BY 3.0), fetched at runtime like any edition.
+export const TRANSLIT_EDITION = "ara-quran-la";
+
 export const MIN_SCALE = 0.8;
 export const MAX_SCALE = 1.6;

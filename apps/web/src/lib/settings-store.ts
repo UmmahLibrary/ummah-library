@@ -14,6 +14,7 @@ const READING_TR_KEY = "ul.readingTranslation";
 const RECITER_KEY = "ul.reciter";
 const TAFSIR_KEY = "ul.tafsir";
 const SCALE_KEY = "ul.scale";
+const TRANSLIT_KEY = "ul.transliteration";
 
 function getJSON<T>(key: string, fallback: T, isValid?: (v: unknown) => boolean): T {
   try {
@@ -30,6 +31,7 @@ function getJSON<T>(key: string, fallback: T, isValid?: (v: unknown) => boolean)
 const isStringArray = (v: unknown): boolean =>
   Array.isArray(v) && v.every((x) => typeof x === "string");
 const isFiniteNumber = (v: unknown): boolean => typeof v === "number" && Number.isFinite(v);
+const isBoolean = (v: unknown): boolean => typeof v === "boolean";
 function getStr(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -53,6 +55,7 @@ export const webSettingsStore: SettingsStore = {
     reciter: getStr(RECITER_KEY),
     tafsir: getStr(TAFSIR_KEY),
     scale: getJSON<number | null>(SCALE_KEY, null, isFiniteNumber),
+    transliteration: getJSON<boolean | null>(TRANSLIT_KEY, null, isBoolean),
   }),
   writeEditions: async (ids) => setItem(EDITIONS_KEY, JSON.stringify(ids)),
   writeReadingMode: async (mode) => setItem(READING_MODE_KEY, mode),
@@ -60,4 +63,5 @@ export const webSettingsStore: SettingsStore = {
   writeReciter: async (id) => setItem(RECITER_KEY, id),
   writeTafsir: async (id) => setItem(TAFSIR_KEY, id),
   writeScale: async (scale) => setItem(SCALE_KEY, JSON.stringify(scale)),
+  writeTransliteration: async (on) => setItem(TRANSLIT_KEY, JSON.stringify(on)),
 };

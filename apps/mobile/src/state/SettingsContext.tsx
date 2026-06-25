@@ -29,6 +29,8 @@ interface SettingsValue {
   /** Editions shown side by side in the per-āyah tafsir panel (#141); [] = just tafsirId. */
   tafsirCompare: string[];
   scale: number;
+  /** Show the per-āyah Latin transliteration line under the Arabic (#150). */
+  transliteration: boolean;
   catalogue: Translation[];
   tafsirs: TafsirMeta[];
   setEditions: (ids: string[]) => void;
@@ -38,6 +40,7 @@ interface SettingsValue {
   setTafsirId: (id: string) => void;
   setTafsirCompare: (ids: string[]) => void;
   setScale: (scale: number) => void;
+  setTransliteration: (on: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -52,6 +55,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [tafsirId, setTafsirIdState] = useState<string>(TAFSIRS[0].id);
   const [tafsirCompare, setTafsirCompareState] = useState<string[]>([]);
   const [scale, setScaleState] = useState<number>(1);
+  const [transliteration, setTransliterationState] = useState<boolean>(false);
   const [catalogue, setCatalogue] = useState<Translation[]>([]);
   const [tafsirs, setTafsirs] = useState<TafsirMeta[]>([]);
 
@@ -64,6 +68,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (s.reciter) setReciterIdState(s.reciter);
       if (s.tafsir) setTafsirIdState(s.tafsir);
       if (s.scale != null) setScaleState(clampScale(s.scale));
+      if (s.transliteration != null) setTransliterationState(s.transliteration);
     });
     void readTafsirCompare().then(setTafsirCompareState);
     void api
@@ -113,6 +118,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     void store.writeScale(clamped);
   }, []);
 
+  const setTransliteration = useCallback((on: boolean) => {
+    setTransliterationState(on);
+    void store.writeTransliteration(on);
+  }, []);
+
   const value = useMemo<SettingsValue>(
     () => ({
       editions,
@@ -122,6 +132,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       tafsirId,
       tafsirCompare,
       scale,
+      transliteration,
       catalogue,
       tafsirs,
       setEditions,
@@ -131,6 +142,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setTafsirId,
       setTafsirCompare,
       setScale,
+      setTransliteration,
     }),
     [
       editions,
@@ -140,6 +152,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       tafsirId,
       tafsirCompare,
       scale,
+      transliteration,
       catalogue,
       tafsirs,
       setEditions,
@@ -149,6 +162,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setTafsirId,
       setTafsirCompare,
       setScale,
+      setTransliteration,
     ],
   );
 

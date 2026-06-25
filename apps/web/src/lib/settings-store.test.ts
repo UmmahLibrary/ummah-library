@@ -13,6 +13,7 @@ describe("webSettingsStore", () => {
       reciter: null,
       tafsir: null,
       scale: null,
+      transliteration: null,
     });
   });
 
@@ -23,6 +24,7 @@ describe("webSettingsStore", () => {
     await store.writeReciter("alafasy");
     await store.writeTafsir("ar-muyassar");
     await store.writeScale(1.4);
+    await store.writeTransliteration(true);
 
     const s = await store.read();
     expect(s.editions).toEqual(["eng-sahih"]);
@@ -31,6 +33,7 @@ describe("webSettingsStore", () => {
     expect(s.reciter).toBe("alafasy");
     expect(s.tafsir).toBe("ar-muyassar");
     expect(s.scale).toBe(1.4);
+    expect(s.transliteration).toBe(true);
 
     // editions and scale are JSON; the rest are plain strings (unchanged format)
     expect(localStorage.getItem("ul.editions")).toBe('["eng-sahih"]');

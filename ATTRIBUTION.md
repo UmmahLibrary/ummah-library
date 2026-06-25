@@ -46,7 +46,7 @@ required notices and ingest steps.
 | [api.quran.com](https://quran.com) (Quran.com API v4) | **word-by-word** word meanings in the reader popover; verse audio metadata | word-by-word lineage = Quranic Arabic Corpus morphology + **Shaikh & Khatri** English meanings (the latter is _display-only, not redistributable_). Fetched per-tap in the browser; we do not store or redistribute it. **A written grant would be required before any bundling** (permission requested: [TarteelAI/quranic-universal-library#638](https://github.com/TarteelAI/quranic-universal-library/issues/638)); until then, runtime display only. |
 | [verses.quran.com](https://quran.com) | recitation audio (web) | streamed to the client |
 | [everyayah.com](https://everyayah.com) | recitation audio (reciter plugins) | streamed to the client |
-| [jsDelivr → `fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) | translation text (runtime/CDN) | per-edition (see §1) |
+| [jsDelivr → `fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) | translation text (runtime/CDN); per-āyah **transliteration** line (`ara-quran-la`, #150) | per-edition (see §1); transliteration is Tanzil, **CC-BY-3.0**, verbatim |
 | [Google Fonts](https://fonts.google.com) | web UI typefaces | fetched at build (`next/font`) |
 
 ## 4. Code
