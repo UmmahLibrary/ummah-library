@@ -14,6 +14,9 @@ import {
   TOTAL_SURAHS,
   pageNumberOf,
   resolveActiveTranslation,
+  revealAyah,
+  revealWord,
+  totalWords,
   type Ayah,
   type Surah,
   type Translation,
@@ -30,6 +33,7 @@ import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
 import { DEFAULT_EDITION } from "../types";
 import { ReaderControls } from "../components/ReaderControls";
 import { AudioRangeControls } from "../components/AudioRangeControls";
+import { MemorizeBar } from "../components/MemorizeBar";
 import { ReadingTranslationPicker } from "../components/ReadingTranslationPicker";
 import { TranslationManager } from "../components/TranslationManager";
 import { AyahView, type TrLine } from "../components/AyahView";
@@ -68,6 +72,12 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   const [trMap, setTrMap] = useState<Map<string, Map<number, string>>>(new Map());
   const [error, setError] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
+
+  // Memorize / hide-and-peek (#134) — ephemeral, so a surah never opens hidden.
+  const [peek, setPeek] = useState(false);
+  const [revealed, setRevealed] = useState(0);
+  const [peekExtra, setPeekExtra] = useState<Set<number>>(new Set());
+  const [hideTr, setHideTr] = useState(false);
 
   // Track the topmost visible āyah so "open in Mushaf" lands on the right page.
   // Per-āyah offsets are only known in translation mode (discrete rows); the
@@ -203,6 +213,33 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     [ayahs, editions, trMap, metaById, n],
   );
 
+  // Peek geometry: each āyah's word count and the global index of its first word,
+  // so AyahView can map the shared reveal cursor onto its own words.
+  const wordsPerAyah = useMemo(() => rows.map((r) => r.words.length), [rows]);
+  const peekStarts = useMemo(() => {
+    const starts: number[] = [];
+    let acc = 0;
+    for (const c of wordsPerAyah) {
+      starts.push(acc);
+      acc += c;
+    }
+    return starts;
+  }, [wordsPerAyah]);
+  const peekTotal = useMemo(() => totalWords(wordsPerAyah), [wordsPerAyah]);
+
+  const onPeekWord = useCallback((gi: number) => setPeekExtra((p) => new Set(p).add(gi)), []);
+  const togglePeek = useCallback(() => {
+    setPeek((p) => {
+      const next = !p;
+      setRevealed(0);
+      setPeekExtra(new Set());
+      // Peek needs the per-word verse layout; switch to it on enter.
+      if (next) setReadingMode("translation");
+      else setHideTr(false);
+      return next;
+    });
+  }, [setReadingMode]);
+
   // Stable so the memoized AyahView only re-renders the playing āyah as the
   // recitation moves word to word — an inline arrow would change identity every
   // render and defeat the memo, re-rendering the whole surah on each word.
@@ -217,7 +254,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: (typeof rows)[number] }) => (
+    ({ item, index }: { item: (typeof rows)[number]; index: number }) => (
       <AyahView
         sura={n}
         aya={item.aya}
@@ -229,9 +266,28 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         scale={scale}
         onPlayFrom={playFrom}
         onPlayOne={playOne}
+        peek={peek}
+        peekStart={peekStarts[index] ?? 0}
+        peekRevealed={revealed}
+        peekExtra={peekExtra}
+        peekHideTr={hideTr}
+        onPeekWord={onPeekWord}
       />
     ),
-    [n, playingKey, activeWord, scale, playFrom, playOne],
+    [
+      n,
+      playingKey,
+      activeWord,
+      scale,
+      playFrom,
+      playOne,
+      peek,
+      peekStarts,
+      revealed,
+      peekExtra,
+      hideTr,
+      onPeekWord,
+    ],
   );
 
   // Track the topmost visible āyah for "open in Mushaf" and reading-plan
@@ -353,6 +409,24 @@ export function SurahReaderScreen({ navigation, route }: Props) {
       <View style={styles.audioExtras}>
         <AudioRangeControls audio={audio} verses={verses} />
       </View>
+      <View style={styles.memorize}>
+        <MemorizeBar
+          on={peek}
+          hideTr={hideTr}
+          onToggle={togglePeek}
+          onPeekWord={() => setRevealed((r) => revealWord(r, peekTotal))}
+          onRevealAyah={() => setRevealed((r) => revealAyah(r, wordsPerAyah))}
+          onShowAll={() => {
+            setRevealed(peekTotal);
+            setPeekExtra(new Set());
+          }}
+          onHideAll={() => {
+            setRevealed(0);
+            setPeekExtra(new Set());
+          }}
+          onToggleTr={() => setHideTr((v) => !v)}
+        />
+      </View>
     </>
   );
 
@@ -386,7 +460,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           data={rows}
           keyExtractor={(r) => r.key}
           renderItem={renderItem}
-          extraData={`${playingKey ?? ""}:${activeWord}:${scale}`}
+          extraData={`${playingKey ?? ""}:${activeWord}:${scale}:${peek}:${revealed}:${peekExtra.size}:${hideTr}`}
           contentContainerStyle={styles.content}
           onViewableItemsChanged={onViewable}
           viewabilityConfig={viewabilityConfig}
@@ -569,6 +643,7 @@ function makeStyles(c: Palette) {
       marginBottom: 4,
     },
     audioExtras: { marginBottom: 10 },
+    memorize: { marginBottom: 12 },
     audioPlay: {
       width: 42,
       height: 42,

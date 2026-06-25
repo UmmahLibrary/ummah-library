@@ -8,6 +8,7 @@ import { AyahTranslations } from "./AyahTranslations";
 import { AyahActions } from "./AyahActions";
 import { AyahStar } from "./AyahStar";
 import { ReadingAudio } from "./ReadingAudio";
+import { MemorizeBar } from "./MemorizeBar";
 import { ReadingTranslationPicker } from "./ReadingTranslationPicker";
 import { ReadingTranslationFlow } from "./ReadingTranslationFlow";
 import { ReaderToolbar } from "./ReaderToolbar";
@@ -510,6 +511,9 @@ export function SurahReaderClient({
           </p>
         </div>
       </div>
+
+      {/* Memorize / hide-and-peek — floats above the dock */}
+      <MemorizeBar />
 
       {/* Audio player — fixed bottom dock, drives playback for all modes */}
       <ReadingAudio

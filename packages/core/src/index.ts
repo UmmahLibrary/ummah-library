@@ -36,5 +36,6 @@ export * from "./sync-engine";
 export * from "./collections";
 export * from "./tasbih";
 export * from "./audio";
+export * from "./peek";
 export type * from "./entities";
 export type * from "./ports";
