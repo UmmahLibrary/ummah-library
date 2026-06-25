@@ -469,18 +469,23 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   gap: 0.3rem;
 }
 
+/* A brief outline pulse drawing the eye to a deep-linked / resumed āyah. Uses
+   `outline` (not background/box-shadow) so it overlays the persistent
+   .ayah--current marker cleanly instead of fighting it — the old version
+   animated the background to transparent, which wiped the marker mid-flash and
+   then snapped it back ("highlighted → removed → re-highlighted"). */
 .ayah--target {
-  animation: ayah-flash 2.2s ease-out;
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+  animation: ayah-flash 1.3s ease-out;
   border-radius: 10px;
 }
 @keyframes ayah-flash {
   0% {
-    background: var(--accent-soft);
-    box-shadow: 0 0 0 1px var(--accent);
+    outline-color: var(--accent);
   }
   100% {
-    background: transparent;
-    box-shadow: none;
+    outline-color: transparent;
   }
 }
 .head-link {

@@ -121,6 +121,13 @@ export function SurahReaderClient({
   );
   const lastPageRef = useRef(0);
   const currentAyaRef = useRef(0);
+  const markTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // True only while the *user* is driving the scroll. Programmatic scrolls — the
+  // resume scroll, audio auto-follow, and the browser's scroll-anchoring when
+  // translations load and shift the layout — must NOT move the current-āyah
+  // marker, or it flickers between āyāt. Audio sets the marker directly instead.
+  const userScrollingRef = useRef(false);
+  const userIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Mark, persist, and remember the reader's current āyah. The marker (a soft
   // gold bar) shows where you are; the same āyah is saved as the resume point
@@ -137,6 +144,56 @@ export function SurahReaderClient({
     },
     [surah.number, surah.ayahCount],
   );
+
+  // Scroll-driven marking is debounced to the *settled* position, so the marker
+  // doesn't race through āyāt during a programmatic resume scroll / re-centre.
+  const scheduleMark = useCallback(
+    (aya: number) => {
+      if (markTimerRef.current) clearTimeout(markTimerRef.current);
+      markTimerRef.current = setTimeout(() => markCurrentAya(aya), 140);
+    },
+    [markCurrentAya],
+  );
+
+  // Mark the resumed / deep-linked āyah immediately on open, so the marker lands
+  // on the right āyah from the start (the scroll then settles onto it) rather
+  // than appearing only after the page stops moving.
+  useEffect(() => {
+    const m = /^(\d+):(\d+)$/.exec(decodeURIComponent(window.location.hash.slice(1)));
+    if (m && Number(m[1]) === surah.number) markCurrentAya(Number(m[2]));
+    return () => {
+      if (markTimerRef.current) clearTimeout(markTimerRef.current);
+    };
+  }, [surah.number, markCurrentAya]);
+
+  // Track genuine user scrolling. A real input (wheel / touch / arrow keys)
+  // opens a short window during which scroll events may move the marker; it
+  // closes ~1s after the last input, so later programmatic scrolls don't.
+  useEffect(() => {
+    const box = scrollRef.current;
+    if (!box) return;
+    const wake = () => {
+      userScrollingRef.current = true;
+      if (userIdleRef.current) clearTimeout(userIdleRef.current);
+      userIdleRef.current = setTimeout(() => {
+        userScrollingRef.current = false;
+      }, 1000);
+    };
+    const keys = (e: KeyboardEvent) => {
+      if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "].includes(e.key)) wake();
+    };
+    box.addEventListener("wheel", wake, { passive: true });
+    box.addEventListener("touchstart", wake, { passive: true });
+    box.addEventListener("touchmove", wake, { passive: true });
+    window.addEventListener("keydown", keys);
+    return () => {
+      box.removeEventListener("wheel", wake);
+      box.removeEventListener("touchstart", wake);
+      box.removeEventListener("touchmove", wake);
+      window.removeEventListener("keydown", keys);
+      if (userIdleRef.current) clearTimeout(userIdleRef.current);
+    };
+  }, []);
 
   // Restore persisted reading mode on mount. The mode is restored pre-paint into
   // `data-reading-mode` by the layout bootstrap (the sole sync read, for FOUC).
@@ -188,8 +245,9 @@ export function SurahReaderClient({
       }
     });
     if (aya === 0 && current > 0) aya = pageFirstAya.get(current) ?? 0;
-    if (aya > 0) markCurrentAya(aya);
-  }, [pageFirstAya, markCurrentAya]);
+    // Only a user-driven scroll moves the marker; programmatic scrolls don't.
+    if (aya > 0 && userScrollingRef.current) scheduleMark(aya);
+  }, [pageFirstAya, scheduleMark]);
 
   // Count the opening page so short sūrahs (no scroll) still register.
   useEffect(() => {
