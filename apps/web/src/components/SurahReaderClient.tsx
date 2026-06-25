@@ -158,12 +158,15 @@ export function SurahReaderClient({
       lastPageRef.current = current;
       void recordMushafPage(current);
     }
-    // Remember the āyah at the current reading line so the home "Continue
-    // reading" card can resume here. Verse mode has precise per-āyah anchors; the
-    // continuous Reading/Mushaf modes fall back to the current page's opening āyah.
+    // Resume position: the āyah straddling the vertical centre of the viewport.
+    // Record the centre (not the top), because resuming re-centres the āyah
+    // (HashHighlighter) — anchoring to the top made resume land several āyāt
+    // earlier. Verse mode has precise per-āyah anchors; the continuous
+    // Reading/Mushaf modes fall back to the current page's opening āyah.
+    const readingLine = box.scrollTop + box.clientHeight / 2;
     let aya = 0;
     box.querySelectorAll<HTMLElement>(".ayah").forEach((el) => {
-      if (el.offsetParent !== null && el.offsetTop <= top) {
+      if (el.offsetParent !== null && el.offsetTop <= readingLine) {
         const n = Number(el.id.split(":")[1]);
         if (n > aya) aya = n;
       }
@@ -543,6 +546,11 @@ export function SurahReaderClient({
         verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
         reciters={reciters}
         variant="dock"
+        onAyah={(v) => {
+          // Listening advances the resume position too, not just scrolling.
+          lastAyaRef.current = v.aya;
+          writeLastRead(v.sura, v.aya, surah.ayahCount);
+        }}
       />
     </>
   );
