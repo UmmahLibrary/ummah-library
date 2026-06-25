@@ -20,6 +20,7 @@ import type { Collection } from "./collections";
 import type { PrayerTrackerLog } from "./prayer-tracker";
 import type { QadaLog } from "./qada";
 import type { HaidLog } from "./haid";
+import type { FastingQadaLog } from "./fasting-qada";
 import type { TasbihRecord } from "./tasbih";
 import type { HifzCard } from "./hifz";
 import type {
@@ -270,6 +271,18 @@ export interface PrayerTrackerStore {
 export interface QadaStore {
   read(): Promise<QadaLog>;
   write(log: QadaLog): Promise<void>;
+}
+
+/**
+ * Persists fasting-qaḍāʾ progress on-device (ADR 0024, 0034): how many of the
+ * make-up fasts owed — derived from ḥayḍ pauses ∩ Ramaḍān (`fasting-qada.ts`) —
+ * have been completed. Web uses `localStorage`, mobile `AsyncStorage`; a synced
+ * adapter (#25) replaces either without touching the maths. `read()` returns
+ * `{ madeUp: 0 }` when nothing is recorded.
+ */
+export interface FastingQadaStore {
+  read(): Promise<FastingQadaLog>;
+  write(log: FastingQadaLog): Promise<void>;
 }
 
 /**

@@ -3,6 +3,7 @@ import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { PrayerTracker } from "../../components/PrayerTracker";
 import { CyclePause } from "../../components/CyclePause";
 import { QadaTracker } from "../../components/QadaTracker";
+import { FastingQadaTracker } from "../../components/FastingQadaTracker";
 
 export const metadata: Metadata = {
   title: "Prayer Tracker",
@@ -23,6 +24,7 @@ export default function PrayerTrackerPage() {
       <PrayerTracker />
       <CyclePause />
       <QadaTracker />
+      <FastingQadaTracker />
     </NoorPageFrame>
   );
 }

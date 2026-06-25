@@ -20,6 +20,7 @@ export * from "./prayer";
 export * from "./prayer-tracker";
 export * from "./qada";
 export * from "./haid";
+export * from "./fasting-qada";
 export * from "./achievements";
 export * from "./qibla";
 export * from "./hijri";

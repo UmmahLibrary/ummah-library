@@ -24,6 +24,7 @@ import { mobileSettingsStore } from "./state/settings-store";
 import { mobileQadaStore } from "./qada-store";
 import { mobilePrayerTrackerStore } from "./prayer-tracker-store";
 import { mobileHaidStore } from "./haid-store";
+import { mobileFastingQadaStore } from "./fasting-qada-store";
 import { mobileAchievementsStore } from "./achievements-store";
 import { mobileReadingGoalsStore } from "./reading-goals-store";
 import { mobileTasbihStore } from "./tasbih-store";
@@ -69,6 +70,7 @@ describe("mobile store read() corrupt-value hardening", () => {
         "ul.qada",
         "ul.prayerLog",
         "ul.haid",
+        "ul.fastingQada",
         "ul.badges",
         "ul.readingActive",
         "ul.readingLog",
@@ -81,6 +83,7 @@ describe("mobile store read() corrupt-value hardening", () => {
       expect(await mobileQadaStore.read()).toEqual({});
       expect(await mobilePrayerTrackerStore.read()).toEqual({});
       expect(await mobileHaidStore.read()).toEqual([]);
+      expect(await mobileFastingQadaStore.read()).toEqual({ madeUp: 0 });
       expect(await mobileAchievementsStore.read()).toEqual([]);
       const g = await mobileReadingGoalsStore.read();
       expect(g.log).toEqual({});
