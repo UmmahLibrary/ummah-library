@@ -6,6 +6,7 @@ import { type ReciterPlugin, pageNumberOf } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import { AyahTranslations } from "./AyahTranslations";
 import { AyahTransliteration } from "./AyahTransliteration";
+import { AyahWords } from "./AyahWords";
 import { AyahActions } from "./AyahActions";
 import { AyahStar } from "./AyahStar";
 import { ReadingAudio } from "./ReadingAudio";
@@ -470,12 +471,7 @@ export function SurahReaderClient({
                   {pg.ayahs.map((ayah) => (
                     <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
                       <p className="ayah-ar arabic">
-                        {ayah.text.split(" ").flatMap((word, i) => [
-                          <span key={i} className="w" data-w={i}>
-                            {word}
-                          </span>,
-                          " ",
-                        ])}
+                        <AyahWords surah={surah.number} aya={ayah.aya} text={ayah.text} />
                         <button
                           type="button"
                           className="ayah-marker"

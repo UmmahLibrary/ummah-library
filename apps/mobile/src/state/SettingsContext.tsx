@@ -31,6 +31,8 @@ interface SettingsValue {
   scale: number;
   /** Show the per-āyah Latin transliteration line under the Arabic (#150). */
   transliteration: boolean;
+  /** Show per-word Latin transliteration beneath each Arabic word (#144). */
+  wordTransliteration: boolean;
   catalogue: Translation[];
   tafsirs: TafsirMeta[];
   setEditions: (ids: string[]) => void;
@@ -41,6 +43,7 @@ interface SettingsValue {
   setTafsirCompare: (ids: string[]) => void;
   setScale: (scale: number) => void;
   setTransliteration: (on: boolean) => void;
+  setWordTransliteration: (on: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -56,19 +59,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [tafsirCompare, setTafsirCompareState] = useState<string[]>([]);
   const [scale, setScaleState] = useState<number>(1);
   const [transliteration, setTransliterationState] = useState<boolean>(false);
+  const [wordTransliteration, setWordTransliterationState] = useState<boolean>(false);
   const [catalogue, setCatalogue] = useState<Translation[]>([]);
   const [tafsirs, setTafsirs] = useState<TafsirMeta[]>([]);
 
   useEffect(() => {
     void store.read().then((s) => {
       if (s.editions && s.editions.length > 0) setEditionsState(s.editions);
-      if (s.readingMode === "translation" || s.readingMode === "reading" || s.readingMode === "reading-tr")
+      if (
+        s.readingMode === "translation" ||
+        s.readingMode === "reading" ||
+        s.readingMode === "reading-tr"
+      )
         setReadingModeState(s.readingMode);
       if (s.readingTranslation) setReadingTranslationState(s.readingTranslation);
       if (s.reciter) setReciterIdState(s.reciter);
       if (s.tafsir) setTafsirIdState(s.tafsir);
       if (s.scale != null) setScaleState(clampScale(s.scale));
       if (s.transliteration != null) setTransliterationState(s.transliteration);
+      if (s.wordTransliteration != null) setWordTransliterationState(s.wordTransliteration);
     });
     void readTafsirCompare().then(setTafsirCompareState);
     void api
@@ -123,6 +132,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     void store.writeTransliteration(on);
   }, []);
 
+  const setWordTransliteration = useCallback((on: boolean) => {
+    setWordTransliterationState(on);
+    void store.writeWordTransliteration(on);
+  }, []);
+
   const value = useMemo<SettingsValue>(
     () => ({
       editions,
@@ -133,6 +147,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       tafsirCompare,
       scale,
       transliteration,
+      wordTransliteration,
       catalogue,
       tafsirs,
       setEditions,
@@ -143,6 +158,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setTafsirCompare,
       setScale,
       setTransliteration,
+      setWordTransliteration,
     }),
     [
       editions,
@@ -153,6 +169,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       tafsirCompare,
       scale,
       transliteration,
+      wordTransliteration,
       catalogue,
       tafsirs,
       setEditions,
@@ -163,6 +180,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setTafsirCompare,
       setScale,
       setTransliteration,
+      setWordTransliteration,
     ],
   );
 

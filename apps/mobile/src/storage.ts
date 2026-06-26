@@ -15,6 +15,7 @@ export const KEYS = {
   audioRate: "ul.audioRate",
   scale: "ul.scale",
   transliteration: "ul.transliteration",
+  wbwTranslit: "ul.wbwTranslit",
   theme: "ul.theme",
   bookmarks: "ul.bookmarks",
   collections: "ul.collections",

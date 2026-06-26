@@ -17,6 +17,8 @@ export function ReaderControls({
   onScale,
   transliteration,
   onTransliteration,
+  wordTransliteration,
+  onWordTransliteration,
   onManage,
 }: {
   mode: ReadingMode;
@@ -25,6 +27,8 @@ export function ReaderControls({
   onScale: (n: number) => void;
   transliteration: boolean;
   onTransliteration: (on: boolean) => void;
+  wordTransliteration: boolean;
+  onWordTransliteration: (on: boolean) => void;
   onManage: () => void;
 }) {
   const { colors } = useTheme();
@@ -68,12 +72,21 @@ export function ReaderControls({
             accessibilityState={{ checked: transliteration }}
             accessibilityLabel="Transliteration"
           >
-            <Text style={[styles.toggleText, transliteration && styles.toggleTextOn]}>
-              Aa Translit
+            <Text style={[styles.toggleText, transliteration && styles.toggleTextOn]}>Aa Line</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.toggle, wordTransliteration && styles.toggleOn]}
+            onPress={() => onWordTransliteration(!wordTransliteration)}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: wordTransliteration }}
+            accessibilityLabel="Word transliteration"
+          >
+            <Text style={[styles.toggleText, wordTransliteration && styles.toggleTextOn]}>
+              Aa Word
             </Text>
           </Pressable>
           <Pressable style={styles.manage} onPress={onManage}>
-            <Text style={styles.manageText}>⚙ Translations</Text>
+            <Text style={styles.manageText}>⚙</Text>
           </Pressable>
         </View>
       </View>
@@ -95,8 +108,14 @@ function makeStyles(c: Palette) {
     segItemOn: { backgroundColor: c.accentSoft },
     segText: { color: c.muted, fontSize: 13, fontWeight: "600" },
     segTextOn: { color: c.accent },
-    rightRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-    rightBtns: { flexDirection: "row", gap: 8 },
+    rightRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexWrap: "wrap",
+      rowGap: 8,
+    },
+    rightBtns: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
     scale: { flexDirection: "row", gap: 8 },
     scaleBtn: {
       paddingVertical: 6,

@@ -15,6 +15,7 @@ import { EditionManager } from "../../../components/EditionManager";
 import { ReadingTranslationPicker } from "../../../components/ReadingTranslationPicker";
 import { AyahTranslations } from "../../../components/AyahTranslations";
 import { AyahTransliteration } from "../../../components/AyahTransliteration";
+import { AyahWords } from "../../../components/AyahWords";
 import { AyahStar } from "../../../components/AyahStar";
 import { ReadingTranslationFlow } from "../../../components/ReadingTranslationFlow";
 import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
@@ -165,12 +166,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
             {section.ayahs.map((ayah) => (
               <div key={ayah.aya} id={`${section.surah.number}:${ayah.aya}`} className="ayah">
                 <p className="ayah-ar arabic">
-                  {ayah.text.split(" ").flatMap((word, i) => [
-                    <span key={i} className="w" data-w={i}>
-                      {word}
-                    </span>,
-                    " ",
-                  ])}
+                  <AyahWords surah={section.surah.number} aya={ayah.aya} text={ayah.text} />
                   <button
                     type="button"
                     className="ayah-marker"

@@ -19,17 +19,35 @@ import {
 
 export const mobileSettingsStore: SettingsStore = {
   read: async (): Promise<StoredSettings> => {
-    const [editions, readingMode, readingTranslation, reciter, tafsir, scale, transliteration] =
-      await Promise.all([
-        getJSON<string[] | null>(KEYS.editions, null, isStringArray),
-        getString(KEYS.readingMode),
-        getString(KEYS.readingTranslation),
-        getString(KEYS.reciter),
-        getString(KEYS.tafsir),
-        getJSON<number | null>(KEYS.scale, null, isFiniteNumber),
-        getJSON<boolean | null>(KEYS.transliteration, null, isBoolean),
-      ]);
-    return { editions, readingMode, readingTranslation, reciter, tafsir, scale, transliteration };
+    const [
+      editions,
+      readingMode,
+      readingTranslation,
+      reciter,
+      tafsir,
+      scale,
+      transliteration,
+      wordTransliteration,
+    ] = await Promise.all([
+      getJSON<string[] | null>(KEYS.editions, null, isStringArray),
+      getString(KEYS.readingMode),
+      getString(KEYS.readingTranslation),
+      getString(KEYS.reciter),
+      getString(KEYS.tafsir),
+      getJSON<number | null>(KEYS.scale, null, isFiniteNumber),
+      getJSON<boolean | null>(KEYS.transliteration, null, isBoolean),
+      getJSON<boolean | null>(KEYS.wbwTranslit, null, isBoolean),
+    ]);
+    return {
+      editions,
+      readingMode,
+      readingTranslation,
+      reciter,
+      tafsir,
+      scale,
+      transliteration,
+      wordTransliteration,
+    };
   },
   writeEditions: (ids) => setJSON(KEYS.editions, ids),
   writeReadingMode: (mode) => setString(KEYS.readingMode, mode),
@@ -38,4 +56,5 @@ export const mobileSettingsStore: SettingsStore = {
   writeTafsir: (id) => setString(KEYS.tafsir, id),
   writeScale: (scale) => setJSON(KEYS.scale, scale),
   writeTransliteration: (on) => setJSON(KEYS.transliteration, on),
+  writeWordTransliteration: (on) => setJSON(KEYS.wbwTranslit, on),
 };

@@ -19,6 +19,7 @@ import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
 import { AudioRangeControls } from "../components/AudioRangeControls";
 import { MemorizeBar } from "../components/MemorizeBar";
 import { DEFAULT_EDITION, TRANSLIT_EDITION } from "../types";
+import { fetchSurahWordTranslit } from "../word-translit";
 import type { ReadStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "JuzReader">;
@@ -30,6 +31,8 @@ interface Line {
   translation: string;
   /** Latin transliteration line (#150); empty when the toggle is off. */
   transliteration: string;
+  /** Per-word transliteration (#144); empty when the toggle is off. */
+  translitWords: string[];
   surahHeader?: string;
 }
 
@@ -52,7 +55,8 @@ function juzRange(juz: number): { sura: number; from: number; toExclusive: numbe
 export function JuzReaderScreen({ route }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { editions, readingTranslation, reciterId, scale, transliteration } = useSettings();
+  const { editions, readingTranslation, reciterId, scale, transliteration, wordTransliteration } =
+    useSettings();
   const reciter = RECITERS.find((r) => r.id === reciterId) ?? RECITER;
   const audio = useSurahAudio(reciter);
 
@@ -81,12 +85,15 @@ export function JuzReaderScreen({ route }: Props) {
     const parts = juzRange(Number(juz));
     Promise.all(
       parts.map(async (p) => {
-        const [surah, tr, translit] = await Promise.all([
+        const [surah, tr, translit, wordTranslit] = await Promise.all([
           api.getSurah(p.sura),
           api.getCatalogTranslation(edition, p.sura).catch(() => []),
           transliteration
             ? api.getCatalogTranslation(TRANSLIT_EDITION, p.sura).catch(() => [])
             : Promise.resolve([]),
+          wordTransliteration
+            ? fetchSurahWordTranslit(p.sura).catch(() => new Map<number, string[]>())
+            : Promise.resolve(new Map<number, string[]>()),
         ]);
         const trByAya = new Map(tr.map((t) => [t.aya, t.text]));
         const translitByAya = new Map(translit.map((t) => [t.aya, t.text]));
@@ -100,6 +107,7 @@ export function JuzReaderScreen({ route }: Props) {
             arabic: a.text,
             translation: trByAya.get(a.aya) ?? "",
             transliteration: translitByAya.get(a.aya) ?? "",
+            translitWords: wordTranslit.get(a.aya) ?? [],
             surahHeader:
               i === 0 ? `${surah.surah.transliteration} · ${surah.surah.englishName}` : undefined,
           }),
@@ -114,7 +122,7 @@ export function JuzReaderScreen({ route }: Props) {
       active = false;
       audio.stop();
     };
-  }, [juz, edition, transliteration]);
+  }, [juz, edition, transliteration, wordTransliteration]);
 
   const verses = useMemo(() => (lines ?? []).map((l) => ({ sura: l.sura, aya: l.aya })), [lines]);
 
@@ -214,25 +222,43 @@ export function JuzReaderScreen({ route }: Props) {
               style={[styles.ayah, playing && styles.ayahPlaying]}
               onPress={peek ? undefined : () => audio.playFrom(verses, l, true)}
             >
-              <Text style={[styles.arabic, { fontSize: 24 * scale, lineHeight: 44 * scale }]}>
-                {peek
-                  ? peekWords[i].map((w, wi) => {
-                      const gi = peekStarts[i]! + wi;
-                      const shown = gi < revealed || peekExtra.has(gi);
-                      return (
-                        <Text
-                          key={wi}
-                          onPress={() => onPeekWord(gi)}
-                          style={shown ? undefined : styles.wordHidden}
-                        >
-                          {w}
-                          {wi < peekWords[i]!.length - 1 ? " " : ""}
-                        </Text>
-                      );
-                    })
-                  : l.arabic}{" "}
-                <Text style={styles.marker}>﴿{l.aya}﴾</Text>
-              </Text>
+              {wordTransliteration && l.translitWords.length > 0 && !peek ? (
+                <View style={styles.wbwRow}>
+                  {peekWords[i]!.map((w, wi) => (
+                    <View key={wi} style={styles.wbwUnit}>
+                      <Text
+                        style={[styles.wbwAr, { fontSize: 24 * scale, lineHeight: 38 * scale }]}
+                      >
+                        {w}
+                      </Text>
+                      <Text style={[styles.wbwTr, { fontSize: 11 * scale }]}>
+                        {l.translitWords[wi] ?? ""}
+                      </Text>
+                    </View>
+                  ))}
+                  <Text style={styles.marker}>﴿{l.aya}﴾</Text>
+                </View>
+              ) : (
+                <Text style={[styles.arabic, { fontSize: 24 * scale, lineHeight: 44 * scale }]}>
+                  {peek
+                    ? peekWords[i].map((w, wi) => {
+                        const gi = peekStarts[i]! + wi;
+                        const shown = gi < revealed || peekExtra.has(gi);
+                        return (
+                          <Text
+                            key={wi}
+                            onPress={() => onPeekWord(gi)}
+                            style={shown ? undefined : styles.wordHidden}
+                          >
+                            {w}
+                            {wi < peekWords[i]!.length - 1 ? " " : ""}
+                          </Text>
+                        );
+                      })
+                    : l.arabic}{" "}
+                  <Text style={styles.marker}>﴿{l.aya}﴾</Text>
+                </Text>
+              )}
               {l.transliteration && !hideTr ? (
                 <Text style={[styles.translit, { fontSize: 14 * scale, lineHeight: 22 * scale }]}>
                   {l.transliteration}
@@ -302,5 +328,16 @@ function makeStyles(c: Palette) {
     marker: { color: c.accent, fontSize: 17, fontFamily: FONT.ar },
     translit: { color: c.faint, marginTop: 10, fontStyle: "italic" },
     tr: { color: c.fg, marginTop: 10 },
+    // Word-by-word transliteration (#144): RTL flow of stacked word units.
+    wbwRow: {
+      flexDirection: "row-reverse",
+      flexWrap: "wrap",
+      alignItems: "flex-start",
+      justifyContent: "flex-start",
+      gap: 11,
+    },
+    wbwUnit: { alignItems: "center" },
+    wbwAr: { color: c.fg, fontFamily: FONT.ar, textAlign: "center" },
+    wbwTr: { color: c.faint, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
   });
 }

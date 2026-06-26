@@ -457,6 +457,30 @@ body.audio-playing .ayah--current:not(.ayah--playing) {
   background: var(--accent-soft);
 }
 
+/* Word-by-word transliteration (#144): when enabled, each word stacks over its
+   Latin transliteration and the āyah flows the units right-to-left with wrap. */
+body.wbw-translit-on .ayah-ar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5em 0.55em;
+  line-height: 1.35;
+}
+.w-unit {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+.w-tr {
+  direction: ltr;
+  font-family: var(--font-ui, inherit);
+  font-size: 0.42em;
+  line-height: 1.3;
+  color: var(--faint);
+  margin-top: 0.2em;
+  white-space: nowrap;
+}
+
 .surah-search {
   width: 100%;
   font: inherit;
