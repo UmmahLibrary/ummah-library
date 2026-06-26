@@ -22,13 +22,20 @@ established source and tag it — never authored interpretation.
 ## Decision
 
 **1. IndoPak is a second bundled Arabic edition, ingested like Uthmani (extends [0002](0002-quran-data-sourcing.md)).**
-A new step in `packages/data/scripts/ingest.ts` downloads the IndoPak text from a
-**pinned** [QUL resource /55](https://qul.tarteel.ai/resources/quran-script/55) export,
-validates 114/6236, and writes a committed `datasets/arabic-indopak.json` (edition id
-`ara-indopak`). A recorded source version + **SHA-256 checksum** fails the ingest
-loudly if upstream bytes change. The vendored snapshot is the runtime source of truth,
-so upstream edits cannot reach users between deliberate re-ingests. Generated files are
-never hand-edited.
+A new step in `packages/data/scripts/ingest.ts` fetches the IndoPak text, validates
+114/6236, and writes a committed `datasets/arabic-indopak.json` (edition id
+`ara-indopak`). The [QUL resource /55](https://qul.tarteel.ai/resources/quran-script/55)
+export is the **upstream of record**, but its download is **login-gated** and so cannot
+be fetched reproducibly; the ingest instead uses the anonymous
+[`api.quran.com`](https://api.quran.com/api/v4/quran/verses/indopak) mirror of the same
+IndoPak text — the same source the word-by-word transliteration ([0008](0008-recitation-audio-highlighting.md))
+already uses — aligned 1:1 with our Hafs sura:aya numbering. A **pinned SHA-256** over
+the normalized verses (`INDOPAK_SHA256`, stored as `edition.checksum`) fails the ingest
+loudly if the upstream text drifts. The committed snapshot is the runtime source of
+truth, so upstream edits cannot reach users between deliberate, reviewed re-ingests.
+Like Uthmani, quran.com does not prepend the Basmala to each surah's first ayah, so the
+text is already pure; it is lifted from 1:1 and stored once on the edition. Generated
+files are never hand-edited.
 
 **2. Delivered static-first, no backend (honours [0003](0003-static-first-delivery.md)).**
 The default (Uthmani) stays baked into the statically generated reader pages. IndoPak
