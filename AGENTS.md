@@ -125,6 +125,8 @@ pnpm --filter @ummahlibrary/mobile dev      # Expo (open in Expo Go)
 - TypeScript **strict**, ESM, `type`-only imports where possible (lint enforces).
 - Repositories return `Promise`s even when synchronous (the ports are async).
 - Conventional Commits (`feat(core): …`, `fix(web): …`, `docs(adr): …`).
-- Islamic content is **scholar-reviewed** before release; tag such PRs
-  `needs-scholar-review`.
+- Islamic content uses **established, attributed sources**; PRs that add or
+  change Quranic/Hadith text or interpretation are tagged `needs-scholar-review`
+  and welcome scholarly correction before release. Don't author original
+  religious interpretations.
 - License: **AGPL-3.0-only**. Keep source attributions with any data.
