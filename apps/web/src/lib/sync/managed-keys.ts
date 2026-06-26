@@ -27,6 +27,8 @@ export const MANAGED_KEYS: readonly string[] = [
   "ul.reciter",
   "ul.scale",
   "ul.wbw",
+  "ul.transliteration",
+  "ul.wbwTranslit",
   "ul.loop",
   // Last-read position — "continue where you left off" across devices
   "ul.lastRead",

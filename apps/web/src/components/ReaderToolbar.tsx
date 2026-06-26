@@ -10,6 +10,7 @@ import { readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
 import { readReciter, readScale, writeReciter, writeScale } from "../lib/reader-prefs";
 import { readWordByWord, writeLastRead, writeWordByWord } from "../lib/reader-prefs-store";
 import { readTransliteration, writeTransliteration } from "../lib/transliteration";
+import { WORD_TRANSLIT_CLASS, readWordTranslit, writeWordTranslit } from "../lib/word-translit";
 import { TranslationSettings } from "./TranslationSettings";
 import { TafsirPicker } from "./TafsirPicker";
 import { WBW_KEY } from "./WordByWord";
@@ -51,6 +52,7 @@ export function ReaderToolbar({
   const [reciterId, setReciterId] = useState(reciters[0]?.id ?? "");
   const [wbw, setWbw] = useState(false);
   const [translit, setTranslit] = useState(false);
+  const [wordTranslit, setWordTranslit] = useState(false);
   const [managing, setManaging] = useState(false);
   const [catalogue, setCatalogue] = useState<EditionChoice[]>([]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(DEFAULT_EDITIONS));
@@ -69,6 +71,10 @@ export function ReaderToolbar({
     setWbw(wbwOn);
     document.body.classList.toggle("wbw-on", wbwOn);
     void readTransliteration().then(setTranslit);
+    void readWordTranslit().then((on) => {
+      setWordTranslit(on);
+      document.body.classList.toggle(WORD_TRANSLIT_CLASS, on);
+    });
     void readEditions().then((ids) => setSelected(new Set(ids)));
     void fetchCatalogue().then(setCatalogue);
   }, [surahNumber, reciters]);
@@ -85,6 +91,13 @@ export function ReaderToolbar({
     const next = !translit;
     setTranslit(next);
     void writeTransliteration(next); // persists + broadcasts `ul.transliteration`
+  }
+
+  function toggleWordTranslit() {
+    const next = !wordTranslit;
+    setWordTranslit(next);
+    document.body.classList.toggle(WORD_TRANSLIT_CLASS, next);
+    void writeWordTranslit(next); // persists + broadcasts `ul.wbwTranslit`
   }
 
   function changeScale(delta: number) {
@@ -151,7 +164,13 @@ export function ReaderToolbar({
     onClick: () => void;
   }) {
     return (
-      <button type="button" title={title} aria-label={title} onClick={onClick} style={iconBtn(!!on)}>
+      <button
+        type="button"
+        title={title}
+        aria-label={title}
+        onClick={onClick}
+        style={iconBtn(!!on)}
+      >
         <Icon name={icon} size={18} />
       </button>
     );
@@ -176,12 +195,24 @@ export function ReaderToolbar({
                 onClick={() => changeScale(-0.1)}
                 disabled={scale <= SCALE_MIN}
                 aria-label="Decrease text size"
-                style={{ ...iconBtn(false), width: 34, height: 34, opacity: scale <= SCALE_MIN ? 0.4 : 1 }}
+                style={{
+                  ...iconBtn(false),
+                  width: 34,
+                  height: 34,
+                  opacity: scale <= SCALE_MIN ? 0.4 : 1,
+                }}
               >
                 <Icon name="minus" size={16} />
               </button>
               <span
-                style={{ minWidth: 44, textAlign: "center", color: N.fg, fontFamily: N.ui, fontSize: 13.5, fontWeight: 700 }}
+                style={{
+                  minWidth: 44,
+                  textAlign: "center",
+                  color: N.fg,
+                  fontFamily: N.ui,
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                }}
               >
                 {Math.round(scale * 100)}%
               </span>
@@ -190,7 +221,12 @@ export function ReaderToolbar({
                 onClick={() => changeScale(0.1)}
                 disabled={scale >= SCALE_MAX}
                 aria-label="Increase text size"
-                style={{ ...iconBtn(false), width: 34, height: 34, opacity: scale >= SCALE_MAX ? 0.4 : 1 }}
+                style={{
+                  ...iconBtn(false),
+                  width: 34,
+                  height: 34,
+                  opacity: scale >= SCALE_MAX ? 0.4 : 1,
+                }}
               >
                 <Icon name="plus" size={16} />
               </button>
@@ -252,13 +288,41 @@ export function ReaderToolbar({
               {translit && <Icon name="check" size={15} color={N.gold} />}
             </button>
 
+            <button
+              type="button"
+              onClick={toggleWordTranslit}
+              aria-pressed={wordTranslit}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                width: "100%",
+                marginTop: 8,
+                padding: "9px 11px",
+                borderRadius: 10,
+                border: `1px solid ${wordTranslit ? N.gold : N.border}`,
+                background: wordTranslit ? N.goldSoft : N.card,
+                color: wordTranslit ? N.gold : N.fg,
+                cursor: "pointer",
+                fontFamily: N.ui,
+                fontSize: 13.5,
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <Icon name="globe" size={15} color={wordTranslit ? N.gold : N.muted} /> Word
+                transliteration
+              </span>
+              {wordTranslit && <Icon name="check" size={15} color={N.gold} />}
+            </button>
+
             {tafsirs.length > 1 && (
               <div style={{ marginTop: 12 }}>
                 <div style={sectionLabel}>Tafsir edition</div>
                 <TafsirPicker tafsirs={tafsirs} />
               </div>
             )}
-
           </div>
         )}
       </div>
@@ -273,7 +337,10 @@ export function ReaderToolbar({
             onClick={() => setPanel((p) => (p === "reciter" ? null : "reciter"))}
           />
           {panel === "reciter" && (
-            <div className="noor-pop-sm-left" style={{ ...popover, minWidth: 220, maxHeight: 320, overflowY: "auto" }}>
+            <div
+              className="noor-pop-sm-left"
+              style={{ ...popover, minWidth: 220, maxHeight: 320, overflowY: "auto" }}
+            >
               <div style={sectionLabel}>Reciter</div>
               {reciters.map((r) => {
                 const on = r.id === reciterId;
@@ -300,7 +367,9 @@ export function ReaderToolbar({
                       textAlign: "left",
                     }}
                   >
-                    <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <span
+                      style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                    >
                       {r.name}
                     </span>
                     {on && <Icon name="check" size={15} color={N.gold} />}
@@ -352,7 +421,12 @@ export function ReaderToolbar({
       </div>
 
       {/* Bookmark this surah */}
-      <IconBtn icon="bookmark" title={bookmarked ? "Bookmarked" : "Bookmark surah"} on={bookmarked} onClick={toggleBookmark} />
+      <IconBtn
+        icon="bookmark"
+        title={bookmarked ? "Bookmarked" : "Bookmark surah"}
+        on={bookmarked}
+        onClick={toggleBookmark}
+      />
 
       {/* Click-away for the popovers */}
       {panel && (

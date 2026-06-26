@@ -15,6 +15,7 @@ const RECITER_KEY = "ul.reciter";
 const TAFSIR_KEY = "ul.tafsir";
 const SCALE_KEY = "ul.scale";
 const TRANSLIT_KEY = "ul.transliteration";
+const WORD_TRANSLIT_KEY = "ul.wbwTranslit";
 
 function getJSON<T>(key: string, fallback: T, isValid?: (v: unknown) => boolean): T {
   try {
@@ -56,6 +57,7 @@ export const webSettingsStore: SettingsStore = {
     tafsir: getStr(TAFSIR_KEY),
     scale: getJSON<number | null>(SCALE_KEY, null, isFiniteNumber),
     transliteration: getJSON<boolean | null>(TRANSLIT_KEY, null, isBoolean),
+    wordTransliteration: getJSON<boolean | null>(WORD_TRANSLIT_KEY, null, isBoolean),
   }),
   writeEditions: async (ids) => setItem(EDITIONS_KEY, JSON.stringify(ids)),
   writeReadingMode: async (mode) => setItem(READING_MODE_KEY, mode),
@@ -64,4 +66,5 @@ export const webSettingsStore: SettingsStore = {
   writeTafsir: async (id) => setItem(TAFSIR_KEY, id),
   writeScale: async (scale) => setItem(SCALE_KEY, JSON.stringify(scale)),
   writeTransliteration: async (on) => setItem(TRANSLIT_KEY, JSON.stringify(on)),
+  writeWordTransliteration: async (on) => setItem(WORD_TRANSLIT_KEY, JSON.stringify(on)),
 };

@@ -25,6 +25,8 @@ interface Props {
   translations: TrLine[];
   /** Latin transliteration line shown under the Arabic (#150); null when off. */
   transliteration?: string | null;
+  /** Per-word Latin transliteration (#144); when present, words stack over it. */
+  translitWords?: string[] | null;
   activeWord: number;
   playing: boolean;
   scale: number;
@@ -56,6 +58,7 @@ function AyahViewImpl({
   words,
   translations,
   transliteration,
+  translitWords,
   activeWord,
   playing,
   scale,
@@ -91,7 +94,9 @@ function AyahViewImpl({
             <Icon name="play" size={17} color={playing ? colors.accent : colors.faint} />
           </Pressable>
           <Pressable
-            onPress={() => (memorized ? removeHifzCard(ref) : setHifzCard(ref, createCard(new Date())))}
+            onPress={() =>
+              memorized ? removeHifzCard(ref) : setHifzCard(ref, createCard(new Date()))
+            }
             hitSlop={8}
             accessibilityLabel={memorized ? "Stop memorizing" : "Memorize āyah"}
           >
@@ -104,38 +109,54 @@ function AyahViewImpl({
         </View>
       </View>
 
-      <Text
-        style={[styles.arabic, { fontSize: 26 * scale, lineHeight: 50 * scale }]}
-        onPress={peek ? undefined : () => onPlayFrom(aya)}
-      >
-        {/* In peek mode every word is a tappable span — concealed until the
+      {translitWords && translitWords.length > 0 && !peek ? (
+        // Word-by-word transliteration (#144): each word stacks over its Latin
+        // reading, flowing right-to-left with wrap. Audio highlight is dropped in
+        // this learning view.
+        <View style={styles.wbwRow}>
+          {words.map((w, i) => (
+            <Pressable key={i} style={styles.wbwUnit} onPress={() => onPlayFrom(aya)}>
+              <Text style={[styles.wbwAr, { fontSize: 26 * scale, lineHeight: 40 * scale }]}>
+                {w}
+              </Text>
+              <Text style={[styles.wbwTr, { fontSize: 12 * scale }]}>{translitWords[i] ?? ""}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : (
+        <Text
+          style={[styles.arabic, { fontSize: 26 * scale, lineHeight: 50 * scale }]}
+          onPress={peek ? undefined : () => onPlayFrom(aya)}
+        >
+          {/* In peek mode every word is a tappable span — concealed until the
             reveal cursor reaches it or it's tapped. Otherwise only the playing
             āyah splits into per-word spans (for highlighting); every other āyah
             renders as a single text node, which keeps long surahs cheap to scroll. */}
-        {peek
-          ? words.map((w, i) => {
-              const gi = peekStart + i;
-              const shown = gi < peekRevealed || peekExtra?.has(gi);
-              return (
-                <Text
-                  key={i}
-                  onPress={() => onPeekWord?.(gi)}
-                  style={shown ? undefined : styles.wordHidden}
-                >
-                  {w}
-                  {i < words.length - 1 ? " " : ""}
-                </Text>
-              );
-            })
-          : playing
-            ? words.map((w, i) => (
-                <Text key={i} style={i === activeWord ? styles.wordActive : undefined}>
-                  {w}
-                  {i < words.length - 1 ? " " : ""}
-                </Text>
-              ))
-            : arabic}
-      </Text>
+          {peek
+            ? words.map((w, i) => {
+                const gi = peekStart + i;
+                const shown = gi < peekRevealed || peekExtra?.has(gi);
+                return (
+                  <Text
+                    key={i}
+                    onPress={() => onPeekWord?.(gi)}
+                    style={shown ? undefined : styles.wordHidden}
+                  >
+                    {w}
+                    {i < words.length - 1 ? " " : ""}
+                  </Text>
+                );
+              })
+            : playing
+              ? words.map((w, i) => (
+                  <Text key={i} style={i === activeWord ? styles.wordActive : undefined}>
+                    {w}
+                    {i < words.length - 1 ? " " : ""}
+                  </Text>
+                ))
+              : arabic}
+        </Text>
+      )}
 
       {transliteration && !peekHideTr ? (
         <Text style={[styles.translit, { fontSize: 14 * scale, lineHeight: 22 * scale }]}>
@@ -145,19 +166,19 @@ function AyahViewImpl({
 
       {!peekHideTr &&
         translations.map((t) => (
-        <View key={t.id} style={styles.tr}>
-          {translations.length > 1 && <Text style={styles.trName}>{t.name}</Text>}
-          <Text
-            style={[
-              styles.trText,
-              { fontSize: 15 * scale, lineHeight: 24 * scale },
-              t.direction === "rtl" && styles.rtl,
-            ]}
-          >
-            {t.text}
-          </Text>
-        </View>
-      ))}
+          <View key={t.id} style={styles.tr}>
+            {translations.length > 1 && <Text style={styles.trName}>{t.name}</Text>}
+            <Text
+              style={[
+                styles.trText,
+                { fontSize: 15 * scale, lineHeight: 24 * scale },
+                t.direction === "rtl" && styles.rtl,
+              ]}
+            >
+              {t.text}
+            </Text>
+          </View>
+        ))}
 
       <AyahTafsir sura={sura} aya={aya} />
     </View>
@@ -189,6 +210,17 @@ function makeStyles(c: Palette) {
     // Concealed word: keep its footprint (a hint of length) but hide the glyphs.
     wordHidden: { color: "transparent", backgroundColor: c.borderSoft },
     translit: { color: c.faint, marginTop: 10, fontStyle: "italic", fontFamily: FONT.medium },
+    // Word-by-word transliteration (#144): RTL flow of stacked word units.
+    wbwRow: {
+      flexDirection: "row-reverse",
+      flexWrap: "wrap",
+      alignItems: "flex-start",
+      justifyContent: "flex-start",
+      gap: 12,
+    },
+    wbwUnit: { alignItems: "center" },
+    wbwAr: { color: c.fg, fontFamily: FONT.ar, textAlign: "center" },
+    wbwTr: { color: c.faint, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
     tr: { marginTop: 12 },
     trName: { color: c.faint, fontSize: 12, marginBottom: 3, fontFamily: FONT.medium },
     trText: { color: c.muted },

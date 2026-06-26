@@ -334,6 +334,8 @@ export interface StoredSettings {
   scale: number | null;
   /** Show the per-āyah Latin transliteration line under the Arabic (#150). */
   transliteration: boolean | null;
+  /** Show per-word Latin transliteration beneath each Arabic word (#144). */
+  wordTransliteration: boolean | null;
 }
 
 /**
@@ -352,6 +354,8 @@ export interface SettingsStore {
   writeScale(scale: number): Promise<void>;
   /** Toggle the per-āyah transliteration line (#150). */
   writeTransliteration(on: boolean): Promise<void>;
+  /** Toggle the per-word transliteration row (#144). */
+  writeWordTransliteration(on: boolean): Promise<void>;
 }
 
 /** The reader's prayer-times location and calculation config as persisted. */

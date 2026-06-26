@@ -31,6 +31,7 @@ import { useSettings } from "../state/SettingsContext";
 import { useLibrary } from "../state/LibraryContext";
 import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
 import { DEFAULT_EDITION, TRANSLIT_EDITION } from "../types";
+import { fetchSurahWordTranslit } from "../word-translit";
 import { ReaderControls } from "../components/ReaderControls";
 import { AudioRangeControls } from "../components/AudioRangeControls";
 import { MemorizeBar } from "../components/MemorizeBar";
@@ -57,12 +58,14 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     reciterId,
     scale,
     transliteration,
+    wordTransliteration,
     catalogue,
     setEditions,
     setReadingMode,
     setReadingTranslation,
     setScale,
     setTransliteration,
+    setWordTransliteration,
   } = settings;
   const { setLastRead, isBookmarked, toggleBookmark } = useLibrary();
 
@@ -73,6 +76,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   const [ayahs, setAyahs] = useState<Ayah[] | null>(null);
   const [trMap, setTrMap] = useState<Map<string, Map<number, string>>>(new Map());
   const [translitMap, setTranslitMap] = useState<Map<number, string>>(new Map());
+  const [wordTranslitMap, setWordTranslitMap] = useState<Map<number, string[]>>(new Map());
   const [error, setError] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
 
@@ -203,6 +207,23 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     };
   }, [n, transliteration]);
 
+  // Fetch per-word transliteration (#144) for this surah only while enabled.
+  useEffect(() => {
+    if (!wordTransliteration) {
+      setWordTranslitMap(new Map());
+      return;
+    }
+    let active = true;
+    fetchSurahWordTranslit(n)
+      .then((map) => {
+        if (active) setWordTranslitMap(map);
+      })
+      .catch(() => active && setWordTranslitMap(new Map()));
+    return () => {
+      active = false;
+    };
+  }, [n, wordTransliteration]);
+
   const verses = useMemo(() => (ayahs ?? []).map((a) => ({ sura: n, aya: a.aya })), [ayahs, n]);
   const metaById = useMemo(() => new Map(catalogue.map((e) => [e.id, e])), [catalogue]);
 
@@ -228,11 +249,22 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         arabic: a.text,
         words: a.text.split(" "),
         transliteration: transliteration ? (translitMap.get(a.aya) ?? null) : null,
+        translitWords: wordTransliteration ? (wordTranslitMap.get(a.aya) ?? null) : null,
         translations: editions
           .map((id) => trLineFor(id, a.aya))
           .filter((x): x is TrLine => x !== null),
       })),
-    [ayahs, editions, trMap, metaById, n, transliteration, translitMap],
+    [
+      ayahs,
+      editions,
+      trMap,
+      metaById,
+      n,
+      transliteration,
+      translitMap,
+      wordTransliteration,
+      wordTranslitMap,
+    ],
   );
 
   // Peek geometry: each āyah's word count and the global index of its first word,
@@ -284,6 +316,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         words={item.words}
         translations={item.translations}
         transliteration={item.transliteration}
+        translitWords={item.translitWords}
         activeWord={playingKey === item.key ? activeWord : -1}
         playing={playingKey === item.key}
         scale={scale}
@@ -402,6 +435,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         onScale={setScale}
         transliteration={transliteration}
         onTransliteration={setTransliteration}
+        wordTransliteration={wordTransliteration}
+        onWordTransliteration={setWordTransliteration}
         onManage={() => setManagerOpen(true)}
       />
 
@@ -485,7 +520,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           data={rows}
           keyExtractor={(r) => r.key}
           renderItem={renderItem}
-          extraData={`${playingKey ?? ""}:${activeWord}:${scale}:${peek}:${revealed}:${peekExtra.size}:${hideTr}:${transliteration}:${translitMap.size}`}
+          extraData={`${playingKey ?? ""}:${activeWord}:${scale}:${peek}:${revealed}:${peekExtra.size}:${hideTr}:${transliteration}:${translitMap.size}:${wordTransliteration}:${wordTranslitMap.size}`}
           contentContainerStyle={styles.content}
           onViewableItemsChanged={onViewable}
           viewabilityConfig={viewabilityConfig}
