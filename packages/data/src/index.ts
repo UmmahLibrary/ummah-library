@@ -28,6 +28,7 @@ import type {
   PlanCatalogPort,
   PlanTemplate,
   QuranRepository,
+  QuranScript,
   Surah,
   TranslatedAyah,
   Translation,
@@ -85,12 +86,28 @@ interface ArabicDoc {
   verses: VerseRecord[];
 }
 
+/** The ingested dataset file for each Arabic script (ADR 0035). */
+const ARABIC_FILE: Record<QuranScript, string> = {
+  uthmani: "arabic-uthmani.json",
+  indopak: "arabic-indopak.json",
+};
+
 /** Serves the Arabic Quran and surah structure from the ingested datasets. */
 export class FileQuranRepository implements QuranRepository {
+  readonly #file: string;
   #arabic: ArabicDoc | null = null;
 
+  /**
+   * @param script which Arabic orthography to serve — "uthmani" (default) or
+   *   "indopak" (ADR 0035). Surah structure is shared across scripts; only the
+   *   verse text and the Basmala differ, so the same repo type serves both.
+   */
+  constructor(script: QuranScript = "uthmani") {
+    this.#file = ARABIC_FILE[script];
+  }
+
   #doc(): ArabicDoc {
-    this.#arabic ??= loadJson<ArabicDoc>("arabic-uthmani.json");
+    this.#arabic ??= loadJson<ArabicDoc>(this.#file);
     return this.#arabic;
   }
 
