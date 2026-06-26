@@ -4,13 +4,17 @@ test.describe("Home navigation", () => {
   test("opening a surah from the home list lands in the reader", async ({ page }) => {
     await page.goto("/");
 
-    // The surah index lists Al-Fātiḥah ("The Opening").
-    const opening = page.getByRole("link", { name: /The Opening/ });
+    // The surah index row for Al-Fātiḥah ("The Opening"). The home page also shows
+    // a "Start reading" card linking to the same surah (it defaults to Al-Fātiḥah
+    // when there's no last-read), so match the index row's distinctive "· N ayahs"
+    // subtitle — the card reads "· Juzʾ N" instead — to keep the locator unique.
+    const opening = page.getByRole("link", { name: /The Opening · \d+ ayahs/ });
     await expect(opening).toBeVisible();
     await opening.click();
 
-    // We land on the surah-1 reader, with its mode chrome present.
-    await expect(page).toHaveURL(/\/surah\/1$/);
-    await expect(page.getByRole("button", { name: "Verse" })).toBeVisible();
+    // We land on the surah-1 reader, with its mode chrome present. Generous
+    // timeouts so a cold dev-server compile of /surah/[number] doesn't flake.
+    await expect(page).toHaveURL(/\/surah\/1$/, { timeout: 30_000 });
+    await expect(page.getByRole("button", { name: "Verse" })).toBeVisible({ timeout: 30_000 });
   });
 });
