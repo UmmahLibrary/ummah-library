@@ -1,0 +1,55 @@
+name: "✨ Feature request"
+description: Suggest an idea or improvement
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea — جزاك الله خيرًا.
+        For open-ended discussion, [Discussions](https://github.com/UmmahLibrary/ummah-library/discussions) is often a better fit. Use this form when you have a concrete proposal.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Who is it for, and what's painful today?
+      placeholder: As someone memorising Quran, I struggle to … because …
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would you like to happen?
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which part of the app?
+      options:
+        - Quran reader
+        - Translations / Tafsir
+        - Audio / Recitation
+        - Hifz (memorisation)
+        - Hadith
+        - Prayer times / Qibla / Calendar
+        - Reading goals / plans
+        - Tools (Zakat, Tasbih, Adhkar, Names…)
+        - Mobile app
+        - Public API
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: content-source
+    attributes:
+      label: Islamic content?
+      description: If this involves Quran, Tafsir or Hadith content, note the source and whether it would need scholar review.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and discussions and this isn't a duplicate.
+          required: true

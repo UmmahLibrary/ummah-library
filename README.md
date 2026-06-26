@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/UmmahLibrary/ummah-library/actions/workflows/ci.yml/badge.svg)](https://github.com/UmmahLibrary/ummah-library/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
-[![Live app](https://img.shields.io/badge/live-app.ummahlibrary.org-1f9d55.svg)](https://app.ummahlibrary.org)
+[![Live app](https://img.shields.io/badge/live-ummahlibrary.org-1f9d55.svg)](https://ummahlibrary.org)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-7057ff.svg)](CONTRIBUTING.md)
 [![good first issues](https://img.shields.io/github/issues/UmmahLibrary/ummah-library/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/UmmahLibrary/ummah-library/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
@@ -17,7 +17,7 @@ Built as a community **Sadaqah Jariyah** (ongoing charity): freely usable,
 freely improvable, and owned by no one. Licensed under **AGPL-3.0** so it stays
 open for everyone who comes after.
 
-### 🕮 Read it now: **[app.ummahlibrary.org](https://app.ummahlibrary.org)**
+### 🕮 Read it now: **[ummahlibrary.org](https://ummahlibrary.org)**
 
 Read the full Quran (Uthmani Arabic) with translations in **dozens of
 languages**, installable as an app, and **fully readable offline**.
@@ -28,7 +28,7 @@ languages**, installable as an app, and **fully readable offline**.
 - **Three reading surfaces** — verse-by-verse, continuous reading, and a **Madani Mushaf page view** (all 604 pages).
 - **A runtime catalogue of ~490 translations across ~98 languages** ([ADR 0011](docs/adr/0011-translation-catalog-runtime.md)) — grouped, searchable, toggle any combination; 6 are bundled for offline + the REST API. Urdu locales default to an Urdu translation.
 - **Multiple Tafsirs** (Ibn Kathir, Muyassar, Tabari, Maarif-ul-Quran …) fetched on demand.
-- **Full-text search** across the Arabic and English — instant, client-side ([`/search`](https://app.ummahlibrary.org/search)) — plus **Hadith search**.
+- **Full-text search** across the Arabic and English — instant, client-side ([`/search`](https://ummahlibrary.org/search)) — plus **Hadith search**.
 - **Recitation audio** with multiple reciters, surah **loop/repeat**, and word-by-word highlighting; tap any word for a **word-by-word gloss**.
 - **Hadith** — 6 collections (Bukhari, Muslim, Abu Dawud, Tirmidhi, Ibn Majah, Nasa'i), book by book.
 - **Reading goals** — a daily page goal, a reading **streak**, and a **khatma planner** that paces you to finish by a date; all tracked privately on your device.
@@ -106,13 +106,13 @@ eas build --platform android --profile preview # internal APK
 
 ## Public API
 
-Base URL: `https://app.ummahlibrary.org/api`. Full reference in
+Base URL: `https://ummahlibrary.org/api`. Full reference in
 [docs/API.md](docs/API.md).
 
 ```bash
-curl https://app.ummahlibrary.org/api/v1/surahs
-curl https://app.ummahlibrary.org/api/v1/surahs/2
-curl https://app.ummahlibrary.org/api/v1/surahs/2/translations/eng-khattab
+curl https://ummahlibrary.org/api/v1/surahs
+curl https://ummahlibrary.org/api/v1/surahs/2
+curl https://ummahlibrary.org/api/v1/surahs/2/translations/eng-khattab
 ```
 
 ## Tech

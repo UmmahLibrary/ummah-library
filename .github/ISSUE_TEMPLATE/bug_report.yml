@@ -1,0 +1,62 @@
+name: "🐞 Bug report"
+description: Report something that isn't working as expected
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Ummah Library — جزاك الله خيرًا.
+        Please search [existing issues](https://github.com/UmmahLibrary/ummah-library/issues) first to avoid duplicates.
+        For a question or idea (not a bug), please use [Discussions](https://github.com/UmmahLibrary/ummah-library/discussions) instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug — what you saw vs. what you expected.
+      placeholder: When I tap “…”, the app shows … but I expected …
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we make it happen again?
+      placeholder: |
+        1. Go to …
+        2. Tap …
+        3. See …
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did it happen?
+      options:
+        - Web (ummahlibrary.org)
+        - Installed app / PWA
+        - Mobile app (Android)
+        - Mobile app (iOS)
+        - Browser extension
+        - Public API
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device / browser
+      description: e.g. "iPhone 15, Safari" or "Windows 11, Chrome 126". Optional but helpful.
+      placeholder: e.g. Pixel 8, Chrome 126
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or console errors
+      description: Drag in a screenshot, or paste any errors. Optional.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true

@@ -42,6 +42,21 @@ export const metadata: Metadata = {
   description:
     "An open-source Quran reader — read the Quran with translations, recitations, tafsir and Islamic tools.",
   manifest: "/manifest.webmanifest",
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Ummah Library",
+    title: "Ummah Library — the open-source Quran & Islamic library",
+    description:
+      "Read, listen, memorise and track — free, private and offline. No ads, no tracking, no account. A community Sadaqah Jariyah, licensed AGPL-3.0.",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ummah Library — the open-source Quran & Islamic library",
+    description:
+      "Read, listen, memorise and track — free, private and offline. No ads, no tracking, no account.",
+  },
   applicationName: "Ummah Library",
   appleWebApp: {
     capable: true,
