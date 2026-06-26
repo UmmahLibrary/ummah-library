@@ -408,13 +408,22 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   line-height: 2.1;
   text-align: right;
 }
-/* IndoPak script (ADR 0035) — applied when the reader selects it. The dedicated
-   IndoPak webfont is loaded on demand via --font-indopak; until it is present the
-   IndoPak text (which already carries the IndoPak orthography) falls back to
-   Amiri. IndoPak needs a roomier line for its marks. */
+/* IndoPak script (ADR 0035). IndoPak Unicode text must be paired with an IndoPak
+   font: generic Naskh faces (Amiri, Scheherazade) position the shadda+kasra the
+   standard-Arab way and misread (e.g. رَبِّ → "rabal" not "rabbi"). me_quran is the
+   de-facto IndoPak font used across South-Asian apps; it has no formal licence, so
+   it is loaded at RUNTIME from a CDN (pinned, not bundled/redistributed) and cached
+   for offline — documented in ATTRIBUTION as a runtime-only display asset. Falls
+   back to Amiri until cached. */
+@font-face {
+  font-family: "me_quran";
+  src: url("https://cdn.statically.io/gh/quran/quran.com-frontend-v2@f49ee0ed0d3bb930fe863c528ef7faf48cd06b36/app/assets/fonts/quran_fonts/me_quran/me_quran.ttf")
+    format("truetype");
+  font-display: swap;
+}
 body.script-indopak .ayah-ar {
-  font-family: var(--font-indopak), var(--font-amiri), "Scheherazade New", serif;
-  line-height: 2.5;
+  font-family: "me_quran", var(--font-amiri), serif;
+  line-height: 2.4;
 }
 .ayah-marker {
   font-size: 1rem;
