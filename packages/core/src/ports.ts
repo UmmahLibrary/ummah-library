@@ -338,6 +338,8 @@ export interface StoredSettings {
   wordTransliteration: boolean | null;
   /** Tap an Arabic word to hear just that word recited (#145). */
   tapToHear: boolean | null;
+  /** Arabic script for the reader: `uthmani` | `indopak` (ADR 0035). */
+  script: string | null;
 }
 
 /**
@@ -360,6 +362,8 @@ export interface SettingsStore {
   writeWordTransliteration(on: boolean): Promise<void>;
   /** Toggle tap-a-word-to-hear word audio (#145). */
   writeTapToHear(on: boolean): Promise<void>;
+  /** Set the reader's Arabic script — `uthmani` | `indopak` (ADR 0035). */
+  writeScript(script: string): Promise<void>;
 }
 
 /** The reader's prayer-times location and calculation config as persisted. */

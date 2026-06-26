@@ -1,7 +1,9 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import type { QuranScript } from "@ummahlibrary/core";
 import { WORD_TRANSLIT_KEY, fetchSurahWordTranslit, readWordTranslit } from "../lib/word-translit";
+import { SCRIPT_KEY, fetchSurahIndopak, readScript } from "../lib/script";
 
 /**
  * The Arabic words of one āyah (#144). With the word-transliteration toggle off
@@ -10,12 +12,19 @@ import { WORD_TRANSLIT_KEY, fetchSurahWordTranslit, readWordTranslit } from "../
  * becomes a stacked unit — Arabic over its Latin transliteration — and the CSS
  * `body.wbw-translit-on .ayah-ar` flex layout flows them right-to-left.
  *
+ * When the IndoPak script is selected (ADR 0035) it renders the IndoPak verse
+ * text instead — as plain `.w` spans **without** `data-w`, so the per-word audio
+ * highlighting / tap-to-hear / transliteration features stay Uthmani-only in v1
+ * (IndoPak word boundaries differ). The font swap is driven by the body class.
+ *
  * Server-rendered in the off state (the toggle/fetch run only after hydration),
  * so the Arabic stays in the initial HTML for both the surah and juz readers.
  */
 export function AyahWords({ surah, aya, text }: { surah: number; aya: number; text: string }) {
   const words = text.split(" ");
   const [translit, setTranslit] = useState<string[] | null>(null);
+  const [script, setScript] = useState<QuranScript>("uthmani");
+  const [indopak, setIndopak] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -35,6 +44,42 @@ export function AyahWords({ surah, aya, text }: { surah: number; aya: number; te
       window.removeEventListener(WORD_TRANSLIT_KEY, onChange);
     };
   }, [surah, aya]);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      const s = await readScript();
+      if (!active) return;
+      setScript(s);
+      if (s !== "indopak") {
+        setIndopak(null);
+        return;
+      }
+      const map = await fetchSurahIndopak(surah);
+      if (active) setIndopak(map.get(aya) ?? null);
+    }
+    void load();
+    const onChange = () => void load();
+    window.addEventListener(SCRIPT_KEY, onChange);
+    return () => {
+      active = false;
+      window.removeEventListener(SCRIPT_KEY, onChange);
+    };
+  }, [surah, aya]);
+
+  // IndoPak (reading view only): the IndoPak text as plain spans, no data-w hooks.
+  if (script === "indopak" && indopak != null) {
+    return (
+      <>
+        {indopak.split(" ").flatMap((word, i) => [
+          <span key={i} className="w">
+            {word}
+          </span>,
+          " ",
+        ])}
+      </>
+    );
+  }
 
   if (!translit) {
     // Off — identical to the reader's long-standing inline rendering.

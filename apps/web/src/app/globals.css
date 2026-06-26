@@ -408,6 +408,14 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   line-height: 2.1;
   text-align: right;
 }
+/* IndoPak script (ADR 0035) — applied when the reader selects it. The dedicated
+   IndoPak webfont is loaded on demand via --font-indopak; until it is present the
+   IndoPak text (which already carries the IndoPak orthography) falls back to
+   Amiri. IndoPak needs a roomier line for its marks. */
+body.script-indopak .ayah-ar {
+  font-family: var(--font-indopak), var(--font-amiri), "Scheherazade New", serif;
+  line-height: 2.5;
+}
 .ayah-marker {
   font-size: 1rem;
   color: var(--accent);

@@ -12,6 +12,7 @@ import { readWordByWord, writeLastRead, writeWordByWord } from "../lib/reader-pr
 import { readTransliteration, writeTransliteration } from "../lib/transliteration";
 import { WORD_TRANSLIT_CLASS, readWordTranslit, writeWordTranslit } from "../lib/word-translit";
 import { TAP_HEAR_CLASS, readTapToHear, writeTapToHear } from "../lib/tap-to-hear";
+import { SCRIPT_INDOPAK_CLASS, readScript, writeScript } from "../lib/script";
 import { TranslationSettings } from "./TranslationSettings";
 import { TafsirPicker } from "./TafsirPicker";
 import { WBW_KEY } from "./WordByWord";
@@ -55,6 +56,7 @@ export function ReaderToolbar({
   const [translit, setTranslit] = useState(false);
   const [wordTranslit, setWordTranslit] = useState(false);
   const [tapHear, setTapHear] = useState(false);
+  const [indopak, setIndopak] = useState(false);
   const [managing, setManaging] = useState(false);
   const [catalogue, setCatalogue] = useState<EditionChoice[]>([]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(DEFAULT_EDITIONS));
@@ -80,6 +82,11 @@ export function ReaderToolbar({
     void readTapToHear().then((on) => {
       setTapHear(on);
       document.body.classList.toggle(TAP_HEAR_CLASS, on);
+    });
+    void readScript().then((s) => {
+      const on = s === "indopak";
+      setIndopak(on);
+      document.body.classList.toggle(SCRIPT_INDOPAK_CLASS, on);
     });
     void readEditions().then((ids) => setSelected(new Set(ids)));
     void fetchCatalogue().then(setCatalogue);
@@ -111,6 +118,13 @@ export function ReaderToolbar({
     setTapHear(next);
     document.body.classList.toggle(TAP_HEAR_CLASS, next);
     void writeTapToHear(next); // persists + broadcasts `ul.tapToHear`
+  }
+
+  function toggleScript() {
+    const next = !indopak;
+    setIndopak(next);
+    document.body.classList.toggle(SCRIPT_INDOPAK_CLASS, next);
+    void writeScript(next ? "indopak" : "uthmani"); // persists + broadcasts `ul.script`
   }
 
   function changeScale(delta: number) {
@@ -357,6 +371,34 @@ export function ReaderToolbar({
                 to hear
               </span>
               {tapHear && <Icon name="check" size={15} color={N.gold} />}
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleScript}
+              aria-pressed={indopak}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                width: "100%",
+                marginTop: 8,
+                padding: "9px 11px",
+                borderRadius: 10,
+                border: `1px solid ${indopak ? N.gold : N.border}`,
+                background: indopak ? N.goldSoft : N.card,
+                color: indopak ? N.gold : N.fg,
+                cursor: "pointer",
+                fontFamily: N.ui,
+                fontSize: 13.5,
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <Icon name="type" size={15} color={indopak ? N.gold : N.muted} /> IndoPak script
+              </span>
+              {indopak && <Icon name="check" size={15} color={N.gold} />}
             </button>
 
             {tafsirs.length > 1 && (
