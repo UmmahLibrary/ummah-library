@@ -149,7 +149,9 @@ SQLite (mobile Hifz) · WebCrypto (E2EE sync) · Tanzil Quran data ·
 Newcomers very welcome — start with [`CONTRIBUTING.md`](CONTRIBUTING.md) and the
 [`good first issue`](https://github.com/UmmahLibrary/ummah-library/labels/good%20first%20issue)
 label. Module boundaries are enforced automatically, so the structure guides you.
-Islamic content is scholar-reviewed before release.
+Islamic content uses established, attributed sources (Tanzil, Ḥiṣn al-Muslim, …);
+corrections and scholarly review are warmly welcomed —
+[open an issue](https://github.com/UmmahLibrary/ummah-library/issues/new/choose).
 
 ## License
 
