@@ -47,7 +47,8 @@ required notices and ingest steps.
 | [verses.quran.com](https://quran.com) | recitation audio (web) | streamed to the client |
 | [everyayah.com](https://everyayah.com) | recitation audio (reciter plugins) | streamed to the client |
 | [jsDelivr → `fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) | translation text (runtime/CDN); per-āyah **transliteration** line (`ara-quran-la`, #150) | per-edition (see §1); transliteration is Tanzil, **CC-BY-3.0**, verbatim |
-| [Google Fonts](https://fonts.google.com) | web UI typefaces | fetched at build (`next/font`) |
+| [Google Fonts](https://fonts.google.com) | web UI + Quran typefaces (Hanken Grotesk, IBM Plex Sans Arabic, Amiri) | self-hosted at build via `next/font`. Amiri is **SIL OFL 1.1**; the OFL notice ships with the font and reserved names are unmodified |
+| **me_quran** font (via [statically.io CDN → quran.com-frontend-v2](https://github.com/quran/quran.com-frontend-v2), pinned to a commit SHA) | the **IndoPak script** typeface (ADR 0035) — IndoPak Unicode text must be paired with an IndoPak font to position marks correctly | **No formal licence** (de-facto IndoPak font, unknown origin). Therefore **loaded at runtime from a CDN, not bundled or redistributed**, and cached client-side — display-only, the same posture as the api.quran.com word data above. Not shipped in the repo. |
 
 ## 4. Code
 
