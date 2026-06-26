@@ -59,6 +59,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     scale,
     transliteration,
     wordTransliteration,
+    tapToHear,
     catalogue,
     setEditions,
     setReadingMode,
@@ -66,6 +67,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     setScale,
     setTransliteration,
     setWordTransliteration,
+    setTapToHear,
   } = settings;
   const { setLastRead, isBookmarked, toggleBookmark } = useLibrary();
 
@@ -297,7 +299,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   // Stable so the memoized AyahView only re-renders the playing āyah as the
   // recitation moves word to word — an inline arrow would change identity every
   // render and defeat the memo, re-rendering the whole surah on each word.
-  const { playFrom: playAudio, playingKey, activeWord } = audio;
+  const { playFrom: playAudio, playWord, playingKey, activeWord } = audio;
   const playFrom = useCallback(
     (aya: number) => playAudio(verses, { sura: n, aya }, true),
     [playAudio, verses, n],
@@ -305,6 +307,10 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   const playOne = useCallback(
     (aya: number) => playAudio(verses, { sura: n, aya }, false),
     [playAudio, verses, n],
+  );
+  const playWordAt = useCallback(
+    (aya: number, wordIndex: number) => playWord({ sura: n, aya }, wordIndex),
+    [playWord, n],
   );
 
   const renderItem = useCallback(
@@ -317,6 +323,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         translations={item.translations}
         transliteration={item.transliteration}
         translitWords={item.translitWords}
+        tapToHear={tapToHear}
+        onPlayWord={playWordAt}
         activeWord={playingKey === item.key ? activeWord : -1}
         playing={playingKey === item.key}
         scale={scale}
@@ -337,6 +345,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
       scale,
       playFrom,
       playOne,
+      playWordAt,
+      tapToHear,
       peek,
       peekStarts,
       revealed,
@@ -437,6 +447,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         onTransliteration={setTransliteration}
         wordTransliteration={wordTransliteration}
         onWordTransliteration={setWordTransliteration}
+        tapToHear={tapToHear}
+        onTapToHear={setTapToHear}
         onManage={() => setManagerOpen(true)}
       />
 
@@ -520,7 +532,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           data={rows}
           keyExtractor={(r) => r.key}
           renderItem={renderItem}
-          extraData={`${playingKey ?? ""}:${activeWord}:${scale}:${peek}:${revealed}:${peekExtra.size}:${hideTr}:${transliteration}:${translitMap.size}:${wordTransliteration}:${wordTranslitMap.size}`}
+          extraData={`${playingKey ?? ""}:${activeWord}:${scale}:${peek}:${revealed}:${peekExtra.size}:${hideTr}:${transliteration}:${translitMap.size}:${wordTransliteration}:${wordTranslitMap.size}:${tapToHear}`}
           contentContainerStyle={styles.content}
           onViewableItemsChanged={onViewable}
           viewabilityConfig={viewabilityConfig}

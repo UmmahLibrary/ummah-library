@@ -480,6 +480,13 @@ body.wbw-translit-on .ayah-ar {
   margin-top: 0.2em;
   white-space: nowrap;
 }
+/* Tap-a-word-to-hear (#145): show words are tappable while the mode is on. */
+body.tap-hear-on .w {
+  cursor: pointer;
+}
+body.tap-hear-on .w:hover {
+  background: var(--accent-soft);
+}
 
 .surah-search {
   width: 100%;

@@ -27,6 +27,9 @@ interface Props {
   transliteration?: string | null;
   /** Per-word Latin transliteration (#144); when present, words stack over it. */
   translitWords?: string[] | null;
+  /** Tap-a-word-to-hear (#145): render words as tap targets that play that word. */
+  tapToHear?: boolean;
+  onPlayWord?: (aya: number, wordIndex: number) => void;
   activeWord: number;
   playing: boolean;
   scale: number;
@@ -59,6 +62,8 @@ function AyahViewImpl({
   translations,
   transliteration,
   translitWords,
+  tapToHear = false,
+  onPlayWord,
   activeWord,
   playing,
   scale,
@@ -109,17 +114,23 @@ function AyahViewImpl({
         </View>
       </View>
 
-      {translitWords && translitWords.length > 0 && !peek ? (
-        // Word-by-word transliteration (#144): each word stacks over its Latin
-        // reading, flowing right-to-left with wrap. Audio highlight is dropped in
-        // this learning view.
+      {((translitWords && translitWords.length > 0) || tapToHear) && !peek ? (
+        // Word-by-word view (#144 transliteration + #145 tap-to-hear): each word
+        // is a tap target stacked over its Latin reading. A tap plays just that
+        // word when tap-to-hear is on, else it plays from the āyah.
         <View style={styles.wbwRow}>
           {words.map((w, i) => (
-            <Pressable key={i} style={styles.wbwUnit} onPress={() => onPlayFrom(aya)}>
+            <Pressable
+              key={i}
+              style={styles.wbwUnit}
+              onPress={() => (tapToHear && onPlayWord ? onPlayWord(aya, i) : onPlayFrom(aya))}
+            >
               <Text style={[styles.wbwAr, { fontSize: 26 * scale, lineHeight: 40 * scale }]}>
                 {w}
               </Text>
-              <Text style={[styles.wbwTr, { fontSize: 12 * scale }]}>{translitWords[i] ?? ""}</Text>
+              {translitWords?.[i] ? (
+                <Text style={[styles.wbwTr, { fontSize: 12 * scale }]}>{translitWords[i]}</Text>
+              ) : null}
             </Pressable>
           ))}
         </View>

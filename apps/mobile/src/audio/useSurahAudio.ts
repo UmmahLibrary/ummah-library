@@ -74,6 +74,8 @@ export interface SurahAudio {
   playFrom: (verses: VerseKey[], start: VerseKey, advance: boolean) => void;
   /** Loop the inclusive A→B range `count` times (Infinity = until stopped). */
   playRange: (verses: VerseKey[], from: VerseKey, to: VerseKey, count: number) => void;
+  /** Tap-a-word-to-hear (#145): play just one word of a verse, from its timing segment. */
+  playWord: (verse: VerseKey, wordIndex: number) => void;
   stop: () => void;
 }
 
@@ -390,6 +392,63 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
     [startSession],
   );
 
+  // Tap-a-word-to-hear (#145): seek the verse audio to one word's timing segment
+  // and play just that word, pausing at its segment end. Needs a reciter with
+  // quran.com word timings — a no-op otherwise. The off-by-default toggle gates it.
+  const playWord = useCallback(
+    (verse: VerseKey, wordIndex: number) => {
+      const recitationId = reciter.quranComId;
+      if (!recitationId) return;
+      const token = ++tokenRef.current; // cancels any running session
+      settleRef.current?.();
+      setActiveWord(-1);
+      void (async () => {
+        const key = verseKeyOf(verse);
+        const timing = await fetchTiming(recitationId, key);
+        if (tokenRef.current !== token || !timing) return;
+        const seg = timing.segments.find((s) => s[0] === wordIndex);
+        if (!seg) return;
+        const player = ensurePlayer(timing.url);
+        if (tokenRef.current !== token) return;
+        setPlayingKey(key);
+        const endSec = seg[3] / 1000;
+        try {
+          await player.seekTo(seg[2] / 1000);
+        } catch {
+          /* seek unsupported — falls back to playing from the verse start */
+        }
+        if (tokenRef.current !== token) return;
+        setActiveWord(wordIndex);
+        player.play();
+        // Pause once playback reaches the word's segment end.
+        const poll = setInterval(() => {
+          if (tokenRef.current !== token) {
+            clearInterval(poll);
+            return;
+          }
+          let t: number;
+          try {
+            t = player.currentTime;
+          } catch {
+            return;
+          }
+          if (typeof t === "number" && t >= endSec) {
+            clearInterval(poll);
+            try {
+              player.pause();
+            } catch {
+              /* already paused */
+            }
+            setActiveWord(-1);
+            setPlayingKey(null);
+          }
+        }, POLL_MS);
+        settleRef.current = () => clearInterval(poll);
+      })();
+    },
+    [reciter, ensurePlayer],
+  );
+
   // Tear the player down when the screen leaves so no poll/interval lingers,
   // and clear the notification so it can't outlive the reader.
   useEffect(() => {
@@ -416,6 +475,7 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
     setRate,
     playFrom,
     playRange,
+    playWord,
     stop,
   };
 }

@@ -336,6 +336,8 @@ export interface StoredSettings {
   transliteration: boolean | null;
   /** Show per-word Latin transliteration beneath each Arabic word (#144). */
   wordTransliteration: boolean | null;
+  /** Tap an Arabic word to hear just that word recited (#145). */
+  tapToHear: boolean | null;
 }
 
 /**
@@ -356,6 +358,8 @@ export interface SettingsStore {
   writeTransliteration(on: boolean): Promise<void>;
   /** Toggle the per-word transliteration row (#144). */
   writeWordTransliteration(on: boolean): Promise<void>;
+  /** Toggle tap-a-word-to-hear word audio (#145). */
+  writeTapToHear(on: boolean): Promise<void>;
 }
 
 /** The reader's prayer-times location and calculation config as persisted. */
