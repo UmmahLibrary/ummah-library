@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions, ideas & feedback (Discussions)
+    url: https://github.com/UmmahLibrary/ummah-library/discussions
+    about: Ask a question, share feedback or float an idea — no bug report needed.
+  - name: 🕮 Try the app
+    url: https://ummahlibrary.org
+    about: Read the Quran, listen, memorise and track — free, private and offline.
+  - name: 🔒 Report a security issue privately
+    url: https://github.com/UmmahLibrary/ummah-library/security/advisories/new
+    about: Please report vulnerabilities privately, not as a public issue.

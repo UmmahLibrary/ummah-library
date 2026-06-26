@@ -4,7 +4,7 @@ A read-only public API for the Quran text and translations. No auth, open CORS,
 free to use. **Please keep the source attributions** (see
 [`packages/data/ATTRIBUTION.md`](../packages/data/ATTRIBUTION.md)).
 
-Base URL: `https://app.ummahlibrary.org`
+Base URL: `https://ummahlibrary.org`
 
 There are two equivalent surfaces:
 
@@ -15,7 +15,7 @@ There are two equivalent surfaces:
 
 ## REST
 
-OpenAPI spec: [`/api/v1/openapi.json`](https://app.ummahlibrary.org/api/v1/openapi.json)
+OpenAPI spec: [`/api/v1/openapi.json`](https://ummahlibrary.org/api/v1/openapi.json)
 
 | Method & path                                        | Returns                                       |
 | ---------------------------------------------------- | --------------------------------------------- |
@@ -40,7 +40,7 @@ all happen client-side.
 (e.g. `eng-khattab`, `urd-jalandhry`, `ben-muhiuddinkhan`).
 
 ```bash
-curl https://app.ummahlibrary.org/api/v1/surahs/2 | jq '.surah.englishName, (.ayahs | length)'
+curl https://ummahlibrary.org/api/v1/surahs/2 | jq '.surah.englishName, (.ayahs | length)'
 # "The Cow"
 # 286
 ```
@@ -101,7 +101,7 @@ import type { AppRouter } from "@ummahlibrary/api";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 
 const trpc = createTRPCClient<AppRouter>({
-  links: [httpBatchLink({ url: "https://app.ummahlibrary.org/api/trpc" })],
+  links: [httpBatchLink({ url: "https://ummahlibrary.org/api/trpc" })],
 });
 
 const surahs = await trpc.listSurahs.query();
@@ -111,5 +111,5 @@ const { surah, ayahs } = (await trpc.getSurah.query({ number: 2 }))!;
 Quick check over HTTP:
 
 ```bash
-curl 'https://app.ummahlibrary.org/api/trpc/getSurah?input=%7B%22number%22%3A2%7D'
+curl 'https://ummahlibrary.org/api/trpc/getSurah?input=%7B%22number%22%3A2%7D'
 ```
