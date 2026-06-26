@@ -24,29 +24,52 @@ languages**, installable as an app, and **fully readable offline**.
 
 ## Features
 
+### 📖 Read & study
+
 - **All 114 surahs** in Uthmani Arabic (Tanzil, CC-BY 3.0), with the Amiri font and proper RTL.
 - **Three reading surfaces** — verse-by-verse, continuous reading, and a **Madani Mushaf page view** (all 604 pages).
 - **A runtime catalogue of ~490 translations across ~98 languages** ([ADR 0011](docs/adr/0011-translation-catalog-runtime.md)) — grouped, searchable, toggle any combination; 6 are bundled for offline + the REST API. Urdu locales default to an Urdu translation.
 - **Multiple Tafsirs** (Ibn Kathir, Muyassar, Tabari, Maarif-ul-Quran …) fetched on demand.
-- **Full-text search** across the Arabic and English — instant, client-side ([`/search`](https://ummahlibrary.org/search)) — plus **Hadith search**.
+- **Transliteration & word audio** — toggle a per-āyah Latin transliteration line, a per-word transliteration row, and **tap any Arabic word to hear just that word** recited.
 - **Recitation audio** with multiple reciters, surah **loop/repeat**, and word-by-word highlighting; tap any word for a **word-by-word gloss**.
-- **Hadith** — 6 collections (Bukhari, Muslim, Abu Dawud, Tirmidhi, Ibn Majah, Nasa'i), book by book.
-- **Reading goals** — a daily page goal, a reading **streak**, and a **khatma planner** that paces you to finish by a date; all tracked privately on your device.
-- **Hifz** spaced-repetition review (SM-2) with a due-count badge.
-- **Prayer times** for your location — six prayers, multiple calculation methods and both madhabs, with a live next-prayer countdown ([ADR 0012](docs/adr/0012-prayer-times.md)); coordinates stay on your device.
+- **Full-text search** across the Arabic and English — instant, client-side ([`/search`](https://ummahlibrary.org/search), [ADR 0021](docs/adr/0021-global-search.md)) — plus **Hadith search**.
+- **Hadith** — 6 collections (Bukhari, Muslim, Abu Dawud, Tirmidhi, Ibn Majah, Nasa'i), book by book, searched on-device ([ADR 0022](docs/adr/0022-hadith-ingested-search.md)).
+- **99 Names of Allah** — Asmāʾ al-Ḥusná with transliteration, meaning and Quranic references; mark the ones you’ve learned.
+
+### 🧠 Memorize & build a habit
+
+- **Hifz** spaced-repetition review (SM-2) with a due-count badge ([ADR 0007](docs/adr/0007-hifz-spaced-repetition.md)).
+- **Reading goals** — a daily page goal, a reading **streak**, and a **khatma planner** that paces you to finish by a date.
+- **Reading plans** — start a curated plan (juzʾ-a-day, a month, finish-by-a-date …) and the scheduler paces you; progress stays on your device ([ADR 0025](docs/adr/0025-reading-plans.md)).
+- **Achievements** — milestone badges derived from your own reading, memorization and worship activity, unlocked locally ([ADR 0032](docs/adr/0032-achievements.md)).
+
+### 🕌 Worship & tracking
+
+- **Prayer times** for your location — six prayers, multiple calculation methods and both madhabs, with a live next-prayer countdown ([ADR 0012](docs/adr/0012-prayer-times.md)); coordinates stay on your device. Optional **per-prayer reminders** ([ADR 0019](docs/adr/0019-prayer-reminders.md)).
+- **Prayer tracker** — log the five daily prayers (on time / late), keep a **qaḍāʾ (missed-prayer) backlog**, and pause tracking for **ḥayḍ** ([ADR 0020](docs/adr/0020-prayer-tracker.md), [0030](docs/adr/0030-qada-tracker.md), [0031](docs/adr/0031-haid-pause.md)).
+- **Ramadan** companion — a fasting tracker with **make-up (qaḍāʾ) fasts** automatically derived from any ḥayḍ pause that overlaps Ramaḍān ([ADR 0034](docs/adr/0034-fasting-qada.md)).
 - **Qibla** direction to the Kaaba with a live compass — pure, offline, and computed on your device ([ADR 0013](docs/adr/0013-qibla.md)).
 - **Hijri calendar** with a Gregorian cross-reference and a ±day adjustment to match your local sighting; today's Hijri date shows across the app ([ADR 0014](docs/adr/0014-hijri-calendar.md)).
 - **Zakat calculator** for monetary wealth — the agreed Sunni method (2.5% above the niṣāb) with a gold/silver threshold toggle; an educational estimate computed entirely on your device ([ADR 0015](docs/adr/0015-zakat.md)).
-- **99 Names of Allah** — Asmāʾ al-Ḥusná with transliteration, meaning and Quranic references; mark the ones you’ve learned.
-- **Tasbih counter** — a simple digital counter for your dhikr, with presets and round tracking.
 - **Adhkar** — the morning & evening remembrances from Ḥiṣn al-Muslim, with Arabic, transliteration, translation, graded sources and a tap counter that resets daily; works offline ([ADR 0016](docs/adr/0016-adhkar.md)). Optional **reminders** nudge you after Fajr and ʿAṣr, derived from your prayer times ([ADR 0017](docs/adr/0017-adhkar-reminders.md)).
-- **Bookmarks, continue-reading, scroll memory & keyboard shortcuts** (`j`/`k`/`Space`), stored locally — no account needed.
-- **Collections & notes** — save ayahs into named collections and attach personal reflections, all kept locally.
+- **Duʿās** — a browsable collection of supplications with Arabic, transliteration and translation.
+- **Tasbih counter** — a simple digital counter for your dhikr, with presets and round tracking.
+
+### 🔒 Private, portable & yours
+
+- **No account, no tracking, local-first** — bookmarks, continue-reading, scroll memory, collections & notes, and every tracker live on your device ([ADR 0006](docs/adr/0006-local-first-persistence.md), [0024](docs/adr/0024-local-storage-ports.md)). Keyboard shortcuts (`j`/`k`/`Space`).
+- **Optional end-to-end-encrypted sync** — bring your data to another device with a recovery phrase. Opt-in, **zero-PII**, the server only ever sees opaque encrypted blobs ([ADR 0033](docs/adr/0033-account-sync.md)).
 - **Share an ayah as an image** — render any verse to a clean image (Arabic + translation) right in the browser, no upload.
-- **Export & import your data** — back up bookmarks, Hifz, goals and settings to a file and restore them on another device, with no account or server ([ADR 0018](docs/adr/0018-local-data-backup.md)).
+- **Export & import your data** — back up to a file and restore on another device, with no account or server ([ADR 0018](docs/adr/0018-local-data-backup.md)).
+- **Eight Noor themes** — four dark, four light — from one shared design system across web and mobile ([ADR 0023](docs/adr/0023-noor-design-system.md), [0027](docs/adr/0027-generated-theme-css.md)).
+
+### 📱 Everywhere
+
 - **Installable PWA** with offline reading — opened surahs stay available without a connection.
+- **Mobile app** (Expo / React Native) — the full reader and tools, with OS-level reminders that fire even when the app is closed ([ADR 0009](docs/adr/0009-mobile-app.md), [0029](docs/adr/0029-mobile-notifier.md)).
+- **Browser extension** (MV3) — a quick popup reader over the public API ([ADR 0026](docs/adr/0026-browser-extension.md)).
 - **Public API** — REST + OpenAPI and a typed tRPC router (see [docs/API.md](docs/API.md)).
-- **Dark, fast, static** — every surah, juzʾ and Mushaf page is prerendered.
+- **Fast & static** — every surah, juzʾ and Mushaf page is prerendered ([ADR 0003](docs/adr/0003-static-first-delivery.md)).
 
 ## Architecture
 
@@ -56,7 +79,7 @@ monolith with strict, **lint-enforced** module boundaries:
 ```
 apps/
   web/        Next.js reader + public API (live)
-  mobile/     Expo app shell (Phase 3)
+  mobile/     Expo / React Native app — full reader + tools (Android; iOS build-ready)
   extension/  MV3 browser extension — popup over the public API (ADR 0026)
 packages/
   core/       Pure domain — Quran model, structure utils, ports. No framework, no DB.
@@ -117,7 +140,8 @@ curl https://ummahlibrary.org/api/v1/surahs/2/translations/eng-khattab
 
 ## Tech
 
-Next.js · Expo (Phase 3) · tRPC · REST/OpenAPI · Tanzil Quran data ·
+Next.js · Expo / React Native · tRPC · REST/OpenAPI · `adhan` prayer times ·
+SQLite (mobile Hifz) · WebCrypto (E2EE sync) · Tanzil Quran data ·
 `fawazahmed0/quran-api` translations.
 
 ## Contributing
