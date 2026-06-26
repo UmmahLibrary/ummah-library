@@ -19,6 +19,8 @@ export function ReaderControls({
   onTransliteration,
   wordTransliteration,
   onWordTransliteration,
+  tapToHear,
+  onTapToHear,
   onManage,
 }: {
   mode: ReadingMode;
@@ -29,6 +31,8 @@ export function ReaderControls({
   onTransliteration: (on: boolean) => void;
   wordTransliteration: boolean;
   onWordTransliteration: (on: boolean) => void;
+  tapToHear: boolean;
+  onTapToHear: (on: boolean) => void;
   onManage: () => void;
 }) {
   const { colors } = useTheme();
@@ -84,6 +88,15 @@ export function ReaderControls({
             <Text style={[styles.toggleText, wordTransliteration && styles.toggleTextOn]}>
               Aa Word
             </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.toggle, tapToHear && styles.toggleOn]}
+            onPress={() => onTapToHear(!tapToHear)}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: tapToHear }}
+            accessibilityLabel="Tap a word to hear"
+          >
+            <Text style={[styles.toggleText, tapToHear && styles.toggleTextOn]}>🔊 Word</Text>
           </Pressable>
           <Pressable style={styles.manage} onPress={onManage}>
             <Text style={styles.manageText}>⚙</Text>

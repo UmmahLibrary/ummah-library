@@ -55,8 +55,15 @@ function juzRange(juz: number): { sura: number; from: number; toExclusive: numbe
 export function JuzReaderScreen({ route }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { editions, readingTranslation, reciterId, scale, transliteration, wordTransliteration } =
-    useSettings();
+  const {
+    editions,
+    readingTranslation,
+    reciterId,
+    scale,
+    transliteration,
+    wordTransliteration,
+    tapToHear,
+  } = useSettings();
   const reciter = RECITERS.find((r) => r.id === reciterId) ?? RECITER;
   const audio = useSurahAudio(reciter);
 
@@ -215,26 +222,35 @@ export function JuzReaderScreen({ route }: Props) {
       {lines.map((l, i) => {
         const key = verseKeyOf(l);
         const playing = audio.playingKey === key;
+        const showWbw = ((wordTransliteration && l.translitWords.length > 0) || tapToHear) && !peek;
         return (
           <View key={key}>
             {l.surahHeader && <Text style={styles.surahHeader}>{l.surahHeader}</Text>}
             <Pressable
               style={[styles.ayah, playing && styles.ayahPlaying]}
-              onPress={peek ? undefined : () => audio.playFrom(verses, l, true)}
+              onPress={peek || showWbw ? undefined : () => audio.playFrom(verses, l, true)}
             >
-              {wordTransliteration && l.translitWords.length > 0 && !peek ? (
+              {showWbw ? (
                 <View style={styles.wbwRow}>
                   {peekWords[i]!.map((w, wi) => (
-                    <View key={wi} style={styles.wbwUnit}>
+                    <Pressable
+                      key={wi}
+                      style={styles.wbwUnit}
+                      onPress={() =>
+                        tapToHear ? audio.playWord(l, wi) : audio.playFrom(verses, l, true)
+                      }
+                    >
                       <Text
                         style={[styles.wbwAr, { fontSize: 24 * scale, lineHeight: 38 * scale }]}
                       >
                         {w}
                       </Text>
-                      <Text style={[styles.wbwTr, { fontSize: 11 * scale }]}>
-                        {l.translitWords[wi] ?? ""}
-                      </Text>
-                    </View>
+                      {l.translitWords[wi] ? (
+                        <Text style={[styles.wbwTr, { fontSize: 11 * scale }]}>
+                          {l.translitWords[wi]}
+                        </Text>
+                      ) : null}
+                    </Pressable>
                   ))}
                   <Text style={styles.marker}>﴿{l.aya}﴾</Text>
                 </View>

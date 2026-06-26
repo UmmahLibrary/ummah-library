@@ -15,6 +15,7 @@ describe("webSettingsStore", () => {
       scale: null,
       transliteration: null,
       wordTransliteration: null,
+      tapToHear: null,
     });
   });
 
@@ -27,6 +28,7 @@ describe("webSettingsStore", () => {
     await store.writeScale(1.4);
     await store.writeTransliteration(true);
     await store.writeWordTransliteration(true);
+    await store.writeTapToHear(true);
 
     const s = await store.read();
     expect(s.editions).toEqual(["eng-sahih"]);
@@ -37,6 +39,7 @@ describe("webSettingsStore", () => {
     expect(s.scale).toBe(1.4);
     expect(s.transliteration).toBe(true);
     expect(s.wordTransliteration).toBe(true);
+    expect(s.tapToHear).toBe(true);
 
     // editions and scale are JSON; the rest are plain strings (unchanged format)
     expect(localStorage.getItem("ul.editions")).toBe('["eng-sahih"]');

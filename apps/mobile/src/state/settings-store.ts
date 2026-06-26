@@ -28,6 +28,7 @@ export const mobileSettingsStore: SettingsStore = {
       scale,
       transliteration,
       wordTransliteration,
+      tapToHear,
     ] = await Promise.all([
       getJSON<string[] | null>(KEYS.editions, null, isStringArray),
       getString(KEYS.readingMode),
@@ -37,6 +38,7 @@ export const mobileSettingsStore: SettingsStore = {
       getJSON<number | null>(KEYS.scale, null, isFiniteNumber),
       getJSON<boolean | null>(KEYS.transliteration, null, isBoolean),
       getJSON<boolean | null>(KEYS.wbwTranslit, null, isBoolean),
+      getJSON<boolean | null>(KEYS.tapToHear, null, isBoolean),
     ]);
     return {
       editions,
@@ -47,6 +49,7 @@ export const mobileSettingsStore: SettingsStore = {
       scale,
       transliteration,
       wordTransliteration,
+      tapToHear,
     };
   },
   writeEditions: (ids) => setJSON(KEYS.editions, ids),
@@ -57,4 +60,5 @@ export const mobileSettingsStore: SettingsStore = {
   writeScale: (scale) => setJSON(KEYS.scale, scale),
   writeTransliteration: (on) => setJSON(KEYS.transliteration, on),
   writeWordTransliteration: (on) => setJSON(KEYS.wbwTranslit, on),
+  writeTapToHear: (on) => setJSON(KEYS.tapToHear, on),
 };

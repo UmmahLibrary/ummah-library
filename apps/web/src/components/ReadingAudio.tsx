@@ -277,6 +277,68 @@ export function ReadingAudio({
     );
   }
 
+  /**
+   * Tap-a-word-to-hear (#145): seek the verse audio to one word's timing segment
+   * and play just that word, then pause at its segment end. Reuses the same
+   * quran.com word timings the reciting highlight uses; needs a reciter with
+   * `quranComId` (word timings) — a no-op otherwise.
+   */
+  async function playWord(verseKey: string, wordIndex: number) {
+    const reciter = reciters.find((r) => r.id === reciterId) ?? reciters[0];
+    if (!reciter?.quranComId) return;
+    const token = ++tokenRef.current; // cancels any running recitation
+    repeatRef.current = null;
+    const timing = await fetchTiming(reciter.quranComId, verseKey);
+    if (token !== tokenRef.current) return;
+    const seg = timing?.segments.find((s) => s[0] === wordIndex);
+    if (!timing || !seg) return;
+
+    const audio = (audioRef.current ??= new Audio());
+    audio.onended = null;
+    audio.ontimeupdate = null;
+    audio.pause();
+    clearWord();
+
+    const startSec = seg[2] / 1000;
+    const endSec = seg[3] / 1000;
+    wordRef.current = {
+      block: document.getElementById(verseKey),
+      segments: timing.segments,
+      last: -1,
+    };
+    audio.src = timing.url;
+    audio.playbackRate = rateRef.current;
+
+    const begin = () => {
+      if (token !== tokenRef.current) return;
+      audio.currentTime = startSec;
+      audio.ontimeupdate = () => {
+        const a = audioRef.current;
+        if (!a) return;
+        if (a.currentTime >= endSec) {
+          a.pause();
+          a.ontimeupdate = null;
+          clearWord();
+          setIsPlaying(false);
+        } else {
+          onTimeUpdate();
+        }
+      };
+      audio.onended = () => {
+        clearWord();
+        setIsPlaying(false);
+      };
+      void audio.play().then(
+        () => setIsPlaying(true),
+        () => {},
+      );
+    };
+    // `load()` guarantees a fresh `loadedmetadata` (so the seek lands) even when
+    // the same verse is tapped twice in a row.
+    audio.load();
+    audio.addEventListener("loadedmetadata", begin, { once: true });
+  }
+
   function toggle() {
     const audio = audioRef.current;
     if (isPlaying && audio) {
@@ -307,6 +369,16 @@ export function ReadingAudio({
   useEffect(() => {
     function onClick(event: MouseEvent) {
       const node = event.target as HTMLElement;
+      // Tap-a-word-to-hear (#145): in this mode a word tap plays just that word.
+      if (document.body.classList.contains("tap-hear-on")) {
+        const word = node.closest<HTMLElement>(".w");
+        const block = word?.closest<HTMLElement>(".ayah");
+        if (word && block?.id && word.dataset.w !== undefined) {
+          event.preventDefault();
+          void playWord(block.id, Number(word.dataset.w));
+          return;
+        }
+      }
       const one = node.closest<HTMLElement>("[data-play-one]");
       if (one) {
         event.preventDefault();

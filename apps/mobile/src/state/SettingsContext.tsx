@@ -33,6 +33,8 @@ interface SettingsValue {
   transliteration: boolean;
   /** Show per-word Latin transliteration beneath each Arabic word (#144). */
   wordTransliteration: boolean;
+  /** Tap an Arabic word to hear just that word recited (#145). */
+  tapToHear: boolean;
   catalogue: Translation[];
   tafsirs: TafsirMeta[];
   setEditions: (ids: string[]) => void;
@@ -44,6 +46,7 @@ interface SettingsValue {
   setScale: (scale: number) => void;
   setTransliteration: (on: boolean) => void;
   setWordTransliteration: (on: boolean) => void;
+  setTapToHear: (on: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -60,6 +63,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [scale, setScaleState] = useState<number>(1);
   const [transliteration, setTransliterationState] = useState<boolean>(false);
   const [wordTransliteration, setWordTransliterationState] = useState<boolean>(false);
+  const [tapToHear, setTapToHearState] = useState<boolean>(false);
   const [catalogue, setCatalogue] = useState<Translation[]>([]);
   const [tafsirs, setTafsirs] = useState<TafsirMeta[]>([]);
 
@@ -78,6 +82,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (s.scale != null) setScaleState(clampScale(s.scale));
       if (s.transliteration != null) setTransliterationState(s.transliteration);
       if (s.wordTransliteration != null) setWordTransliterationState(s.wordTransliteration);
+      if (s.tapToHear != null) setTapToHearState(s.tapToHear);
     });
     void readTafsirCompare().then(setTafsirCompareState);
     void api
@@ -137,6 +142,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     void store.writeWordTransliteration(on);
   }, []);
 
+  const setTapToHear = useCallback((on: boolean) => {
+    setTapToHearState(on);
+    void store.writeTapToHear(on);
+  }, []);
+
   const value = useMemo<SettingsValue>(
     () => ({
       editions,
@@ -148,6 +158,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       scale,
       transliteration,
       wordTransliteration,
+      tapToHear,
       catalogue,
       tafsirs,
       setEditions,
@@ -159,6 +170,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setScale,
       setTransliteration,
       setWordTransliteration,
+      setTapToHear,
     }),
     [
       editions,
@@ -170,6 +182,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       scale,
       transliteration,
       wordTransliteration,
+      tapToHear,
       catalogue,
       tafsirs,
       setEditions,
@@ -181,6 +194,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setScale,
       setTransliteration,
       setWordTransliteration,
+      setTapToHear,
     ],
   );
 

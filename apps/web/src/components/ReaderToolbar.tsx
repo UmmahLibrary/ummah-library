@@ -11,6 +11,7 @@ import { readReciter, readScale, writeReciter, writeScale } from "../lib/reader-
 import { readWordByWord, writeLastRead, writeWordByWord } from "../lib/reader-prefs-store";
 import { readTransliteration, writeTransliteration } from "../lib/transliteration";
 import { WORD_TRANSLIT_CLASS, readWordTranslit, writeWordTranslit } from "../lib/word-translit";
+import { TAP_HEAR_CLASS, readTapToHear, writeTapToHear } from "../lib/tap-to-hear";
 import { TranslationSettings } from "./TranslationSettings";
 import { TafsirPicker } from "./TafsirPicker";
 import { WBW_KEY } from "./WordByWord";
@@ -53,6 +54,7 @@ export function ReaderToolbar({
   const [wbw, setWbw] = useState(false);
   const [translit, setTranslit] = useState(false);
   const [wordTranslit, setWordTranslit] = useState(false);
+  const [tapHear, setTapHear] = useState(false);
   const [managing, setManaging] = useState(false);
   const [catalogue, setCatalogue] = useState<EditionChoice[]>([]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(DEFAULT_EDITIONS));
@@ -74,6 +76,10 @@ export function ReaderToolbar({
     void readWordTranslit().then((on) => {
       setWordTranslit(on);
       document.body.classList.toggle(WORD_TRANSLIT_CLASS, on);
+    });
+    void readTapToHear().then((on) => {
+      setTapHear(on);
+      document.body.classList.toggle(TAP_HEAR_CLASS, on);
     });
     void readEditions().then((ids) => setSelected(new Set(ids)));
     void fetchCatalogue().then(setCatalogue);
@@ -98,6 +104,13 @@ export function ReaderToolbar({
     setWordTranslit(next);
     document.body.classList.toggle(WORD_TRANSLIT_CLASS, next);
     void writeWordTranslit(next); // persists + broadcasts `ul.wbwTranslit`
+  }
+
+  function toggleTapHear() {
+    const next = !tapHear;
+    setTapHear(next);
+    document.body.classList.toggle(TAP_HEAR_CLASS, next);
+    void writeTapToHear(next); // persists + broadcasts `ul.tapToHear`
   }
 
   function changeScale(delta: number) {
@@ -315,6 +328,35 @@ export function ReaderToolbar({
                 transliteration
               </span>
               {wordTranslit && <Icon name="check" size={15} color={N.gold} />}
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleTapHear}
+              aria-pressed={tapHear}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                width: "100%",
+                marginTop: 8,
+                padding: "9px 11px",
+                borderRadius: 10,
+                border: `1px solid ${tapHear ? N.gold : N.border}`,
+                background: tapHear ? N.goldSoft : N.card,
+                color: tapHear ? N.gold : N.fg,
+                cursor: "pointer",
+                fontFamily: N.ui,
+                fontSize: 13.5,
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <Icon name="headphones" size={15} color={tapHear ? N.gold : N.muted} /> Tap a word
+                to hear
+              </span>
+              {tapHear && <Icon name="check" size={15} color={N.gold} />}
             </button>
 
             {tafsirs.length > 1 && (
