@@ -48,6 +48,31 @@ describe("FileQuranRepository", () => {
   });
 });
 
+describe("FileQuranRepository — IndoPak script (ADR 0035)", () => {
+  const indopak = new FileQuranRepository("indopak");
+
+  it("shares the 114-surah structure with the Uthmani edition", async () => {
+    expect(await indopak.listSurahs()).toHaveLength(TOTAL_SURAHS);
+    expect(await indopak.getSurahAyahs(1)).toHaveLength(7);
+  });
+
+  it("serves IndoPak verse text that differs from the Uthmani edition", async () => {
+    const uth = await quran.getAyah({ sura: 2, aya: 255 });
+    const ind = await indopak.getAyah({ sura: 2, aya: 255 });
+    // Ayat al-Kursi — real, substantial text, in a different orthography.
+    expect((ind?.text ?? "").length).toBeGreaterThan(100);
+    expect(ind?.text).not.toBe(uth?.text);
+  });
+
+  it("stores the Basmala once and keeps first ayahs pure (aligned 1:1 with Uthmani)", async () => {
+    const bismillah = await indopak.getBismillah();
+    expect(bismillah.length).toBeGreaterThan(0);
+    // 2:1 is the muqaṭṭaʿāt, not the Basmala — quran.com does not prepend it.
+    const first = await indopak.getAyah({ sura: 2, aya: 1 });
+    expect(first?.text.startsWith(bismillah)).toBe(false);
+  });
+});
+
 describe("Phase 1 definition of done", () => {
   it("gives Surah 2, Ayah 255 with its Urdu (Jalandhry) translation — no app running", async () => {
     const arabic = await quran.getAyah({ sura: 2, aya: 255 });

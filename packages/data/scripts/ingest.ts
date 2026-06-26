@@ -13,6 +13,7 @@
  *
  * Output is validated (114 surahs, 6236 ayahs per edition) before writing.
  */
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -40,6 +41,14 @@ const PLUGINS_DIR = join(HERE, "..", "plugins");
 const TANZIL_UTHMANI =
   "https://tanzil.net/pub/download/index.php?quranType=uthmani&outType=txt&agree=true";
 const TANZIL_METADATA = "https://tanzil.net/res/text/metadata/quran-data.xml";
+// IndoPak Arabic text (ADR 0035). The QUL /55 export is the upstream of record but
+// is login-gated, so it can't be fetched reproducibly; api.quran.com mirrors the
+// same IndoPak text anonymously — the same source the word-by-word transliteration
+// uses — aligned 1:1 with our Hafs sura:aya numbering.
+const QURANCOM_INDOPAK = "https://api.quran.com/api/v4/quran/verses/indopak";
+// Pinned after the first ingest: the IndoPak step fails loudly if the upstream text
+// drifts from this hash, so a re-ingest is always a deliberate, reviewed change.
+const INDOPAK_SHA256 = "c765100a19296b28f24052b2133d29f5169d5e1b7362939ec4c51748d9eae397";
 const FAWAZ_BASE = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1";
 // Morning & evening adhkar from Ḥiṣn al-Muslim, MIT-licensed and pre-structured
 // (Arabic + translation + transliteration + graded source). See ADR 0016.
@@ -116,6 +125,10 @@ async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`GET ${url} -> ${res.status} ${res.statusText}`);
   return res.json() as Promise<T>;
+}
+
+function sha256(text: string): string {
+  return createHash("sha256").update(text, "utf8").digest("hex");
 }
 
 interface SqliteDb {
@@ -245,6 +258,62 @@ async function ingestHadith(): Promise<number> {
   return total;
 }
 
+/** api.quran.com `quran/verses/{script}` response shape. */
+interface QuranComVerses {
+  verses: { id: number; verse_key: string; text_indopak: string }[];
+}
+
+/**
+ * Ingest the IndoPak Arabic text (ADR 0035) from api.quran.com. Unlike Tanzil,
+ * quran.com does not prepend the Basmala to each surah's first ayah, so the text
+ * is already pure and aligns 1:1 with `arabic-uthmani.json`; the Basmala is lifted
+ * from 1:1 and stored once on the edition. A SHA-256 over the normalized verses
+ * guards against silent upstream drift. Returns the ayah count for the summary.
+ */
+async function ingestArabicIndopak(): Promise<number> {
+  console.log("• IndoPak Arabic (api.quran.com)");
+  const data = await getJson<QuranComVerses>(QURANCOM_INDOPAK);
+  const rows = Array.isArray(data.verses) ? data.verses : [];
+  const verses: Verse[] = rows.map((v) => {
+    const [sura, aya] = v.verse_key.split(":");
+    return { sura: Number(sura), aya: Number(aya), text: (v.text_indopak ?? "").trim() };
+  });
+  if (verses.length !== TOTAL_AYAHS) {
+    throw new Error(`IndoPak: expected ${TOTAL_AYAHS} verses, got ${verses.length}`);
+  }
+  if (new Set(verses.map((v) => v.sura)).size !== TOTAL_SURAHS) {
+    throw new Error(`IndoPak: expected ${TOTAL_SURAHS} distinct surahs`);
+  }
+  if (!verses.every((v) => v.sura >= 1 && v.sura <= TOTAL_SURAHS && v.aya >= 1 && v.text)) {
+    throw new Error("IndoPak: a verse has a bad sura/aya or empty text");
+  }
+  const checksum = sha256(JSON.stringify(verses));
+  if (INDOPAK_SHA256 && checksum !== INDOPAK_SHA256) {
+    throw new Error(
+      `IndoPak upstream text changed (sha256 ${checksum} != pinned ${INDOPAK_SHA256}). ` +
+        "Review the change; if intended, update INDOPAK_SHA256 in ingest.ts.",
+    );
+  }
+  const bismillah = verses.find((v) => v.sura === 1 && v.aya === 1)!.text;
+  await writeJson("arabic-indopak.json", {
+    version: DATA_VERSION,
+    edition: {
+      id: "ara-indopak",
+      name: "IndoPak",
+      language: "ar",
+      direction: "rtl",
+      source: QURANCOM_INDOPAK,
+      upstream: "https://qul.tarteel.ai/resources/quran-script/55",
+      license: "Credit required, no modification (Sadaqa-e-Jaria)",
+      checksum: `sha256:${checksum}`,
+    },
+    bismillah,
+    verses,
+  });
+  if (!INDOPAK_SHA256) console.log(`  ℹ pin INDOPAK_SHA256 = "${checksum}"`);
+  return verses.length;
+}
+
 async function main(): Promise<void> {
   console.log("Ingesting Quran data → datasets/\n");
 
@@ -260,6 +329,13 @@ async function main(): Promise<void> {
   if (process.argv.includes("--hadith-only")) {
     const count = await ingestHadith();
     console.log(`\nIngested ${count} hadith across the collections.\n`);
+    return;
+  }
+
+  // Fast path: ingest only the IndoPak Arabic text (ADR 0035).
+  if (process.argv.includes("--indopak-only")) {
+    const count = await ingestArabicIndopak();
+    console.log(`\nIngested ${count} IndoPak ayahs.\n`);
     return;
   }
 
@@ -349,6 +425,9 @@ async function main(): Promise<void> {
     bismillah,
     verses: arabicVerses,
   });
+
+  // 2b) Arabic IndoPak text from api.quran.com (ADR 0035).
+  const indopakCount = await ingestArabicIndopak();
 
   // 3) Translation plugins → ingested into datasets (with provenance lookup).
   const translationPlugins = readPlugins("translations").filter(
@@ -468,7 +547,7 @@ async function main(): Promise<void> {
   const hadithCount = await ingestHadith();
 
   console.log(
-    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs, ${translationPlugins.length} translations, ${adhkar.length} adhkar, ${names.length} names, ${hadithCount} hadith.`,
+    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs (Uthmani), ${indopakCount} ayahs (IndoPak), ${translationPlugins.length} translations, ${adhkar.length} adhkar, ${names.length} names, ${hadithCount} hadith.`,
   );
 }
 

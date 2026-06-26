@@ -7,6 +7,13 @@
 export type RevelationPlace = "meccan" | "medinan";
 export type TextDirection = "rtl" | "ltr";
 
+/**
+ * A script (orthography) the Arabic Quran text can be rendered in: the same Hafs
+ * text in two conventions — "uthmani" (Madinah mushaf, the default) and "indopak"
+ * (the South-Asian mushaf). See ADR 0035.
+ */
+export type QuranScript = "uthmani" | "indopak";
+
 /** A reference to a single ayah: surah number + ayah number within it. */
 export interface VerseKey {
   /** Surah number, 1–114. */
