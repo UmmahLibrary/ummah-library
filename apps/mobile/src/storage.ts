@@ -17,6 +17,7 @@ export const KEYS = {
   transliteration: "ul.transliteration",
   wbwTranslit: "ul.wbwTranslit",
   tapToHear: "ul.tapToHear",
+  script: "ul.script",
   theme: "ul.theme",
   bookmarks: "ul.bookmarks",
   collections: "ul.collections",

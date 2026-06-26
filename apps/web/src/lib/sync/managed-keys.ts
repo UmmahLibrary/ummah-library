@@ -30,6 +30,7 @@ export const MANAGED_KEYS: readonly string[] = [
   "ul.transliteration",
   "ul.wbwTranslit",
   "ul.tapToHear",
+  "ul.script",
   "ul.loop",
   // Last-read position — "continue where you left off" across devices
   "ul.lastRead",

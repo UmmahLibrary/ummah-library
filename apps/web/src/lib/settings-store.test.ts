@@ -16,6 +16,7 @@ describe("webSettingsStore", () => {
       transliteration: null,
       wordTransliteration: null,
       tapToHear: null,
+      script: null,
     });
   });
 
@@ -29,6 +30,7 @@ describe("webSettingsStore", () => {
     await store.writeTransliteration(true);
     await store.writeWordTransliteration(true);
     await store.writeTapToHear(true);
+    await store.writeScript("indopak");
 
     const s = await store.read();
     expect(s.editions).toEqual(["eng-sahih"]);
@@ -40,11 +42,13 @@ describe("webSettingsStore", () => {
     expect(s.transliteration).toBe(true);
     expect(s.wordTransliteration).toBe(true);
     expect(s.tapToHear).toBe(true);
+    expect(s.script).toBe("indopak");
 
     // editions and scale are JSON; the rest are plain strings (unchanged format)
     expect(localStorage.getItem("ul.editions")).toBe('["eng-sahih"]');
     expect(localStorage.getItem("ul.scale")).toBe("1.4");
     expect(localStorage.getItem("ul.reciter")).toBe("alafasy");
+    expect(localStorage.getItem("ul.script")).toBe("indopak");
   });
 
   it("rejects a corrupt/peer-synced scale or editions of the wrong shape", async () => {

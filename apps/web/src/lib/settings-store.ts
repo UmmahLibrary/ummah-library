@@ -17,6 +17,7 @@ const SCALE_KEY = "ul.scale";
 const TRANSLIT_KEY = "ul.transliteration";
 const WORD_TRANSLIT_KEY = "ul.wbwTranslit";
 const TAP_HEAR_KEY = "ul.tapToHear";
+const SCRIPT_KEY = "ul.script";
 
 function getJSON<T>(key: string, fallback: T, isValid?: (v: unknown) => boolean): T {
   try {
@@ -60,6 +61,7 @@ export const webSettingsStore: SettingsStore = {
     transliteration: getJSON<boolean | null>(TRANSLIT_KEY, null, isBoolean),
     wordTransliteration: getJSON<boolean | null>(WORD_TRANSLIT_KEY, null, isBoolean),
     tapToHear: getJSON<boolean | null>(TAP_HEAR_KEY, null, isBoolean),
+    script: getStr(SCRIPT_KEY),
   }),
   writeEditions: async (ids) => setItem(EDITIONS_KEY, JSON.stringify(ids)),
   writeReadingMode: async (mode) => setItem(READING_MODE_KEY, mode),
@@ -70,4 +72,5 @@ export const webSettingsStore: SettingsStore = {
   writeTransliteration: async (on) => setItem(TRANSLIT_KEY, JSON.stringify(on)),
   writeWordTransliteration: async (on) => setItem(WORD_TRANSLIT_KEY, JSON.stringify(on)),
   writeTapToHear: async (on) => setItem(TAP_HEAR_KEY, JSON.stringify(on)),
+  writeScript: async (script) => setItem(SCRIPT_KEY, script),
 };

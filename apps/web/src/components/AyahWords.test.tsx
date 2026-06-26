@@ -43,4 +43,19 @@ describe("AyahWords", () => {
     // The .w spans (and their data-w) still exist inside the stacked units.
     expect(container.querySelector('.w-unit .w[data-w="1"]')).not.toBeNull();
   });
+
+  it("renders the IndoPak verse text (no data-w hooks) when the IndoPak script is selected", async () => {
+    localStorage.setItem("ul.script", "indopak");
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ ayahs: [{ sura: 1, aya: 1, text: "بِسۡمِ اللهِ" }] }), {
+        status: 200,
+      }),
+    );
+
+    const { container } = render(<AyahWords surah={1} aya={1} text="بِسْمِ ٱللَّهِ" />);
+    await waitFor(() => expect(container.querySelector(".w")?.textContent).toBe("بِسۡمِ"));
+    // v1 is reading-view only: the per-word audio/translit hooks are absent.
+    expect(container.querySelector(".w[data-w]")).toBeNull();
+    expect(container.querySelector(".w-tr")).toBeNull();
+  });
 });
