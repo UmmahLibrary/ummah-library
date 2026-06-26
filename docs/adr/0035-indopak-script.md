@@ -53,9 +53,20 @@ defaulting to IndoPak when `navigator.language` is `ur`/`hi`/`bn` (overridable) 
 mirroring the existing Urdu-translation locale default ([0010](0010-translation-selection.md)).
 Web emits a window event to re-render; mobile holds it in component state.
 
-**4. The IndoPak font is self-hosted, loaded on demand.** `next/font/local`
-(`--font-indopak`), applied only in IndoPak mode so the (large) file is fetched only by
-readers who use it; the woff2 is subset where the font licence permits.
+**4. The IndoPak font must be an IndoPak font, loaded at runtime.** Two corrections
+landed here. First, the subcontinental mushaf (Taj Company, the 15-line Ḥāfiẓī) is
+**Naskh**, not Nastaleeq (which is the **Urdu** prose style and reads wrong for the
+Quran). Second — and decisively — **IndoPak Unicode text and an IndoPak font are a
+matched pair**: a generic Naskh face (Amiri, Scheherazade New) positions the
+shadda+kasra the standard-Arab way and a subcontinental reader misreads it (e.g.
+`رَبِّ` reads as "rabal" not "rabbi"). Only real IndoPak fonts (me_quran, PDMS Saleem)
+place the marks correctly, and those are **unlicensed / personal-use-only** — not
+bundle-safe. So the IndoPak font (**me_quran**, the de-facto South-Asian font) is
+**loaded at runtime from a pinned CDN, not bundled or redistributed**, cached for
+offline, and documented as a runtime-only display asset — the same posture as the
+runtime word-by-word data ([0011](0011-translation-catalog-runtime.md)). It falls
+back to Amiri until cached. (Earlier drafts tried Noto Nastaliq Urdu and then
+Scheherazade New — both rendered the IndoPak marks wrong.)
 
 **5. v1 is reading-view only; word-level features stay on Uthmani.** Per-word audio
 highlighting and word-by-word transliteration ([0008](0008-recitation-audio-highlighting.md))
