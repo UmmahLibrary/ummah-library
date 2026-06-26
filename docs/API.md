@@ -27,9 +27,9 @@ OpenAPI spec: [`/api/v1/openapi.json`](https://ummahlibrary.org/api/v1/openapi.j
 | `GET /api/v1/search/corpus`                          | `{ count, verses: { s, a, t }[] }` (full Arabic corpus, powers client-side search) |
 | `GET /api/v1/openapi.json`                           | OpenAPI 3 document                            |
 
-Tafsir, the runtime translation catalogue, and Hadith sections are also served
-under `/api/v1` (fetched on demand by the reader); see the OpenAPI document for
-the complete list.
+Tafsir, the runtime translation catalogue, Hadith sections, the 99 Names,
+Adhkar, and prayer times are also served under `/api/v1` (most fetched on demand
+by the reader); see the OpenAPI document for the complete list.
 
 Reading **plans** expose only the catalogue (`/plans/catalogue`). A reader's
 progress is local-first device state (ADR 0006) that never leaves the device, so
