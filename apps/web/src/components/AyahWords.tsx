@@ -13,9 +13,10 @@ import { SCRIPT_KEY, fetchSurahIndopak, readScript } from "../lib/script";
  * `body.wbw-translit-on .ayah-ar` flex layout flows them right-to-left.
  *
  * When the IndoPak script is selected (ADR 0035) it renders the IndoPak verse
- * text instead — as plain `.w` spans **without** `data-w`, so the per-word audio
- * highlighting / tap-to-hear / transliteration features stay Uthmani-only in v1
- * (IndoPak word boundaries differ). The font swap is driven by the body class.
+ * instead, from quran.com's **numbered words** (bundled per āyah) as `.w[data-w]`
+ * spans. Those words line up 1:1 with the recitation audio segments, so per-word
+ * highlighting, tap-to-hear and the word popover all work for IndoPak too (they
+ * target `.w[data-w]`). The font swap is driven by the body class.
  *
  * Server-rendered in the off state (the toggle/fetch run only after hydration),
  * so the Arabic stays in the initial HTML for both the surah and juz readers.
@@ -24,7 +25,7 @@ export function AyahWords({ surah, aya, text }: { surah: number; aya: number; te
   const words = text.split(" ");
   const [translit, setTranslit] = useState<string[] | null>(null);
   const [script, setScript] = useState<QuranScript>("uthmani");
-  const [indopak, setIndopak] = useState<string | null>(null);
+  const [indopak, setIndopak] = useState<readonly string[] | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -67,12 +68,13 @@ export function AyahWords({ surah, aya, text }: { surah: number; aya: number; te
     };
   }, [surah, aya]);
 
-  // IndoPak (reading view only): the IndoPak text as plain spans, no data-w hooks.
+  // IndoPak (ADR 0035): quran.com's numbered words as `.w[data-w]` spans, aligned
+  // 1:1 with the audio segments so highlighting / tap-to-hear / the word popover work.
   if (script === "indopak" && indopak != null) {
     return (
       <>
-        {indopak.split(" ").flatMap((word, i) => [
-          <span key={i} className="w">
+        {indopak.flatMap((word, i) => [
+          <span key={i} className="w" data-w={i}>
             {word}
           </span>,
           " ",

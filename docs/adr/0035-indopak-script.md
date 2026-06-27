@@ -77,11 +77,17 @@ so the active script is always visible. (Earlier drafts tried Noto Nastaliq Urdu
 Scheherazade New, me_quran, Digital Khatt, PakType and Al Qalam — each rejected for
 wrong marks, a required shaping engine, or missing glyphs.)
 
-**5. v1 is reading-view only; word-level features stay on Uthmani.** Per-word audio
-highlighting and word-by-word transliteration ([0008](0008-recitation-audio-highlighting.md))
-align **by word index**, and IndoPak word boundaries differ. v1 renders IndoPak at
-ayah granularity; carrying the canonical word index from the QUL export to restore
-parity is a deferred fast-follow.
+**5. Word-level parity via quran.com's numbered words.** Per-word audio highlighting,
+tap-to-hear and the word popover ([0008](0008-recitation-audio-highlighting.md)) align
+**by word index**, and IndoPak's raw word boundaries differ from Uthmani's — standalone
+waqf marks, a split conjunction `وَ`, occasional joins (~43% of ayahs) — so a naive
+space-split drifts and highlights the wrong word. Instead the ingest stores each IndoPak
+verse as **quran.com's numbered words** (`char_type=word`, in recitation order) — the
+*same* word units the audio segments are numbered against (verified: e.g. 2:3 word #4 is
+`"وَ يُقِيۡمُوۡنَ"`, kept whole, and 8 words ↔ 8 segments). The reader renders them as
+`.w[data-w=i]` spans, so the existing highlighter — and tap-to-hear and the word popover —
+work unchanged. The words are **bundled** (offline-capable), so highlighting needs no
+runtime fetch. Word-by-word *transliteration* stacking under IndoPak is a later refinement.
 
 **6. Licensing & review.** IndoPak text ships **verbatim** with attribution in the
 dataset `edition` fields and `packages/data/ATTRIBUTION.md`; upstream terms (credit +

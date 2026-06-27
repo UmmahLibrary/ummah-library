@@ -44,18 +44,21 @@ describe("AyahWords", () => {
     expect(container.querySelector('.w-unit .w[data-w="1"]')).not.toBeNull();
   });
 
-  it("renders the IndoPak verse text (no data-w hooks) when the IndoPak script is selected", async () => {
+  it("renders IndoPak words with data-w hooks (aligned to audio) when selected", async () => {
     localStorage.setItem("ul.script", "indopak");
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ ayahs: [{ sura: 1, aya: 1, text: "بِسۡمِ اللهِ" }] }), {
-        status: 200,
-      }),
+      new Response(
+        JSON.stringify({ ayahs: [{ aya: 1, text: "بِسۡمِ اللهِ", words: ["بِسۡمِ", "اللهِ"] }] }),
+        { status: 200 },
+      ),
     );
 
     const { container } = render(<AyahWords surah={1} aya={1} text="بِسْمِ ٱللَّهِ" />);
-    await waitFor(() => expect(container.querySelector(".w")?.textContent).toBe("بِسۡمِ"));
-    // v1 is reading-view only: the per-word audio/translit hooks are absent.
-    expect(container.querySelector(".w[data-w]")).toBeNull();
+    await waitFor(() =>
+      expect(container.querySelector('.w[data-w="0"]')?.textContent).toBe("بِسۡمِ"),
+    );
+    // IndoPak words now carry data-w (ADR 0035 §5) so highlighting / tap-to-hear work.
+    expect(container.querySelector('.w[data-w="1"]')?.textContent).toBe("اللهِ");
     expect(container.querySelector(".w-tr")).toBeNull();
   });
 });

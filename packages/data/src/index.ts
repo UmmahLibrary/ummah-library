@@ -79,6 +79,8 @@ interface VerseRecord {
   sura: number;
   aya: number;
   text: string;
+  /** IndoPak only (ADR 0035): verse pre-split into quran.com's numbered words. */
+  words?: string[];
 }
 
 interface ArabicDoc {
