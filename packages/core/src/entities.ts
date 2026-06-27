@@ -43,6 +43,12 @@ export interface Surah {
 /** A single ayah of the Arabic text. */
 export interface Ayah extends VerseKey {
   text: string;
+  /**
+   * IndoPak only (ADR 0035): the verse pre-split into quran.com's numbered words,
+   * in recitation order, so each word lines up 1:1 with the audio timing segments
+   * for word highlighting. Absent for Uthmani (which splits cleanly on spaces).
+   */
+  words?: readonly string[];
 }
 
 /** A juzʾ (one of the 30 parts) and the verse it begins at. */
