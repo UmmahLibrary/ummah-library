@@ -6,6 +6,18 @@ import { useEffect } from "react";
 export function ServiceWorkerRegister() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
+    // In development the cache-first SW serves stale CSS/fonts, so edits (e.g. a
+    // font swap) appear not to take effect. Never run it in dev — instead actively
+    // unregister any existing SW and drop its caches so dev always serves fresh.
+    if (process.env.NODE_ENV !== "production") {
+      void navigator.serviceWorker
+        .getRegistrations()
+        .then((regs) => regs.forEach((r) => void r.unregister()));
+      if (typeof caches !== "undefined") {
+        void caches.keys().then((keys) => keys.forEach((k) => void caches.delete(k)));
+      }
+      return;
+    }
     const register = () => {
       void navigator.serviceWorker.register("/sw.js").catch(() => {
         /* registration failed — app still works online */
