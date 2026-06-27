@@ -48,23 +48,32 @@ export async function writeScript(script: QuranScript): Promise<void> {
 interface IndopakAyah {
   aya: number;
   text: string;
+  /** quran.com's numbered words, aligned 1:1 with the audio segments (ADR 0035 §5). */
+  words?: string[];
 }
 
 // One fetch per surah, shared across every āyah's word component on the page.
-const cache = new Map<number, Promise<Map<number, string>>>();
+const cache = new Map<number, Promise<Map<number, readonly string[]>>>();
 
 /**
- * IndoPak Arabic for a whole surah: `āyah → text`, fetched once from our static
- * `/api/v1/surahs/{n}/indopak` endpoint. On any failure it resolves to an empty
- * map so the reader simply keeps the Uthmani text.
+ * IndoPak Arabic for a whole surah: `āyah → words`, fetched once from our static
+ * `/api/v1/surahs/{n}/indopak` endpoint. The words are quran.com's numbered tokens
+ * (so each lines up with the recitation audio for word highlighting); we fall back
+ * to splitting `text` if an older payload lacks them. On any failure it resolves to
+ * an empty map so the reader simply keeps the Uthmani text.
  */
-export function fetchSurahIndopak(surah: number): Promise<Map<number, string>> {
+export function fetchSurahIndopak(surah: number): Promise<Map<number, readonly string[]>> {
   let pending = cache.get(surah);
   if (!pending) {
     pending = fetch(`/api/v1/surahs/${surah}/indopak`)
       .then((r) => (r.ok ? (r.json() as Promise<{ ayahs?: IndopakAyah[] }>) : { ayahs: [] }))
-      .then((d) => new Map((d.ayahs ?? []).map((a) => [a.aya, a.text])))
-      .catch(() => new Map<number, string>());
+      .then(
+        (d) =>
+          new Map(
+            (d.ayahs ?? []).map((a) => [a.aya, a.words ?? a.text.split(" ")] as const),
+          ),
+      )
+      .catch(() => new Map<number, readonly string[]>());
     cache.set(surah, pending);
   }
   return pending;

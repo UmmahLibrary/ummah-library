@@ -44,11 +44,15 @@ const TANZIL_METADATA = "https://tanzil.net/res/text/metadata/quran-data.xml";
 // IndoPak Arabic text (ADR 0035). The QUL /55 export is the upstream of record but
 // is login-gated, so it can't be fetched reproducibly; api.quran.com mirrors the
 // same IndoPak text anonymously — the same source the word-by-word transliteration
-// uses — aligned 1:1 with our Hafs sura:aya numbering.
-const QURANCOM_INDOPAK = "https://api.quran.com/api/v4/quran/verses/indopak";
-// Pinned after the first ingest: the IndoPak step fails loudly if the upstream text
+// uses — aligned 1:1 with our Hafs sura:aya numbering. We fetch it at the WORD
+// level (per chapter) so each verse is stored as quran.com's numbered words, which
+// line up 1:1 with the recitation audio segments for word highlighting (ADR 0035 §5).
+const QURANCOM_INDOPAK_WORDS = (chapter: number, page: number) =>
+  `https://api.quran.com/api/v4/verses/by_chapter/${chapter}` +
+  `?language=ar&words=true&word_fields=text_indopak&per_page=50&page=${page}`;
+// Pinned after the first ingest: the IndoPak step fails loudly if the upstream data
 // drifts from this hash, so a re-ingest is always a deliberate, reviewed change.
-const INDOPAK_SHA256 = "c765100a19296b28f24052b2133d29f5169d5e1b7362939ec4c51748d9eae397";
+const INDOPAK_SHA256 = "3f77a19c7c595d2d31dff498df4f0a703b90ef14149f22ade528a9734734b911";
 const FAWAZ_BASE = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1";
 // Morning & evening adhkar from Ḥiṣn al-Muslim, MIT-licensed and pre-structured
 // (Arabic + translation + transliteration + graded source). See ADR 0016.
@@ -100,6 +104,8 @@ interface Verse {
   sura: number;
   aya: number;
   text: string;
+  /** IndoPak only (ADR 0035): verse pre-split into quran.com's numbered words. */
+  words?: string[];
 }
 
 interface Surah {
@@ -258,39 +264,76 @@ async function ingestHadith(): Promise<number> {
   return total;
 }
 
-/** api.quran.com `quran/verses/{script}` response shape. */
-interface QuranComVerses {
-  verses: { id: number; verse_key: string; text_indopak: string }[];
+/** api.quran.com `verses/by_chapter?words=true` response shape (IndoPak words). */
+interface QuranComWordsResp {
+  verses: {
+    verse_key: string;
+    words: { char_type_name?: string; text_indopak?: string }[];
+  }[];
+  pagination?: { total_pages?: number };
+}
+
+/** A few retries with backoff — the IndoPak ingest makes ~200 paginated calls. */
+async function getJsonRetry<T>(url: string, tries = 4): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await getJson<T>(url);
+    } catch (e) {
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+    }
+  }
+  throw lastErr;
 }
 
 /**
- * Ingest the IndoPak Arabic text (ADR 0035) from api.quran.com. Unlike Tanzil,
- * quran.com does not prepend the Basmala to each surah's first ayah, so the text
- * is already pure and aligns 1:1 with `arabic-uthmani.json`; the Basmala is lifted
- * from 1:1 and stored once on the edition. A SHA-256 over the normalized verses
- * guards against silent upstream drift. Returns the ayah count for the summary.
+ * Ingest the IndoPak Arabic text (ADR 0035) from api.quran.com, at the WORD level.
+ * Each verse is stored as quran.com's numbered words (`char_type=word`, in order),
+ * so they line up 1:1 with the recitation audio segments — the reader tags each
+ * word `data-w=i` and the existing highlighting works for IndoPak (ADR 0035 §5).
+ * `text` is those words joined. quran.com does not prepend the Basmala to a surah's
+ * first ayah, so the text is pure and aligns 1:1 with `arabic-uthmani.json`; the
+ * Basmala is lifted from 1:1. A SHA-256 over the verses guards against silent drift.
  */
 async function ingestArabicIndopak(): Promise<number> {
-  console.log("• IndoPak Arabic (api.quran.com)");
-  const data = await getJson<QuranComVerses>(QURANCOM_INDOPAK);
-  const rows = Array.isArray(data.verses) ? data.verses : [];
-  const verses: Verse[] = rows.map((v) => {
-    const [sura, aya] = v.verse_key.split(":");
-    return { sura: Number(sura), aya: Number(aya), text: (v.text_indopak ?? "").trim() };
-  });
+  console.log("• IndoPak Arabic — per-word (api.quran.com)");
+  const verses: Verse[] = [];
+  for (let chapter = 1; chapter <= TOTAL_SURAHS; chapter++) {
+    let page = 1;
+    let totalPages = 1;
+    do {
+      const data = await getJsonRetry<QuranComWordsResp>(QURANCOM_INDOPAK_WORDS(chapter, page));
+      totalPages = data.pagination?.total_pages ?? 1;
+      for (const v of data.verses ?? []) {
+        const [sura, aya] = v.verse_key.split(":").map(Number);
+        const words = (v.words ?? [])
+          .filter((w) => w.char_type_name === "word")
+          .map((w) => (w.text_indopak ?? "").trim())
+          .filter((w) => w.length > 0);
+        verses.push({ sura, aya, text: words.join(" "), words });
+      }
+      page++;
+    } while (page <= totalPages);
+  }
+  verses.sort((a, b) => a.sura - b.sura || a.aya - b.aya);
   if (verses.length !== TOTAL_AYAHS) {
     throw new Error(`IndoPak: expected ${TOTAL_AYAHS} verses, got ${verses.length}`);
   }
   if (new Set(verses.map((v) => v.sura)).size !== TOTAL_SURAHS) {
     throw new Error(`IndoPak: expected ${TOTAL_SURAHS} distinct surahs`);
   }
-  if (!verses.every((v) => v.sura >= 1 && v.sura <= TOTAL_SURAHS && v.aya >= 1 && v.text)) {
-    throw new Error("IndoPak: a verse has a bad sura/aya or empty text");
+  if (
+    !verses.every(
+      (v) => v.sura >= 1 && v.sura <= TOTAL_SURAHS && v.aya >= 1 && v.text && (v.words?.length ?? 0) >= 1,
+    )
+  ) {
+    throw new Error("IndoPak: a verse has a bad sura/aya, empty text, or no words");
   }
   const checksum = sha256(JSON.stringify(verses));
   if (INDOPAK_SHA256 && checksum !== INDOPAK_SHA256) {
     throw new Error(
-      `IndoPak upstream text changed (sha256 ${checksum} != pinned ${INDOPAK_SHA256}). ` +
+      `IndoPak upstream data changed (sha256 ${checksum} != pinned ${INDOPAK_SHA256}). ` +
         "Review the change; if intended, update INDOPAK_SHA256 in ingest.ts.",
     );
   }
@@ -302,7 +345,7 @@ async function ingestArabicIndopak(): Promise<number> {
       name: "IndoPak",
       language: "ar",
       direction: "rtl",
-      source: QURANCOM_INDOPAK,
+      source: "https://api.quran.com/api/v4/verses/by_chapter?words=true&word_fields=text_indopak",
       upstream: "https://qul.tarteel.ai/resources/quran-script/55",
       license: "Credit required, no modification (Sadaqa-e-Jaria)",
       checksum: `sha256:${checksum}`,
