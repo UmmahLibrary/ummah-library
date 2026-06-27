@@ -347,6 +347,9 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-size: 0.62em;
   margin: 0 0.35rem;
   white-space: nowrap;
+  /* Keep the ﴿n﴾ verse number legible even if an IndoPak body class is active
+     (the IndoPak face renders it as a digit-less rosette). */
+  font-family: var(--font-amiri), serif;
 }
 
 /* Per-surah header inside the juzʾ and Mushaf readers */
@@ -408,28 +411,31 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   line-height: 2.1;
   text-align: right;
 }
-/* IndoPak script (ADR 0035). IndoPak Unicode text must be paired with an IndoPak
-   font: generic Naskh faces (Amiri, Scheherazade) position the shadda+kasra the
-   standard-Arab way and misread (e.g. رَبِّ → "rabal" not "rabbi"). me_quran is the
-   de-facto IndoPak font used across South-Asian apps; it has no formal licence, so
-   it is loaded at RUNTIME from a CDN (pinned, not bundled/redistributed) and cached
-   for offline — documented in ATTRIBUTION as a runtime-only display asset. Falls
-   back to Amiri until cached. */
+/* IndoPak script (ADR 0035). Our verse text is quran.com's text_indopak (PR1),
+   and we render it in quran.com's matched IndoPak face — indopak-nastaleeq-waqf-lazim
+   ("AlQuran IndoPak by QuranWBW"). That pairing gives the distinctive IndoPak
+   letterforms AND the correct open jazm — the same rendering quran.com/Islam360
+   show — which a generic Arab-Naskh face (Amiri) does not. The font is **self-hosted**
+   (same-origin) so it loads reliably without a cross-origin flash/fallback to Amiri;
+   font-display:block keeps the (rare) pre-load moment blank rather than showing the
+   wrong face. The licence permits redistribution with credit (see ATTRIBUTION). */
 @font-face {
-  font-family: "me_quran";
-  src: url("https://cdn.statically.io/gh/quran/quran.com-frontend-v2@f49ee0ed0d3bb930fe863c528ef7faf48cd06b36/app/assets/fonts/quran_fonts/me_quran/me_quran.ttf")
-    format("truetype");
-  font-display: swap;
+  font-family: "IndoPak";
+  src: url("/fonts/indopak-nastaleeq-waqf-lazim-v4.2.1.woff2") format("woff2");
+  font-display: block;
 }
 body.script-indopak .ayah-ar {
-  font-family: "me_quran", var(--font-amiri), serif;
+  font-family: "IndoPak", var(--font-amiri), serif;
   line-height: 2.4;
 }
 .ayah-marker {
   font-size: 1rem;
   color: var(--accent);
   margin-inline-start: 0.4rem;
-  font-family: inherit;
+  /* The verse number is UI (a clickable number), not Quran text. Pin it to Amiri
+     in every script: the IndoPak face draws ﴿n﴾ as a decorative rosette that hides
+     the digit, so inheriting it makes the numbering disappear in IndoPak mode. */
+  font-family: var(--font-amiri), serif;
   background: none;
   border: none;
   padding: 0;
