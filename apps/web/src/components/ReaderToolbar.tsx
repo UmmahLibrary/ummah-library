@@ -120,8 +120,8 @@ export function ReaderToolbar({
     void writeTapToHear(next); // persists + broadcasts `ul.tapToHear`
   }
 
-  function toggleScript() {
-    const next = !indopak;
+  function chooseScript(next: boolean) {
+    if (next === indopak) return;
     setIndopak(next);
     document.body.classList.toggle(SCRIPT_INDOPAK_CLASS, next);
     void writeScript(next ? "indopak" : "uthmani"); // persists + broadcasts `ul.script`
@@ -373,33 +373,54 @@ export function ReaderToolbar({
               {tapHear && <Icon name="check" size={15} color={N.gold} />}
             </button>
 
-            <button
-              type="button"
-              onClick={toggleScript}
-              aria-pressed={indopak}
+            <div style={{ height: 1, background: N.borderSoft, margin: "14px -12px" }} />
+            <div style={sectionLabel}>Arabic script</div>
+            <div
+              role="group"
+              aria-label="Arabic script"
               style={{
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                width: "100%",
-                marginTop: 8,
-                padding: "9px 11px",
                 borderRadius: 10,
-                border: `1px solid ${indopak ? N.gold : N.border}`,
-                background: indopak ? N.goldSoft : N.card,
-                color: indopak ? N.gold : N.fg,
-                cursor: "pointer",
-                fontFamily: N.ui,
-                fontSize: 13.5,
-                fontWeight: 600,
+                border: `1px solid ${N.border}`,
+                overflow: "hidden",
+                background: N.card,
               }}
             >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <Icon name="type" size={15} color={indopak ? N.gold : N.muted} /> IndoPak script
-              </span>
-              {indopak && <Icon name="check" size={15} color={N.gold} />}
-            </button>
+              {[
+                { value: false, label: "Uthmani", hint: "Uthmani / Madinah script" },
+                { value: true, label: "IndoPak", hint: "IndoPak / South Asian script" },
+              ].map((o) => {
+                const active = o.value === indopak;
+                return (
+                  <button
+                    key={o.label}
+                    type="button"
+                    onClick={() => chooseScript(o.value)}
+                    aria-pressed={active}
+                    title={o.hint}
+                    style={{
+                      flex: 1,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      padding: "8px 12px",
+                      fontSize: 13,
+                      fontFamily: N.ui,
+                      fontWeight: active ? 700 : 500,
+                      color: active ? N.ink : N.muted,
+                      background: active ? N.gold : "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {active && <Icon name="check" size={14} color={N.ink} />}
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
 
             {tafsirs.length > 1 && (
               <div style={{ marginTop: 12 }}>

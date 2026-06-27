@@ -1,7 +1,7 @@
 # ADR 0035 — IndoPak Arabic script as a second bundled Quran edition
 
-- **Status:** Proposed
-- **Date:** 2026-06-26
+- **Status:** Accepted
+- **Date:** 2026-06-26 (accepted 2026-06-27)
 
 ## Context
 
@@ -53,20 +53,29 @@ defaulting to IndoPak when `navigator.language` is `ur`/`hi`/`bn` (overridable) 
 mirroring the existing Urdu-translation locale default ([0010](0010-translation-selection.md)).
 Web emits a window event to re-render; mobile holds it in component state.
 
-**4. The IndoPak font must be an IndoPak font, loaded at runtime.** Two corrections
-landed here. First, the subcontinental mushaf (Taj Company, the 15-line Ḥāfiẓī) is
-**Naskh**, not Nastaleeq (which is the **Urdu** prose style and reads wrong for the
-Quran). Second — and decisively — **IndoPak Unicode text and an IndoPak font are a
-matched pair**: a generic Naskh face (Amiri, Scheherazade New) positions the
-shadda+kasra the standard-Arab way and a subcontinental reader misreads it (e.g.
-`رَبِّ` reads as "rabal" not "rabbi"). Only real IndoPak fonts (me_quran, PDMS Saleem)
-place the marks correctly, and those are **unlicensed / personal-use-only** — not
-bundle-safe. So the IndoPak font (**me_quran**, the de-facto South-Asian font) is
-**loaded at runtime from a pinned CDN, not bundled or redistributed**, cached for
-offline, and documented as a runtime-only display asset — the same posture as the
-runtime word-by-word data ([0011](0011-translation-catalog-runtime.md)). It falls
-back to Amiri until cached. (Earlier drafts tried Noto Nastaliq Urdu and then
-Scheherazade New — both rendered the IndoPak marks wrong.)
+**4. The IndoPak text and font are a matched pair; render quran.com's text in
+quran.com's font — self-hosted.** The decisive lesson after several wrong turns: a
+generic font does not give the IndoPak rendering — the text and the font are refined
+*together*. A generic Naskh face (Amiri, Scheherazade New) keeps Uthmani-style
+letterforms and standard-Arab mark placement, so the words don't read as IndoPak and a
+subcontinental reader misreads marks (`رَبِّ` reads "rabal" not "rabbi"). Our text is
+quran.com's `text_indopak`, so we render it in **quran.com's own IndoPak face** —
+"AlQuran IndoPak by QuranWBW" (`indopak-nastaleeq-waqf-lazim`; "nastaleeq" in the name
+notwithstanding, it is the upright IndoPak mushaf face quran.com and Islam360 show).
+That pairing gives **both** the distinctive IndoPak letterforms **and** the correct open
+jazm. The font is **self-hosted** (`apps/web/public/fonts/`, same-origin) with
+`font-display: block`. We first tried loading it cross-origin from the Quran Foundation
+integrator CDN, but that proved unreliable — slow or blocked loads silently fell back to
+Amiri, which rendered the wrong letterforms (so "the words don't change") and a
+digit-less verse marker. Self-hosting is licence-compatible: the font's terms (credit,
+no-modification, "Sadaqa-e-Jaria") permit redistribution **with attribution**, which we
+ship verbatim + credit ([ATTRIBUTION](../../ATTRIBUTION.md)) — the same posture as the
+bundled text in #6. The verse-number marker (`﴿n﴾`) is pinned to **Amiri** in every
+script, because the IndoPak face draws it as a digit-less decorative rosette. The UI
+exposes the choice as a two-option **Uthmani | IndoPak** selector (not an on/off toggle)
+so the active script is always visible. (Earlier drafts tried Noto Nastaliq Urdu,
+Scheherazade New, me_quran, Digital Khatt, PakType and Al Qalam — each rejected for
+wrong marks, a required shaping engine, or missing glyphs.)
 
 **5. v1 is reading-view only; word-level features stay on Uthmani.** Per-word audio
 highlighting and word-by-word transliteration ([0008](0008-recitation-audio-highlighting.md))
@@ -93,8 +102,12 @@ never the text. As a new representation of Quranic text it is tagged
   ([0002](0002-quran-data-sourcing.md)/[0003](0003-static-first-delivery.md)). IndoPak
   word-level features, true Nastaleeq calligraphy, and Urdu-translation Nastaleeq
   restyling are out of scope (the last is an independent change).
-- **Limit & trigger to revisit:** depends on a single upstream (QUL /55) for both the
-  text and the font; the checksum guard surfaces drift, but a vanished source needs a
-  replacement. **Confirm the specific `indopak` font file permits self-hosting/subsetting
-  before PR1 ships**; if not, fall back to another OFL/permissive IndoPak-capable font.
-  Per-device until export ([0018](0018-local-data-backup.md)) / sync (#25).
+- **Operational note:** the offline service worker (cache-first for CSS/fonts) must
+  **not** register in development — while it did, it silently served stale CSS/fonts and
+  masked the font work for days. It is now env-guarded (registers in production only; in
+  dev it unregisters itself and clears its caches).
+- **Limit & trigger to revisit:** depends on a single upstream (QUL /55 ·
+  `api.quran.com`) for the text; the checksum guard surfaces drift, but a vanished source
+  needs a replacement. The font is **bundled** (self-hosted with attribution, terms
+  permitting), so it no longer depends on the integrator CDN. Per-device until export
+  ([0018](0018-local-data-backup.md)) / sync (#25).
