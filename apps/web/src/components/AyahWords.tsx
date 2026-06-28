@@ -13,10 +13,15 @@ import { SCRIPT_KEY, fetchSurahIndopak, readScript } from "../lib/script";
  * `body.wbw-translit-on .ayah-ar` flex layout flows them right-to-left.
  *
  * When the IndoPak script is selected (ADR 0035) it renders the IndoPak verse
- * instead, from quran.com's **numbered words** (bundled per āyah) as `.w[data-w]`
- * spans. Those words line up 1:1 with the recitation audio segments, so per-word
- * highlighting, tap-to-hear and the word popover all work for IndoPak too (they
- * target `.w[data-w]`). The font swap is driven by the body class.
+ * instead, from quran.com's **numbered words** as `.w[data-w]` spans. Those words
+ * line up 1:1 with the recitation audio segments *and* with the transliteration
+ * (same numbered-word source), so per-word highlighting, tap-to-hear, the word
+ * popover, and the stacked transliteration all work for IndoPak too. The font swap
+ * is driven by the body class.
+ *
+ * The transliteration row is only stacked when it lines up 1:1 with the rendered
+ * words; on a mismatch (a failed fetch, or upstream re-segmentation) the row is
+ * dropped rather than misaligned — for scripture a missing row beats a wrong one.
  *
  * Server-rendered in the off state (the toggle/fetch run only after hydration),
  * so the Arabic stays in the initial HTML for both the surah and juz readers.
@@ -68,26 +73,25 @@ export function AyahWords({ surah, aya, text }: { surah: number; aya: number; te
     };
   }, [surah, aya]);
 
-  // IndoPak (ADR 0035): quran.com's numbered words as `.w[data-w]` spans, aligned
-  // 1:1 with the audio segments so highlighting / tap-to-hear / the word popover work.
-  if (script === "indopak" && indopak != null) {
-    return (
-      <>
-        {indopak.flatMap((word, i) => [
-          <span key={i} className="w" data-w={i}>
-            {word}
-          </span>,
-          " ",
-        ])}
-      </>
-    );
-  }
+  // The Arabic words to render: IndoPak's numbered words (ADR 0035) when that
+  // script is selected and loaded, else the Uthmani text split on spaces. Both
+  // number their words the same way (quran.com's numbered words), so the `.w[data-w]`
+  // indices line up 1:1 with the audio segments and the transliteration either way.
+  const arabic = script === "indopak" && indopak != null ? indopak : words;
 
-  if (!translit) {
-    // Off — identical to the reader's long-standing inline rendering.
+  // Stack the Latin transliteration only when it lines up 1:1 with the Arabic
+  // words. It normally does (same numbered-word source), but a failed/partial
+  // fetch — or a future re-segmentation upstream — would otherwise shift every
+  // word's row; for scripture a missing row beats a wrong one, so we drop it on a
+  // mismatch (ADR 0036). The guard covers both Uthmani and IndoPak stacking.
+  const stacked = translit != null && translit.length === arabic.length;
+
+  if (!stacked) {
+    // Plain inline `.w[data-w]` spans — the reader's long-standing rendering,
+    // and what audio highlighting / tap-to-hear / the word popover target.
     return (
       <>
-        {words.flatMap((word, i) => [
+        {arabic.flatMap((word, i) => [
           <span key={i} className="w" data-w={i}>
             {word}
           </span>,
@@ -99,7 +103,7 @@ export function AyahWords({ surah, aya, text }: { surah: number; aya: number; te
 
   return (
     <>
-      {words.map((word, i) => (
+      {arabic.map((word, i) => (
         <Fragment key={i}>
           <span className="w-unit">
             <span className="w" data-w={i}>

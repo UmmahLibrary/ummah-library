@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { AyahWords } from "./AyahWords";
+
+/** A fetch mock that answers the IndoPak and transliteration endpoints by URL. */
+function mockFetch(opts: { indopak?: unknown; translit?: unknown }) {
+  vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+    const url = String(input);
+    const body = url.includes("/indopak") ? opts.indopak : opts.translit;
+    return Promise.resolve(new Response(JSON.stringify(body ?? {}), { status: 200 }));
+  });
+}
 
 beforeEach(() => localStorage.clear());
 afterEach(() => {
@@ -59,6 +68,58 @@ describe("AyahWords", () => {
     );
     // IndoPak words now carry data-w (ADR 0035 §5) so highlighting / tap-to-hear work.
     expect(container.querySelector('.w[data-w="1"]')?.textContent).toBe("اللهِ");
+    expect(container.querySelector(".w-tr")).toBeNull();
+  });
+
+  it("stacks transliteration under IndoPak words when both are on (ADR 0036)", async () => {
+    localStorage.setItem("ul.script", "indopak");
+    localStorage.setItem("ul.wbwTranslit", "true");
+    mockFetch({
+      indopak: { ayahs: [{ aya: 1, text: "بِسۡمِ اللهِ", words: ["بِسۡمِ", "اللهِ"] }] },
+      translit: {
+        verses: [
+          {
+            verse_key: "1:1",
+            words: [
+              { char_type_name: "word", transliteration: { text: "bis'mi" } },
+              { char_type_name: "word", transliteration: { text: "l-lahi" } },
+            ],
+          },
+        ],
+      },
+    });
+
+    // Fresh surah number — the translit/IndoPak fetch caches are module-level and
+    // persist across tests, so reusing surah 1 would hit another test's cache.
+    const { container } = render(<AyahWords surah={12} aya={1} text="بِسْمِ ٱللَّهِ" />);
+    await waitFor(() => expect(container.querySelectorAll(".w-tr")).toHaveLength(2));
+    // The IndoPak word is the Arabic line of each stacked unit, Latin beneath it.
+    expect(container.querySelector('.w-unit .w[data-w="0"]')?.textContent).toBe("بِسۡمِ");
+    expect([...container.querySelectorAll(".w-tr")].map((el) => el.textContent)).toEqual([
+      "bis'mi",
+      "l-lahi",
+    ]);
+  });
+
+  it("drops the transliteration row when it doesn't line up 1:1 (length guard)", async () => {
+    localStorage.setItem("ul.wbwTranslit", "true");
+    // One transliteration for a two-word āyah — a mismatch. Without the guard the
+    // stacked branch would render misaligned rows; with it, no row is shown.
+    mockFetch({
+      translit: {
+        verses: [
+          { verse_key: "1:1", words: [{ char_type_name: "word", transliteration: { text: "bis'mi" } }] },
+        ],
+      },
+    });
+
+    const { container } = render(<AyahWords surah={13} aya={1} text="بِسْمِ ٱللَّهِ" />);
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    // Let the resolved fetch apply its state, then confirm it stayed plain.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 30));
+    });
+    expect(container.querySelectorAll(".w")).toHaveLength(2);
     expect(container.querySelector(".w-tr")).toBeNull();
   });
 });
