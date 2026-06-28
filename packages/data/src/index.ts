@@ -28,7 +28,6 @@ import type {
   PlanCatalogPort,
   PlanTemplate,
   QuranRepository,
-  QuranScript,
   RecitationTimingRepository,
   Surah,
   SurahTiming,
@@ -81,8 +80,6 @@ interface VerseRecord {
   sura: number;
   aya: number;
   text: string;
-  /** IndoPak only (ADR 0035): verse pre-split into quran.com's numbered words. */
-  words?: string[];
 }
 
 interface ArabicDoc {
@@ -90,28 +87,17 @@ interface ArabicDoc {
   verses: VerseRecord[];
 }
 
-/** The ingested dataset file for each Arabic script (ADR 0035). */
-const ARABIC_FILE: Record<QuranScript, string> = {
-  uthmani: "arabic-uthmani.json",
-  indopak: "arabic-indopak.json",
-};
-
-/** Serves the Arabic Quran and surah structure from the ingested datasets. */
+/**
+ * Serves the Arabic Quran (Uthmani) and surah structure from the ingested
+ * datasets. The IndoPak script is no longer bundled (ADR 0035 amendment): its
+ * source forbids redistribution, so the web reader fetches it live from quran.com
+ * for display only.
+ */
 export class FileQuranRepository implements QuranRepository {
-  readonly #file: string;
   #arabic: ArabicDoc | null = null;
 
-  /**
-   * @param script which Arabic orthography to serve — "uthmani" (default) or
-   *   "indopak" (ADR 0035). Surah structure is shared across scripts; only the
-   *   verse text and the Basmala differ, so the same repo type serves both.
-   */
-  constructor(script: QuranScript = "uthmani") {
-    this.#file = ARABIC_FILE[script];
-  }
-
   #doc(): ArabicDoc {
-    this.#arabic ??= loadJson<ArabicDoc>(this.#file);
+    this.#arabic ??= loadJson<ArabicDoc>("arabic-uthmani.json");
     return this.#arabic;
   }
 

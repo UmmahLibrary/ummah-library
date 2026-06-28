@@ -2,13 +2,26 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, waitFor } from "@testing-library/react";
 import { AyahWords } from "./AyahWords";
 
-/** A fetch mock that answers the IndoPak and transliteration endpoints by URL. */
+/** A fetch mock that answers the IndoPak and transliteration quran.com calls by
+ *  their `word_fields` (both hit verses/by_chapter; IndoPak is display-only now). */
 function mockFetch(opts: { indopak?: unknown; translit?: unknown }) {
   vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
     const url = String(input);
-    const body = url.includes("/indopak") ? opts.indopak : opts.translit;
+    const body = url.includes("text_indopak") ? opts.indopak : opts.translit;
     return Promise.resolve(new Response(JSON.stringify(body ?? {}), { status: 200 }));
   });
+}
+
+/** quran.com `verses/by_chapter?words=true` payload for one āyah's IndoPak words. */
+function indopakResp(aya: number, words: string[]) {
+  return {
+    verses: [
+      {
+        verse_key: `1:${aya}`,
+        words: words.map((w) => ({ char_type_name: "word", text_indopak: w })),
+      },
+    ],
+  };
 }
 
 beforeEach(() => localStorage.clear());
@@ -56,10 +69,7 @@ describe("AyahWords", () => {
   it("renders IndoPak words with data-w hooks (aligned to audio) when selected", async () => {
     localStorage.setItem("ul.script", "indopak");
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({ ayahs: [{ aya: 1, text: "بِسۡمِ اللهِ", words: ["بِسۡمِ", "اللهِ"] }] }),
-        { status: 200 },
-      ),
+      new Response(JSON.stringify(indopakResp(1, ["بِسۡمِ", "اللهِ"])), { status: 200 }),
     );
 
     const { container } = render(<AyahWords surah={1} aya={1} text="بِسْمِ ٱللَّهِ" />);
@@ -75,7 +85,7 @@ describe("AyahWords", () => {
     localStorage.setItem("ul.script", "indopak");
     localStorage.setItem("ul.wbwTranslit", "true");
     mockFetch({
-      indopak: { ayahs: [{ aya: 1, text: "بِسۡمِ اللهِ", words: ["بِسۡمِ", "اللهِ"] }] },
+      indopak: indopakResp(1, ["بِسۡمِ", "اللهِ"]),
       translit: {
         verses: [
           {

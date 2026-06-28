@@ -29,9 +29,6 @@ import {
 /** The Quran (Arabic + structure) repository wired to the ingested datasets. */
 export const quranRepository: QuranRepository = new FileQuranRepository();
 
-/** The IndoPak-script Arabic repository (ADR 0035); shares the surah structure. */
-export const indopakQuranRepository: QuranRepository = new FileQuranRepository("indopak");
-
 /** The translation repository wired to the ingested datasets (the curated, static set). */
 export const translationRepository: TranslationRepository = new FileTranslationRepository();
 

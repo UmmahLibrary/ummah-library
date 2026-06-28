@@ -4,10 +4,12 @@
  *
  * The choice persists through the `SettingsStore` port and broadcasts a window
  * event so the per-āyah word components swap live. The IndoPak verse text is
- * fetched per surah from our own static API (prerendered, bundled — not a runtime
- * call), the same fetch-on-toggle pattern translations and word-transliteration
- * already use. v1 is reading-view only: the per-word audio/transliteration hooks
- * stay Uthmani-only because IndoPak word boundaries differ.
+ * **not bundled** — its source forbids redistribution (ADR 0035 amendment; see
+ * ATTRIBUTION) — so it is fetched live, per surah, from quran.com for **display
+ * only**, the same display-only runtime pattern the word-by-word popover and
+ * transliteration use. quran.com's numbered words line up 1:1 with the audio
+ * segments, so highlighting / tap-to-hear / the transliteration row all work for
+ * IndoPak too. On any failure the reader simply keeps the Uthmani text.
  */
 import type { QuranScript } from "@ummahlibrary/core";
 import { webSettingsStore as store } from "./settings-store";
@@ -45,34 +47,46 @@ export async function writeScript(script: QuranScript): Promise<void> {
   window.dispatchEvent(new CustomEvent(SCRIPT_KEY, { detail: script }));
 }
 
-interface IndopakAyah {
-  aya: number;
-  text: string;
-  /** quran.com's numbered words, aligned 1:1 with the audio segments (ADR 0035 §5). */
-  words?: string[];
+interface QuranComWord {
+  char_type_name?: string;
+  text_indopak?: string | null;
+}
+interface QuranComVerse {
+  verse_key?: string;
+  words?: QuranComWord[];
 }
 
 // One fetch per surah, shared across every āyah's word component on the page.
 const cache = new Map<number, Promise<Map<number, readonly string[]>>>();
 
 /**
- * IndoPak Arabic for a whole surah: `āyah → words`, fetched once from our static
- * `/api/v1/surahs/{n}/indopak` endpoint. The words are quran.com's numbered tokens
- * (so each lines up with the recitation audio for word highlighting); we fall back
- * to splitting `text` if an older payload lacks them. On any failure it resolves to
- * an empty map so the reader simply keeps the Uthmani text.
+ * IndoPak Arabic for a whole surah: `āyah → words`, fetched once at runtime from
+ * quran.com (display only — not bundled; its source forbids redistribution). We
+ * take quran.com's **numbered words** (`char_type=word`, in recitation order), so
+ * each lines up 1:1 with the audio segments for word highlighting and tap-to-hear.
+ * A surah fits in one page at `per_page=300`. On any failure it resolves to an
+ * empty map so the reader simply keeps the Uthmani text.
  */
 export function fetchSurahIndopak(surah: number): Promise<Map<number, readonly string[]>> {
   let pending = cache.get(surah);
   if (!pending) {
-    pending = fetch(`/api/v1/surahs/${surah}/indopak`)
-      .then((r) => (r.ok ? (r.json() as Promise<{ ayahs?: IndopakAyah[] }>) : { ayahs: [] }))
-      .then(
-        (d) =>
-          new Map(
-            (d.ayahs ?? []).map((a) => [a.aya, a.words ?? a.text.split(" ")] as const),
-          ),
-      )
+    pending = fetch(
+      `https://api.quran.com/api/v4/verses/by_chapter/${surah}?language=ar&words=true&word_fields=text_indopak&per_page=300`,
+    )
+      .then((r) => (r.ok ? (r.json() as Promise<{ verses?: QuranComVerse[] }>) : { verses: [] }))
+      .then((d) => {
+        const map = new Map<number, readonly string[]>();
+        for (const v of d.verses ?? []) {
+          const aya = Number(v.verse_key?.split(":")[1]);
+          if (!Number.isInteger(aya)) continue;
+          const words = (v.words ?? [])
+            .filter((w) => w.char_type_name === "word")
+            .map((w) => (w.text_indopak ?? "").trim())
+            .filter((w) => w.length > 0);
+          if (words.length) map.set(aya, words);
+        }
+        return map;
+      })
       .catch(() => new Map<number, readonly string[]>());
     cache.set(surah, pending);
   }
