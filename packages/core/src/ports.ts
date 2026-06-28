@@ -34,6 +34,7 @@ import type {
 import type { ActivePlan, PlanTemplate } from "./reading-plans";
 import type { KhatmaPlan } from "./reading-goals";
 import type { Hlc, SyncEntry, SyncRecord } from "./sync";
+import type { SurahTiming } from "./audio";
 
 /** Access to the Arabic Quran text and surah structure. */
 export interface QuranRepository {
@@ -47,6 +48,20 @@ export interface QuranRepository {
   getAyah(ref: VerseKey): Promise<Ayah | null>;
   /** The Basmala in its standard form, for rendering as a surah header. */
   getBismillah(): Promise<string>;
+}
+
+/**
+ * Word-by-word recitation timings, bundled per reciter + surah (ADR 0036). These
+ * drive audio word-highlighting and tap-to-hear offline, without a runtime call
+ * to the quran.com timing API. `getSurahTiming` returns `null` for a reciter or
+ * surah with no bundled timing — the caller falls back to a live source or to no
+ * highlighting.
+ */
+export interface RecitationTimingRepository {
+  /** The reciter ids that have bundled timings. */
+  reciterIds(): Promise<readonly string[]>;
+  /** A surah's word-by-word timings for one reciter, or `null` if uncovered. */
+  getSurahTiming(reciterId: string, surahNumber: number): Promise<SurahTiming | null>;
 }
 
 /** Access to translation editions and their text. */

@@ -13,6 +13,7 @@
  *
  * Output is validated (114 surahs, 6236 ayahs per edition) before writing.
  */
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -63,6 +64,27 @@ const ADHKAR_SRC =
 // See ATTRIBUTION.md. The data ships inside a SQLite asset.
 const ASMA_DB =
   "https://raw.githubusercontent.com/my-prayers/muslim-data-flutter/main/assets/db/muslim_db_v2.7.0.db";
+// Word-by-word recitation timings (ADR 0036) from the quran-align dataset
+// (CC-BY-4.0, https://github.com/cpfair/quran-align). It ships only as a release
+// zip, so we download + unzip it and keep the per-reciter files whose audio we
+// serve (matched by reciter *performance*). quran-align splits words exactly as
+// Tanzil's quran-uthmani.txt does, so its word indices line up 1:1 with our
+// Uthmani text and the reader's `data-w` spans.
+const QURAN_ALIGN_ZIP =
+  "https://github.com/cpfair/quran-align/releases/download/release-2016-11-24/quran-align-data-2016-11-24.zip";
+/** Our reciter id → the quran-align file (no extension) whose timings to use. */
+const QURAN_ALIGN_FILES: Record<string, string> = {
+  abdulbasit: "Abdul_Basit_Murattal_64kbps",
+  alafasy: "Alafasy_128kbps",
+  husary: "Husary_64kbps",
+  minshawi: "Minshawy_Murattal_128kbps",
+  shatri: "Abu_Bakr_Ash-Shaatree_128kbps",
+  shuraym: "Saood_ash-Shuraym_128kbps",
+  sudais: "Abdurrahmaan_As-Sudais_192kbps",
+};
+// Pinned after the first ingest; the timing step fails loudly if quran-align's
+// data drifts from this hash, so a re-ingest is always deliberate and reviewed.
+const TIMINGS_SHA256 = "9133dca74bf889f9c91561dfe467ea49f22786f3b6e19495c8112d33f046286d";
 
 /** Load + validate the content plugin manifests in a subdirectory. */
 function readPlugins(subdir: string): ContentPlugin[] {
@@ -357,6 +379,117 @@ async function ingestArabicIndopak(): Promise<number> {
   return verses.length;
 }
 
+/** A quran-align per-ayah entry; `segments` is non-array on alignment failures. */
+interface QuranAlignEntry {
+  surah: number;
+  ayah: number;
+  segments: unknown;
+}
+
+/**
+ * Parse a quran-align reciter file. One file (As-Sudais) ships with a multi-line
+ * "Crashed Command …" error dump prepended before the JSON array, which makes the
+ * whole file invalid JSON. When a clean parse fails, retry from the first `[{` —
+ * the start of the real array of entries (the garbage never contains that token).
+ */
+function parseAlign(raw: string): QuranAlignEntry[] {
+  try {
+    return JSON.parse(raw) as QuranAlignEntry[];
+  } catch {
+    const start = raw.indexOf("[{");
+    if (start >= 0) return JSON.parse(raw.slice(start)) as QuranAlignEntry[];
+    throw new Error("quran-align file is not parseable JSON");
+  }
+}
+
+/**
+ * Ingest word-by-word recitation timings (ADR 0036) from the quran-align release
+ * (CC-BY-4.0). For each reciter we serve, the `[wordStart, wordEnd, startMs,
+ * endMs]` ranges are expanded to one compact `[wordIndex, startMs, endMs]` per
+ * word and written to `datasets/timings/{reciterId}/{surah}.json`. Ayahs whose
+ * alignment failed (segments not a clean list of 4-number arrays — quran-align
+ * emits an error string for those) are skipped; the reader falls back to a live
+ * source or no highlighting there. A SHA-256 over the output guards drift.
+ */
+async function ingestTimings(): Promise<number> {
+  const ids = Object.keys(QURAN_ALIGN_FILES).sort();
+  console.log(`• Recitation timings — ${ids.length} reciters (quran-align, CC-BY-4.0)`);
+  const tmp = join(tmpdir(), `ul-qa-${Date.now()}`);
+  await mkdir(tmp, { recursive: true });
+  const zipPath = join(tmp, "quran-align.zip");
+  const res = await fetch(QURAN_ALIGN_ZIP);
+  if (!res.ok) throw new Error(`GET ${QURAN_ALIGN_ZIP} -> ${res.status} ${res.statusText}`);
+  await writeFile(zipPath, Buffer.from(await res.arrayBuffer()));
+  try {
+    execFileSync("unzip", ["-o", "-q", zipPath, "-d", tmp], { stdio: "ignore" });
+  } catch {
+    throw new Error("`unzip` is required to ingest timings — install it or extract the zip manually.");
+  }
+
+  let totalEntries = 0;
+  const forHash: Record<string, [number, Record<number, [number, number, number][]>][]> = {};
+  for (const id of ids) {
+    const entries = parseAlign(readFileSync(join(tmp, `${QURAN_ALIGN_FILES[id]!}.json`), "utf8"));
+    const bySurah = new Map<number, Record<number, [number, number, number][]>>();
+    let skipped = 0;
+    for (const e of entries) {
+      const segs = e.segments;
+      if (
+        !Array.isArray(segs) ||
+        segs.some((s) => !Array.isArray(s) || s.length !== 4 || s.some((n) => typeof n !== "number"))
+      ) {
+        skipped++;
+        continue;
+      }
+      const words: [number, number, number][] = [];
+      const seen = new Set<number>();
+      for (const [start, end, startMs, endMs] of segs as number[][]) {
+        for (let w = start!; w < end!; w++) {
+          if (seen.has(w)) continue;
+          seen.add(w);
+          words.push([w, startMs!, endMs!]);
+        }
+      }
+      if (!words.length) {
+        skipped++;
+        continue;
+      }
+      words.sort((a, b) => a[0] - b[0]);
+      let ayahs = bySurah.get(e.surah);
+      if (!ayahs) bySurah.set(e.surah, (ayahs = {}));
+      ayahs[e.ayah] = words;
+      totalEntries++;
+    }
+    const sorted = [...bySurah.entries()].sort((a, b) => a[0] - b[0]);
+    for (const [surah, ayahs] of sorted) {
+      const file = join(OUT, `timings/${id}/${surah}.json`);
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(file, JSON.stringify({ reciterId: id, surah, ayahs }), "utf8");
+    }
+    forHash[id] = sorted;
+    const ayahCount = sorted.reduce((n, [, a]) => n + Object.keys(a).length, 0);
+    console.log(`  ✓ ${id}: ${ayahCount} ayahs (${skipped} skipped)`);
+  }
+
+  const checksum = sha256(JSON.stringify(forHash));
+  if (TIMINGS_SHA256 && checksum !== TIMINGS_SHA256) {
+    throw new Error(
+      `quran-align timing data changed (sha256 ${checksum} != pinned ${TIMINGS_SHA256}). ` +
+        "Review the change; if intended, update TIMINGS_SHA256 in ingest.ts.",
+    );
+  }
+  await writeJson("timings/index.json", {
+    version: DATA_VERSION,
+    source: "https://github.com/cpfair/quran-align (release 2016-11-24)",
+    license: "CC-BY-4.0",
+    attribution: "Word-by-word recitation timings: quran-align by Collin Fair (CC-BY-4.0)",
+    checksum: `sha256:${checksum}`,
+    reciters: ids,
+  });
+  if (!TIMINGS_SHA256) console.log(`  ℹ pin TIMINGS_SHA256 = "${checksum}"`);
+  return totalEntries;
+}
+
 async function main(): Promise<void> {
   console.log("Ingesting Quran data → datasets/\n");
 
@@ -379,6 +512,13 @@ async function main(): Promise<void> {
   if (process.argv.includes("--indopak-only")) {
     const count = await ingestArabicIndopak();
     console.log(`\nIngested ${count} IndoPak ayahs.\n`);
+    return;
+  }
+
+  // Fast path: ingest only the recitation timings (ADR 0036).
+  if (process.argv.includes("--timings-only")) {
+    const count = await ingestTimings();
+    console.log(`\nIngested ${count} reciter-ayah timings.\n`);
     return;
   }
 
@@ -471,6 +611,9 @@ async function main(): Promise<void> {
 
   // 2b) Arabic IndoPak text from api.quran.com (ADR 0035).
   const indopakCount = await ingestArabicIndopak();
+
+  // 2c) Word-by-word recitation timings from quran-align (ADR 0036).
+  const timingCount = await ingestTimings();
 
   // 3) Translation plugins → ingested into datasets (with provenance lookup).
   const translationPlugins = readPlugins("translations").filter(
@@ -590,7 +733,7 @@ async function main(): Promise<void> {
   const hadithCount = await ingestHadith();
 
   console.log(
-    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs (Uthmani), ${indopakCount} ayahs (IndoPak), ${translationPlugins.length} translations, ${adhkar.length} adhkar, ${names.length} names, ${hadithCount} hadith.`,
+    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs (Uthmani), ${indopakCount} ayahs (IndoPak), ${timingCount} reciter-ayah timings, ${translationPlugins.length} translations, ${adhkar.length} adhkar, ${names.length} names, ${hadithCount} hadith.`,
   );
 }
 

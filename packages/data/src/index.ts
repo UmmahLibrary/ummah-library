@@ -29,7 +29,9 @@ import type {
   PlanTemplate,
   QuranRepository,
   QuranScript,
+  RecitationTimingRepository,
   Surah,
+  SurahTiming,
   TranslatedAyah,
   Translation,
   TranslationRepository,
@@ -139,6 +141,49 @@ export class FileQuranRepository implements QuranRepository {
     return Promise.resolve(
       this.#verses().find((v) => v.sura === ref.sura && v.aya === ref.aya) ?? null,
     );
+  }
+}
+
+/**
+ * Serves bundled word-by-word recitation timings (ADR 0036), ingested from the
+ * quran-align dataset (CC-BY-4.0). One small JSON per reciter+surah, read lazily
+ * and cached. Unknown reciters/surahs (including reciters with no timing data)
+ * resolve to `null` so the caller can fall back to a live source.
+ */
+export class FileRecitationTimingRepository implements RecitationTimingRepository {
+  #ids: string[] | null = null;
+  readonly #cache = new Map<string, SurahTiming | null>();
+
+  #reciters(): string[] {
+    if (this.#ids) return this.#ids;
+    const rel = "timings/index.json";
+    this.#ids = existsSync(join(datasetsBase(), rel))
+      ? loadJson<{ reciters: string[] }>(rel).reciters
+      : [];
+    return this.#ids;
+  }
+
+  reciterIds(): Promise<readonly string[]> {
+    return Promise.resolve(this.#reciters());
+  }
+
+  getSurahTiming(reciterId: string, surahNumber: number): Promise<SurahTiming | null> {
+    // Restrict the id to plain chars so the path can't escape the datasets dir.
+    if (
+      !/^[a-z0-9-]+$/.test(reciterId) ||
+      !isValidSurahNumber(surahNumber) ||
+      !this.#reciters().includes(reciterId)
+    ) {
+      return Promise.resolve(null);
+    }
+    const key = `${reciterId}/${surahNumber}`;
+    let doc = this.#cache.get(key);
+    if (doc === undefined) {
+      const rel = `timings/${reciterId}/${surahNumber}.json`;
+      doc = existsSync(join(datasetsBase(), rel)) ? loadJson<SurahTiming>(rel) : null;
+      this.#cache.set(key, doc);
+    }
+    return Promise.resolve(doc);
   }
 }
 
