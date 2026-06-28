@@ -20,6 +20,7 @@ import { AudioRangeControls } from "../components/AudioRangeControls";
 import { MemorizeBar } from "../components/MemorizeBar";
 import { DEFAULT_EDITION, TRANSLIT_EDITION } from "../types";
 import { fetchSurahWordTranslit } from "../word-translit";
+import { fetchSurahIndopak } from "../indopak";
 import type { ReadStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "JuzReader">;
@@ -28,6 +29,10 @@ interface Line {
   sura: number;
   aya: number;
   arabic: string;
+  /** The āyah's words for per-word render (peek/wbw): IndoPak numbered words when
+   *  selected (some contain an internal space, so they can't be space-split), else
+   *  the Uthmani text split on spaces. */
+  words: string[];
   translation: string;
   /** Latin transliteration line (#150); empty when the toggle is off. */
   transliteration: string;
@@ -63,6 +68,7 @@ export function JuzReaderScreen({ route }: Props) {
     transliteration,
     wordTransliteration,
     tapToHear,
+    script,
   } = useSettings();
   const reciter = RECITERS.find((r) => r.id === reciterId) ?? RECITER;
   const audio = useSurahAudio(reciter);
@@ -92,7 +98,7 @@ export function JuzReaderScreen({ route }: Props) {
     const parts = juzRange(Number(juz));
     Promise.all(
       parts.map(async (p) => {
-        const [surah, tr, translit, wordTranslit] = await Promise.all([
+        const [surah, tr, translit, wordTranslit, indopak] = await Promise.all([
           api.getSurah(p.sura),
           api.getCatalogTranslation(edition, p.sura).catch(() => []),
           transliteration
@@ -101,24 +107,30 @@ export function JuzReaderScreen({ route }: Props) {
           wordTransliteration
             ? fetchSurahWordTranslit(p.sura).catch(() => new Map<number, string[]>())
             : Promise.resolve(new Map<number, string[]>()),
+          script === "indopak"
+            ? fetchSurahIndopak(p.sura).catch(() => new Map<number, string[]>())
+            : Promise.resolve(new Map<number, string[]>()),
         ]);
         const trByAya = new Map(tr.map((t) => [t.aya, t.text]));
         const translitByAya = new Map(translit.map((t) => [t.aya, t.text]));
         const inRange = surah.ayahs.filter(
           (a) => a.aya >= p.from && (p.toExclusive === null || a.aya < p.toExclusive),
         );
-        return inRange.map(
-          (a, i): Line => ({
+        return inRange.map((a, i): Line => {
+          // IndoPak (ADR 0035): quran.com's numbered words when loaded, else Uthmani.
+          const ipk = script === "indopak" ? (indopak.get(a.aya) ?? null) : null;
+          return {
             sura: p.sura,
             aya: a.aya,
-            arabic: a.text,
+            arabic: ipk ? ipk.join(" ") : a.text,
+            words: ipk ?? a.text.split(" "),
             translation: trByAya.get(a.aya) ?? "",
             transliteration: translitByAya.get(a.aya) ?? "",
             translitWords: wordTranslit.get(a.aya) ?? [],
             surahHeader:
               i === 0 ? `${surah.surah.transliteration} · ${surah.surah.englishName}` : undefined,
-          }),
-        );
+          };
+        });
       }),
     )
       .then((groups) => {
@@ -129,13 +141,13 @@ export function JuzReaderScreen({ route }: Props) {
       active = false;
       audio.stop();
     };
-  }, [juz, edition, transliteration, wordTransliteration]);
+  }, [juz, edition, transliteration, wordTransliteration, script]);
 
   const verses = useMemo(() => (lines ?? []).map((l) => ({ sura: l.sura, aya: l.aya })), [lines]);
 
   // Peek geometry: per-āyah words and the global index each āyah starts at, so the
   // shared reveal cursor maps onto every word in reading order.
-  const peekWords = useMemo(() => (lines ?? []).map((l) => l.arabic.split(" ")), [lines]);
+  const peekWords = useMemo(() => (lines ?? []).map((l) => l.words), [lines]);
   const wordsPerAyah = useMemo(() => peekWords.map((w) => w.length), [peekWords]);
   const peekStarts = useMemo(() => {
     const starts: number[] = [];
@@ -241,7 +253,11 @@ export function JuzReaderScreen({ route }: Props) {
                       }
                     >
                       <Text
-                        style={[styles.wbwAr, { fontSize: 24 * scale, lineHeight: 38 * scale }]}
+                        style={[
+                          styles.wbwAr,
+                          script === "indopak" && styles.arabicIndopak,
+                          { fontSize: 24 * scale, lineHeight: (script === "indopak" ? 48 : 38) * scale },
+                        ]}
                       >
                         {w}
                       </Text>
@@ -255,7 +271,13 @@ export function JuzReaderScreen({ route }: Props) {
                   <Text style={styles.marker}>﴿{l.aya}﴾</Text>
                 </View>
               ) : (
-                <Text style={[styles.arabic, { fontSize: 24 * scale, lineHeight: 44 * scale }]}>
+                <Text
+                  style={[
+                    styles.arabic,
+                    script === "indopak" && styles.arabicIndopak,
+                    { fontSize: 24 * scale, lineHeight: (script === "indopak" ? 56 : 44) * scale },
+                  ]}
+                >
                   {peek
                     ? peekWords[i].map((w, wi) => {
                         const gi = peekStarts[i]! + wi;
@@ -340,6 +362,8 @@ function makeStyles(c: Palette) {
     },
     ayahPlaying: { backgroundColor: c.bgElev, borderBottomColor: "transparent" },
     arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
+    // IndoPak Nastaʿlīq face (ADR 0035) — applied over `arabic`/`wbwAr`.
+    arabicIndopak: { fontFamily: FONT.arIndopak },
     wordHidden: { color: "transparent", backgroundColor: c.borderSoft },
     marker: { color: c.accent, fontSize: 17, fontFamily: FONT.ar },
     translit: { color: c.faint, marginTop: 10, fontStyle: "italic" },
