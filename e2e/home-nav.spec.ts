@@ -2,9 +2,8 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Home navigation", () => {
   test("opening a surah from the home list lands in the reader", async ({ page }) => {
-    // A cold `next dev` compile of "/" and then /surah/[number] under CI load can
-    // be slow; triple the budget so this navigation doesn't flake near a tight
-    // timeout (it was occasionally exceeding the old 30s waits).
+    // A cold `next dev` compile of /surah/[number] under CI load can be slow, so
+    // give this navigation a generous budget.
     test.slow();
     await page.goto("/");
 
@@ -16,9 +15,22 @@ test.describe("Home navigation", () => {
     await expect(opening).toBeVisible({ timeout: 30_000 });
     await opening.click();
 
-    // We land on the surah-1 reader, with its mode chrome present. Generous
-    // timeouts so a cold dev-server compile of /surah/[number] doesn't flake.
-    await page.waitForURL(/\/surah\/1$/, { timeout: 60_000 });
+    // Poll the URL (no `load`-event dependency — a client-side nav never fires
+    // one). A cold /surah/[number] compile under CI load can be slow, so allow
+    // 45s. If the first click was swallowed before the App Router hydrated (the
+    // anchor's default nav is prevented but the client nav doesn't fire, leaving
+    // us on "/"), click once more — only after that long wait, so we never
+    // interrupt a slow-but-real navigation (re-clicking mid-nav would livelock it).
+    const surah1 = /\/surah\/1$/;
+    const landed = await expect(page)
+      .toHaveURL(surah1, { timeout: 45_000 })
+      .then(() => true, () => false);
+    if (!landed) {
+      await opening.click().catch(() => {});
+      await expect(page).toHaveURL(surah1, { timeout: 45_000 });
+    }
+
+    // Reader chrome confirms we landed (the cold /surah/[number] compile can be slow).
     await expect(page.getByRole("button", { name: "Verse" })).toBeVisible({ timeout: 60_000 });
   });
 });
