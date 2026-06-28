@@ -29,6 +29,8 @@ interface Props {
   translitWords?: string[] | null;
   /** Tap-a-word-to-hear (#145): render words as tap targets that play that word. */
   tapToHear?: boolean;
+  /** Render the Arabic in the IndoPak Nastaʿlīq face (ADR 0035). */
+  indopak?: boolean;
   onPlayWord?: (aya: number, wordIndex: number) => void;
   activeWord: number;
   playing: boolean;
@@ -63,6 +65,7 @@ function AyahViewImpl({
   transliteration,
   translitWords,
   tapToHear = false,
+  indopak = false,
   onPlayWord,
   activeWord,
   playing,
@@ -125,7 +128,13 @@ function AyahViewImpl({
               style={styles.wbwUnit}
               onPress={() => (tapToHear && onPlayWord ? onPlayWord(aya, i) : onPlayFrom(aya))}
             >
-              <Text style={[styles.wbwAr, { fontSize: 26 * scale, lineHeight: 40 * scale }]}>
+              <Text
+                style={[
+                  styles.wbwAr,
+                  indopak && styles.arabicIndopak,
+                  { fontSize: 26 * scale, lineHeight: (indopak ? 52 : 40) * scale },
+                ]}
+              >
                 {w}
               </Text>
               {translitWords?.[i] ? (
@@ -136,7 +145,11 @@ function AyahViewImpl({
         </View>
       ) : (
         <Text
-          style={[styles.arabic, { fontSize: 26 * scale, lineHeight: 50 * scale }]}
+          style={[
+            styles.arabic,
+            indopak && styles.arabicIndopak,
+            { fontSize: 26 * scale, lineHeight: (indopak ? 64 : 50) * scale },
+          ]}
           onPress={peek ? undefined : () => onPlayFrom(aya)}
         >
           {/* In peek mode every word is a tappable span — concealed until the
@@ -217,6 +230,8 @@ function makeStyles(c: Palette) {
     },
     actions: { flexDirection: "row", alignItems: "center", gap: 20 },
     arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
+    // IndoPak Nastaʿlīq face (ADR 0035) — applied over `arabic`/`wbwAr`.
+    arabicIndopak: { fontFamily: FONT.arIndopak },
     wordActive: { color: c.accent },
     // Concealed word: keep its footprint (a hint of length) but hide the glyphs.
     wordHidden: { color: "transparent", backgroundColor: c.borderSoft },

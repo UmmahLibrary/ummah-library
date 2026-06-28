@@ -13,7 +13,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Translation } from "@ummahlibrary/core";
+import type { QuranScript, Translation } from "@ummahlibrary/core";
 import { api, type TafsirMeta } from "../api";
 import { mobileSettingsStore as store } from "./settings-store";
 import { readTafsirCompare, writeTafsirCompare } from "../tafsir-compare-store";
@@ -35,6 +35,8 @@ interface SettingsValue {
   wordTransliteration: boolean;
   /** Tap an Arabic word to hear just that word recited (#145). */
   tapToHear: boolean;
+  /** Arabic script: "uthmani" (default) or "indopak" (ADR 0035). */
+  script: QuranScript;
   catalogue: Translation[];
   tafsirs: TafsirMeta[];
   setEditions: (ids: string[]) => void;
@@ -47,6 +49,7 @@ interface SettingsValue {
   setTransliteration: (on: boolean) => void;
   setWordTransliteration: (on: boolean) => void;
   setTapToHear: (on: boolean) => void;
+  setScript: (script: QuranScript) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -64,6 +67,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [transliteration, setTransliterationState] = useState<boolean>(false);
   const [wordTransliteration, setWordTransliterationState] = useState<boolean>(false);
   const [tapToHear, setTapToHearState] = useState<boolean>(false);
+  const [script, setScriptState] = useState<QuranScript>("uthmani");
   const [catalogue, setCatalogue] = useState<Translation[]>([]);
   const [tafsirs, setTafsirs] = useState<TafsirMeta[]>([]);
 
@@ -83,6 +87,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (s.transliteration != null) setTransliterationState(s.transliteration);
       if (s.wordTransliteration != null) setWordTransliterationState(s.wordTransliteration);
       if (s.tapToHear != null) setTapToHearState(s.tapToHear);
+      if (s.script === "uthmani" || s.script === "indopak") setScriptState(s.script);
     });
     void readTafsirCompare().then(setTafsirCompareState);
     void api
@@ -147,6 +152,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     void store.writeTapToHear(on);
   }, []);
 
+  const setScript = useCallback((next: QuranScript) => {
+    setScriptState(next);
+    void store.writeScript(next);
+  }, []);
+
   const value = useMemo<SettingsValue>(
     () => ({
       editions,
@@ -159,6 +169,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       transliteration,
       wordTransliteration,
       tapToHear,
+      script,
       catalogue,
       tafsirs,
       setEditions,
@@ -171,6 +182,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setTransliteration,
       setWordTransliteration,
       setTapToHear,
+      setScript,
     }),
     [
       editions,
@@ -183,6 +195,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       transliteration,
       wordTransliteration,
       tapToHear,
+      script,
       catalogue,
       tafsirs,
       setEditions,
@@ -195,6 +208,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setTransliteration,
       setWordTransliteration,
       setTapToHear,
+      setScript,
     ],
   );
 

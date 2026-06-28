@@ -19,6 +19,8 @@ import {
   IBMPlexSansArabic_600SemiBold,
   IBMPlexSansArabic_700Bold,
 } from "@expo-google-fonts/ibm-plex-sans-arabic";
+// IndoPak Nastaʿlīq face (ADR 0035), bundled as a Metro asset.
+import indopakNastaleeq from "../assets/fonts/indopak-nastaleeq-waqf-lazim.ttf";
 
 /** Family names to use in StyleSheet `fontFamily`. */
 export const FONT = {
@@ -31,6 +33,9 @@ export const FONT = {
   arMedium: "IBMPlexSansArabic_500Medium",
   arSemibold: "IBMPlexSansArabic_600SemiBold",
   arBold: "IBMPlexSansArabic_700Bold",
+  // IndoPak Nastaʿlīq face (ADR 0035) — the .ttf is converted from the same
+  // licensed web .woff2 ("AlQuran IndoPak by QuranWBW"; free to use with credit).
+  arIndopak: "IndoPakNastaleeq",
 } as const;
 
 /** The map passed to `useFonts` at app start. */
@@ -44,6 +49,7 @@ export const fontMap = {
   IBMPlexSansArabic_500Medium,
   IBMPlexSansArabic_600SemiBold,
   IBMPlexSansArabic_700Bold,
+  IndoPakNastaleeq: indopakNastaleeq,
 };
 
 /** Map a CSS-ish weight to the matching Hanken family (for the global default). */
