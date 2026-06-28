@@ -43,7 +43,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0032](0032-achievements.md)                  | Achievements: declarative badge engine over existing local data        | Accepted |
 | [0033](0033-account-sync.md)                  | Cross-device sync: opt-in, E2E-encrypted, zero-PII (amends 0003, 0006) | Accepted |
 | [0034](0034-fasting-qada.md)                  | Fasting qaḍāʾ: make-up fasts derived from the ḥayḍ pause ∩ Ramaḍān     | Accepted |
-| [0035](0035-indopak-script.md)                | IndoPak Arabic script as a second bundled Quran edition (extends 0002)  | Accepted |
+| [0035](0035-indopak-script.md)                | IndoPak Arabic script (text fetched live, not bundled — amended 2026-06-28) | Accepted |
 | [0036](0036-bundled-word-level-data.md)       | Bundle recitation timings (quran-align, CC-BY); keep transliteration live | Accepted |
 
 ## Writing a new ADR

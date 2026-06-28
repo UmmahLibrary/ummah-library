@@ -34,21 +34,17 @@ is lifted out during ingestion and stored once on the edition as `bismillah`,
 with a per-surah `hasBismillah` flag, so ayah text stays pure and aligns 1:1 with
 the translations.
 
-## Arabic text (IndoPak) — `arabic-indopak.json`
+## Arabic text (IndoPak) — **not bundled** (runtime, display-only)
 
-- **Source:** [api.quran.com](https://api.quran.com/api/v4/quran/verses/indopak)
-  (`quran/verses/indopak`) — the IndoPak script as Unicode text, the same source
-  the word-by-word transliteration uses.
-- **Upstream of record:** [QUL — Quranic Universal Library, resource /55](https://qul.tarteel.ai/resources/quran-script/55).
-  The QUL export itself is login-gated, so the dataset is generated from the
-  anonymous quran.com mirror of the same IndoPak text and verified by a pinned
-  SHA-256 (`edition.checksum`) so any upstream drift fails the ingest.
-- **License / required notice:** the IndoPak text is provided for **Sadaqa-e-Jaria**;
-  it must be **credited and not modified**. It is shipped here **verbatim** (only the
-  surrounding JSON envelope is restructured) with this attribution. See ADR 0035.
-- quran.com does **not** prepend the Basmala to each surah's first ayah, so the text
-  is already pure; the Basmala is lifted from 1:1 and stored once as `bismillah`,
-  aligning 1:1 with `arabic-uthmani.json`.
+The IndoPak Arabic text is **not** in `datasets/` (ADR 0035 amendment, 2026-06-28).
+Its source ([QUL resource 55](https://qul.tarteel.ai/resources/quran-script/55) /
+Ayman Siddiqui) is **"Sadaqa-e-Jaria, do not redistribute"** with no FOSS licence,
+and Tarteel's/quran.com's Terms forbid redistributing their content — so we may not
+bundle it (per the rule at the top of this file). The reader fetches it **live from
+quran.com for display only** (`word_fields=text_indopak`); see the runtime-services
+section of the repo-wide [`/ATTRIBUTION.md`](../../ATTRIBUTION.md). A request to
+license it for bundling is tracked in
+[`docs/permissions/`](../../docs/permissions/word-by-word-data-request.md).
 
 ## Structure metadata — `surahs.json`, `structure.json`
 

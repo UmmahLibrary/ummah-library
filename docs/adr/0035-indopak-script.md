@@ -1,7 +1,34 @@
-# ADR 0035 — IndoPak Arabic script as a second bundled Quran edition
+# ADR 0035 — IndoPak Arabic script as a second Quran edition
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-06-28 — IndoPak text is **not bundled**)
 - **Date:** 2026-06-26 (accepted 2026-06-27)
+
+## Amendment (2026-06-28): IndoPak text is fetched live, not bundled
+
+The original decision below **bundled** the IndoPak text (`arabic-indopak.json`,
+ingested from `api.quran.com`). A later licensing review (see ADR 0036 and
+[`ATTRIBUTION.md`](../../ATTRIBUTION.md)) found this is **not permissible**:
+
+- The IndoPak text's source (Ayman Siddiqui's data → [QUL resource 55](https://qul.tarteel.ai/resources/quran-script/55))
+  carries a **"do not redistribute / Sadaqa-e-Jaria only"** notice with no FOSS
+  licence, and quran.com's / Tarteel's **Terms forbid redistributing** their
+  content. No openly-licensed IndoPak text dataset exists.
+- This violated our own rule ([`ATTRIBUTION.md`](../../ATTRIBUTION.md)): bundle
+  only data whose licence permits it; otherwise fetch from the source at runtime.
+
+**Superseding decision:** the IndoPak text is **no longer bundled**. The bundled
+`arabic-indopak.json`, its ingest step, the static `/api/v1/surahs/{n}/indopak`
+route, and the `indopakQuranRepository` wiring are removed. The reader now fetches
+IndoPak **live from quran.com for display only** (which the API ToS permits),
+exactly as the word-by-word popover and transliteration already do —
+`fetchSurahIndopak` in `apps/web/src/lib/script.ts`. Everything else stays: the
+script toggle, the self-hosted IndoPak font, locale defaulting, and word
+highlighting / tap-to-hear (quran.com's numbered words still align 1:1 with the
+bundled audio segments). Trade-off: IndoPak now needs a network connection (it
+falls back to Uthmani offline). A permission request to bundle it is tracked in
+[`docs/permissions/`](../permissions/word-by-word-data-request.md).
+
+The original (now-superseded) reasoning is kept below for the record.
 
 ## Context
 
