@@ -29,9 +29,12 @@ test.describe("Surah reader", () => {
       .poll(() => page.evaluate(() => localStorage.getItem("ul.reciter")))
       .toBe("shuraym");
 
-    // ...and playing an āyah fetches THAT reciter's recitation
-    // (quranComId 10 = Saud Al-Shuraim appears in the timing request).
-    const timingRequest = page.waitForRequest(/api\.quran\.com\/.*by_key.*audio=10/);
+    // ...and playing an āyah wires THAT reciter to playback. The player prefers
+    // the bundled quran-align word-timings over the live quran.com API for covered
+    // reciters like Shuraim (ADR 0036), so it loads Shuraim's bundled timings.
+    const timingRequest = page.waitForRequest(
+      /\/api\/v1\/recitations\/shuraym\/surahs\/\d+\/timings/,
+    );
     await page.locator("[data-play-one]").first().click();
     await timingRequest;
   });
