@@ -10,12 +10,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Run JS-based actions on the runner's Node 24 (default from 2026-06-16). Covers
-# pnpm/action-setup@v4, which still ships a Node 20 entrypoint; checkout and
-# setup-node below are already on v5 (Node 24 native).
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   verify:
     name: Lint · Typecheck · Test · Build
@@ -24,7 +18,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -54,7 +48,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
         uses: actions/setup-node@v5
