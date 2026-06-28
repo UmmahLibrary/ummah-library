@@ -39,6 +39,12 @@ async function getJson<T>(url: string): Promise<T> {
 export const api = {
   listSurahs: () => getJson<{ surahs: Surah[] }>(`${BASE}/surahs`).then((d) => d.surahs),
   getSurah: (n: number) => getJson<{ surah: Surah; ayahs: Ayah[] }>(`${BASE}/surahs/${n}`),
+  /** Bundled word-by-word recitation timings for a reciter+surah (ADR 0036).
+   *  Resolves to null when the reciter/surah isn't covered (caller falls back to live). */
+  getTimings: (reciterId: string, n: number) =>
+    getJson<{ ayahs?: Record<string, [number, number, number][]> }>(
+      `${BASE}/recitations/${reciterId}/surahs/${n}/timings`,
+    ).catch(() => null),
   getTranslation: (n: number, edition: string) =>
     getJson<{ ayahs: TranslatedAyah[] }>(`${BASE}/surahs/${n}/translations/${edition}`).then(
       (d) => d.ayahs,

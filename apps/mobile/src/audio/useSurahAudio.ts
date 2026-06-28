@@ -22,6 +22,7 @@ import {
   type VerseKey,
 } from "@ummahlibrary/core";
 import { KEYS, getString, setString } from "../storage";
+import { api } from "../api";
 
 const STALL_MS = 8000;
 const POLL_MS = 60;
@@ -60,6 +61,51 @@ function fetchTiming(recitationId: number, verseKey: string): Promise<Timing | n
     timingCache.set(cacheKey, pending);
   }
   return pending;
+}
+
+// Bundled word timings (ADR 0036): one fetch per (reciter, surah) from our own
+// API, cached for the session. Preferred over the live quran.com timings so
+// highlighting / tap-to-hear work for the covered reciters without a third-party
+// call; null for uncovered reciters/surahs (then we fall back to live).
+const surahTimingCache = new Map<string, Promise<Map<number, Segment[]> | null>>();
+function bundledTimings(reciterId: string, surah: number): Promise<Map<number, Segment[]> | null> {
+  const cacheKey = `${reciterId}:${surah}`;
+  let pending = surahTimingCache.get(cacheKey);
+  if (!pending) {
+    pending = api
+      .getTimings(reciterId, surah)
+      .then((doc) => {
+        if (!doc?.ayahs) return null;
+        const map = new Map<number, Segment[]>();
+        for (const [aya, words] of Object.entries(doc.ayahs)) {
+          map.set(
+            Number(aya),
+            words.map(([w, startMs, endMs]) => [w, w + 1, startMs, endMs] as Segment),
+          );
+        }
+        return map;
+      })
+      .catch(() => null);
+    surahTimingCache.set(cacheKey, pending);
+  }
+  return pending;
+}
+
+/**
+ * Audio URL + word timings for one āyah (ADR 0036). Prefers the bundled
+ * quran-align timings (offline, no quran.com API) — playing the reciter's own
+ * everyayah audio so the timings line up; falls back to the live quran.com timing
+ * for reciters/āyāt the bundle doesn't cover, then to plain audio with no sync.
+ */
+async function getTiming(reciter: ReciterPlugin, verse: VerseKey): Promise<Timing> {
+  const bundled = await bundledTimings(reciter.id, verse.sura);
+  const segs = bundled?.get(verse.aya);
+  if (segs && segs.length) return { url: reciterAudioUrl(reciter, verse), segments: segs };
+  if (reciter.quranComId) {
+    const live = await fetchTiming(reciter.quranComId, verseKeyOf(verse));
+    if (live) return live;
+  }
+  return { url: reciterAudioUrl(reciter, verse), segments: [] };
 }
 
 export interface SurahAudio {
@@ -209,17 +255,10 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
             setBuffering(true);
             setActiveWord(-1);
 
-            let src: string | undefined;
-            let segments: Segment[] | null = null;
-            if (reciter.quranComId) {
-              const timing = await fetchTiming(reciter.quranComId, key);
-              if (tokenRef.current !== token) return;
-              if (timing) {
-                src = timing.url;
-                segments = timing.segments;
-              }
-            }
-            src ??= reciterAudioUrl(reciter, v);
+            const timing = await getTiming(reciter, v);
+            if (tokenRef.current !== token) return;
+            const src = timing.url;
+            const segments: Segment[] | null = timing.segments.length ? timing.segments : null;
 
             const player = ensurePlayer(src);
             if (tokenRef.current !== token) return;
@@ -397,15 +436,13 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
   // quran.com word timings — a no-op otherwise. The off-by-default toggle gates it.
   const playWord = useCallback(
     (verse: VerseKey, wordIndex: number) => {
-      const recitationId = reciter.quranComId;
-      if (!recitationId) return;
       const token = ++tokenRef.current; // cancels any running session
       settleRef.current?.();
       setActiveWord(-1);
       void (async () => {
         const key = verseKeyOf(verse);
-        const timing = await fetchTiming(recitationId, key);
-        if (tokenRef.current !== token || !timing) return;
+        const timing = await getTiming(reciter, verse);
+        if (tokenRef.current !== token) return;
         const seg = timing.segments.find((s) => s[0] === wordIndex);
         if (!seg) return;
         const player = ensurePlayer(timing.url);
