@@ -6,6 +6,7 @@ import type {
   PluginRegistry,
   PrayerTimesCalculator,
   QuranRepository,
+  RecitationTimingRepository,
   TafsirRepository,
   TranslationRepository,
 } from "@ummahlibrary/core";
@@ -15,6 +16,7 @@ import {
   FileAsmaRepository,
   FileHadithRepository,
   FileQuranRepository,
+  FileRecitationTimingRepository,
   FileTranslationRepository,
   loadPluginRegistry,
 } from "@ummahlibrary/data";
@@ -49,6 +51,10 @@ export const tafsirRepository: TafsirRepository = new HttpTafsirRepository(plugi
 
 /** Hadith collections served from the ingested datasets — see ADR 0022. */
 export const hadithRepository: HadithRepository = new FileHadithRepository();
+
+/** Bundled word-by-word recitation timings (quran-align) — see ADR 0036. */
+export const recitationTimingRepository: RecitationTimingRepository =
+  new FileRecitationTimingRepository();
 
 /** Prayer-times calculator (adhan behind the core port) — see ADR 0012. */
 export const prayerTimes: PrayerTimesCalculator = new AdhanPrayerTimes();

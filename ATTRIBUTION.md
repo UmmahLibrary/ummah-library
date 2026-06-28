@@ -26,6 +26,7 @@ steps) lives in [`packages/data/ATTRIBUTION.md`](packages/data/ATTRIBUTION.md).
 | 99 Names (`asma.json`) | [`my-prayers/muslim-data`](https://github.com/my-prayers/muslim-data-flutter) | **Apache-2.0** | Names from Qurʾān & Sunnah (public domain) |
 | Adhkar (`adhkar.json`) | [`Seen-Arabic/Morning-And-Evening-Adhkar-DB`](https://github.com/Seen-Arabic/Morning-And-Evening-Adhkar-DB) | **MIT** | from _Ḥiṣn al-Muslim_ by Saʿīd al-Qaḥṭānī |
 | Hadith (`datasets/hadiths/`) | [`fawazahmed0/hadith-api`](https://github.com/fawazahmed0/hadith-api) | per-collection | Bukhārī, Muslim, Abū Dāwūd, Tirmidhī, Nasāʾī, Ibn Mājah; translation © varies |
+| Recitation word-timings (`datasets/timings/`) | [`cpfair/quran-align`](https://github.com/cpfair/quran-align) (Collin Fair) | **CC-BY-4.0** (data) | per-word audio timing for highlighting / tap-to-hear, 7 reciters (ADR 0036); code is MIT, data is CC-BY |
 
 See [`packages/data/ATTRIBUTION.md`](packages/data/ATTRIBUTION.md) for the exact
 required notices and ingest steps.
@@ -43,7 +44,7 @@ required notices and ingest steps.
 
 | Service | Used for | Terms |
 | ------- | -------- | ----- |
-| [api.quran.com](https://quran.com) (Quran.com API v4) | **word-by-word** word meanings in the reader popover; verse audio metadata | word-by-word lineage = Quranic Arabic Corpus morphology + **Shaikh & Khatri** English meanings (the latter is _display-only, not redistributable_). Fetched per-tap in the browser; we do not store or redistribute it. **A written grant would be required before any bundling** (permission requested: [TarteelAI/quranic-universal-library#638](https://github.com/TarteelAI/quranic-universal-library/issues/638)); until then, runtime display only. |
+| [api.quran.com](https://quran.com) (Quran.com API v4) | **word-by-word** word meanings + **transliteration** in the reader; recitation **word-timings** only as a fallback (the 7 quran-align reciters are now bundled — ADR 0036) | word-by-word lineage = Quranic Arabic Corpus morphology + **Shaikh & Khatri** English meanings (the latter is _display-only, not redistributable_); the macron transliteration is the **Quranic Arabic Corpus**'s (Kais Dukes, GPL) — its open download is Buckwalter-only, so the readable form has **no clean bundleable source** and stays a live display fetch. Fetched in the browser; we do not store or redistribute it. The API ToS forbid redistribution and caching >1 week. **A written grant would be required before any bundling** (permission requested: [TarteelAI/quranic-universal-library#638](https://github.com/TarteelAI/quranic-universal-library/issues/638)); until then, runtime display only. |
 | [verses.quran.com](https://quran.com) | recitation audio (web) | streamed to the client |
 | [everyayah.com](https://everyayah.com) | recitation audio (reciter plugins) | streamed to the client |
 | [jsDelivr → `fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) | translation text (runtime/CDN); per-āyah **transliteration** line (`ara-quran-la`, #150) | per-edition (see §1); transliteration is Tanzil, **CC-BY-3.0**, verbatim |

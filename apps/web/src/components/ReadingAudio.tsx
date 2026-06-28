@@ -11,6 +11,7 @@ import {
 import { N, Icon } from "@ummahlibrary/ui";
 import { readReciter, writeReciter } from "../lib/reader-prefs";
 import { readLoop, readRate, writeLoop, writeRate } from "../lib/reader-prefs-store";
+import { type Segment, bundledSegments } from "../lib/audio-timing";
 
 const RECITER_KEY = "ul.reciter";
 
@@ -34,13 +35,14 @@ const parseKey = (key: string): Verse => {
   return { sura: sura!, aya: aya! };
 };
 
-type Segment = [wordIndex: number, position: number, startMs: number, endMs: number];
 interface Timing {
   url: string;
   segments: Segment[];
 }
 
 const timingCache = new Map<string, Promise<Timing | null>>();
+/** Live word timings from the quran.com API — the fallback for reciters/ayahs that
+ *  aren't in the bundled quran-align set (ADR 0036). */
 function fetchTiming(recitationId: number, verseKey: string): Promise<Timing | null> {
   const cacheKey = `${recitationId}:${verseKey}`;
   let pending = timingCache.get(cacheKey);
@@ -63,6 +65,24 @@ function fetchTiming(recitationId: number, verseKey: string): Promise<Timing | n
     timingCache.set(cacheKey, pending);
   }
   return pending;
+}
+
+/**
+ * Audio URL + word timings for one verse (ADR 0036). Prefers the bundled
+ * quran-align timings (offline, no API): for those, the audio comes from the
+ * reciter's own everyayah template via `reciterAudioUrl`. Falls back to the live
+ * quran.com timing API for reciters/ayahs the bundle doesn't cover, then to plain
+ * audio with no highlighting.
+ */
+async function getTiming(reciter: ReciterPlugin, verseKey: string): Promise<Timing> {
+  const [sura, aya] = verseKey.split(":").map(Number) as [number, number];
+  const bundled = await bundledSegments(reciter.id, sura, aya);
+  if (bundled) return { url: reciterAudioUrl(reciter, { sura, aya }), segments: bundled };
+  if (reciter.quranComId) {
+    const live = await fetchTiming(reciter.quranComId, verseKey);
+    if (live) return live;
+  }
+  return { url: reciterAudioUrl(reciter, { sura, aya }), segments: [] };
 }
 
 /**
@@ -232,20 +252,12 @@ export function ReadingAudio({
     audio.pause();
     clearWord();
 
-    let src: string | undefined;
-    let segments: Segment[] | null = null;
-    if (reciter.quranComId) {
-      const timing = await fetchTiming(reciter.quranComId, key);
-      if (token !== tokenRef.current) return;
-      if (timing) {
-        src = timing.url;
-        segments = timing.segments;
-      }
-    }
-    src ??= reciterAudioUrl(reciter, { sura: verse.sura, aya: verse.aya });
+    const timing = await getTiming(reciter, key);
+    if (token !== tokenRef.current) return;
+    const segments = timing.segments.length ? timing.segments : null;
 
     wordRef.current = { block: document.getElementById(key), segments, last: -1 };
-    audio.src = src;
+    audio.src = timing.url;
     audio.playbackRate = rateRef.current;
     audio.ontimeupdate = segments ? onTimeUpdate : null;
     audio.onended = () => {
@@ -285,13 +297,13 @@ export function ReadingAudio({
    */
   async function playWord(verseKey: string, wordIndex: number) {
     const reciter = reciters.find((r) => r.id === reciterId) ?? reciters[0];
-    if (!reciter?.quranComId) return;
+    if (!reciter) return;
     const token = ++tokenRef.current; // cancels any running recitation
     repeatRef.current = null;
-    const timing = await fetchTiming(reciter.quranComId, verseKey);
+    const timing = await getTiming(reciter, verseKey);
     if (token !== tokenRef.current) return;
-    const seg = timing?.segments.find((s) => s[0] === wordIndex);
-    if (!timing || !seg) return;
+    const seg = timing.segments.find((s) => s[0] === wordIndex);
+    if (!seg) return;
 
     const audio = (audioRef.current ??= new Audio());
     audio.onended = null;

@@ -15,6 +15,7 @@ import {
   FileAsmaRepository,
   FileHadithRepository,
   FileQuranRepository,
+  FileRecitationTimingRepository,
   FileTranslationRepository,
   loadPluginRegistry,
 } from "./index";
@@ -70,6 +71,42 @@ describe("FileQuranRepository — IndoPak script (ADR 0035)", () => {
     // 2:1 is the muqaṭṭaʿāt, not the Basmala — quran.com does not prepend it.
     const first = await indopak.getAyah({ sura: 2, aya: 1 });
     expect(first?.text.startsWith(bismillah)).toBe(false);
+  });
+});
+
+describe("FileRecitationTimingRepository (ADR 0036)", () => {
+  const timings = new FileRecitationTimingRepository();
+
+  it("lists the bundled reciters (quran-align coverage)", async () => {
+    const ids = await timings.reciterIds();
+    expect(ids).toEqual(
+      ["abdulbasit", "alafasy", "husary", "minshawi", "shatri", "shuraym", "sudais"].sort(),
+    );
+    expect(ids).not.toContain("ghamdi"); // not in the quran-align dataset → live fallback
+  });
+
+  it("serves per-word timings for a surah, in word order", async () => {
+    const t = await timings.getSurahTiming("alafasy", 1);
+    expect(t?.surah).toBe(1);
+    // Al-Fatiha 1:1 has 4 words, 1:7 has 9 — indices 0-based, ascending.
+    const aya1 = t?.ayahs[1] ?? [];
+    expect(aya1).toHaveLength(4);
+    expect(aya1.map((w) => w[0])).toEqual([0, 1, 2, 3]);
+    expect(aya1.every((w) => w[2] > w[1])).toBe(true); // endMs > startMs
+    expect(t?.ayahs[7]).toHaveLength(9);
+  });
+
+  it("word counts align 1:1 with the Uthmani text (the highlighting contract)", async () => {
+    const t = await timings.getSurahTiming("alafasy", 1);
+    for (const v of await quran.getSurahAyahs(1)) {
+      expect(t?.ayahs[v.aya]).toHaveLength(v.text.split(" ").length);
+    }
+  });
+
+  it("returns null for an uncovered reciter, a bad id, or an out-of-range surah", async () => {
+    expect(await timings.getSurahTiming("ghamdi", 1)).toBeNull();
+    expect(await timings.getSurahTiming("../../etc", 1)).toBeNull();
+    expect(await timings.getSurahTiming("alafasy", 115)).toBeNull();
   });
 });
 
