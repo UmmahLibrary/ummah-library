@@ -32,6 +32,7 @@ import { useLibrary } from "../state/LibraryContext";
 import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
 import { DEFAULT_EDITION, TRANSLIT_EDITION } from "../types";
 import { fetchSurahWordTranslit } from "../word-translit";
+import { fetchSurahIndopak } from "../indopak";
 import { ReaderControls } from "../components/ReaderControls";
 import { AudioRangeControls } from "../components/AudioRangeControls";
 import { MemorizeBar } from "../components/MemorizeBar";
@@ -60,6 +61,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     transliteration,
     wordTransliteration,
     tapToHear,
+    script,
     catalogue,
     setEditions,
     setReadingMode,
@@ -79,6 +81,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   const [trMap, setTrMap] = useState<Map<string, Map<number, string>>>(new Map());
   const [translitMap, setTranslitMap] = useState<Map<number, string>>(new Map());
   const [wordTranslitMap, setWordTranslitMap] = useState<Map<number, string[]>>(new Map());
+  const [indopakMap, setIndopakMap] = useState<Map<number, string[]>>(new Map());
   const [error, setError] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
 
@@ -226,6 +229,24 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     };
   }, [n, wordTransliteration]);
 
+  // Fetch IndoPak verse text (ADR 0035) for this surah only while selected.
+  // Display-only, live from quran.com (not bundled — see indopak.ts).
+  useEffect(() => {
+    if (script !== "indopak") {
+      setIndopakMap(new Map());
+      return;
+    }
+    let active = true;
+    fetchSurahIndopak(n)
+      .then((map) => {
+        if (active) setIndopakMap(map);
+      })
+      .catch(() => active && setIndopakMap(new Map()));
+    return () => {
+      active = false;
+    };
+  }, [n, script]);
+
   const verses = useMemo(() => (ayahs ?? []).map((a) => ({ sura: n, aya: a.aya })), [ayahs, n]);
   const metaById = useMemo(() => new Map(catalogue.map((e) => [e.id, e])), [catalogue]);
 
@@ -245,17 +266,24 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   // Stable per-ayah view-models so non-playing rows skip re-render during audio.
   const rows = useMemo(
     () =>
-      (ayahs ?? []).map((a) => ({
-        aya: a.aya,
-        key: verseKeyOf({ sura: n, aya: a.aya }),
-        arabic: a.text,
-        words: a.text.split(" "),
-        transliteration: transliteration ? (translitMap.get(a.aya) ?? null) : null,
-        translitWords: wordTransliteration ? (wordTranslitMap.get(a.aya) ?? null) : null,
-        translations: editions
-          .map((id) => trLineFor(id, a.aya))
-          .filter((x): x is TrLine => x !== null),
-      })),
+      (ayahs ?? []).map((a) => {
+        // IndoPak (ADR 0035): quran.com's numbered words when loaded — they align
+        // 1:1 with the audio segments and the per-word transliteration, so
+        // highlighting / tap-to-hear / the translit row all work. Falls back to
+        // the Uthmani text (space-split) until the IndoPak fetch resolves.
+        const ipk = script === "indopak" ? (indopakMap.get(a.aya) ?? null) : null;
+        return {
+          aya: a.aya,
+          key: verseKeyOf({ sura: n, aya: a.aya }),
+          arabic: ipk ? ipk.join(" ") : a.text,
+          words: ipk ?? a.text.split(" "),
+          transliteration: transliteration ? (translitMap.get(a.aya) ?? null) : null,
+          translitWords: wordTransliteration ? (wordTranslitMap.get(a.aya) ?? null) : null,
+          translations: editions
+            .map((id) => trLineFor(id, a.aya))
+            .filter((x): x is TrLine => x !== null),
+        };
+      }),
     [
       ayahs,
       editions,
@@ -266,6 +294,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
       translitMap,
       wordTransliteration,
       wordTranslitMap,
+      script,
+      indopakMap,
     ],
   );
 
@@ -324,6 +354,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         transliteration={item.transliteration}
         translitWords={item.translitWords}
         tapToHear={tapToHear}
+        indopak={script === "indopak"}
         onPlayWord={playWordAt}
         activeWord={playingKey === item.key ? activeWord : -1}
         playing={playingKey === item.key}
@@ -347,6 +378,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
       playOne,
       playWordAt,
       tapToHear,
+      script,
       peek,
       peekStarts,
       revealed,
@@ -532,7 +564,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           data={rows}
           keyExtractor={(r) => r.key}
           renderItem={renderItem}
-          extraData={`${playingKey ?? ""}:${activeWord}:${scale}:${peek}:${revealed}:${peekExtra.size}:${hideTr}:${transliteration}:${translitMap.size}:${wordTransliteration}:${wordTranslitMap.size}:${tapToHear}`}
+          extraData={`${playingKey ?? ""}:${activeWord}:${scale}:${peek}:${revealed}:${peekExtra.size}:${hideTr}:${transliteration}:${translitMap.size}:${wordTransliteration}:${wordTranslitMap.size}:${tapToHear}:${script}:${indopakMap.size}`}
           contentContainerStyle={styles.content}
           onViewableItemsChanged={onViewable}
           viewabilityConfig={viewabilityConfig}
@@ -582,13 +614,22 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           )}
 
           {readingMode === "reading" && (
-            <Text style={[styles.mushaf, { fontSize: 26 * scale, lineHeight: 52 * scale }]}>
-              {ayahs.map((a) => (
-                <Text key={a.aya} onPress={() => playFrom(a.aya)}>
-                  {a.text}
-                  <Text style={styles.endMarker}> ﴿{toArabicDigits(a.aya)}﴾ </Text>
-                </Text>
-              ))}
+            <Text
+              style={[
+                styles.mushaf,
+                script === "indopak" && { fontFamily: FONT.arIndopak },
+                { fontSize: 26 * scale, lineHeight: (script === "indopak" ? 66 : 52) * scale },
+              ]}
+            >
+              {ayahs.map((a) => {
+                const ipk = script === "indopak" ? indopakMap.get(a.aya) : null;
+                return (
+                  <Text key={a.aya} onPress={() => playFrom(a.aya)}>
+                    {ipk ? ipk.join(" ") : a.text}
+                    <Text style={styles.endMarker}> ﴿{toArabicDigits(a.aya)}﴾ </Text>
+                  </Text>
+                );
+              })}
             </Text>
           )}
 

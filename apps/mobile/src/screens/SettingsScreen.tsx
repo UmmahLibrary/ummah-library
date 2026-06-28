@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import type { QuranScript } from "@ummahlibrary/core";
 import { noorThemes } from "@ummahlibrary/ui";
 import { useTheme, THEMES, type Palette } from "../theme";
 import { FONT } from "../fonts";
@@ -7,10 +8,17 @@ import { useSettings } from "../state/SettingsContext";
 import { RECITER, RECITERS } from "../plugins";
 import { MAX_SCALE, MIN_SCALE } from "../types";
 
+/** Arabic script options (ADR 0035). */
+const SCRIPTS: { id: QuranScript; label: string; sub: string }[] = [
+  { id: "uthmani", label: "Uthmani", sub: "Madinah mushaf (default)" },
+  { id: "indopak", label: "IndoPak", sub: "South Asian script" },
+];
+
 export function SettingsScreen() {
   const { colors, themeKey, setTheme } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { scale, setScale, reciterId, tafsirId, tafsirs, setTafsirId } = useSettings();
+  const { scale, setScale, reciterId, tafsirId, tafsirs, setTafsirId, script, setScript } =
+    useSettings();
   const reciter = RECITERS.find((r) => r.id === reciterId) ?? RECITER;
 
   return (
@@ -64,6 +72,28 @@ export function SettingsScreen() {
           <Text style={styles.rowLabel}>Reciter</Text>
           <Text style={styles.value}>{reciter.name}</Text>
         </View>
+      </View>
+
+      <Text style={styles.sectionLabel}>Arabic script</Text>
+      <View style={styles.card}>
+        {SCRIPTS.map((s, i) => {
+          const on = s.id === script;
+          return (
+            <Pressable
+              key={s.id}
+              style={[styles.pickRow, i < SCRIPTS.length - 1 && styles.rowDivider]}
+              onPress={() => setScript(s.id)}
+            >
+              <View style={[styles.radio, on && styles.radioOn]}>
+                {on && <View style={styles.radioDot} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.pickText, on && styles.pickTextOn]}>{s.label}</Text>
+                <Text style={styles.pickSub}>{s.sub}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
 
       <Text style={styles.sectionLabel}>Tafsir edition</Text>
