@@ -38,6 +38,10 @@ const amiri = Amiri({
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  // Disable browser/Google machine translation app-wide: the app already ships
+  // its own scholar-reviewed translations, and auto-translation corrupts the
+  // Arabic Quran text. Renders <meta name="google" content="notranslate">.
+  other: { google: "notranslate" },
   title: { default: "Ummah Library", template: "%s · Ummah Library" },
   description:
     "An open-source Quran reader — read the Quran with translations, recitations, tafsir and Islamic tools.",
@@ -97,7 +101,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${hanken.variable} ${ibmArabic.variable} ${amiri.variable}`}
+      translate="no"
+      className={`${hanken.variable} ${ibmArabic.variable} ${amiri.variable} notranslate`}
       suppressHydrationWarning
     >
       <head>
