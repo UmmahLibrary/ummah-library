@@ -73,6 +73,42 @@ describe("calculateZakat", () => {
     expect(r.zakatDue).toBe(0);
   });
 
+  it("clamps a negative or non-finite liability to zero (never inflates net wealth)", () => {
+    // A negative liability is bad input; subtracting it would *add* phantom wealth.
+    const neg = calculateZakat({
+      ...base,
+      liabilities: -5000,
+      assets: { cash: 1000 },
+      nisabBasis: "silver",
+    });
+    expect(neg.netWealth).toBe(1000); // not 6000
+    expect(neg.zakatDue).toBeCloseTo(25, 6);
+    // A NaN liability (e.g. an unparsed field) is treated as zero, not propagated.
+    const nan = calculateZakat({
+      ...base,
+      liabilities: Number.NaN,
+      assets: { cash: 1000 },
+      nisabBasis: "silver",
+    });
+    expect(nan.netWealth).toBe(1000);
+    expect(nan.meetsNisab).toBe(true);
+  });
+
+  it("charges nothing when the niṣāb basis price is zero (missing market data)", () => {
+    // With no gold price the gold niṣāb is 0; net wealth must not be treated as
+    // "meeting" a zero threshold and charged zakat on everything.
+    const r = calculateZakat({
+      assets: { cash: 100000 },
+      liabilities: 0,
+      nisabBasis: "gold",
+      goldPricePerGram: 0,
+      silverPricePerGram: SILVER,
+    });
+    expect(r.nisab).toBe(0);
+    expect(r.meetsNisab).toBe(false);
+    expect(r.zakatDue).toBe(0);
+  });
+
   it("the niṣāb basis flips the outcome for wealth between the thresholds", () => {
     // ~520 (silver) < 4000 < 6561 (gold): due under silver, exempt under gold.
     const assets = { cash: 4000 };
@@ -90,8 +126,21 @@ describe("calculateZakat", () => {
     expect(r.zakatDue).toBeCloseTo(175, 6);
   });
 
-  it("exposes six standard asset categories", () => {
-    expect(ZAKAT_ASSET_CATEGORIES).toHaveLength(6);
-    expect(ZAKAT_ASSET_CATEGORIES.map((c) => c.id)).toContain("business");
+  it("exposes the six standard asset categories with stable ids and non-empty copy", () => {
+    // Pins the category table's *shape* (ids the UI keys on, presence of copy)
+    // without hard-coding the exact prose — kills empty-literal/`{}` regressions.
+    expect(ZAKAT_ASSET_CATEGORIES.map((c) => c.id)).toEqual([
+      "cash",
+      "gold",
+      "silver",
+      "investments",
+      "business",
+      "receivables",
+    ]);
+    for (const c of ZAKAT_ASSET_CATEGORIES) {
+      expect(c.id.length).toBeGreaterThan(0);
+      expect(c.label.length).toBeGreaterThan(0);
+      expect(c.hint.length).toBeGreaterThan(0);
+    }
   });
 });

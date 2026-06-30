@@ -5,9 +5,13 @@ import {
   DEFAULT_HIGH_LATITUDE_RULE,
   HIGH_LATITUDE_RULES,
   IMSAK_OFFSET_MINUTES,
+  MADHABS,
+  OBLIGATORY_PRAYERS,
+  PRAYER_LABELS,
   type PrayerTimings,
   SUPPLEMENTARY_TIMING_LABELS,
   SUPPLEMENTARY_TIMING_NAMES,
+  TIMING_NAMES,
   imsakFromFajr,
   isCalculationMethod,
   isHighLatitudeRule,
@@ -33,6 +37,53 @@ describe("CALCULATION_METHODS", () => {
 
   it("rejects an unknown method id", () => {
     expect(isCalculationMethod("NotAMethod")).toBe(false);
+  });
+
+  it("exposes the full method catalogue with adapter-matching ids and non-empty labels", () => {
+    // These ids must match the adapter's `adhan` preset names exactly — a blanked
+    // or dropped id silently breaks the real prayer calculation, so pin them all.
+    expect(CALCULATION_METHODS.map((m) => m.id)).toEqual([
+      "MuslimWorldLeague",
+      "Egyptian",
+      "Karachi",
+      "UmmAlQura",
+      "Dubai",
+      "Qatar",
+      "Kuwait",
+      "Singapore",
+      "Turkey",
+      "Tehran",
+      "NorthAmerica",
+      "MoonsightingCommittee",
+    ]);
+    for (const m of CALCULATION_METHODS) {
+      expect(isCalculationMethod(m.id)).toBe(true);
+      expect(m.label.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("catalogue integrity (load-bearing tables)", () => {
+  it("labels every prayer marker in PRAYER_LABELS", () => {
+    for (const name of TIMING_NAMES) {
+      expect(PRAYER_LABELS[name].length).toBeGreaterThan(0);
+    }
+  });
+
+  it("lists the six markers in chronological order, with the five obligatory prayers", () => {
+    expect(TIMING_NAMES).toEqual(["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"]);
+    // Obligatory = the markers minus sunrise, order preserved.
+    expect(OBLIGATORY_PRAYERS).toEqual(["fajr", "dhuhr", "asr", "maghrib", "isha"]);
+    expect(OBLIGATORY_PRAYERS).not.toContain("sunrise");
+  });
+
+  it("offers both madhabs with their adapter ids and non-empty labels", () => {
+    expect(MADHABS.map((m) => m.id)).toEqual(["shafi", "hanafi"]);
+    for (const m of MADHABS) expect(m.label.length).toBeGreaterThan(0);
+  });
+
+  it("labels every high-latitude rule", () => {
+    for (const r of HIGH_LATITUDE_RULES) expect(r.label.length).toBeGreaterThan(0);
   });
 });
 

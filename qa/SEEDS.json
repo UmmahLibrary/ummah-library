@@ -23,6 +23,11 @@
     { "cycle": 9, "purpose": "dry-cycle confirmation", "seed": 1346269, "result": "clean" },
     { "cycle": 10, "purpose": "dry-cycle confirmation", "seed": 2178309, "result": "clean" },
     { "cycle": 12, "purpose": "polar-timing fix + loop", "seed": 832040, "result": "clean" },
-    { "cycle": 15, "purpose": "3-dry final confirmation", "seed": 3524578, "result": "clean" }
+    { "cycle": 15, "purpose": "3-dry final confirmation", "seed": 3524578, "result": "clean" },
+    { "cycle": 16, "purpose": "post-Stryker-measurement property confirmation (fresh seed)", "seed": 5702887, "result": "clean — 6 properties, ~12k cases, 0 failures" },
+    { "cycle": 17, "purpose": "post-CRLF-fix confirmation (fresh seed); full suite now 804/804 green", "seed": 9227465, "result": "clean — 6 properties, ~12k cases, 0 failures" },
+    { "cycle": 18, "purpose": "post search+islamic-events hardening confirmation (fresh seed)", "seed": 14930352, "result": "clean — 6 properties, ~12k cases, 0 failures; full workspace 812/812 green" },
+    { "cycle": 19, "purpose": "post achievements+languages+fasting-qada hardening confirmation (fresh seed)", "seed": 24157817, "result": "clean — 6 properties, ~12k cases, 0 failures; full workspace 824/824 green" },
+    { "cycle": 20, "purpose": "post reminders+hadith hardening confirmation (fresh seed)", "seed": 39088169, "result": "clean — 6 properties, ~12k cases, 0 failures; full workspace 835/835 green" }
   ]
 }

@@ -30,8 +30,15 @@ Therefore the prompt's **load / stress / soak / 1M-exec native-fuzz / chaos**
 thresholds are **largely Not Applicable** and are recorded as such in QA_LOG
 with justification, rather than faked. Substitutes that *do* fit a pure-TS
 domain core: **property-based testing with shrinking (fast-check)** in place of
-coverage-guided native fuzzing, and **adversarial mutation analysis** in place
-of a full Stryker run (Stryker scoping is a CI recommendation).
+coverage-guided native fuzzing, and **mutation testing (Stryker)** for the
+domain logic.
+
+> **Cycle 16 update:** the Stryker pass is no longer deferred — it was run.
+> Measured **80.72%** mutation score on `packages/core` (≥ the 80% target);
+> 63% of survivors are content-data tables, 37% real logic. Three weakest
+> high-value modules (`zakat`/`tasbih`/`prayer`) hardened to 98–100%. See
+> `COVERAGE.json` `mutation` + QA_LOG cycle 16 for the number, breakdown, and
+> the CI-gate recommendation.
 
 ---
 

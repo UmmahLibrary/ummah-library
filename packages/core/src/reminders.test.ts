@@ -11,6 +11,7 @@ import type {
 import type { PrayerTimings } from "./prayer";
 import { type ActivePlan, activatePlan, templateById } from "./reading-plans";
 import {
+  DEFAULT_PLAN_REMINDER_TIME,
   PLAN_REMINDER_ID,
   adhkarReminderId,
   prayerReminderId,
@@ -118,6 +119,33 @@ describe("syncAdhkarReminder", () => {
     await syncAdhkarReminder({ notifier: noLoc.notifier, reminders: fakeReminders({ adhkarOn: true }), timings: provider(null), now });
     expect(noLoc.scheduled.size).toBe(0);
   });
+
+  it("does not schedule when enabled but permission is not granted", async () => {
+    // Pins the `... || permission !== "granted"` guard: enabled alone must not schedule.
+    const { notifier, scheduled } = fakeNotifier("denied");
+    await syncAdhkarReminder({ notifier, reminders: fakeReminders({ adhkarOn: true }), timings: provider(TIMINGS), now });
+    expect(scheduled.size).toBe(0);
+  });
+
+  it("schedules the evening occasion with the exact label, emoji and copy", async () => {
+    const { notifier, scheduled } = fakeNotifier();
+    await syncAdhkarReminder({ notifier, reminders: fakeReminders({ adhkarOn: true }), timings: provider(TIMINGS), now });
+    const n = scheduled.get(adhkarReminderId("evening"))!;
+    expect(n.title).toBe("Time for evening adhkar 🌆");
+    expect(n.body).toBe("Tap to open your remembrances on Ummah Library.");
+    expect(n.tag).toBe(adhkarReminderId("evening"));
+  });
+
+  it("schedules the morning occasion with its own label and emoji", async () => {
+    // Before fajr, the next occasion is morning — pins the morning ADHKAR_LABEL/EMOJI
+    // entries (the evening test alone leaves the morning row unexercised).
+    const { notifier, scheduled } = fakeNotifier();
+    const earlyNow = () => new Date("2026-06-21T01:00:00.000Z"); // before fajr 03:00Z
+    await syncAdhkarReminder({ notifier, reminders: fakeReminders({ adhkarOn: true }), timings: provider(TIMINGS), now: earlyNow });
+    const n = scheduled.get(adhkarReminderId("morning"))!;
+    expect(n.title).toBe("Time for morning adhkar 🌅");
+    expect(n.tag).toBe(adhkarReminderId("morning"));
+  });
 });
 
 describe("syncPrayerReminders", () => {
@@ -141,6 +169,37 @@ describe("syncPrayerReminders", () => {
     const { notifier, scheduled } = fakeNotifier();
     await syncPrayerReminders({ notifier, reminders: fakeReminders({ prayers: {} }), timings: provider(TIMINGS), now });
     expect(scheduled.size).toBe(0);
+  });
+
+  it("does not schedule when enabled but permission is denied, or without a location", async () => {
+    // Pins the `!some(enabled) || permission !== "granted"` guard and the `!today` guard.
+    const denied = fakeNotifier("denied");
+    await syncPrayerReminders({ notifier: denied.notifier, reminders: fakeReminders({ prayers: { dhuhr: true } }), timings: provider(TIMINGS), now });
+    expect(denied.scheduled.size).toBe(0);
+
+    const noLoc = fakeNotifier();
+    await syncPrayerReminders({ notifier: noLoc.notifier, reminders: fakeReminders({ prayers: { dhuhr: true } }), timings: provider(null), now });
+    expect(noLoc.scheduled.size).toBe(0);
+  });
+
+  it("schedules a prayer with the exact label, copy and time", async () => {
+    const { notifier, scheduled } = fakeNotifier();
+    await syncPrayerReminders({ notifier, reminders: fakeReminders({ prayers: { dhuhr: true } }), timings: provider(TIMINGS), now });
+    const n = scheduled.get(prayerReminderId("dhuhr"))!;
+    expect(n.title).toBe("Dhuhr — time to pray");
+    expect(n.body).toBe("It’s time for prayer. Tap to open Ummah Library.");
+    expect(n.at).toBe(TIMINGS.dhuhr); // the timing instant is echoed straight through
+    expect(n.tag).toBe(prayerReminderId("dhuhr"));
+  });
+});
+
+describe("reminder ids and constants", () => {
+  it("pins the stable ids and the default plan time", () => {
+    expect(DEFAULT_PLAN_REMINDER_TIME).toBe("20:00");
+    expect(PLAN_REMINDER_ID).toBe("plan:daily");
+    expect(adhkarReminderId("morning")).toBe("adhkar:morning");
+    expect(adhkarReminderId("evening")).toBe("adhkar:evening");
+    expect(prayerReminderId("fajr")).toBe("prayer:fajr");
   });
 });
 
