@@ -633,6 +633,7 @@ export function ReadingAudio({
           {reciters.length > 1 && (
             <select
               className="noor-hide-sm"
+              aria-label="Reciter"
               value={reciterId}
               onChange={(e) => {
                 setReciterId(e.target.value);
@@ -686,6 +687,7 @@ export function ReadingAudio({
         {reciters.length > 1 && (
           <select
             className="audio-reciter"
+            aria-label="Reciter"
             value={reciterId}
             onChange={(e) => {
               setReciterId(e.target.value);

@@ -42,7 +42,10 @@ export function NoorPageFrame({ title, sub, glyph, back, actions, maxW = 920, ch
         >
           <div style={{ display: "flex", alignItems: "center", gap: 13, minWidth: 0 }}>
             <button
+              type="button"
               onClick={handleBack}
+              aria-label="Go back"
+              title="Go back"
               style={{
                 width: 40,
                 height: 40,

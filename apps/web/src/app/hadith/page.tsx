@@ -1,3 +1,4 @@
+import { N } from "@ummahlibrary/ui";
 import { pluginRegistry } from "@ummahlibrary/api";
 import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { HadithBrowser } from "../../components/HadithBrowser";
@@ -23,7 +24,7 @@ export default function HadithPage() {
       <p
         style={{
           fontSize: 12,
-          color: "#5C6273",
+          color: N.faint,
           textAlign: "center",
           marginTop: 32,
           fontFamily: "'Hanken Grotesk', system-ui, sans-serif",
