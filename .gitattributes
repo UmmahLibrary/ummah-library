@@ -1,0 +1,22 @@
+# Normalise line endings. Text files are stored LF in the repo and checked out
+# LF on every platform — without this, a Windows checkout with core.autocrlf=true
+# rewrites files to CRLF in the working tree, which breaks byte-exact tests such
+# as the packages/ui generated-CSS drift test (theme-css.test.ts, ADR 0027): the
+# generator emits LF, the checked-out .css became CRLF, so the suite was red on
+# Windows though green in CI. See qa/QA_LOG.md cycle 17.
+* text=auto eol=lf
+
+# Binary assets git must never line-ending-normalise.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.mp3   binary
+*.mp4   binary
