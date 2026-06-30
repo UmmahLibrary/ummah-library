@@ -62,7 +62,9 @@ export const noorThemes: Record<ThemeKey, Palette> = {
     borderSoft: "#1b2029",
     fg: "#f4f1ea",
     muted: "#9aa0b2",
-    faint: "#5c6273",
+    // Lightened from #5c6273 to clear WCAG-AA 4.5:1 for small faint labels on the
+    // obsidian backgrounds (was ~2.94:1). #7d8392 → min 4.72:1. (Lighthouse a11y.)
+    faint: "#7d8392",
     accent: "#e6b855",
     accentHi: "#f4d58a",
     accentDim: "#a98432",

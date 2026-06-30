@@ -30,6 +30,7 @@ export function TabBar() {
           <Link
             key={label}
             href={href}
+            aria-label={href === "/settings" ? "More — settings & tools" : undefined}
             style={{
               flex: 1,
               display: "flex",
