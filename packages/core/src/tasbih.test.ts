@@ -16,9 +16,26 @@ describe("tasbihState", () => {
 });
 
 describe("catalogues", () => {
-  it("offers the core dhikr phrases and targets", () => {
-    expect(DHIKR_PHRASES.map((p) => p.id)).toContain("subhanallah");
-    expect(DHIKR_PHRASES).toHaveLength(5);
-    expect(TASBIH_TARGETS).toContain(33);
+  it("offers the five core dhikr phrases with stable ids and complete text", () => {
+    // The ids key the persisted counter; arabic/transliteration/meaning are shown
+    // to the user. Pin the table's shape (ids + non-empty fields) without hard-coding
+    // the exact script/prose, so a blanked or dropped phrase is caught.
+    expect(DHIKR_PHRASES.map((p) => p.id)).toEqual([
+      "subhanallah",
+      "alhamdulillah",
+      "allahuakbar",
+      "tahlil",
+      "istighfar",
+    ]);
+    for (const p of DHIKR_PHRASES) {
+      expect(p.id.length).toBeGreaterThan(0);
+      expect(p.arabic.length).toBeGreaterThan(0);
+      expect(p.transliteration.length).toBeGreaterThan(0);
+      expect(p.meaning.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("offers the common per-round targets", () => {
+    expect(TASBIH_TARGETS).toEqual([33, 99, 100]);
   });
 });

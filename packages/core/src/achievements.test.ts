@@ -24,6 +24,40 @@ describe("BADGES catalogue", () => {
     expect(new Set(ids).size).toBe(ids.length);
     expect(BADGES.every((b) => b.target > 0)).toBe(true);
   });
+
+  it("pins each badge's id, scored metric, target and category", () => {
+    // id is the persisted acknowledgement key, and `metric`/`target` drive
+    // evaluateBadges (a blanked metric makes a badge silently never unlock), so
+    // pin the full behavioural contract — not just display copy.
+    expect(BADGES.map((b) => [b.id, b.metric, b.target, b.category])).toEqual([
+      ["first-ayah", "memorized", 1, "memorize"],
+      ["memorizer-10", "memorized", 10, "memorize"],
+      ["memorizer-50", "memorized", 50, "memorize"],
+      ["surah-starter", "surahsStarted", 1, "memorize"],
+      ["surah-five", "surahsStarted", 5, "memorize"],
+      ["streak-7", "bestStreak", 7, "prayer"],
+      ["streak-30", "bestStreak", 30, "prayer"],
+      ["streak-100", "bestStreak", 100, "prayer"],
+      ["prayer-7", "prayerStreak", 7, "prayer"],
+      ["names-10", "namesLearned", 10, "knowledge"],
+      ["names-99", "namesLearned", 99, "knowledge"],
+      ["collector-5", "savedVerses", 5, "library"],
+      ["collector-25", "savedVerses", 25, "library"],
+    ]);
+  });
+
+  it("gives every badge a non-empty glyph, name and description", () => {
+    for (const b of BADGES) {
+      expect(b.glyph.length).toBeGreaterThan(0);
+      expect(b.name.length).toBeGreaterThan(0);
+      expect(b.description.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("scores every badge against a real BadgeStats key", () => {
+    const keys = Object.keys(ZERO);
+    for (const b of BADGES) expect(keys).toContain(b.metric);
+  });
 });
 
 describe("evaluateBadges", () => {

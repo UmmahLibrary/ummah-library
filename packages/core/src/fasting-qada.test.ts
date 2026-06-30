@@ -32,6 +32,20 @@ describe("isRamadanDate", () => {
     expect(isRamadanDate("")).toBe(false);
   });
 
+  it("rejects a date with the wrong number of parts even when the prefix is Ramaḍān", () => {
+    // A 4-part string whose first three components are a valid Ramaḍān date: the
+    // `parts.length !== 3` guard must reject it (not silently use the first three).
+    expect(isRamadanDate(ram(10) + "-5")).toBe(false);
+    expect(isRamadanDate(ram(10).replace("-", "/"))).toBe(false); // 2 parts after split
+  });
+
+  it("rejects a non-integer day/month/year on an otherwise-Ramaḍān date", () => {
+    const [y, m, d] = ram(10).split("-");
+    expect(isRamadanDate(`${y}-${m}-${d}.5`)).toBe(false); // fractional day
+    expect(isRamadanDate(`${y}-${Number(m) + 0.5}-${d}`)).toBe(false); // fractional month
+    expect(isRamadanDate(`${Number(y) + 0.5}-${m}-${d}`)).toBe(false); // fractional year
+  });
+
   it("honours the Hijri adjustment", () => {
     // The Gregorian day before Ramaḍān 1 reads as Shaʿbān normally, but with a
     // +1 adjustment the tabular month shifts so it reads as Ramaḍān 1.
@@ -80,6 +94,25 @@ describe("fastingQadaOwed", () => {
   it("skips a corrupt range (end before start)", () => {
     const log: HaidLog = [{ start: ram(9), end: ram(5) }];
     expect(fastingQadaOwed(log, today)).toBe(0);
+  });
+
+  it("counts a single-day pause (start === end) inside Ramaḍān", () => {
+    // span === 0 must be processed (one day), pinning the `span < 0` bound against
+    // a `<= 0` regression that would silently drop every single-day pause.
+    expect(ramadanPauseDays([{ start: ram(10), end: ram(10) }], today)).toEqual([ram(10)]);
+  });
+
+  it("skips an absurdly long range rather than looping over it", () => {
+    // A span beyond MAX_SPAN_DAYS (corrupt/foreign data) is skipped entirely — even
+    // though it straddles many Ramaḍāns — bounding the loop.
+    const log: HaidLog = [{ start: ram(1, 1440), end: ram(1, 1447) }]; // ~7 years > 1000 days
+    expect(ramadanPauseDays(log, today)).toEqual([]);
+  });
+});
+
+describe("EMPTY_FASTING_QADA", () => {
+  it("is a zeroed log", () => {
+    expect(EMPTY_FASTING_QADA).toEqual({ madeUp: 0 });
   });
 });
 

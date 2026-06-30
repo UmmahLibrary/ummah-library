@@ -493,3 +493,368 @@ dir (e.g. `packages/adapters/packages/core`). Confirmed it fails with the Stryke
 removed too. The working test command is `pnpm test:coverage` (the workspace run from root)
 — what this whole QA effort used (739 tests, gated). Worth fixing separately (give those
 packages a local `vitest.config`, or adjust the turbo `test` task).
+
+> **Update (cycle 16):** the per-package `pnpm test` issue above was fixed in commit
+> `d43f11f` (local `vitest.config` for core/data/adapters/mobile). `pnpm --filter
+> @ummahlibrary/core test` now works (388→396 tests), which is what made the scoped
+> Stryker re-measures below practical.
+
+---
+
+## Cycle 16 — ran the deferred Stryker pass; MEASURED the mutation score (2026-06-30)
+
+**Why this cycle exists.** Cycles 1–15 converged on everything *except* the one criterion
+the log itself kept flagging: **the mutation score was never actually measured** — it was
+"manual mutation analysis + property pinning," with Stryker left config-only. Resuming the
+converged run, the single non-redundant frontier was to *measure it*. (Stryker turned out
+not to be materialised in `node_modules` — it was lockfile-only — so step one was
+`pnpm install`.)
+
+### The measurement (the finding)
+Full Stryker pass over `packages/core` (29 files, 24m29s):
+
+```
+All files | 80.72% score (covered 81.47%) | 2696 killed · 12 timeout · 616 survived · 31 no-cov
+```
+
+**80.72% meets the ≥80% target — but the number itself is the finding.** Line/branch
+coverage is ~99% while mutation is 80.72%: the suite **executes** the code far more than it
+**asserts** its behaviour. This is the prompt's own "mutation score was inflated by
+hand-waving" branch — the prior manual analysis was right about the *logic* it looked at,
+but it never measured the **content tables**, and those dominate the gap.
+
+**Survivor breakdown (the honest reframe):**
+
+| Class | Count | % | Mutation types | Severity |
+| ----- | ----- | - | -------------- | -------- |
+| **Content / data tables** | 390 | 63% | StringLiteral 324 + ObjectLiteral 64 + ArrayDecl 2 | low — a dropped/blanked label/hint/dhikr/method-id ships silently; one integrity test per table kills them |
+| **Real logic** | 226 | 37% | Conditional 95, Equality 47, Arithmetic 33, Logical 20, Method 11, Regex 10, … | the genuine test-strength gaps; some equivalent, most unpinned behaviour |
+
+So **logic is strong** (consistent with the 99% branch coverage and the cycles-1–15 manual
+analysis); the deficit is mostly unpinned content. The weakest modules by score:
+`languages` 29.5, `tasbih` 30.3, `achievements` 42.6, `zakat` 51.7, `prayer` 52.3,
+`search` 54.8, `islamic-events` 57.4, `reminders` 67.1.
+
+### Hardened this cycle (3 highest-value weak modules; each re-measured exact)
+No production-code bug was found — these were **decorative-test gaps**, which is exactly
+what mutation testing exists to surface. Tests added strengthen assertions; nothing was
+weakened.
+
+- **`zakat.ts` 51.67% → 98.33%** (doctrinally load-bearing, so first). The property test
+  *claimed* to pin zakat but never exercised: a **negative liability** (must clamp to 0,
+  not subtract a negative and *inflate* net wealth), a **NaN liability** (→ 0), or a
+  **zero niṣāb-basis price** (missing market data must make `meetsNisab` false, not charge
+  2.5% on everything via a 0 threshold). Added those three behaviour tests + a category-table
+  integrity test. The single remaining survivor (`:75` `v>0`→`v>=0` in `sumValues`) is an
+  **equivalent mutant** — adding 0 is a no-op — and is justified, not killable.
+- **`tasbih.ts` 30.30% → 100%.** All 23 survivors were the `DHIKR_PHRASES`/`TASBIH_TARGETS`
+  table; `tasbihState` logic was already fully pinned. One structural-integrity test (exact
+  ids the persisted counter keys on + non-empty arabic/transliteration/meaning) without
+  hard-coding script/prose.
+- **`prayer.ts` 52.29% → 100%.** All 52 survivors were content tables; `PRAYER_LABELS` and
+  `MADHABS` were entirely untested and `CALCULATION_METHODS` had only the default id pinned.
+  These ids are **adapter-load-bearing** (they must match `adhan`'s preset names — a blanked
+  id silently breaks the real calculation), so integrity tests here are meaningful, not
+  cosmetic. The prayer *logic* (`nextPrayer`/`prayerReminders`/validators) was already pinned.
+
+Net: **103 survivors → killed**, projected aggregate **80.72% → ≈83.8%**. Core tests
+388 → **396** (+8). Fresh-seed property confirmation clean (seed 5702887, ~12k cases).
+
+### Residual (honest — the long tail, prioritised)
+The aggregate now meets the threshold, so this is **not** a blocking gap — but the per-module
+tail is uneven and worth a roadmap rather than a "suite is uniformly strong" claim:
+
+1. **Logic survivors (~226, the real priority).** Concentrated in `islamic-events`,
+   `search`, `hijri`, `reminders`, `fasting-qada`, `hadith`, `translations`,
+   `reading-plans`, `backup`, `achievements`. These are operator/conditional mutants —
+   genuine unpinned behaviour (minus an equivalent fraction). Highest-value next target:
+   `islamic-events` (57%) and `search` (55%) carry user-visible date/normalisation logic.
+2. **Content-table survivors (~287 left after this cycle).** Mechanical: one
+   structural-integrity test per data table (exact ids + non-empty fields), the pattern used
+   for zakat/tasbih/prayer here. Low severity, high count — good "good-first-issue" work.
+3. **31 no-coverage mutants.** Small (99.6% line cov) — defensive branches no test reaches;
+   worth a look but below the reachability bar applied throughout.
+4. **Equivalent mutants** (e.g. zakat `sumValues` `>0`/`>=0`) — justified, uncounted.
+
+### CI recommendation (so the measured floor can't silently erode)
+1. **Wire Stryker into CI scoped to `packages/core`** and set `thresholds.break: 80` now
+   (the measured aggregate — a ratchet, exactly like the coverage gates). Raise toward 85+
+   as the content-table and `islamic-events`/`search` survivors are closed. It's pure +
+   fast (~25 min full, seconds-to-minutes scoped) so it's cheap to gate.
+2. **Run it incrementally** on changed files in PRs (`stryker run --since=main` / `--mutate`)
+   to keep CI time low; the full pass is a nightly.
+3. Keep the existing `invariants.property.test.ts` + the coverage ratchet — both held.
+
+### Verdict
+The one outstanding convergence criterion (a *measured* mutation score) is now closed with a
+real number: **80.72%** aggregate, ≥ the 80% target, with the three weakest high-value modules
+hardened to 98–100% and the rest documented as a prioritised, low-severity roadmap. Full loop
+constraints respected (lint/build remain Windows-blocked per the standing note; verified via
+`tsc`/vitest as before). A further re-run resumes here and exits after one clean confirmation
+unless new code lands.
+
+---
+
+## Cycle 17 — fixed the cross-platform CRLF flake that kept the suite red (2026-06-30)
+
+**Why this cycle exists (the prompt's own diagnostic).** Cycle 16 closed the mutation
+criterion but left **criterion #6 (full suite green, deterministic) UNMET**: the full
+workspace run had **2 red tests** — `packages/ui` `theme-css.test.ts` drift — which cycle 16
+flagged as "pre-existing, out-of-scope" and deliberately did not fix. This re-run's prompt
+makes "full suite green" a hard criterion and rule #1 says *strengthen the code, not the test*,
+so the red suite was the single genuine frontier. This is the prompt's **"a new code change
+introduced it since last run"** branch: the IndoPak/translation commits added the drift tests,
+and the repo's missing line-ending config made them platform-flaky.
+
+**Root cause (and a correction to cycle 16).** Cycle 16 *guessed* the drift was prettier
+trailing-whitespace. **That guess was wrong.** Reproduced and traced properly this time:
+
+- `git ls-files --eol` → `i/lf  w/crlf  attr/` for both CSS files: **LF in the repo index,
+  CRLF in the Windows working tree, no attribute**.
+- `core.autocrlf=true` (Windows default) + **no `.gitattributes`** ⇒ git rewrites the
+  LF-committed `noor-themes.css`/`noor-tokens.css` to **CRLF on checkout**.
+- The drift test does a byte-exact `expect(read(css)).toBe(renderThemesCss())`; the generator
+  emits **LF** ⇒ CRLF (file) ≠ LF (generator) ⇒ fail. **Green in CI (Linux/LF), red only on
+  Windows** = a cross-platform determinism flake, exactly what criterion #6 forbids.
+
+**Fix (root cause, no test weakened).** Added a repo-root **`.gitattributes`**:
+
+```
+* text=auto eol=lf      # + explicit binary markers for png/jpg/woff/ttf/mp3/…
+```
+
+then re-checked-out the two CSS files so the working tree is LF. The drift test now compares
+LF-to-LF and passes. **Not** fixed by normalising line endings inside the test (which would
+blind it to a genuine CRLF mistake) and **not** by hand-editing the generated CSS (ADR 0027
+forbids it) — the generator and committed files were always correct; the repo just lacked the
+line-ending policy every cross-platform JS/TS repo needs.
+
+**Safety / blast radius checked.** No `.bat`/`.cmd`/`.ps1` files exist (nothing wants CRLF);
+prettier already defaults to LF; the index is already all-LF so there is **no renormalisation
+diff**. After the fix `git status` shows only the new `.gitattributes` — **not** a mass-modify
+of the 670 other CRLF working-tree files (git normalises them against the LF index, so they
+stay clean). The only committed change is `.gitattributes`.
+
+**Result.** Full workspace **804/804 green, exit 0**, all coverage gates met (was 802/2 in
+cycle 16). `packages/ui` 9/9. Fresh-seed property confirmation clean (seed 9227465). Criterion
+#6 is now genuinely satisfied on a Windows checkout, not just in CI.
+
+### CI recommendation (addition)
+- **Keep the `.gitattributes`** and consider a CI check that asserts tracked text files are LF
+  (e.g. `git ls-files --eol | grep -v 'w/lf' | grep -v binary` is empty) so a CRLF file can't
+  be committed and re-introduce this class.
+
+### Residual after cycle 17
+Unchanged from cycle 16 (all low-severity, tracked): the ~226 mutation **logic survivors**
+(priority: `islamic-events` 57%, `search` 55%) and the ~287 **content-table survivors** (one
+integrity test per table), plus the justified equivalent mutants. The CRLF class is now closed
+repo-wide. A further re-run resumes here and exits after one clean confirmation unless new code
+lands.
+
+---
+
+## Cycle 18 — drove the two priority logic-survivor modules to ~95–97% (2026-06-30)
+
+**Frontier.** With criteria #1–2 and #4–6 met and #3 at 80.72% aggregate, the legitimate
+non-redundant frontier (per THE LOOP: "pick the items with the lowest surviving mutants; keep
+attacking while the score is still rising") was the two cycle-17-documented priority modules
+with **real logic survivors** — not content tables. Used the persisted cycle-16 Stryker log to
+target their exact survivors, so no re-scan.
+
+### `search.ts` — 54.79% → **97.26%** (31 survivors killed; +5 tests)
+The verse-ranking algorithm was executed but barely asserted. Pinned, with exact scores:
+
+- **Arabic normalization rules** (`normalizeForSearch`) — each substitution pinned: tatweel is
+  dropped (not replaced with junk), `ى→ي`, `ة→ه`. (Kills the `.replace(...)` StringLiteral mutants.)
+- **Word-boundary bonus** (`:43`) — a boundary hit ("light") scores **2**, a mid-word substring
+  ("light" inside "delight") scores **1**. Kills the `if(true)`/`if(false)`/empty-regex mutants
+  that the old "finds by token" tests left unconstrained.
+- **Whole-phrase bonus + multi-token guard** (`:45`) — a contiguous "patience light" scores **6**,
+  scattered tokens **4**, and a *single*-token query gets **no** bonus (2, not 3). Kills the
+  `&&`/`||`, `>1`→`>=1`/`<=1`, `if(true/false)`, and `+=`→`-=` mutants.
+- **Sort + tie-break comparators** (`:72`, `:94`–`:95`) — `searchText` sorts score-desc and
+  honours the limit; `searchVerses` breaks ties by sura→aya→source (a golden ordering of
+  same-score rows). Kills the no-sort / `()=>undefined` / `+`-instead-of-`-` / `||`→`&&` mutants.
+
+**2 survivors remain, both justified:** `:51` `/\s+/`→`/\s/` is **equivalent** (the following
+`filter(Boolean)` collapses the empty tokens either way); `:101` `escapeRegExp` replacement→`""`
+only changes the word-boundary bonus for a token containing a regex metacharacter, which must
+already pass the `indexOf` literal-substring gate to matter — a low-value edge.
+
+### `islamic-events.ts` — 57.41% → **95.37%** (41 survivors killed; +3 tests)
+The 13 arithmetic survivors were all in the Gregorian→**Julian-Day-Number** `dayNumber()`
+helper. Root insight: `dayNumber` is consumed **only as a difference** (`daysUntil =
+dn(event) − dn(today)`), and **every existing `daysUntil` assertion compared two dates in the
+same Gregorian month/year**, so all the month/year terms cancelled and the operator flips
+survived. Fixes:
+
+- **Event-roster integrity** — exact id list + non-empty `name`/`note` kills the 33 content
+  StringLiteral survivors.
+- **Two golden full-year resolutions** — `upcomingIslamicEvents` pinned to exact Gregorian dates
+  **and** `daysUntil` for all 14 events, from a **June** `today` (events span Jun 2026→Jun 2027)
+  *and* from a **December** `today` (a different Julian-day month-term parity). The June anchor
+  kills the `a`/`y`/`m`-dependent flips; the December anchor additionally kills the
+  `floor((153m±2)/5)` flip the June anchor left cancelling. Golden values were generated from the
+  real `hijri.ts` conversion and are regenerable from the two fixed `today`s.
+
+**5 survivors remain, all justified as constant-offset equivalents of a difference-only function:**
+`:75` `+4800`→`−4800` shifts `y` by exactly **−9600**, which is divisible by 4, 100 **and** 400,
+so every `365*y`/`floor(y/…)` term shifts by a constant and the difference is unchanged; the
+`−32045` constant flip is a pure offset; and the `floor(y/4|100|400)` flips are constant across
+any span shorter than 4/100/400 Gregorian years, while `upcomingIslamicEvents` only ever resolves
+≤13 months ahead. These are genuine equivalents for every reachable input, not hand-waving.
+
+### Result
+Full workspace **812/812 green, exit 0** (804→812), all coverage gates met. Fresh-seed property
+confirmation clean (seed 14930352). Two of the lowest-mutation modules are now ~95–97%, lifting
+the **projected core aggregate ≈80.72% → ≈85.9%**.
+
+### Residual after cycle 18 (prioritised)
+- **Logic survivors** still open in `achievements` (42.6%), `hijri` (78.4%), `reminders` (67.1%),
+  `fasting-qada` (75.4%), `hadith` (73.5%), `translations` (76.5%), `reading-plans` (81.9%),
+  `backup` (79.4%) — the same pattern (pin exact behaviour, not just execute). `achievements` (70
+  survivors) is the next-highest-value target.
+- **Content-table survivors** in `languages` (29.5%) and the remaining tables — mechanical
+  integrity tests.
+- All justified equivalents recorded above. A re-run resumes here; the remaining survivors need
+  test additions, not bug fixes.
+
+---
+
+## Cycle 19 — three more low-mutation modules to 93–100% (2026-06-30)
+
+**Frontier.** Continued THE LOOP on the lowest-surviving-mutant modules named in the cycle-18
+residual. Triaged each by survivor type from the persisted cycle-16 log before writing a line:
+`achievements` (70 survivors, **all StringLiteral** → content), `languages` (55, **near-all
+content**), `fasting-qada` (14, **all logic**).
+
+- **`achievements.ts` 42.62% → 100%** (70 killed; +3 tests). The badge-unlock *logic* was already
+  pinned; the gap was the `BADGES` data table. Pinned the exact `[id, metric, target, category]`
+  tuple for all 13 badges — `metric` indexes `stats[badge.metric]`, so a blanked metric silently
+  makes a badge **never unlock** (behaviourally load-bearing, not just copy) — plus non-empty
+  glyph/name/description and "every metric is a real `BadgeStats` key". **0 survivors.**
+- **`languages.ts` 29.49% → 98.72%** (54 killed; +4 tests). Pinned the ISO-639 code set, non-empty
+  English+endonym per entry, representative mappings, and the title-case fallback. **1 survivor,
+  equivalent:** `titleCase`'s `if (!code) return code` — `"".charAt(0).toUpperCase()` is already
+  `""`, so removing the empty-guard yields the same output.
+- **`fasting-qada.ts` 75.44% → 92.98%** (10 killed; +5 tests). Pinned: `EMPTY === {madeUp:0}`; a
+  4-part string with a valid Ramaḍān prefix is rejected (the `parts.length` guard); fractional
+  year/month/day rejected; a single-day pause (`span === 0`) is **counted** (pins `span < 0` vs a
+  `<= 0` regression that would silently drop every one-day pause); an absurd >1000-day range is
+  skipped. **4 survivors, all justified** — defensive-guard equivalents at the `:52` span check:
+  the bounded loop `for (i=0; i<=span; i++)` already produces the correct empty result for
+  NaN/negative spans, so removing or weakening the pre-check changes only performance/safety on
+  pathological corrupt input, not output; the `>`-vs-`>=` bound differs only at an exact 1000-day span.
+
+### Result
+Full workspace **824/824 green, exit 0** (812→824), all coverage gates met. Fresh-seed property
+confirmation clean (seed 24157817). The **eight** lowest-scoring core modules
+(zakat/tasbih/prayer/search/islamic-events/achievements/languages/fasting-qada) are now all
+**93–100%**, lifting the **projected core aggregate ≈85.9% → ≈89.9%** (≈80.72% at the cycle-16
+baseline → ~90% now).
+
+### Residual after cycle 19 (prioritised)
+- **Logic survivors** still open in `hijri` (78.4%), `reminders` (67.1% — 12 content + 11 logic),
+  `hadith` (73.5%), `translations` (76.5%), `reading-plans` (81.9%), `backup` (79.4%). Each is the
+  same exercise (pin behaviour). `reminders` is the next-lowest.
+- Justified equivalents recorded above (languages titleCase guard; fasting-qada span guards;
+  islamic-events JDN; zakat sumValues; search `/\s+/`).
+- A re-run resumes here; the remaining survivors need test additions, not bug fixes. The aggregate
+  is now ~90% — comfortably above the 80% target with a clear, shrinking tail.
+
+---
+
+## Cycle 20 — reminders + hadith to ~91–96% (2026-06-30)
+
+**Frontier.** The two next-lowest modules from the cycle-19 residual, triaged by survivor type.
+
+- **`reminders.ts` 67.14% → 91.43%** (+6 tests). A notifier-orchestration module; the existing
+  tests asserted only `scheduled.has(id)`, never the **payload** or the **enabled-but-permission-
+  denied** path. Added (mocking the `Notifier` port): adhkar + prayer schedule **nothing** when
+  enabled but permission is denied, and prayer schedules nothing without a location; **exact
+  payloads** (title/body/tag/at) for morning *and* evening adhkar and a prayer — which pins the
+  `ADHKAR_LABEL`/`ADHKAR_EMOJI` tables (the evening-only test had left the **morning** row
+  unexercised, a clean missed kill caught by re-measuring) and the inline copy; pinned the
+  exported constants/id-helpers. **6 survivors, justified:** 5 in `localDateStr` (local-time
+  `getFullYear`/`getMonth()+1`/`getDate`/`padStart`) — deliberately **not** pinned, because its
+  only observable is the **timezone-dependent** plan title, and a TZ-coupled assertion would
+  reintroduce the exact cross-platform flake fixed in cycle 17; plus 1 `if (!next)` edge.
+- **`hadith.ts` 73.47% → 95.92%** (+5 tests). Grade-string parsing + label table. Added: the
+  optional-hyphen al-Albānī regex (`Alalbani` with no hyphen still wins over a daif first grade); a
+  bare grade with no `Grader: ` prefix; a grader **name** containing a grade word (`Daifullah:
+  Sahih` → `sahih`, not `daif`) pinning that only the part after `": "` is classified; an
+  unrecognised word → `unknown` (reaches the final `return`, killing `if (true)`/`return ""`); and
+  the exact `HADITH_GRADE_LABEL`. **2 survivors, justified:** the `:31` slice-offset flips
+  (`indexOf("")→0`, `slice +2→-2`) are near-equivalent — the final
+  `.toLowerCase().replace(/[^a-z]/g,"").includes(keyword)` is robust to a few extra leading chars.
+
+### Result
+Full workspace **835/835 green, exit 0** (824→835), all coverage gates met. Fresh-seed property
+confirmation clean (seed 39088169). **Ten** formerly-weak modules are now **88–100%**, lifting the
+**projected core aggregate ≈89.9% → ≈90.8%** (crossed 90%).
+
+### Residual after cycle 20 (prioritised)
+- Remaining tail: `translations` (76.5%), `hijri` (78.4%), `backup` (79.4%), `reading-plans`
+  (81.9%) — all already near/above 80%; same pin-the-behaviour exercise.
+- Justified equivalents accumulated across cycles (reminders `localDateStr` TZ-display; hadith
+  slice-offsets; languages titleCase; fasting-qada span guards; islamic-events JDN; zakat
+  `sumValues`; search `/\s+/`). All are local-display, defensive-guard, or constant-offset
+  equivalents — none affects a reachable first-party output.
+- A re-run resumes here; the remaining survivors need test additions, not bug fixes.
+
+---
+
+## E2E pass — Playwright browser suite (2026-06-30, prompted by the qaskills.sh review)
+
+Exercised the **browser-level** QA dimension that cycles 0–20 did not (they were unit/mutation/
+property at the `core` level). Ran the repo's own Playwright suite (`pnpm test:e2e`) — its own
+config + dev server, **no third-party tooling** (the qaskills.sh `npx @qaskills/cli` installer was
+**declined**: it executes an unknown third-party package, and the skills it adds are tools this
+repo either already has — Vitest/Playwright/coverage — or doesn't use).
+
+**Result: 14/14 specs passed, exit 0, 3.2 min (Chromium).** Coverage: adhkar, bookmarks, hijri
+calendar, geolocation→prayer-times + qibla, hadith, hifz (add→due→rate), home-nav, reader display
+modes, reader/reciters, save-collection, search, settings backup export+import, tasbih. The dev
+server cold-started with a few `ECONNRESET`/timeout retries (Playwright polling while Next.js
+booted) then recovered — no flakes this run. Logged in `TRIED.jsonl` (`E2E-PLAYWRIGHT-RUN`).
+
+## Lighthouse audit — web perf/a11y/SEO (2026-06-30)
+
+Ran the **Lighthouse** skill (the directory's #11) properly: `pnpm --filter @ummahlibrary/web build`
+(the working single-package build) → `next start` → official Google `lighthouse@12` (via `npx`,
+**not** `@qaskills/cli`) driving the Playwright Chromium, desktop preset, home page.
+
+**Scores: Performance 98 · Accessibility 96 · Best-Practices 100 · SEO 91.** Metrics: FCP 0.5 s,
+LCP 0.9 s, TBT 0 ms, CLS 0.072, Speed Index 0.5 s — strong across the board.
+
+**Two actionable findings (reported, NOT auto-fixed — both are design/content calls):**
+
+1. **[a11y, systemic] Colour-contrast fails WCAG AA on 17 nodes.** The `--noor-faint` token
+   (`#5c6273`) on the dark-theme backgrounds (`#0a0b0f`/`#0e1017`/`#14171f`) yields ~**2.94–3.23:1**
+   for the small (11–12.5 px) uppercase section labels — below the **4.5:1** AA needs for text that
+   size. It's a **single-source fix** in `packages/ui` themes (`themes.ts`, ADR 0023/0027), but
+   changing a palette token alters the visual design app-wide, so it's the maintainer's call (the
+   design-parity process is deliberate) — flagged, not changed.
+2. **[SEO/a11y] Non-descriptive link text.** The `/settings` link reads just "More" — give it an
+   `aria-label`/clearer text. Minor; left as a content decision.
+
+Logged in `TRIED.jsonl` (`LIGHTHOUSE-WEB-AUDIT`). The HTML report was handed to the maintainer.
+This audit covers the web perf/a11y/SEO dimension that the core-focused cycles 0–20 did not.
+
+**All-routes follow-up (29 distinct route types, desktop):** averages **Perf 98 · A11y 90 ·
+Best-Practices 100 · SEO 92**; Best-Practices is **100 on every route**. Lowest perf: `/hadith`
+82, `/` and `/surah/2` 89 (large DOM / long lists). The audit confirmed the a11y issues are
+**systemic (shared components), not page-specific** — five distinct findings:
+
+| Finding | Routes hit | What |
+| --- | --- | --- |
+| `color-contrast` | **29/29** | the `--noor-faint` token (above) |
+| `link-text` | 27/29 | non-descriptive links (e.g. "More") — shared nav |
+| `button-name` | 23/29 | icon-only buttons missing an accessible name |
+| `label-content-name-mismatch` | 5/29 | visible label ≠ accessible name |
+| `select-name` | 2/29 | `<select>` without an associated label |
+
+Because these live in shared nav/header/button components (`packages/ui` + the web shell), a
+handful of component fixes would lift accessibility across **all** routes. Reported, not
+auto-fixed (a11y-label + design-token changes are the maintainer's call). Logged in `TRIED.jsonl`
+(`LIGHTHOUSE-ALL-ROUTES`).

@@ -13,7 +13,12 @@
     "tests_added_cycle4": 5,
     "tests_failed": 0,
     "threshold_failures": 0,
-    "loop": { "lint": "pass", "typecheck": "pass", "test": "pass", "build": "pass" }
+    "loop": { "lint": "pass", "typecheck": "pass", "test": "pass", "build": "pass" },
+    "cycle16": {
+      "core_only": { "command": "pnpm --filter @ummahlibrary/core test", "tests": 396, "baseline": 388, "added": 8, "failed": 0, "typecheck": "pass" },
+      "full_workspace_cycle16": { "command": "pnpm test:coverage", "test_files": 130, "tests_passed": 802, "tests_failed": 2, "note": "cycle 16 left 2 failing packages/ui theme-css.test.ts drift tests. My cycle-16 diagnosis (prettier trailing-whitespace) was WRONG — cycle 17 found the real cause: CRLF line endings (see full_workspace_cycle17)." },
+      "full_workspace_cycle17": { "command": "pnpm test:coverage", "test_files": 130, "tests_passed": 804, "tests_failed": 0, "exit": 0, "note": "ALL GREEN after the cycle-17 CRLF fix. The 2 cycle-16 failures were a cross-platform DETERMINISM flake, not a content bug: core.autocrlf=true + no .gitattributes => the LF-committed noor-themes.css/noor-tokens.css were checked out CRLF on Windows; the generator emits LF; byte-exact toBe() failed. Green in CI (Linux/LF), red on Windows. Fixed at root cause with a repo `.gitattributes` (`* text=auto eol=lf` + binary markers) — NOT by weakening the drift test or hand-editing the generated CSS. git status stays clean (only .gitattributes added; the other 670 CRLF working files normalise against the LF index)." }
+    }
   },
   "coverage": {
     "packages/core/src": { "statements": 99.63, "branches": 96.47, "functions": 100, "lines": 99.63, "gate": { "statements": 95, "branches": 88, "functions": 95, "lines": 95 }, "status": "ABOVE_GATE", "branches_baseline": 96.25 },
@@ -22,14 +27,48 @@
     "apps/web/src/lib": { "statements": 80.09, "branches": 82, "functions": 96.71, "lines": 80.09, "gate": { "statements": 55, "branches": 73, "functions": 95, "lines": 55 }, "status": "ABOVE_GATE", "cycle2": "79.78/80.98", "note": "cycle 3 hardened store read() boundaries (bookmarks/hifz/plan/settings/sync-meta)" }
   },
   "mutation": {
-    "tool": "@stryker-mutator/core@9.6.1 + vitest-runner (installed, scoped to packages/core)",
+    "tool": "@stryker-mutator/core@9.6.1 + @stryker-mutator/vitest-runner@9.6.1",
     "config": "packages/core/stryker.config.json (+ vitest.stryker.config.ts); run via `pnpm --filter @ummahlibrary/core mutation`",
-    "ci_gate": "none yet (thresholds.break=null) — config-only by request; measure the score, then ratchet a break threshold",
-    "method": "adversarial manual mutation analysis + property-based pinning (this run); Stryker available to measure",
-    "score": null,
-    "smoke_test": "verified on src/qibla.ts (16 tests, most mutants killed, ~12s) — toolchain works",
-    "survivors_killed_this_run": ["hlcCompare total-order (property)", "mergeEntries tie/convergence (property)", "encodeHlc/parseHlc round-trip (property)", "zakat >= niṣāb boundary", "reading-plans estimateMinutes formula", "qibla bearing range (property)"],
-    "status": "Config-only setup landed. Run a full pass to get the baseline, then add thresholds.break to gate."
+    "ci_gate": "none yet (thresholds.break=null). Recommendation below: ratchet break to 80 now (the measured aggregate), with a roadmap to 85+ as content tables get integrity tests.",
+    "method": "MEASURED with Stryker (cycle 16) — replaces the prior 'manual analysis + property pinning' estimate.",
+    "measured_baseline": {
+      "cycle": 16,
+      "date": "2026-06-30",
+      "command": "pnpm --filter @ummahlibrary/core mutation (full run, 29 files, 24m29s)",
+      "score_total": 80.72,
+      "score_covered": 81.47,
+      "killed": 2696, "timeout": 12, "survived": 616, "no_coverage": 31, "errors": 0,
+      "diagnosis": "Line/branch coverage ~99% but mutation 80.72% => the suite EXECUTES the code more than it ASSERTS behaviour. This is the prompt's 'mutation score was inflated by hand-waving' branch: the prior manual analysis was right about LOGIC but never measured the content tables.",
+      "survivor_breakdown": {
+        "content_data": { "count": 390, "pct": 63, "types": "StringLiteral 324 + ObjectLiteral 64 + ArrayDeclaration 2", "meaning": "unpinned data tables — labels/hints/dhikr text/method+madhab+HLR metadata/event+language names. Low severity (a dropped/blanked entry ships silently); killable with one structural-integrity test per table." },
+        "logic": { "count": 226, "pct": 37, "types": "ConditionalExpression 95 + EqualityOperator 47 + ArithmeticOperator 33 + LogicalOperator 20 + MethodExpression 11 + Regex 10 + ArrowFunction 6 + Block 2 + Update 1 + Unary 1", "meaning": "the real test-strength gaps; some equivalent, most genuinely unpinned behaviour." }
+      }
+    },
+    "per_module_score_total": {
+      "hifz.ts": 100, "duas.ts": 98.18, "quran-structure.ts": 97.18, "sync-engine.ts": 94.44, "qada.ts": 94.12, "reading-goals.ts": 93.88, "peek.ts": 93.33, "sync.ts": 91.67, "haid.ts": 90, "qibla.ts": 89.66, "prayer-tracker.ts": 88.64, "audio.ts": 85.11, "adhkar.ts": 83.61, "collections.ts": 83.64, "plugins.ts": 82.29, "reading-plans.ts": 81.93, "backup.ts": 79.41, "hijri.ts": 78.44, "translations.ts": 76.47, "fasting-qada.ts": 75.44, "hadith.ts": "73.47→95.92 (c20)", "reminders.ts": "67.14→91.43 (c20)", "islamic-events.ts": "57.41→95.37 (c18)", "search.ts": "54.79→97.26 (c18)", "prayer.ts": "52.29→100 (c16)", "zakat.ts": "51.67→98.33 (c16)", "achievements.ts": "42.62→100 (c19)", "fasting-qada.ts": "75.44→92.98 (c19)", "tasbih.ts": "30.3→100 (c16)", "languages.ts": "29.49→98.72 (c19)" },
+    "hardened_cycle16": {
+      "zakat.ts": { "before": 51.67, "after": 98.33, "remeasured": true, "killed_added": 28, "remaining_survivor": "1 — :75 `v>0`->`v>=0` in sumValues, EQUIVALENT (adding 0 is a no-op), justified", "real_logic_pinned": ["negative liability clamps to 0 (never inflates net wealth)", "NaN liability treated as 0", "zero niṣāb-basis price => meetsNisab false (missing market data must not charge zakat on everything)"] },
+      "tasbih.ts": { "before": 30.3, "after": 100, "remeasured": true, "note": "all survivors were the DHIKR_PHRASES/TASBIH_TARGETS content table; logic already pinned" },
+      "prayer.ts": { "before": 52.29, "after": 100, "remeasured": true, "note": "all survivors were content tables (CALCULATION_METHODS/MADHABS/PRAYER_LABELS); ids are adapter-load-bearing. Logic already pinned." }
+    },
+    "hardened_cycle18": {
+      "search.ts": { "before": 54.79, "after": 97.26, "remeasured": true, "killed_added": 31, "remaining_survivors": 2, "real_logic_pinned": ["per-rule Arabic normalization (tatweel removed, ى→ي, ة→ه)", "word-boundary bonus vs mid-word substring (exact scores 2 vs 1)", "contiguous whole-phrase bonus + multi-token guard (6 vs 4; single token = 2 not 3)", "searchText score-desc ordering + limit", "searchVerses sura/aya/source tie-break golden ordering"], "justified_survivors": [":51 /\\s+/->/\\s/ EQUIVALENT (filter(Boolean) collapses empties)", ":101 escapeRegExp replacement '' — special-char-token boundary edge behind the indexOf gate, low value"] },
+      "islamic-events.ts": { "before": 57.41, "after": 95.37, "remeasured": true, "killed_added": 41, "remaining_survivors": 5, "real_logic_pinned": ["event-roster integrity (exact ids + non-empty name/note)", "two golden full-year resolutions (June + December anchors) pinning exact Gregorian dates + daysUntil across month/year boundaries — kills the dayNumber JDN arithmetic that previously cancelled because every old assertion compared two same-month dates"], "justified_survivors": "5 constant-offset equivalents in the difference-only dayNumber(): :75 +4800->-4800 shifts y by EXACTLY -9600 (÷4,100,400 → all floor terms shift by a constant → cancels); the -32045 constant; floor(y/4|100|400) flips (constant across any <4/100/400-yr span; upcomingIslamicEvents resolves ≤13 months ahead)" }
+    },
+    "hardened_cycle19": {
+      "achievements.ts": { "before": 42.62, "after": 100, "remeasured": true, "killed_added": 70, "remaining_survivors": 0, "note": "all survivors were BADGES table StringLiterals; logic already pinned. Pinned exact [id,metric,target,category] tuples (metric indexes stats[badge.metric] — load-bearing) + non-empty glyph/name/description + every metric a real BadgeStats key." },
+      "languages.ts": { "before": 29.49, "after": 98.72, "remeasured": true, "killed_added": 54, "remaining_survivors": 1, "note": "near-pure LANGUAGE_NAMES content table; pinned code set + non-empty english/native per entry + representative mappings + title-case fallback. 1 EQUIVALENT survivor: titleCase `if(!code) return code` — \"\".charAt(0).toUpperCase() is already \"\"." },
+      "fasting-qada.ts": { "before": 75.44, "after": 92.98, "remeasured": true, "killed_added": 10, "remaining_survivors": 4, "real_logic_pinned": ["EMPTY === {madeUp:0}", "4-part date with valid Ramadan prefix rejected (parts.length guard)", "fractional year/month/day rejected (integer guards)", "single-day pause (span 0) counted (span<0 vs <=0)", "absurdly-long (>1000d) range skipped"], "justified_survivors": "4 at the :52 span guard — defensive-guard equivalents: the bounded loop for(i=0;i<=span;i++) already yields the correct empty result for NaN/negative spans, so removing/weakening the pre-check doesn't change OUTPUT (only perf/safety on pathological corrupt input); the >MAX vs >=MAX one needs an exact 1000-day span" }
+    },
+    "hardened_cycle20": {
+      "reminders.ts": { "before": 67.14, "after": 91.43, "remeasured": true, "killed_added": 17, "remaining_survivors": 6, "real_logic_pinned": ["adhkar+prayer no-schedule when enabled-but-permission-denied", "prayer no-schedule without a location", "exact morning+evening adhkar and prayer payloads (title/body/tag/at) — kills ADHKAR_LABEL/EMOJI incl. morning row + inline copy", "constants DEFAULT_PLAN_REMINDER_TIME/PLAN_REMINDER_ID/id-helpers"], "justified_survivors": "5 in localDateStr (local-time display) — deliberately NOT pinned because the only observable is the TZ-dependent plan title; a TZ-coupled assertion would reintroduce the cross-platform flake fixed in cycle 17. 1 if(!next) edge (low value)." },
+      "hadith.ts": { "before": 73.47, "after": 95.92, "remeasured": true, "killed_added": 11, "remaining_survivors": 2, "real_logic_pinned": ["no-hyphen al-Albani regex", "bare grade with no Grader: prefix", "grade word in the grader name not misclassified (Daifullah: Sahih -> sahih)", "unrecognised word -> unknown (final return; kills if(true)/return\"\")", "exact HADITH_GRADE_LABEL"], "justified_survivors": "2 :31 slice-offset flips (indexOf(\"\")->0, slice +2->-2) — near-equivalent: the final toLowerCase().replace(/[^a-z]/g,\"\").includes(keyword) is robust to a few extra leading chars" }
+    },
+    "projected_aggregate_after_cycle16": "≈83.8% (2811/3355 — moved 103 survivors to killed across zakat/tasbih/prayer).",
+    "projected_aggregate_after_cycle18": "≈85.9% (2883/3355 — cycle 18 moved a further ~72 survivors to killed: search +31, islamic-events +41). Crosses the 85% mark.",
+    "projected_aggregate_after_cycle19": "≈89.9% (3017/3355 — cycle 19 moved a further ~134 detected: achievements +70, languages +54, fasting-qada +10). Approaching 90%. The eight lowest-scoring modules (zakat/tasbih/prayer/search/islamic-events/achievements/languages/fasting-qada) are now all 93–100%.",
+    "projected_aggregate_after_cycle20": "≈90.8% (3045/3355 — cycle 20 moved a further ~28 detected: reminders +17, hadith +11). Crosses 90%. Ten of the formerly-weak modules are now 88–100%. Remaining tail: translations 76.5, hijri 78.4, backup 79.4, reading-plans 81.9. Exact figure needs a full re-run; per-module re-measures ARE exact.",
+    "status": "MEASURED. The one previously-unmet convergence criterion is now closed with a real number (80.72% baseline). Three weakest high-value modules hardened to 98–100%. Long tail is 63% content-table pins + 37% logic survivors — see QA_LOG cycle 16 for the prioritized roadmap + CI gate recommendation."
   },
   "fuzz": {
     "native_fuzzers": "N/A — pure TS domain, no parser binaries",
@@ -48,11 +87,16 @@
   "convergence": {
     "inventory_complete": true,
     "coverage_met": true,
-    "mutation_met": "partial — manual + property pinning; Stryker measurement deferred to CI",
+    "mutation_met": "MEASURED (cycle 16): 80.72% aggregate ≥ 80% target. Closes the sole previously-unmet criterion. Caveat — the aggregate masks a long tail of decorative modules (29–57%); three of the weakest high-value ones (zakat/tasbih/prayer) hardened to 98–100% this cycle. The honest stance: aggregate meets threshold, but per-module work + a CI gate are recommended (see QA_LOG cycle 16) rather than declaring the suite uniformly strong.",
     "fuzz_budget_met": true,
     "non_functional_met": "N/A (justified)",
-    "suite_green": true,
-    "confirmation_pass_clean": true,
+    "suite_green": "yes (cycle 20) — full workspace 835/835 green, exit 0, all coverage gates met (824→835; +11 reminders/hadith tests).",
+    "confirmation_pass_clean": "yes — cycle 20 fresh seed 39088169 (6 properties ~12k cases, 0 failures) + full workspace 835/835 green. (Prior clean seeds: 24157817 c19, 14930352 c18, 9227465 c17, 5702887 c16.)",
+    "cycle20_note": "Resumed again. Continued THE LOOP on the next-lowest modules. reminders 67.1→91.4 (notifier-orchestration gates + exact payloads incl. the morning adhkar row; localDateStr left unpinned to avoid a TZ flake — see cycle 17), hadith 73.5→95.9 (grade-parsing logic + label table). +11 core tests (824→835). Projected aggregate ~89.9→~90.8%. Ten formerly-weak modules now 88–100%. No production bug — decorative-test gaps + justified equivalents.",
+    "cycle19_note": "Resumed again. Continued THE LOOP on the lowest-mutation modules. achievements 42.6→100 (badge table integrity, behaviourally-load-bearing metric/target pinned), languages 29.5→98.7 (LANGUAGE_NAMES table), fasting-qada 75.4→93.0 (date/span guards; 4 defensive-guard equivalents justified). +12 core tests (812→824). Projected aggregate ~80.72→~89.9%. The 8 lowest-scoring modules are now all 93–100%. No production bug — decorative-test gaps + justified equivalents.",
+    "cycle18_note": "Resumed again. With criteria 1–2,4–6 met and #3 at 80.72% aggregate, the legitimate frontier per THE LOOP was the lowest-mutation modules with REAL logic survivors. Hardened search.ts (54.8→97.3 — Arabic normalization, boundary/phrase scoring, tie-break comparator) and islamic-events.ts (57.4→95.4 — the difference-only JDN date arithmetic, killed via two golden full-year resolutions from different month anchors). +8 core tests (804→812). Projected aggregate ~85.9%. No production bug — decorative-test gaps. Residual survivors are individually justified (search /\\s+/ + escapeRegExp edge; islamic-events JDN constant-offset equivalents).",
+    "cycle17_note": "Resumed again. The prompt's criterion #6 (full suite green, deterministic) was unmet: cycle 16 left 2 red packages/ui drift tests, flagged-but-unfixed. Diagnosed the TRUE root cause (CRLF, not the prettier-trailing-space I guessed in cycle 16 — that earlier guess was wrong) and fixed it at the repo level with .gitattributes (`* text=auto eol=lf`). This is the prompt's 'a new code change introduced it since last run' branch — the IndoPak/translation commits added the drift tests, and the missing .gitattributes made them platform-flaky. Real fix, no test weakened; full suite now 804/804. The mutation residual (logic survivors + content-table pins) is unchanged from cycle 16 and remains the documented low-severity roadmap.",
+    "cycle16_note": "Resumed a converged run. Materialized Stryker (pnpm install — it was lockfile-only) and ran the full mutation pass that cycles 1–15 deferred. Measured 80.72%; the measurement itself is the finding (high coverage, weaker mutation). Hardened the 3 weakest high-value modules (real logic gaps in zakat: negative/NaN liabilities + zero-price niṣāb; content tables in tasbih/prayer). +8 core tests (388→396). No production-code bug — these were decorative-test gaps, exactly what mutation testing exists to surface.",
     "converged": "Re-ran to 3 consecutive dry cycles (13, 14, 15) on fresh frontiers (v1 routes, polar-timing, component logic, audio/notifier, shell/hooks). Cycle 12 found a polar-timing display class incl. 2 web render crashes (toISOString on an Invalid-Date fajr fallback) — fixed. 42 reachable defects fixed across 9 productive cycles; 739 tests; loop green; property confirmation across 14 seeds. Stopped per the 3-dry rule.",
     "cycle2_note": "Cycle 2 swept the L5 web-lib / L6 REST-route frontier cycle 1 skipped and found 13 real issues (2 high). Diagnosis per prompt: cycle-1 convergence was PARTIAL (that frontier was unexercised), not a persistence failure. Fixed the 2 high + 6 medium/low; documented the rest. A few web-store findings could not be verified (subagent session limit) — treated conservatively and listed as residual, NOT claimed clean.",
     "cycle3_note": "Cycle 3 closed the systemic store-read()/sync-apply() corrupt-value class (the #1 cycle-2 residual). Reproduced + fixed the render-path crashes inline (no subagents, avoiding the cycle-2 session limit): bookmarks/library, hifz, plan-store all crashed on a valid-JSON-wrong-shape (peer-synced) value; plus settings scale NaN and the sync-meta structural-hlc gap. Each guarded at read() to fall back gracefully, fail-first verified. Remaining: prayer-settings enums (low, server re-validates today), prayer-timings cache key (medium), prayer-times date echo (low), Stryker score."
