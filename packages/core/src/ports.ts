@@ -435,6 +435,8 @@ export interface ReminderPrefs {
   prayers: Partial<Record<PrayerName, boolean>>;
   /** Morning/evening adhkar reminder on/off. */
   adhkarOn: boolean;
+  /** Sunnah-fasting (Mon/Thu + Ayyām al-Bīḍ) reminder on/off. */
+  sunnahFastOn: boolean;
 }
 
 /**
@@ -449,6 +451,7 @@ export interface ReminderStore {
   writePlan(pref: PlanReminderPref): Promise<void>;
   writePrayers(prefs: Partial<Record<PrayerName, boolean>>): Promise<void>;
   writeAdhkarOn(on: boolean): Promise<void>;
+  writeSunnahFastOn(on: boolean): Promise<void>;
 }
 
 /**

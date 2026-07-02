@@ -25,6 +25,7 @@ export * from "./achievements";
 export * from "./qibla";
 export * from "./hijri";
 export * from "./islamic-events";
+export * from "./sunnah-fasting";
 export * from "./zakat";
 export * from "./adhkar";
 export * from "./duas";

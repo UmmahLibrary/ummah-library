@@ -117,6 +117,21 @@ export function hijriToGregorian(date: HijriDate, adjustmentDays = 0): Gregorian
   return jdnToGregorian(hijriToJdn(date) - adjustmentDays);
 }
 
+/**
+ * Weekday of a Gregorian civil date, `0`–`6` with `0 = Sunday` (JS `getDay`
+ * convention). Pure integer arithmetic off the Julian Day Number — no `Date`,
+ * no timezone — so `Monday`/`Thursday` tests are exact everywhere.
+ */
+export function gregorianWeekday(date: GregorianDate): number {
+  // JDN 0 is a Monday, so `(jdn + 1) mod 7` puts Sunday at 0.
+  return ((gregorianToJdn(date) + 1) % 7 + 7) % 7;
+}
+
+/** A Gregorian civil date shifted by `days` (may be negative), via the JDN round-trip. */
+export function addGregorianDays(date: GregorianDate, days: number): GregorianDate {
+  return jdnToGregorian(gregorianToJdn(date) + days);
+}
+
 /** The month's metadata (1–12). */
 export function hijriMonth(month: number): HijriMonth {
   return HIJRI_MONTHS[month - 1]!;
