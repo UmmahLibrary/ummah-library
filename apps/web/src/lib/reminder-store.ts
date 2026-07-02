@@ -16,6 +16,7 @@ const PLAN_KEY = "ul.planReminder";
 const PRAYERS_KEY = "ul.prayerReminders";
 const ADHKAR_KEY = "ul.adhkarReminders";
 const SUNNAH_FAST_KEY = "ul.sunnahFastReminders";
+const ISLAMIC_EVENTS_KEY = "ul.islamicEventReminders";
 const SEEN_KEY = "ul.adhkarReminderSeen";
 
 export const webReminderStore: ReminderStore = {
@@ -56,7 +57,16 @@ export const webReminderStore: ReminderStore = {
       /* keep default */
     }
 
-    return { plan, prayers, adhkarOn, sunnahFastOn };
+    let islamicEvents: Record<string, boolean> = {};
+    try {
+      const raw = localStorage.getItem(ISLAMIC_EVENTS_KEY);
+      const v = raw ? (JSON.parse(raw) as unknown) : null;
+      islamicEvents = v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, boolean>) : {};
+    } catch {
+      /* keep default */
+    }
+
+    return { plan, prayers, adhkarOn, sunnahFastOn, islamicEvents };
   },
   writePlan: async (pref) => {
     try {
@@ -82,6 +92,13 @@ export const webReminderStore: ReminderStore = {
   writeSunnahFastOn: async (on) => {
     try {
       localStorage.setItem(SUNNAH_FAST_KEY, on ? "on" : "off");
+    } catch {
+      /* storage unavailable */
+    }
+  },
+  writeIslamicEvents: async (prefs) => {
+    try {
+      localStorage.setItem(ISLAMIC_EVENTS_KEY, JSON.stringify(prefs));
     } catch {
       /* storage unavailable */
     }

@@ -11,7 +11,11 @@ import {
   islamicEventsForMonth,
 } from "@ummahlibrary/core";
 import { readHijriAdjust, writeHijriAdjust } from "../lib/hijri";
-import { N } from "@ummahlibrary/ui";
+import { N, Icon } from "@ummahlibrary/ui";
+import { WebNotifier } from "../lib/web-notifier";
+import { readEventReminders, setEventReminder, syncIslamicEventReminders } from "../lib/islamic-event-reminders";
+
+const notifier = new WebNotifier();
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const lcard = { background: N.card, border: `1px solid ${N.border}`, borderRadius: 16 } as const;
@@ -64,6 +68,7 @@ export function HijriCalendar() {
   const [adjust, setAdjust] = useState(0);
   const [todayHijri, setTodayHijri] = useState<HijriDate | null>(null);
   const [view, setView] = useState<{ year: number; month: number } | null>(null);
+  const [reminders, setReminders] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const a = readHijriAdjust();
@@ -71,7 +76,15 @@ export function HijriCalendar() {
     const t = gregorianToHijri(localToday(), a);
     setTodayHijri(t);
     setView({ year: t.year, month: t.month });
+    void readEventReminders().then(setReminders);
   }, []);
+
+  async function toggleReminder(eventId: string) {
+    const turningOn = !reminders[eventId];
+    if (turningOn && notifier.permission() === "default") await notifier.requestPermission();
+    setReminders(await setEventReminder(eventId, turningOn));
+    await syncIslamicEventReminders(notifier);
+  }
 
   function changeAdjust(next: number) {
     setAdjust(next);
@@ -336,6 +349,26 @@ export function HijriCalendar() {
                         {countdownLabel(m.daysUntil)}
                       </div>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => void toggleReminder(m.event.id)}
+                      aria-pressed={!!reminders[m.event.id]}
+                      aria-label={`${reminders[m.event.id] ? "Turn off" : "Turn on"} reminder for ${m.event.name}`}
+                      title="Remind me the evening before"
+                      style={{
+                        flexShrink: 0,
+                        width: 34,
+                        height: 34,
+                        borderRadius: 9,
+                        display: "grid",
+                        placeItems: "center",
+                        cursor: "pointer",
+                        border: `1px solid ${reminders[m.event.id] ? N.gold : N.border}`,
+                        background: reminders[m.event.id] ? N.goldSoft : "transparent",
+                      }}
+                    >
+                      <Icon name="bell" size={16} color={reminders[m.event.id] ? N.gold : N.faint} />
+                    </button>
                   </div>
                 );
               })}

@@ -8,6 +8,7 @@ import type {
   ReminderPrefs,
   ReminderStore,
 } from "./ports";
+import { ISLAMIC_EVENTS } from "./islamic-events";
 import type { PrayerTimings } from "./prayer";
 import { type ActivePlan, activatePlan, templateById } from "./reading-plans";
 import {
@@ -15,8 +16,10 @@ import {
   PLAN_REMINDER_ID,
   SUNNAH_FAST_REMINDER_ID,
   adhkarReminderId,
+  islamicEventReminderId,
   prayerReminderId,
   syncAdhkarReminder,
+  syncIslamicEventReminders,
   syncPlanReminder,
   syncPrayerReminders,
   syncSunnahFastReminder,
@@ -48,6 +51,7 @@ function fakeReminders(prefs: Partial<ReminderPrefs> = {}): ReminderStore {
     prayers: {},
     adhkarOn: false,
     sunnahFastOn: false,
+    islamicEvents: {},
     ...prefs,
   };
   return {
@@ -56,6 +60,7 @@ function fakeReminders(prefs: Partial<ReminderPrefs> = {}): ReminderStore {
     writePrayers: async (p) => void (state.prayers = p),
     writeAdhkarOn: async (o) => void (state.adhkarOn = o),
     writeSunnahFastOn: async (o) => void (state.sunnahFastOn = o),
+    writeIslamicEvents: async (p) => void (state.islamicEvents = p),
   };
 }
 
@@ -226,6 +231,36 @@ describe("syncSunnahFastReminder", () => {
   });
 });
 
+describe("syncIslamicEventReminders", () => {
+  it("schedules the evening-before reminder for each enabled event, ahead of now", async () => {
+    // Enable every event; those whose next occurrence is >1 day out schedule.
+    const all = Object.fromEntries(ISLAMIC_EVENTS.map((e) => [e.id, true]));
+    const { notifier, scheduled, cancelled } = fakeNotifier();
+    await syncIslamicEventReminders({ notifier, reminders: fakeReminders({ islamicEvents: all }), now });
+
+    // Clears every known event id first (idempotent), then schedules.
+    expect(cancelled).toContain(islamicEventReminderId("eid-al-fitr"));
+    expect(scheduled.size).toBeGreaterThan(0);
+    for (const [id, n] of scheduled) {
+      expect(id.startsWith("event:")).toBe(true);
+      expect(n.tag).toBe(id);
+      expect(n.title).toMatch(/^Tomorrow: /);
+      expect(new Date(n.at!).getTime()).toBeGreaterThan(NOW.getTime());
+    }
+  });
+
+  it("is a no-op when none are enabled, or enabled without permission", async () => {
+    const none = fakeNotifier();
+    await syncIslamicEventReminders({ notifier: none.notifier, reminders: fakeReminders({ islamicEvents: {} }), now });
+    expect(none.scheduled.size).toBe(0);
+
+    const denied = fakeNotifier("denied");
+    const all = Object.fromEntries(ISLAMIC_EVENTS.map((e) => [e.id, true]));
+    await syncIslamicEventReminders({ notifier: denied.notifier, reminders: fakeReminders({ islamicEvents: all }), now });
+    expect(denied.scheduled.size).toBe(0);
+  });
+});
+
 describe("reminder ids and constants", () => {
   it("pins the stable ids and the default plan time", () => {
     expect(DEFAULT_PLAN_REMINDER_TIME).toBe("20:00");
@@ -234,6 +269,7 @@ describe("reminder ids and constants", () => {
     expect(adhkarReminderId("evening")).toBe("adhkar:evening");
     expect(prayerReminderId("fajr")).toBe("prayer:fajr");
     expect(SUNNAH_FAST_REMINDER_ID).toBe("sunnah-fast:next");
+    expect(islamicEventReminderId("eid-al-adha")).toBe("event:eid-al-adha");
   });
 });
 

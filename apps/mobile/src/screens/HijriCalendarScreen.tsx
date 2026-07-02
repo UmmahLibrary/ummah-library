@@ -9,10 +9,13 @@ import {
   hijriToGregorian,
   islamicEventsForMonth,
 } from "@ummahlibrary/core";
+import { Icon } from "@ummahlibrary/ui";
 import { KEYS, getString, setString } from "../storage";
 import { useTheme, type Palette } from "../theme";
 import { weekdayOfGregorian } from "../utils";
 import { SunnahFastReminderToggle } from "../components/SunnahFastReminderToggle";
+import { expoNotifier } from "../notifier";
+import { readEventReminders, setEventReminder } from "../islamic-event-reminders";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 const ADJUST_OPTIONS = [-2, -1, 0, 1, 2] as const;
@@ -46,6 +49,7 @@ export function HijriCalendarScreen() {
   const [adjust, setAdjust] = useState(0);
   const [today, setToday] = useState<HijriDate | null>(null);
   const [view, setView] = useState<{ year: number; month: number } | null>(null);
+  const [reminders, setReminders] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     void getString(KEYS.hijriAdjust).then((raw) => {
@@ -56,7 +60,14 @@ export function HijriCalendarScreen() {
       setToday(t);
       setView({ year: t.year, month: t.month });
     });
+    void readEventReminders().then(setReminders);
   }, []);
+
+  async function toggleReminder(eventId: string) {
+    const on = !reminders[eventId];
+    if (on && expoNotifier.permission() !== "granted") await expoNotifier.requestPermission();
+    setReminders(await setEventReminder(eventId, on));
+  }
 
   function changeAdjust(next: number) {
     setAdjust(next);
@@ -174,6 +185,14 @@ export function HijriCalendarScreen() {
                   <Text style={styles.eventDate}>{gregorianFull(m.gregorian)} · {m.event.note}</Text>
                 </View>
                 {up && <Text style={styles.eventCountdown}>{countdownLabel(m.daysUntil)}</Text>}
+                <Pressable
+                  onPress={() => void toggleReminder(m.event.id)}
+                  hitSlop={8}
+                  accessibilityLabel={`${reminders[m.event.id] ? "Turn off" : "Turn on"} reminder for ${m.event.name}`}
+                  style={[styles.bellBtn, reminders[m.event.id] && styles.bellBtnOn]}
+                >
+                  <Icon name="bell" size={16} color={reminders[m.event.id] ? colors.accent : colors.faint} sw={1.8} />
+                </Pressable>
               </View>
             );
           })}
@@ -305,6 +324,16 @@ function makeStyles(c: Palette) {
     eventName: { color: c.fg, fontSize: 15, fontWeight: "700" },
     eventDate: { color: c.faint, fontSize: 12, marginTop: 1 },
     eventCountdown: { color: c.accent, fontSize: 13, fontWeight: "700" },
+    bellBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    bellBtnOn: { borderColor: c.accent, backgroundColor: c.accentSoft },
     sunnahSection: { marginTop: 28 },
     adjustSection: { gap: 10 },
     adjustLabel: { color: c.fg, fontSize: 13, fontWeight: "600" },
