@@ -457,6 +457,36 @@ export interface ReminderStore {
   writeIslamicEvents(prefs: Record<string, boolean>): Promise<void>;
 }
 
+/** A surah's downloaded audio for one reciter, for the downloads manager (#202). */
+export interface DownloadedSurah {
+  reciterId: string;
+  surah: number;
+  /** Ayahs saved so far (a completed download equals the surah's ayah count). */
+  ayahCount: number;
+  /** Total bytes on device for this surah's saved audio. */
+  bytes: number;
+}
+
+/**
+ * Persists reciter audio on-device for offline playback (#202, ADR 0037), keyed
+ * by reciter + ayah. The web adapter caches responses via the Cache API and hands
+ * back blob URLs; mobile stores files via `expo-file-system` and hands back
+ * `file://` URIs. `core` never touches either — the download *orchestration*
+ * (`downloadSurahAudio` in `audio.ts`) drives this port and stays pure.
+ */
+export interface AudioStore {
+  /** Whether this ayah's audio is already saved for the reciter. */
+  has(reciterId: string, ref: VerseKey): Promise<boolean>;
+  /** A locally-playable URL (`blob:`/`file:`) for the ayah, or `null` if not saved. */
+  localUrl(reciterId: string, ref: VerseKey): Promise<string | null>;
+  /** Download and persist one ayah's audio from its remote URL. Idempotent. */
+  save(reciterId: string, ref: VerseKey, remoteUrl: string): Promise<void>;
+  /** Remove every saved ayah of a surah for the reciter. */
+  removeSurah(reciterId: string, surah: number): Promise<void>;
+  /** Every saved surah across reciters, for the downloads manager. */
+  savedSurahs(): Promise<readonly DownloadedSurah[]>;
+}
+
 /**
  * Client-side cryptography for sync (ADR 0033), behind a port so `core` never
  * touches WebCrypto or native crypto. An instance is "unlocked" — the platform
