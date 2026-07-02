@@ -10,20 +10,24 @@ describe("webReminderStore", () => {
       plan: { on: false, time: "20:00" },
       prayers: {},
       adhkarOn: false,
+      sunnahFastOn: false,
     });
   });
 
-  it("round-trips plan, prayer, and adhkar preferences under the existing keys", async () => {
+  it("round-trips plan, prayer, adhkar, and sunnah-fast preferences under the existing keys", async () => {
     await store.writePlan({ on: true, time: "07:30" });
     await store.writePrayers({ fajr: true, isha: false });
     await store.writeAdhkarOn(true);
+    await store.writeSunnahFastOn(true);
 
     const r = await store.read();
     expect(r.plan).toEqual({ on: true, time: "07:30" });
     expect(r.prayers).toEqual({ fajr: true, isha: false });
     expect(r.adhkarOn).toBe(true);
-    // adhkar stays the historical "on"/"off" string
+    expect(r.sunnahFastOn).toBe(true);
+    // adhkar / sunnah-fast stay the historical "on"/"off" string
     expect(localStorage.getItem("ul.adhkarReminders")).toBe("on");
+    expect(localStorage.getItem("ul.sunnahFastReminders")).toBe("on");
   });
 
   it("falls back safely on malformed stored values", async () => {

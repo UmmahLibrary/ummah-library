@@ -15,6 +15,7 @@ import { DEFAULT_PLAN_REMINDER_TIME } from "@ummahlibrary/core";
 const PLAN_KEY = "ul.planReminder";
 const PRAYERS_KEY = "ul.prayerReminders";
 const ADHKAR_KEY = "ul.adhkarReminders";
+const SUNNAH_FAST_KEY = "ul.sunnahFastReminders";
 const SEEN_KEY = "ul.adhkarReminderSeen";
 
 export const webReminderStore: ReminderStore = {
@@ -48,7 +49,14 @@ export const webReminderStore: ReminderStore = {
       /* keep default */
     }
 
-    return { plan, prayers, adhkarOn };
+    let sunnahFastOn = false;
+    try {
+      sunnahFastOn = localStorage.getItem(SUNNAH_FAST_KEY) === "on";
+    } catch {
+      /* keep default */
+    }
+
+    return { plan, prayers, adhkarOn, sunnahFastOn };
   },
   writePlan: async (pref) => {
     try {
@@ -67,6 +75,13 @@ export const webReminderStore: ReminderStore = {
   writeAdhkarOn: async (on) => {
     try {
       localStorage.setItem(ADHKAR_KEY, on ? "on" : "off");
+    } catch {
+      /* storage unavailable */
+    }
+  },
+  writeSunnahFastOn: async (on) => {
+    try {
+      localStorage.setItem(SUNNAH_FAST_KEY, on ? "on" : "off");
     } catch {
       /* storage unavailable */
     }

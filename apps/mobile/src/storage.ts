@@ -52,6 +52,7 @@ export const KEYS = {
   planReminder: "ul.planReminder",
   prayerReminders: "ul.prayerReminders",
   adhkarReminders: "ul.adhkarReminders",
+  sunnahFastReminders: "ul.sunnahFastReminders",
   adhkarTimings: "ul.adhkarTimings",
 } as const;
 

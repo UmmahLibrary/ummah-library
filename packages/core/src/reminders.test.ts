@@ -13,11 +13,13 @@ import { type ActivePlan, activatePlan, templateById } from "./reading-plans";
 import {
   DEFAULT_PLAN_REMINDER_TIME,
   PLAN_REMINDER_ID,
+  SUNNAH_FAST_REMINDER_ID,
   adhkarReminderId,
   prayerReminderId,
   syncAdhkarReminder,
   syncPlanReminder,
   syncPrayerReminders,
+  syncSunnahFastReminder,
 } from "./reminders";
 
 function fakeNotifier(permission: NotifyPermission = "granted") {
@@ -41,12 +43,19 @@ function fakeNotifier(permission: NotifyPermission = "granted") {
 }
 
 function fakeReminders(prefs: Partial<ReminderPrefs> = {}): ReminderStore {
-  const state: ReminderPrefs = { plan: { on: false, time: "20:00" }, prayers: {}, adhkarOn: false, ...prefs };
+  const state: ReminderPrefs = {
+    plan: { on: false, time: "20:00" },
+    prayers: {},
+    adhkarOn: false,
+    sunnahFastOn: false,
+    ...prefs,
+  };
   return {
     read: async () => state,
     writePlan: async (p) => void (state.plan = p),
     writePrayers: async (p) => void (state.prayers = p),
     writeAdhkarOn: async (o) => void (state.adhkarOn = o),
+    writeSunnahFastOn: async (o) => void (state.sunnahFastOn = o),
   };
 }
 
@@ -193,6 +202,30 @@ describe("syncPrayerReminders", () => {
   });
 });
 
+describe("syncSunnahFastReminder", () => {
+  it("schedules the next fast's reminder when enabled and granted", async () => {
+    const { notifier, scheduled, cancelled } = fakeNotifier();
+    await syncSunnahFastReminder({ notifier, reminders: fakeReminders({ sunnahFastOn: true }), now });
+    expect(cancelled).toContain(SUNNAH_FAST_REMINDER_ID); // cancels before scheduling (idempotent)
+    const n = scheduled.get(SUNNAH_FAST_REMINDER_ID)!;
+    expect(n.body).toBe("Make your intention tonight and plan suhoor. Tap to open Ummah Library.");
+    expect(n.title).toMatch(/^Sunnah fast tomorrow — /);
+    expect(n.tag).toBe(SUNNAH_FAST_REMINDER_ID);
+    // Fires in the future (the evening before the fast).
+    expect(new Date(n.at!).getTime()).toBeGreaterThan(NOW.getTime());
+  });
+
+  it("is a no-op when off, or enabled without permission", async () => {
+    const off = fakeNotifier();
+    await syncSunnahFastReminder({ notifier: off.notifier, reminders: fakeReminders({ sunnahFastOn: false }), now });
+    expect(off.scheduled.size).toBe(0);
+
+    const denied = fakeNotifier("denied");
+    await syncSunnahFastReminder({ notifier: denied.notifier, reminders: fakeReminders({ sunnahFastOn: true }), now });
+    expect(denied.scheduled.size).toBe(0);
+  });
+});
+
 describe("reminder ids and constants", () => {
   it("pins the stable ids and the default plan time", () => {
     expect(DEFAULT_PLAN_REMINDER_TIME).toBe("20:00");
@@ -200,6 +233,7 @@ describe("reminder ids and constants", () => {
     expect(adhkarReminderId("morning")).toBe("adhkar:morning");
     expect(adhkarReminderId("evening")).toBe("adhkar:evening");
     expect(prayerReminderId("fajr")).toBe("prayer:fajr");
+    expect(SUNNAH_FAST_REMINDER_ID).toBe("sunnah-fast:next");
   });
 });
 

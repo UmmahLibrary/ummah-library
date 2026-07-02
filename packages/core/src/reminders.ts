@@ -16,9 +16,12 @@ import type { Notifier, PlanStore, PrayerTimingsProvider, ReminderStore } from "
 import { nextAdhkarReminder } from "./adhkar";
 import { OBLIGATORY_PRAYERS, PRAYER_LABELS, type PrayerName, prayerReminders } from "./prayer";
 import { nextDailyReminder, planReminderContent } from "./reading-plans";
+import { nextSunnahFastReminder } from "./sunnah-fasting";
 
 export const DEFAULT_PLAN_REMINDER_TIME = "20:00";
 export const PLAN_REMINDER_ID = "plan:daily";
+/** Stable id for the single next-sunnah-fast reminder (rescheduling replaces it). */
+export const SUNNAH_FAST_REMINDER_ID = "sunnah-fast:next";
 
 const ADHKAR_OCCASION_LIST: readonly AdhkarOccasion[] = ["morning", "evening"];
 const ADHKAR_LABEL: Record<AdhkarOccasion, string> = { morning: "morning", evening: "evening" };
@@ -128,4 +131,30 @@ export async function syncPrayerReminders(
       tag: prayerReminderId(reminder.prayer),
     });
   }
+}
+
+/**
+ * (Re)schedule the next Sunnah-fast reminder (#139) — the evening before the
+ * next recommended fast (Monday/Thursday or a white day). Idempotent: cancels the
+ * single id, then schedules the next occurrence. A no-op when off or without
+ * permission. Needs no location or timings — the dates are pure Hijri/weekday
+ * arithmetic; v1 uses the tabular calendar (no sighting adjustment).
+ */
+export async function syncSunnahFastReminder(deps: ReminderSyncDeps): Promise<void> {
+  const { notifier, reminders, now } = deps;
+  await notifier.cancel(SUNNAH_FAST_REMINDER_ID);
+
+  const { sunnahFastOn } = await reminders.read();
+  if (!sunnahFastOn || notifier.permission() !== "granted") return;
+
+  const next = nextSunnahFastReminder(now());
+  if (!next) return;
+
+  await notifier.schedule({
+    id: SUNNAH_FAST_REMINDER_ID,
+    title: `Sunnah fast tomorrow — ${next.fast.name} 🌙`,
+    body: "Make your intention tonight and plan suhoor. Tap to open Ummah Library.",
+    at: next.at.toISOString(),
+    tag: SUNNAH_FAST_REMINDER_ID,
+  });
 }

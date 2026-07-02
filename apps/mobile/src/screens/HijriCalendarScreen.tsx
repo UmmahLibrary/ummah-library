@@ -12,6 +12,7 @@ import {
 import { KEYS, getString, setString } from "../storage";
 import { useTheme, type Palette } from "../theme";
 import { weekdayOfGregorian } from "../utils";
+import { SunnahFastReminderToggle } from "../components/SunnahFastReminderToggle";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 const ADJUST_OPTIONS = [-2, -1, 0, 1, 2] as const;
@@ -201,6 +202,11 @@ export function HijriCalendarScreen() {
           match; your choice is saved on this device.
         </Text>
       </View>
+
+      <View style={styles.sunnahSection}>
+        <Text style={styles.sectionLabel}>Sunnah fasting</Text>
+        <SunnahFastReminderToggle adjust={adjust} />
+      </View>
     </ScrollView>
   );
 }
@@ -299,6 +305,7 @@ function makeStyles(c: Palette) {
     eventName: { color: c.fg, fontSize: 15, fontWeight: "700" },
     eventDate: { color: c.faint, fontSize: 12, marginTop: 1 },
     eventCountdown: { color: c.accent, fontSize: 13, fontWeight: "700" },
+    sunnahSection: { marginTop: 28 },
     adjustSection: { gap: 10 },
     adjustLabel: { color: c.fg, fontSize: 13, fontWeight: "600" },
     chips: { flexDirection: "row", gap: 8 },
