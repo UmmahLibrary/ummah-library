@@ -4,51 +4,16 @@
  * same local-first SM-2 state identically (ADR 0006). The SM-2 engine itself
  * lives in `@ummahlibrary/core`; this module only derives view-model summaries.
  */
-import { type HifzCard, type VerseKey, isDue } from "@ummahlibrary/core";
-
-interface Record {
-  ref: VerseKey;
-  card: HifzCard;
-}
-
-/** 0 = new / never reviewed · 1 = solidly known (interval ≥ 30 days). */
-export function cardStrength(card: HifzCard): number {
-  if (card.lastReviewed === null) return 0;
-  return Math.min(1, card.intervalDays / 30);
-}
-
-export interface SurahProgress {
-  surahNumber: number;
-  trackedCount: number;
-  dueCount: number;
-  avgStrength: number; // 0–1
-  nextDue: string | null; // earliest due ISO timestamp among tracked cards
-}
-
-/** Aggregate per-ayah records into per-surah summaries. */
-export function surahProgressMap(records: Record[], now: Date): Map<number, SurahProgress> {
-  const map = new Map<number, SurahProgress>();
-  for (const r of records) {
-    const sura = r.ref.sura;
-    const p = map.get(sura) ?? {
-      surahNumber: sura,
-      trackedCount: 0,
-      dueCount: 0,
-      avgStrength: 0,
-      nextDue: null,
-    };
-    p.trackedCount++;
-    p.avgStrength += cardStrength(r.card);
-    if (isDue(r.card, now)) p.dueCount++;
-    if (!p.nextDue || r.card.due < p.nextDue) p.nextDue = r.card.due;
-    map.set(sura, p);
-  }
-  for (const [sura, p] of map) {
-    p.avgStrength = p.trackedCount > 0 ? p.avgStrength / p.trackedCount : 0;
-    map.set(sura, p);
-  }
-  return map;
-}
+// Strength + per-surah progress derivations are pure logic; they live in core
+// (shared with the web reader) and are re-exported here so existing imports keep
+// their path. `surahProgressMap(records, now)` — pass `allRecords()`.
+export {
+  cardStrength,
+  surahProgressMap,
+  weakestSurahs,
+  type SurahProgress,
+  type HifzAyahRecord,
+} from "@ummahlibrary/core";
 
 /** Render a card's next-due timestamp relative to now. */
 export function relativeDue(nextDue: string | null, now: Date): string {

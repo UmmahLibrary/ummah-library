@@ -68,7 +68,7 @@ describe("hifz store", () => {
     // Surah 1: a single due card.
     setCard({ sura: 1, aya: 1 }, card("2000-06-01T00:00:00.000Z"));
 
-    const map = surahProgressMap(now);
+    const map = surahProgressMap(allRecords(), now);
 
     const s2 = map.get(2)!;
     expect(s2.trackedCount).toBe(2);

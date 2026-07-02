@@ -15,10 +15,12 @@ import {
 } from "react";
 import {
   type Collection,
+  type HifzActivityLog,
   type HifzCard,
   type VerseKey,
   compareVerseKeys,
   isDue,
+  logReview,
 } from "@ummahlibrary/core";
 import { KEYS, getJSON, isObjectRecord, setJSON } from "../storage";
 import { mobileLibraryStore as library } from "./library-store";
@@ -54,6 +56,9 @@ interface LibraryValue {
   /** Daily review streak. `touchStreak` records a review completed today. */
   streak: StreakData;
   touchStreak: () => void;
+  /** Per-day review-activity log (heatmap source). `recordReview` counts one review today. */
+  reviewLog: HifzActivityLog;
+  recordReview: () => void;
   /** Ayah-level bookmark collections + per-ayah notes (separate from `bookmarks`). */
   collections: Collection[];
   notes: Record<string, string>;
@@ -73,13 +78,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [lastRead, setLastReadState] = useState<number | null>(null);
   const [hifz, setHifz] = useState<HifzStore>({});
   const [streak, setStreak] = useState<StreakData>(EMPTY_STREAK);
+  const [reviewLog, setReviewLog] = useState<HifzActivityLog>({});
   const [collections, setCollections] = useState<Collection[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     void (async () => {
-      const [bm, lr, hz, st, cols, nts] = await Promise.all([
+      const [bm, lr, hz, st, log, cols, nts] = await Promise.all([
         library.readBookmarks(),
         getJSON<{ surah: number } | null>(KEYS.lastRead, null, isObjectRecord),
         getJSON<HifzStore>(KEYS.hifz, {}, isObjectRecord),
@@ -91,6 +97,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             typeof (v as StreakData).count === "number" &&
             typeof (v as StreakData).lastDate === "string",
         ),
+        getJSON<HifzActivityLog>(KEYS.hifzReviewLog, {}, isObjectRecord),
         library.readCollections(),
         library.readNotes(),
       ]);
@@ -98,6 +105,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       setLastReadState(lr?.surah ?? null);
       setHifz(hz);
       setStreak(st);
+      setReviewLog(log);
       setCollections(cols);
       setNotes(nts);
       setReady(true);
@@ -124,6 +132,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     setStreak((prev) => {
       const next = advanceStreak(prev, new Date());
       if (next !== prev) void setJSON(KEYS.hifzStreak, next);
+      return next;
+    });
+  }, []);
+
+  const recordReview = useCallback(() => {
+    setReviewLog((prev) => {
+      const next = logReview(prev, new Date());
+      void setJSON(KEYS.hifzReviewLog, next);
       return next;
     });
   }, []);
@@ -183,6 +199,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       trackedCount: Object.keys(hifz).length,
       streak,
       touchStreak,
+      reviewLog,
+      recordReview,
       collections,
       notes,
       updateCollections,
@@ -194,6 +212,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       lastRead,
       hifz,
       streak,
+      reviewLog,
+      recordReview,
       collections,
       notes,
       toggleBookmark,

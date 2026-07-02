@@ -6,6 +6,7 @@ import { type ReviewRating, reviewByRating } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import { type HifzRecord, allRecords, dueRecords, setCard } from "../lib/hifz-store";
 import { touchStreak } from "../lib/hifz-streak";
+import { recordReview } from "../lib/hifz-review-log-store";
 
 interface SurahArabic {
   ayahs: { aya: number; text: string }[];
@@ -67,6 +68,7 @@ export function HifzReview({
   function rate(rating: ReviewRating) {
     if (!current) return;
     setCard(current.ref, reviewByRating(current.card, rating, new Date()));
+    recordReview(); // every rating counts toward today's heatmap cell
     if (!streakTouched.current) {
       touchStreak();
       streakTouched.current = true;

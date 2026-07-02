@@ -2,7 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { TOTAL_AYAHS, type Surah } from "@ummahlibrary/core";
+import {
+  TOTAL_AYAHS,
+  type HeatmapDay,
+  type Surah,
+  activityHeatmap,
+  hifzStreaks,
+  weakestSurahs,
+} from "@ummahlibrary/core";
 import { Khatam } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { useTheme, type Palette } from "../theme";
@@ -24,9 +31,15 @@ export function HifzDashboardScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { ready, allRecords, trackedCount, dueRecords, streak } = useLibrary();
+  const { ready, allRecords, trackedCount, dueRecords, streak, reviewLog } = useLibrary();
 
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
+
+  const levelColors = useMemo(() => {
+    const a = colors.accent;
+    const hex = /^#[0-9a-fA-F]{6}$/.test(a);
+    return [colors.border, hex ? `${a}3D` : a, hex ? `${a}7A` : a, hex ? `${a}B8` : a, a];
+  }, [colors]);
 
   useEffect(() => {
     let active = true;
@@ -57,6 +70,30 @@ export function HifzDashboardScreen({ navigation }: Props) {
     return items;
     // trackedCount changes whenever the hifz store mutates — recompute then.
   }, [surahs, trackedCount]);
+
+  // Weakest surahs (lowest strength first) to guide focus.
+  const weak = useMemo<QueueItem[]>(() => {
+    if (!surahs) return [];
+    const byNum = new Map(surahs.map((s) => [s.number, s]));
+    return weakestSurahs(surahProgressMap(allRecords(), now).values(), 5)
+      .map((p) => {
+        const meta = byNum.get(p.surahNumber);
+        return meta
+          ? { ...p, transliteration: meta.transliteration, name: meta.name, ayahCount: meta.ayahCount }
+          : null;
+      })
+      .filter((x): x is QueueItem => x !== null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [surahs, trackedCount]);
+
+  // Review-activity heatmap + longest streak from the forward-looking log.
+  const heatmap = useMemo<HeatmapDay[]>(() => activityHeatmap(reviewLog, now), [reviewLog]);
+  const longestStreak = useMemo(() => hifzStreaks(reviewLog, now).longest, [reviewLog]);
+  const weeks = useMemo(() => {
+    const out: HeatmapDay[][] = [];
+    for (let i = 0; i < heatmap.length; i += 7) out.push(heatmap.slice(i, i + 7));
+    return out;
+  }, [heatmap]);
 
   const memorizedPct =
     trackedCount === 0 ? "0%" : `${Math.round((trackedCount / TOTAL_AYAHS) * 100)}%`;
@@ -137,6 +174,61 @@ export function HifzDashboardScreen({ navigation }: Props) {
                 </View>
               ))}
             </View>
+          )}
+
+          {/* Review activity heatmap */}
+          <Text style={styles.sectionLabel}>Review activity</Text>
+          <View style={styles.heatCard}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.heatGrid}>
+                {weeks.map((week, wi) => (
+                  <View key={wi} style={styles.heatCol}>
+                    {week.map((d) => (
+                      <View key={d.date} style={[styles.heatCell, { backgroundColor: levelColors[d.level] }]} />
+                    ))}
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+            <View style={styles.heatFooter}>
+              <Text style={styles.heatCaption}>
+                Longest streak: {longestStreak} day{longestStreak === 1 ? "" : "s"}
+              </Text>
+              <View style={styles.legendRow}>
+                <Text style={styles.legendText}>Less</Text>
+                {[0, 1, 2, 3, 4].map((l) => (
+                  <View key={l} style={[styles.heatCell, { backgroundColor: levelColors[l] }]} />
+                ))}
+                <Text style={styles.legendText}>More</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Needs attention — weakest surahs */}
+          {weak.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>Needs attention</Text>
+              <View style={{ gap: 10 }}>
+                {weak.map((item) => (
+                  <View key={item.surahNumber} style={styles.queueRow}>
+                    <AyahBadge n={item.surahNumber} size={38} />
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.queueName}>{item.transliteration}</Text>
+                      <View style={styles.strengthRow}>
+                        <View style={styles.strengthTrack}>
+                          <View
+                            style={[styles.strengthFill, { width: `${Math.round(item.avgStrength * 100)}%` }]}
+                          />
+                        </View>
+                        <Text style={styles.queueMeta}>
+                          {item.trackedCount}/{item.ayahCount} · {Math.round(item.avgStrength * 100)}%
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </>
           )}
         </>
       )}
@@ -226,6 +318,27 @@ function makeStyles(c: Palette) {
     },
     strengthFill: { height: "100%", borderRadius: 2, backgroundColor: c.accent },
     queueMeta: { color: c.faint, fontSize: 12 },
+    heatCard: {
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 14,
+      padding: 14,
+      gap: 12,
+    },
+    heatGrid: { flexDirection: "row", gap: 3 },
+    heatCol: { flexDirection: "column", gap: 3 },
+    heatCell: { width: 11, height: 11, borderRadius: 2 },
+    heatFooter: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    heatCaption: { color: c.muted, fontSize: 12.5 },
+    legendRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+    legendText: { color: c.faint, fontSize: 11.5 },
     dueBadge: {
       color: c.accent,
       fontSize: 12.5,

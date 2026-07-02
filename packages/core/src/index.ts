@@ -11,6 +11,7 @@
 
 export * from "./quran-structure";
 export * from "./hifz";
+export * from "./hifz-analytics";
 export * from "./plugins";
 export * from "./languages";
 export * from "./translations";
