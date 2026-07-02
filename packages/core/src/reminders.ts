@@ -14,6 +14,8 @@
 import type { AdhkarOccasion } from "./entities";
 import type { Notifier, PlanStore, PrayerTimingsProvider, ReminderStore } from "./ports";
 import { nextAdhkarReminder } from "./adhkar";
+import { addGregorianDays } from "./hijri";
+import { ISLAMIC_EVENTS, upcomingIslamicEvents } from "./islamic-events";
 import { OBLIGATORY_PRAYERS, PRAYER_LABELS, type PrayerName, prayerReminders } from "./prayer";
 import { nextDailyReminder, planReminderContent } from "./reading-plans";
 import { nextSunnahFastReminder } from "./sunnah-fasting";
@@ -22,6 +24,8 @@ export const DEFAULT_PLAN_REMINDER_TIME = "20:00";
 export const PLAN_REMINDER_ID = "plan:daily";
 /** Stable id for the single next-sunnah-fast reminder (rescheduling replaces it). */
 export const SUNNAH_FAST_REMINDER_ID = "sunnah-fast:next";
+/** Stable notification id for an Islamic-event reminder (rescheduling replaces it). */
+export const islamicEventReminderId = (eventId: string): string => `event:${eventId}`;
 
 const ADHKAR_OCCASION_LIST: readonly AdhkarOccasion[] = ["morning", "evening"];
 const ADHKAR_LABEL: Record<AdhkarOccasion, string> = { morning: "morning", evening: "evening" };
@@ -157,4 +161,43 @@ export async function syncSunnahFastReminder(deps: ReminderSyncDeps): Promise<vo
     at: next.at.toISOString(),
     tag: SUNNAH_FAST_REMINDER_ID,
   });
+}
+
+/**
+ * (Re)schedule reminders for the Islamic (Hijri) events the reader has toggled on
+ * (#143) — one notification the evening before each enabled event's next
+ * occurrence. Idempotent: clears every known event id first, then schedules the
+ * enabled ones still ahead of `now`. A no-op without permission or with none
+ * enabled. Needs no location; v1 uses the tabular calendar (no sighting offset).
+ */
+export async function syncIslamicEventReminders(deps: ReminderSyncDeps): Promise<void> {
+  const { notifier, reminders, now } = deps;
+  for (const event of ISLAMIC_EVENTS) await notifier.cancel(islamicEventReminderId(event.id));
+
+  const { islamicEvents } = await reminders.read();
+  if (notifier.permission() !== "granted") return;
+
+  const enabled = ISLAMIC_EVENTS.filter((e) => islamicEvents[e.id]);
+  if (enabled.length === 0) return;
+
+  const n = now();
+  const today = { year: n.getFullYear(), month: n.getMonth() + 1, day: n.getDate() };
+  const upcomingById = new Map(upcomingIslamicEvents(today).map((u) => [u.event.id, u]));
+
+  for (const event of enabled) {
+    const next = upcomingById.get(event.id);
+    if (!next) continue;
+    // Fire the evening before at 20:00 local; skip if that has already passed
+    // (e.g. the event is today) — it will re-arm for next year on a later sync.
+    const eve = addGregorianDays(next.gregorian, -1);
+    const at = new Date(eve.year, eve.month - 1, eve.day, 20, 0, 0, 0);
+    if (at.getTime() <= n.getTime()) continue;
+    await notifier.schedule({
+      id: islamicEventReminderId(event.id),
+      title: `Tomorrow: ${event.name}`,
+      body: "An Islamic observance is tomorrow. Tap to open Ummah Library.",
+      at: at.toISOString(),
+      tag: islamicEventReminderId(event.id),
+    });
+  }
 }

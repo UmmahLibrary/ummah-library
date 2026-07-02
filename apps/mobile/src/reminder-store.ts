@@ -16,7 +16,7 @@ import { KEYS, getJSON, getString, isObjectRecord, setJSON, setString } from "./
 export const mobileReminderStore: ReminderStore = {
   read: async (): Promise<ReminderPrefs> => {
     // Object guards: a corrupt/peer-synced null would crash on `plan.on` / `prayers[p]`.
-    const [plan, prayers, adhkar, sunnahFast] = await Promise.all([
+    const [plan, prayers, adhkar, sunnahFast, islamicEvents] = await Promise.all([
       getJSON<PlanReminderPref>(
         KEYS.planReminder,
         { on: false, time: DEFAULT_PLAN_REMINDER_TIME },
@@ -25,6 +25,7 @@ export const mobileReminderStore: ReminderStore = {
       getJSON<Partial<Record<PrayerName, boolean>>>(KEYS.prayerReminders, {}, isObjectRecord),
       getString(KEYS.adhkarReminders),
       getString(KEYS.sunnahFastReminders),
+      getJSON<Record<string, boolean>>(KEYS.islamicEventReminders, {}, isObjectRecord),
     ]);
     return {
       plan: {
@@ -34,10 +35,12 @@ export const mobileReminderStore: ReminderStore = {
       prayers,
       adhkarOn: adhkar === "on",
       sunnahFastOn: sunnahFast === "on",
+      islamicEvents,
     };
   },
   writePlan: (pref) => setJSON(KEYS.planReminder, pref),
   writePrayers: (prefs) => setJSON(KEYS.prayerReminders, prefs),
   writeAdhkarOn: (on) => setString(KEYS.adhkarReminders, on ? "on" : "off"),
   writeSunnahFastOn: (on) => setString(KEYS.sunnahFastReminders, on ? "on" : "off"),
+  writeIslamicEvents: (prefs) => setJSON(KEYS.islamicEventReminders, prefs),
 };

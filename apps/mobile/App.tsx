@@ -22,6 +22,7 @@ import { syncPlanReminder } from "./src/plan-reminders";
 import { syncAdhkarReminder } from "./src/adhkar-reminders";
 import { syncPrayerReminders } from "./src/prayer-reminders";
 import { syncSunnahFastReminder } from "./src/sunnah-fast-reminders";
+import { syncIslamicEventReminders } from "./src/islamic-event-reminders";
 import type { RootTabParamList } from "./src/navigation/types";
 
 /** URL routes for the web build and OS deep links (ummahlibrary://). */
@@ -121,6 +122,7 @@ export default function App() {
       void syncAdhkarReminder();
       void syncPrayerReminders();
       void syncSunnahFastReminder();
+      void syncIslamicEventReminders();
     };
     void initNotifier().then(syncAll);
     const sub = AppState.addEventListener("change", (s) => {
