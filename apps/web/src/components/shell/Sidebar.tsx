@@ -3,50 +3,54 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { N, Logo, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
+import { useT } from "../../i18n/I18nProvider";
+import type { MessageKey } from "../../i18n/messages";
 
-const NAV: Array<[string, Array<[string, string, IconName]>]> = [
+// [sectionHeadingKey, [[labelKey, href, icon]…]] — labels resolve through i18n (#208).
+const NAV: Array<[MessageKey, Array<[MessageKey, string, IconName]>]> = [
   [
-    "Read",
+    "nav.read",
     [
-      ["Quran", "/", "book"],
-      ["Search", "/search", "search"],
-      ["Reading Plans", "/plans", "route"],
-      ["Bookmarks", "/bookmarks", "bookmark"],
-      ["Tafsir", "/tafsir", "tafsir"],
+      ["nav.quran", "/", "book"],
+      ["nav.search", "/search", "search"],
+      ["nav.plans", "/plans", "route"],
+      ["nav.bookmarks", "/bookmarks", "bookmark"],
+      ["nav.tafsir", "/tafsir", "tafsir"],
     ],
   ],
   [
-    "Memorize",
+    "nav.memorize",
     [
-      ["Hifz Review", "/hifz", "star"],
-      ["Reading Goals", "/goals", "check"],
+      ["nav.hifz", "/hifz", "star"],
+      ["nav.goals", "/goals", "check"],
     ],
   ],
   [
-    "Worship",
+    "nav.worship",
     [
-      ["Prayer Times", "/prayer-times", "home"],
-      ["Prayer Tracker", "/tracker", "check"],
-      ["Ramadan", "/ramadan", "moon"],
-      ["Duʿās", "/duas", "hands"],
-      ["Qibla", "/qibla", "compass"],
-      ["Adhkār", "/adhkar", "repeat"],
-      ["Tasbih", "/tasbih", "more"],
+      ["nav.prayerTimes", "/prayer-times", "home"],
+      ["nav.tracker", "/tracker", "check"],
+      ["nav.ramadan", "/ramadan", "moon"],
+      ["nav.duas", "/duas", "hands"],
+      ["nav.qibla", "/qibla", "compass"],
+      ["nav.adhkar", "/adhkar", "repeat"],
+      ["nav.tasbih", "/tasbih", "more"],
     ],
   ],
   [
-    "Learn",
+    "nav.learn",
     [
-      ["Hadith", "/hadith", "globe"],
-      ["99 Names", "/names", "grid"],
-      ["Hijri Calendar", "/calendar", "moon"],
-      ["Zakat", "/zakat", "layers"],
+      ["nav.hadith", "/hadith", "globe"],
+      ["nav.names", "/names", "grid"],
+      ["nav.calendar", "/calendar", "moon"],
+      ["nav.zakat", "/zakat", "layers"],
     ],
   ],
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const t = useT();
 
   return (
     <aside
@@ -84,7 +88,7 @@ export function Sidebar() {
                 fontFamily: N.ui,
               }}
             >
-              {group}
+              {t(group)}
             </div>
             {items.map(([label, href, icon]) => {
               const active = pathname === href || (href !== "/" && pathname.startsWith(href));
@@ -109,7 +113,7 @@ export function Sidebar() {
                   }}
                 >
                   <Icon name={icon} size={17} sw={1.8} color={active ? N.ink : N.faint} />
-                  {label}
+                  {t(label)}
                 </Link>
               );
             })}
@@ -146,7 +150,7 @@ export function Sidebar() {
         >
           <Icon name="settings" size={16} color={N.muted} />
         </div>
-        Settings
+        {t("common.settings")}
       </Link>
     </aside>
   );

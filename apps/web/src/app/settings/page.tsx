@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { ThemePicker } from "../../components/ThemePicker";
+import { LanguagePicker } from "../../components/LanguagePicker";
 import { SyncSettings } from "../../components/SyncSettings";
 import { DataBackup } from "../../components/DataBackup";
 
@@ -21,6 +22,8 @@ export default function SettingsPage() {
       maxW={620}
     >
       <ThemePicker />
+      <div style={{ height: 1, background: "var(--noor-border)", margin: "30px 0" }} />
+      <LanguagePicker />
       <div style={{ height: 1, background: "var(--noor-border)", margin: "30px 0" }} />
       <SyncSettings />
       <div style={{ height: 1, background: "var(--noor-border)", margin: "30px 0" }} />

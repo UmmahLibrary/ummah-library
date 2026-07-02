@@ -45,6 +45,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0034](0034-fasting-qada.md)                  | Fasting qaḍāʾ: make-up fasts derived from the ḥayḍ pause ∩ Ramaḍān     | Accepted |
 | [0035](0035-indopak-script.md)                | IndoPak Arabic script (text fetched live, not bundled — amended 2026-06-28) | Accepted |
 | [0036](0036-bundled-word-level-data.md)       | Bundle recitation timings (quran-align, CC-BY); keep transliteration live | Accepted |
+| [0038](0038-ui-localization.md)               | UI localization: in-house typed i18n + RTL; nav slice + Urdu (foundation) | Accepted |
 
 ## Writing a new ADR
 
