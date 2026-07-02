@@ -34,7 +34,7 @@ const RATINGS: { rating: ReviewRating; label: string; color: keyof Palette }[] =
 export function HifzReviewScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { ready, dueRecords, trackedCount, setHifzCard, touchStreak } = useLibrary();
+  const { ready, dueRecords, trackedCount, setHifzCard, touchStreak, recordReview } = useLibrary();
 
   const [queue, setQueue] = useState<HifzRecord[] | null>(null);
   const [index, setIndex] = useState(0);
@@ -68,6 +68,7 @@ export function HifzReviewScreen({ navigation }: Props) {
   function rate(rating: ReviewRating) {
     if (!current) return;
     setHifzCard(current.ref, reviewByRating(current.card, rating, new Date()));
+    recordReview(); // every rating counts toward today's heatmap cell
     if (!streakTouched.current) {
       touchStreak();
       streakTouched.current = true;

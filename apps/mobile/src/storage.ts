@@ -31,6 +31,7 @@ export const KEYS = {
   khatma: "ul.khatma",
   hifz: "ul.hifz",
   hifzStreak: "ul.hifz.streak",
+  hifzReviewLog: "ul.hifz.reviewLog",
   lastRead: "ul.lastRead",
   asmaLearned: "ul.asmaLearned",
   tasbih: "ul.tasbih",

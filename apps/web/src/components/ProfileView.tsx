@@ -84,7 +84,7 @@ export function ProfileView() {
         const next: Stats = {
           hifzStreak,
           memorized: allRecords().length,
-          surahsStarted: surahProgressMap(new Date()).size,
+          surahsStarted: surahProgressMap(allRecords(), new Date()).size,
           prayerStreak: prayer,
           names: countLearned(),
           saved: totalSavedAyahs(collections),

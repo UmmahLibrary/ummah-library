@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { TOTAL_AYAHS } from "@ummahlibrary/core";
+import {
+  TOTAL_AYAHS,
+  type HeatmapDay,
+  activityHeatmap,
+  hifzStreaks,
+  weakestSurahs,
+} from "@ummahlibrary/core";
 import { N, Khatam, Btn } from "@ummahlibrary/ui";
 import { allRecords, dueRecords, surahProgressMap, type SurahProgress } from "../lib/hifz-store";
 import { getStreak } from "../lib/hifz-streak";
+import { readReviewLog } from "../lib/hifz-review-log-store";
 
 export interface SurahMeta {
   number: number;
@@ -37,6 +44,43 @@ function StrengthBar({ value }: { value: number }) {
   );
 }
 
+/** Gold ramp for a heatmap cell's intensity level (0 = empty). */
+function levelColor(level: number): string {
+  switch (level) {
+    case 1:
+      return `color-mix(in srgb, ${N.gold} 24%, transparent)`;
+    case 2:
+      return `color-mix(in srgb, ${N.gold} 48%, transparent)`;
+    case 3:
+      return `color-mix(in srgb, ${N.gold} 72%, transparent)`;
+    case 4:
+      return N.gold;
+    default:
+      return N.borderSoft;
+  }
+}
+
+/** GitHub-style activity grid: columns are weeks (Sunday-first), coloured by level. */
+function HeatmapGrid({ days }: { days: HeatmapDay[] }) {
+  const weeks: HeatmapDay[][] = [];
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+  return (
+    <div style={{ display: "flex", gap: 3, overflowX: "auto", paddingBottom: 4 }}>
+      {weeks.map((week, wi) => (
+        <div key={wi} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          {week.map((d) => (
+            <div
+              key={d.date}
+              title={`${d.date} · ${d.count} review${d.count === 1 ? "" : "s"}`}
+              style={{ width: 11, height: 11, borderRadius: 2, background: levelColor(d.level) }}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function StatCard({ value, label }: { value: string; label: string }) {
   return (
     <div
@@ -61,6 +105,9 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
   const [dueCount, setDueCount] = useState(0);
   const [streak, setStreak] = useState(0);
   const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [heatmap, setHeatmap] = useState<HeatmapDay[]>([]);
+  const [longestStreak, setLongestStreak] = useState(0);
+  const [weak, setWeak] = useState<QueueItem[]>([]);
 
   useEffect(() => {
     try {
@@ -68,21 +115,36 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
       const all = allRecords();
       const due = dueRecords(now);
       const streakData = getStreak();
-      const progressMap = surahProgressMap(now);
+      const progressMap = surahProgressMap(all, now);
       const surahByNum = new Map(surahs.map((s) => [s.number, s]));
+      const withMeta = (p: SurahProgress): QueueItem | null => {
+        const meta = surahByNum.get(p.surahNumber);
+        return meta
+          ? { ...p, name: meta.name, transliteration: meta.transliteration, ayahCount: meta.ayahCount }
+          : null;
+      };
 
       setTotalTracked(all.length);
       setDueCount(due.length);
       setStreak(streakData.count);
 
-      const items: QueueItem[] = [];
-      for (const [surahNum, progress] of progressMap) {
-        const meta = surahByNum.get(surahNum);
-        if (!meta) continue;
-        items.push({ ...progress, name: meta.name, transliteration: meta.transliteration, ayahCount: meta.ayahCount });
-      }
-      items.sort((a, b) => b.dueCount - a.dueCount || a.surahNumber - b.surahNumber);
+      const items = [...progressMap.values()]
+        .map(withMeta)
+        .filter((x): x is QueueItem => x !== null)
+        .sort((a, b) => b.dueCount - a.dueCount || a.surahNumber - b.surahNumber);
       setQueue(items);
+
+      // Weakest surahs (lowest strength first) to guide focus.
+      setWeak(
+        weakestSurahs(progressMap.values(), 5)
+          .map(withMeta)
+          .filter((x): x is QueueItem => x !== null),
+      );
+
+      // Review-activity heatmap + longest streak from the forward-looking log.
+      const log = readReviewLog();
+      setHeatmap(activityHeatmap(log, now));
+      setLongestStreak(hifzStreaks(log, now).longest);
     } finally {
       setReady(true);
     }
@@ -260,6 +322,104 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
           ))}
         </div>
       </div>
+
+      {/* Review activity heatmap + longest streak */}
+      <div>
+        <div
+          style={{
+            fontSize: 12,
+            letterSpacing: 1,
+            textTransform: "uppercase",
+            color: N.faint,
+            fontWeight: 700,
+            fontFamily: N.ui,
+            marginBottom: 10,
+          }}
+        >
+          Review activity
+        </div>
+        <div style={{ background: N.card, border: `1px solid ${N.border}`, borderRadius: 14, padding: "16px 18px" }}>
+          <HeatmapGrid days={heatmap} />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 10,
+              marginTop: 12,
+            }}
+          >
+            <span style={{ fontSize: 12.5, color: N.faint, fontFamily: N.ui }}>
+              Longest streak:{" "}
+              <strong style={{ color: N.gold }}>
+                {longestStreak} day{longestStreak === 1 ? "" : "s"}
+              </strong>
+            </span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: N.faint, fontFamily: N.ui }}>
+              Less
+              {[0, 1, 2, 3, 4].map((l) => (
+                <span key={l} style={{ width: 11, height: 11, borderRadius: 2, background: levelColor(l) }} />
+              ))}
+              More
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Needs attention — weakest surahs */}
+      {weak.length > 0 && (
+        <div>
+          <div
+            style={{
+              fontSize: 12,
+              letterSpacing: 1,
+              textTransform: "uppercase",
+              color: N.faint,
+              fontWeight: 700,
+              fontFamily: N.ui,
+              marginBottom: 10,
+            }}
+          >
+            Needs attention
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {weak.map((item) => (
+              <Link key={item.surahNumber} href={`/surah/${item.surahNumber}`} style={{ textDecoration: "none" }}>
+                <div
+                  style={{
+                    background: N.card,
+                    border: `1px solid ${N.borderSoft}`,
+                    borderRadius: 14,
+                    padding: "14px 18px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 14,
+                  }}
+                >
+                  <div style={{ width: 38, height: 38, position: "relative", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                    <Khatam size={38} color={N.goldDim} sw={1.2} />
+                    <span style={{ position: "absolute", fontSize: 11.5, fontWeight: 700, color: N.gold, fontFamily: N.ui }}>
+                      {item.surahNumber}
+                    </span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
+                      {item.transliteration}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                      <StrengthBar value={item.avgStrength} />
+                      <span style={{ fontSize: 12, color: N.faint, fontFamily: N.ui, whiteSpace: "nowrap" }}>
+                        {item.trackedCount} / {item.ayahCount} āyāt · {Math.round(item.avgStrength * 100)}% strength
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

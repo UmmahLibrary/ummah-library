@@ -6,7 +6,7 @@
  *
  * Deliberately EXCLUDED, pending v2 element-level merge (two devices edit different
  * entries concurrently, which whole-value LWW would clobber): `ul.collections`,
- * `ul.ayahNotes`, `ul.hifz`(+`.streak`), the prayer/qada/haid/ramadan logs, the
+ * `ul.ayahNotes`, `ul.hifz`(+`.streak`, `.reviewLog`), the prayer/qada/haid/ramadan logs, the
  * reading-goal logs and active plan, the tasbih/adhkar counters, `ul.asmaLearned`,
  * `ul.badges`, and `ul.searchHistory`. Also excluded: the sync sidecar itself
  * (`ul.sync.*` — it must never sync), device-local flags (`ul.onboarded`), and the
