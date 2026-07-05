@@ -53,6 +53,23 @@
   font-size: 1.1rem;
 }
 
+/* First-run onboarding: a solid veil paints before React hydrates (flag set by
+   the inline script in layout.tsx) so the app never flashes behind the intro.
+   The Onboarding component draws the interactive slides above it (z-index 210). */
+#ul-onboard-veil {
+  display: none;
+}
+html[data-onboard="1"] #ul-onboard-veil {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--noor-bg);
+}
+html[data-onboard="1"] body {
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   background: var(--bg);
