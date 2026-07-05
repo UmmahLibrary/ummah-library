@@ -46,6 +46,7 @@ export type MoreStackParamList = {
   Settings: undefined;
   Names: undefined;
   Hadith: undefined;
+  Privacy: undefined;
 };
 
 /** The bottom tabs — Home · Read · Tools · Memorize · More (Noor mobile design). */
