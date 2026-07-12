@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { addDays, type PrayerDayLog } from "@ummahlibrary/core";
 import { PrayerTracker } from "./PrayerTracker";
 
@@ -49,5 +49,21 @@ describe("PrayerTracker × ḥayḍ pause", () => {
   it("shows a Paused legend for the history grid", async () => {
     render(<PrayerTracker />);
     expect(await screen.findByText("Paused")).toBeInTheDocument();
+  });
+});
+
+describe("PrayerTracker × history grid", () => {
+  it("lets you tap a past day in the grid to log a prayer, not just today", async () => {
+    render(<PrayerTracker />);
+
+    // The grid runs oldest → newest over 7 days; index 5 is yesterday.
+    const fajrCells = await screen.findAllByRole("button", { name: /^Fajr ·/ });
+    expect(fajrCells).toHaveLength(7);
+    const yesterdayCell = fajrCells[5]!;
+    expect(yesterdayCell.getAttribute("aria-label")).toMatch(/Not yet — tap to change$/);
+
+    fireEvent.click(yesterdayCell);
+
+    expect(await screen.findByLabelText(/^Fajr ·.*On time — tap to change$/)).toBeInTheDocument();
   });
 });
