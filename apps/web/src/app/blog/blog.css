@@ -1,0 +1,46 @@
+/* Blog-only layout (ADR 0037) — scoped to /blog via this segment's layout.tsx.
+   Mirrors docs/design/noor-prototype-blog/index.html's article measure rules. */
+
+.ul-blog-textcol {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* A 680px reading column for text, flanked by a sticky TOC rail on the left
+   and a matching empty gutter on the right so the column stays visually
+   centered rather than shifting toward the rail. The outer measure column
+   itself goes up to 920px — diagrams/tables/code use that full width, while
+   text blocks are capped at 680px within it. */
+.ul-blog-article-shell {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 48px 24px 24px;
+}
+
+.ul-blog-toc-rail,
+.ul-blog-toc-gutter {
+  flex: 0 0 216px;
+  display: none;
+}
+
+.ul-blog-toc-rail > div {
+  position: sticky;
+  top: 84px;
+}
+
+.ul-blog-article-measure {
+  flex: 1 1 0%;
+  max-width: 920px;
+  margin: 0 auto;
+  min-width: 0;
+}
+
+@media (min-width: 1220px) {
+  .ul-blog-toc-rail,
+  .ul-blog-toc-gutter {
+    display: block;
+  }
+}
