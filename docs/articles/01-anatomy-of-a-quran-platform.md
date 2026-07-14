@@ -4,9 +4,9 @@ description: "A tour of a modular monolith that reads the whole Quran, computes 
 tags: [architecture, typescript, monorepo, open-source, software-design]
 series: "The Ummah Library engineering series"
 order: 1
-date: "2026-07-13"
-canonical_url: "https://ummahlibrary.org/blog/anatomy-of-a-quran-platform"
-status: draft
+date: "2026-07-14"
+canonical_url: "anatomy-of-a-quran-platform"
+status: published
 ---
 
 # Anatomy of an Open-Source Quran Platform
