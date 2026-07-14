@@ -140,8 +140,31 @@ export function TopBar() {
         )}
       </form>
 
-      {/* Right: theme toggle + Hijri date + avatar */}
+      {/* Right: blog + theme toggle + Hijri date + avatar */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <Link
+          href="/blog"
+          title="Read the blog"
+          style={{
+            height: 40,
+            padding: "0 14px",
+            borderRadius: 11,
+            border: `1px solid ${N.border}`,
+            background: N.card,
+            color: N.muted,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexShrink: 0,
+            textDecoration: "none",
+            fontFamily: N.ui,
+            fontSize: 13.5,
+            fontWeight: 600,
+          }}
+        >
+          <Icon name="tafsir" size={17} />
+          <span className="noor-hide-sm">Blog</span>
+        </Link>
         <ThemeToggle />
         {hijriLabel && (
           <div className="noor-hide-sm" style={{ textAlign: "right", flexShrink: 0 }}>
