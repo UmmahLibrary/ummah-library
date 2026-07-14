@@ -2,6 +2,7 @@
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import boundaries from "eslint-plugin-boundaries";
+import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 
 export default tseslint.config(
@@ -29,6 +30,15 @@ export default tseslint.config(
       // CommonJS config files (metro.config.js, babel.config.js) use require().
       "@typescript-eslint/no-require-imports": "off",
     },
+  },
+  {
+    // React/React Native hook rules (rules-of-hooks as an error; exhaustive-deps
+    // as a warning, matching the plugin's own recommended severities) — this is
+    // what the `react-hooks/exhaustive-deps` disable comments in the codebase
+    // are actually suppressing, so the rule needs to be registered for those
+    // comments to reference a real rule instead of erroring as unknown.
+    files: ["**/*.{tsx,jsx}"],
+    ...reactHooks.configs["recommended-latest"],
   },
   {
     // Service worker — browser + service worker globals (self, caches, clients).
