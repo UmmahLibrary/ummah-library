@@ -1,11 +1,18 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Blog", () => {
-  test("the index renders standalone (no app shell) with the empty state", async ({ page }) => {
+  test("the index renders standalone (no app shell) and lists published articles", async ({
+    page,
+  }) => {
     await page.goto("/blog");
     await expect(page.getByRole("heading", { name: "Building Ummah Library" })).toBeVisible();
-    // docs/articles ships with no articles — the user adds them one at a time.
-    await expect(page.getByText("No posts yet — check back soon.")).toBeVisible();
+    // docs/articles ships with the published articles — this asserts against
+    // whatever is currently live rather than a fixed count, so it doesn't go
+    // stale each time an article is published.
+    await expect(page.getByText("No posts yet — check back soon.")).not.toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Anatomy of an Open-Source Quran Platform" }),
+    ).toBeVisible();
     // Shell-excluded: no app sidebar/tool nav, just the slim editorial header.
     await expect(page.getByRole("link", { name: "Open the app" }).first()).toBeVisible();
   });
