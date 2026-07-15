@@ -8,6 +8,7 @@ import type {
   DivineName,
   Dhikr,
   HadithSection,
+  Place,
   Surah,
   TafsirEntry,
   TextDirection,
@@ -91,6 +92,17 @@ export const api = {
     });
     return getJson<{ timings: Record<string, string> }>(`${BASE}/prayer-times?${q}`).then(
       (d) => d.timings,
+    );
+  },
+  /** Nearby mosques via OpenStreetMap's Overpass API, proxied server-side (ADR 0038). */
+  getNearbyMosques: (params: { lat: number; lng: number; radius?: number }) => {
+    const q = new URLSearchParams({
+      lat: String(params.lat),
+      lng: String(params.lng),
+      ...(params.radius ? { radius: String(params.radius) } : {}),
+    });
+    return getJson<{ places: Place[]; radiusMeters: number; attribution: string }>(
+      `${BASE}/places/nearby?${q}`,
     );
   },
 };

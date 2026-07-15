@@ -19,6 +19,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/hifz",
     "/prayer-times",
     "/qibla",
+    "/mosques",
     "/calendar",
     "/zakat",
     "/settings",

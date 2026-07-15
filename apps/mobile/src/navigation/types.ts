@@ -33,6 +33,7 @@ export type ToolsStackParamList = {
   PrayerTimes: undefined;
   PrayerTracker: undefined;
   Qibla: undefined;
+  Mosques: undefined;
   HijriCalendar: undefined;
   Zakat: undefined;
   Ramadan: undefined;

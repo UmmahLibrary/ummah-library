@@ -46,6 +46,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0035](0035-indopak-script.md)                | IndoPak Arabic script (text fetched live, not bundled — amended 2026-06-28) | Accepted |
 | [0036](0036-bundled-word-level-data.md)       | Bundle recitation timings (quran-align, CC-BY); keep transliteration live   | Accepted |
 | [0037](0037-engineering-blog.md)              | Engineering blog: Markdown at build time, gated by frontmatter              | Accepted |
+| [0038](0038-nearby-mosque-finder.md)          | Nearby mosque finder: OpenStreetMap behind a `PlacesProvider` port          | Accepted |
 
 ## Writing a new ADR
 
