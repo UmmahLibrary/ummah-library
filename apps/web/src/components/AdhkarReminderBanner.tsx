@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { type AdhkarOccasion, type PrayerTimings, activeAdhkarReminder } from "@ummahlibrary/core";
+import {
+  type AdhkarReminderOccasion,
+  type PrayerTimings,
+  activeAdhkarReminder,
+} from "@ummahlibrary/core";
 import {
   ADHKAR_EMOJI,
   ADHKAR_LABEL,
@@ -25,7 +29,7 @@ const notifier = new WebNotifier();
  * `syncAdhkarReminder` (no inline `Notification`); no server push (ADR 0017, 0019).
  */
 export function AdhkarReminderBanner() {
-  const [active, setActive] = useState<AdhkarOccasion | null>(null);
+  const [active, setActive] = useState<AdhkarReminderOccasion | null>(null);
   const timingsRef = useRef<PrayerTimings | null>(null);
 
   const recompute = useCallback(() => {

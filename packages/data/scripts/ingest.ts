@@ -50,6 +50,14 @@ const FAWAZ_BASE = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1";
 // (Arabic + translation + transliteration + graded source). See ADR 0016.
 const ADHKAR_SRC =
   "https://cdn.jsdelivr.net/gh/Seen-Arabic/Morning-And-Evening-Adhkar-DB@main/en.json";
+// The rest of the Ḥiṣn al-Muslim sets (#36) — after-salah dhikr and the daily
+// occasion duas (waking, sleep, home, travel, eating, dressing, distress, …) —
+// from fitrahive/dua-dhikr, MIT-licensed and in the same Arabic + transliteration
+// ("latin") + translation + notes/benefits/source shape. See ATTRIBUTION.md.
+const ADHKAR_AFTER_SALAH_SRC =
+  "https://cdn.jsdelivr.net/gh/fitrahive/dua-dhikr@main/data/dua-dhikr/dhikr-after-salah/en.json";
+const ADHKAR_DAILY_SRC =
+  "https://cdn.jsdelivr.net/gh/fitrahive/dua-dhikr@main/data/dua-dhikr/daily-dua/en.json";
 // The 99 Names of Allah — Arabic from the Quran/Sunnah with transliteration +
 // English meaning, from the Apache-2.0 muslim-data project (verified licence).
 // See ATTRIBUTION.md. The data ships inside a SQLite asset.
@@ -275,6 +283,154 @@ async function ingestHadith(): Promise<number> {
   return total;
 }
 
+/** The dua-dhikr shape (`title`/`arabic`/`latin`/`translation`/`notes`/`source`,
+ *  and either `benefits` or `fawaid` for the virtue) shared across its category
+ *  files at https://github.com/fitrahive/dua-dhikr. */
+interface DuaDhikrEntry {
+  title: string;
+  arabic: string;
+  latin: string;
+  translation: string;
+  notes: string | null;
+  benefits?: string | null;
+  fawaid?: string | null;
+  source: string | null;
+}
+
+/** Parse a repeat count out of `notes` (e.g. "Read 3x", "Read 1x after Fajr"). */
+function repeatOf(notes: string | null): number {
+  const m = notes?.match(/(\d+)\s*x/i);
+  return m ? Math.max(1, Number(m[1])) : 1;
+}
+
+/** `Dhikr` fields shared by every dua-dhikr entry, minus id/order/occasions. */
+function fromDuaDhikr(it: DuaDhikrEntry): Omit<Dhikr, "id" | "order" | "occasions"> {
+  const repeat = repeatOf(it.notes);
+  const virtueText = (it.benefits ?? it.fawaid ?? "").trim();
+  return {
+    arabic: it.arabic.trim(),
+    translation: it.translation.trim(),
+    transliteration: it.latin.trim(),
+    repeat,
+    repeatLabel: repeat > 1 ? `${repeat}×` : "Once",
+    // The source has no separate "name" field on `Dhikr` — lead the virtue text
+    // with the dua's title so multi-item occasions (e.g. "distress", "daily")
+    // stay identifiable in the UI's virtue/source disclosure.
+    virtue: virtueText ? `${it.title} — ${virtueText}` : it.title,
+    source: it.source?.trim() || undefined,
+  };
+}
+
+/**
+ * Classify a "daily-dua" entry into a Ḥiṣn al-Muslim occasion by its title
+ * (stable, descriptive strings from the source — see fitrahive/dua-dhikr's
+ * `data/dua-dhikr/daily-dua/en.json`). Anything not matched falls into "daily"
+ * — a catch-all for the source's remaining daily-occasion duas
+ * (entering/leaving the mosque, wuḍūʾ, rain, wind, sneezing, etc.) rather than
+ * being dropped.
+ */
+function occasionsForDailyDua(title: string): AdhkarOccasion[] {
+  const t = title.toLowerCase();
+  if (t.includes("sleep")) return ["sleep"];
+  if (t.includes("waking")) return ["waking"];
+  if (t.includes("house")) return ["home"];
+  if (t.includes("travel") || t.includes("mounting a vehicle")) return ["travel"];
+  if (t.includes("eating") || t.includes("bismillah") || t.includes("breaking the fast")) {
+    return ["eating"];
+  }
+  if (t.includes("clothes")) return ["dressing"];
+  if (
+    t.includes("calamity") ||
+    t.includes("debt") ||
+    t.includes("laziness") ||
+    t.includes("seeking forgiveness") ||
+    t.includes("ease in all matters")
+  ) {
+    return ["distress"];
+  }
+  return ["daily"];
+}
+
+/**
+ * Ingest the adhkar collection — bundled content, small enough to ship.
+ * Morning/evening comes from the original ADR 0016 source; the rest of the
+ * Ḥiṣn al-Muslim sets (after-salah, waking, sleep, home, travel, eating,
+ * dressing, distress, and a "daily" catch-all for the source's remaining
+ * daily-occasion duas) were added by growing this step — see #36. No
+ * architecture change: same `Dhikr` shape, same `AdhkarRepository`, same
+ * bundled `adhkar.json`. Returns the total item count for the summary.
+ */
+async function ingestAdhkar(): Promise<number> {
+  console.log("• Adhkar (Ḥiṣn al-Muslim)");
+  const occasionsOf = (type: number): AdhkarOccasion[] =>
+    type === 1 ? ["morning"] : type === 2 ? ["evening"] : ["morning", "evening"];
+  const seen = await getJson<
+    {
+      content: string;
+      translation: string;
+      transliteration: string;
+      count: number;
+      count_description?: string;
+      fadl?: string;
+      source?: string;
+      type: number;
+    }[]
+  >(ADHKAR_SRC);
+  const morningEvening: Dhikr[] = seen.map((it, i) => {
+    const repeat = Number.isFinite(it.count) && it.count > 0 ? Math.floor(it.count) : 1;
+    return {
+      id: `me-${i + 1}`,
+      order: 0, // reassigned below, once the full collection is assembled
+      occasions: occasionsOf(it.type),
+      arabic: it.content.trim(),
+      translation: it.translation.trim(),
+      transliteration: it.transliteration.trim(),
+      repeat,
+      repeatLabel: it.count_description?.trim() || (repeat > 1 ? `${repeat}×` : "Once"),
+      virtue: it.fadl?.trim() || undefined,
+      source: it.source?.trim() || undefined,
+    };
+  });
+
+  const AFTER_SALAH_OCCASIONS: AdhkarOccasion[] = ["after-salah"];
+  console.log("  • after-salah (fitrahive/dua-dhikr, MIT)");
+  const afterSalahRaw = await getJson<DuaDhikrEntry[]>(ADHKAR_AFTER_SALAH_SRC);
+  const afterSalah: Dhikr[] = afterSalahRaw.map((it, i) => ({
+    id: `as-${i + 1}`,
+    order: 0,
+    occasions: AFTER_SALAH_OCCASIONS,
+    ...fromDuaDhikr(it),
+  }));
+
+  console.log(
+    "  • daily duas — waking/sleep/home/travel/eating/dressing/distress/daily (fitrahive/dua-dhikr, MIT)",
+  );
+  const dailyRaw = await getJson<DuaDhikrEntry[]>(ADHKAR_DAILY_SRC);
+  const daily: Dhikr[] = dailyRaw.map((it, i) => ({
+    id: `dd-${i + 1}`,
+    order: 0,
+    occasions: occasionsForDailyDua(it.title),
+    ...fromDuaDhikr(it),
+  }));
+
+  const adhkar: Dhikr[] = [...morningEvening, ...afterSalah, ...daily].map((d, i) => ({
+    ...d,
+    order: i + 1,
+  }));
+  if (adhkar.length < 80 || !adhkar.every((d) => d.arabic && d.translation && d.occasions.length)) {
+    throw new Error(`Adhkar ingest looks wrong: ${adhkar.length} items`);
+  }
+  await writeJson("adhkar.json", {
+    version: DATA_VERSION,
+    sources: [
+      "Seen-Arabic/Morning-And-Evening-Adhkar-DB (MIT) — morning & evening, derived from Ḥiṣn al-Muslim by Saʿīd al-Qaḥṭānī",
+      "fitrahive/dua-dhikr (MIT) — after-salah and the other daily occasions, derived from Ḥiṣn al-Muslim by Saʿīd al-Qaḥṭānī",
+    ],
+    adhkar,
+  });
+  return adhkar.length;
+}
+
 /** A quran-align per-ayah entry; `segments` is non-array on alignment failures. */
 interface QuranAlignEntry {
   surah: number;
@@ -394,6 +550,13 @@ async function main(): Promise<void> {
   if (process.argv.includes("--plugins-only")) {
     await writePluginRegistry();
     console.log("Regenerated plugins.json from manifests.\n");
+    return;
+  }
+
+  // Fast path: ingest only the adhkar collection (ADR 0016, #36).
+  if (process.argv.includes("--adhkar-only")) {
+    const count = await ingestAdhkar();
+    console.log(`\nIngested ${count} adhkar.\n`);
     return;
   }
 
@@ -545,46 +708,8 @@ async function main(): Promise<void> {
   // 4) The full plugin registry (all kinds) for the app to load at runtime.
   await writePluginRegistry();
 
-  // 5) Adhkar (morning & evening) — bundled content, small enough to ship.
-  console.log("• Adhkar (Ḥiṣn al-Muslim — morning & evening)");
-  const occasionsOf = (type: number): AdhkarOccasion[] =>
-    type === 1 ? ["morning"] : type === 2 ? ["evening"] : ["morning", "evening"];
-  const seen = await getJson<
-    {
-      content: string;
-      translation: string;
-      transliteration: string;
-      count: number;
-      count_description?: string;
-      fadl?: string;
-      source?: string;
-      type: number;
-    }[]
-  >(ADHKAR_SRC);
-  const adhkar: Dhikr[] = seen.map((it, i) => {
-    const repeat = Number.isFinite(it.count) && it.count > 0 ? Math.floor(it.count) : 1;
-    return {
-      id: `me-${i + 1}`,
-      order: i + 1,
-      occasions: occasionsOf(it.type),
-      arabic: it.content.trim(),
-      translation: it.translation.trim(),
-      transliteration: it.transliteration.trim(),
-      repeat,
-      repeatLabel: it.count_description?.trim() || (repeat > 1 ? `${repeat}×` : "Once"),
-      virtue: it.fadl?.trim() || undefined,
-      source: it.source?.trim() || undefined,
-    };
-  });
-  if (adhkar.length < 30 || !adhkar.every((d) => d.arabic && d.translation)) {
-    throw new Error(`Adhkar ingest looks wrong: ${adhkar.length} items`);
-  }
-  await writeJson("adhkar.json", {
-    version: DATA_VERSION,
-    source:
-      "Seen-Arabic/Morning-And-Evening-Adhkar-DB (MIT), derived from Ḥiṣn al-Muslim by Saʿīd al-Qaḥṭānī",
-    adhkar,
-  });
+  // 5) Adhkar (ADR 0016, grown for #36 — see `ingestAdhkar`).
+  const adhkarCount = await ingestAdhkar();
 
   // 6) The 99 Names of Allah — bundled content from the muslim-data SQLite.
   console.log("• Asmāʾ al-Ḥusná (99 Names)");
@@ -619,7 +744,7 @@ async function main(): Promise<void> {
   const hadithCount = await ingestHadith();
 
   console.log(
-    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs (Uthmani), ${timingCount} reciter-ayah timings, ${translationPlugins.length} translations, ${adhkar.length} adhkar, ${names.length} names, ${hadithCount} hadith.`,
+    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs (Uthmani), ${timingCount} reciter-ayah timings, ${translationPlugins.length} translations, ${adhkarCount} adhkar, ${names.length} names, ${hadithCount} hadith.`,
   );
 }
 

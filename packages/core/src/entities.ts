@@ -117,7 +117,18 @@ export interface DivineName {
 }
 
 /** When a remembrance is said. */
-export type AdhkarOccasion = "morning" | "evening";
+export type AdhkarOccasion =
+  | "morning"
+  | "evening"
+  | "after-salah"
+  | "waking"
+  | "sleep"
+  | "home"
+  | "travel"
+  | "eating"
+  | "dressing"
+  | "distress"
+  | "daily";
 
 /** A single remembrance (dhikr) from the adhkar collection. */
 export interface Dhikr {

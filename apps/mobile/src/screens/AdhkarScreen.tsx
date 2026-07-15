@@ -171,10 +171,10 @@ function makeStyles(c: Palette) {
     screen: { padding: 16, backgroundColor: c.bg, gap: 10, paddingBottom: 32 },
     center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg },
     errorText: { color: c.error, fontSize: 15, textAlign: "center", paddingHorizontal: 24 },
-    tabs: { flexDirection: "row", gap: 8, marginBottom: 4 },
+    tabs: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 4 },
     tab: {
-      flex: 1,
       paddingVertical: 10,
+      paddingHorizontal: 14,
       borderRadius: 10,
       borderWidth: 1,
       borderColor: c.border,
