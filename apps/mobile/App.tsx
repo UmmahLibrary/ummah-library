@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppState } from "react-native";
+import { AppState, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -84,7 +84,15 @@ function NavRoot() {
     },
   };
   return (
-    <NavigationContainer theme={navTheme} linking={linking}>
+    <NavigationContainer
+      theme={navTheme}
+      linking={linking}
+      // On a cold/direct web navigation, linking resolution is async (one paint
+      // cycle even though getInitialURL is synchronous) and NavigationContainer
+      // renders only this fallback until it resolves — default to a themed
+      // placeholder instead of a blank white flash.
+      fallback={<View style={{ flex: 1, backgroundColor: colors.bg }} />}
+    >
       <StatusBar style={mode === "dark" ? "light" : "dark"} />
       <RootTabs />
     </NavigationContainer>
