@@ -18,7 +18,7 @@ import { api, type TafsirMeta } from "../api";
 import { mobileSettingsStore as store } from "./settings-store";
 import { readTafsirCompare, writeTafsirCompare } from "../tafsir-compare-store";
 import { RECITER, TAFSIRS } from "../plugins";
-import { DEFAULT_EDITIONS, MAX_SCALE, MIN_SCALE, type ReadingMode } from "../types";
+import { defaultEditions, MAX_SCALE, MIN_SCALE, type ReadingMode } from "../types";
 
 interface SettingsValue {
   editions: string[];
@@ -57,7 +57,7 @@ const SettingsContext = createContext<SettingsValue | null>(null);
 const clampScale = (n: number): number => Math.min(MAX_SCALE, Math.max(MIN_SCALE, n));
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [editions, setEditionsState] = useState<string[]>(DEFAULT_EDITIONS);
+  const [editions, setEditionsState] = useState<string[]>(defaultEditions);
   const [readingMode, setReadingModeState] = useState<ReadingMode>("translation");
   const [readingTranslation, setReadingTranslationState] = useState<string | null>(null);
   const [reciterId, setReciterIdState] = useState<string>(RECITER.id);
@@ -101,7 +101,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setEditions = useCallback((ids: string[]) => {
-    const next = ids.length > 0 ? ids : DEFAULT_EDITIONS;
+    const next = ids.length > 0 ? ids : defaultEditions();
     setEditionsState(next);
     void store.writeEditions(next);
   }, []);

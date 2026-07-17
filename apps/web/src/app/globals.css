@@ -2289,6 +2289,11 @@ body.peek-on.peek-hide-tr .ayah-tr {
 .ts-empty {
   color: var(--muted);
 }
+.ts-hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: -0.4rem 0 1rem;
+}
 
 /* ── Noor shell layout utilities ── */
 html,
