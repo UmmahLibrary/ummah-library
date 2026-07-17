@@ -85,16 +85,23 @@ export function SurahListScreen({ navigation }: Props) {
   // Fold diacritics so "fatiha" matches "Al-Fātiḥah", "baqarah" matches
   // "Al-Baqarah", etc. — users type surah names without the macrons/dots.
   const q = fold(query);
+  // Vowel-collapsing folds any run of a single repeated vowel ("aaa...a") down
+  // to one character, however long the run — a 1-character substring is too
+  // low-information to filter a ~114-item list and would otherwise match
+  // almost everything. Require at least 2 folded characters before doing
+  // text substring matching; the numeric surah-number prefix match is exempt
+  // since single-digit searches (e.g. "1") are legitimate.
+  const textQuery = q.length >= 2 ? q : null;
   const filtered = useMemo(() => {
     const list = surahs ?? [];
     if (!q) return list;
     return list.filter(
       (s) =>
         String(s.number).startsWith(q) ||
-        fold(s.transliteration).includes(q) ||
-        fold(s.englishName).includes(q),
+        (textQuery !== null &&
+          (fold(s.transliteration).includes(textQuery) || fold(s.englishName).includes(textQuery))),
     );
-  }, [surahs, q]);
+  }, [surahs, q, textQuery]);
 
   // The list rows depend on the active tab: a flat surah list, the 30 juzʾ, or
   // surahs grouped by place of revelation (Meccan / Medinan).

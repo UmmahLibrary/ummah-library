@@ -22,9 +22,9 @@ import { FONT } from "../fonts";
 import { DEFAULT_EDITION } from "../types";
 import { useTheme, type Palette } from "../theme";
 import { useLibrary, newCollectionId } from "../state/LibraryContext";
-import type { ReadStackParamList } from "../navigation/types";
+import type { MoreStackParamList } from "../navigation/types";
 
-type Props = NativeStackScreenProps<ReadStackParamList, "Collections">;
+type Props = NativeStackScreenProps<MoreStackParamList, "Collections">;
 
 interface AyahText {
   ar: string;
@@ -171,7 +171,11 @@ export function CollectionsScreen({ navigation }: Props) {
 
                     <Pressable
                       style={styles.open}
-                      onPress={() => navigation.navigate("SurahReader", { surah: ref.sura })}
+                      onPress={() =>
+                        navigation
+                          .getParent()
+                          ?.navigate("Read", { screen: "SurahReader", params: { surah: ref.sura } } as never)
+                      }
                     >
                       <Text style={styles.openText}>Open in reader</Text>
                       <Icon name="arrowR" size={15} color={colors.accent} sw={1.8} />
