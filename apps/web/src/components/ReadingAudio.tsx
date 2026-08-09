@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
   type ReciterPlugin,
+  ayahCountOf,
   cyclePlaybackRate,
+  downloadSurahAudio,
   quranComAudioUrl,
   reciterAudioUrl,
   repeatRange,
@@ -12,6 +14,7 @@ import { N, Icon } from "@ummahlibrary/ui";
 import { readReciter, writeReciter } from "../lib/reader-prefs";
 import { readLoop, readRate, writeLoop, writeRate } from "../lib/reader-prefs-store";
 import { type Segment, bundledSegments } from "../lib/audio-timing";
+import { webAudioStore } from "../lib/audio-store";
 
 const RECITER_KEY = "ul.reciter";
 
@@ -135,6 +138,59 @@ export function ReadingAudio({
     segments: null,
     last: -1,
   });
+  // The live blob: object URL for a downloaded ayah, revoked before the next one.
+  const objectUrlRef = useRef<string | null>(null);
+  // Offline downloads (#202): in-flight progress + which of this list's surahs are saved.
+  const [download, setDownload] = useState<{ done: number; total: number } | null>(null);
+  const [savedSurahs, setSavedSurahs] = useState<Set<number>>(new Set());
+
+  /** Set the audio source, revoking any previous blob URL so it can't leak. */
+  function setAudioSrc(audio: HTMLAudioElement, src: string) {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    if (src.startsWith("blob:")) objectUrlRef.current = src;
+    audio.src = src;
+  }
+
+  /** The distinct surahs the current verse list spans (one for a surah, many for a juzʾ). */
+  const listSurahs = Array.from(new Set(verses.map((v) => v.sura)));
+
+  // Reflect which of this list's surahs are already downloaded for the reciter.
+  useEffect(() => {
+    let live = true;
+    void webAudioStore.savedSurahs().then((saved) => {
+      if (!live) return;
+      const full = new Set(
+        saved
+          .filter((s) => s.reciterId === reciterId && s.ayahCount >= ayahCountOf(s.surah))
+          .map((s) => s.surah),
+      );
+      setSavedSurahs(full);
+    });
+    return () => {
+      live = false;
+    };
+  }, [reciterId, verses, download]);
+
+  /** Download every surah in the current list for the selected reciter, with progress. */
+  async function downloadAudio() {
+    const reciter = reciters.find((r) => r.id === reciterId) ?? reciters[0];
+    if (!reciter || download) return;
+    const total = listSurahs.reduce((n, s) => n + ayahCountOf(s), 0);
+    let done = 0;
+    setDownload({ done: 0, total });
+    try {
+      for (const s of listSurahs) {
+        await downloadSurahAudio(webAudioStore, reciter, s, {
+          onProgress: () => setDownload({ done: ++done, total }),
+        });
+      }
+    } finally {
+      setDownload(null);
+    }
+  }
 
   useEffect(() => {
     void readReciter().then((saved) => {
@@ -252,12 +308,27 @@ export function ReadingAudio({
     audio.pause();
     clearWord();
 
-    const timing = await getTiming(reciter, key);
-    if (token !== tokenRef.current) return;
-    const segments = timing.segments.length ? timing.segments : null;
+    // Prefer a downloaded copy (offline #202): play the local blob and use the
+    // bundled word timings, touching no network. Else stream as before.
+    const local = await webAudioStore.localUrl(reciter.id, verse);
+    if (token !== tokenRef.current) {
+      if (local) URL.revokeObjectURL(local);
+      return;
+    }
+    let src: string;
+    let segments: Segment[] | null;
+    if (local) {
+      src = local;
+      segments = await bundledSegments(reciter.id, verse.sura, verse.aya);
+    } else {
+      const timing = await getTiming(reciter, key);
+      if (token !== tokenRef.current) return;
+      src = timing.url;
+      segments = timing.segments.length ? timing.segments : null;
+    }
 
     wordRef.current = { block: document.getElementById(key), segments, last: -1 };
-    audio.src = timing.url;
+    setAudioSrc(audio, src);
     audio.playbackRate = rateRef.current;
     audio.ontimeupdate = segments ? onTimeUpdate : null;
     audio.onended = () => {
@@ -318,7 +389,13 @@ export function ReadingAudio({
       segments: timing.segments,
       last: -1,
     };
-    audio.src = timing.url;
+    const [wSura, wAya] = verseKey.split(":").map(Number) as [number, number];
+    const localWord = await webAudioStore.localUrl(reciter.id, { sura: wSura, aya: wAya });
+    if (token !== tokenRef.current) {
+      if (localWord) URL.revokeObjectURL(localWord);
+      return;
+    }
+    setAudioSrc(audio, localWord ?? timing.url);
     audio.playbackRate = rateRef.current;
 
     const begin = () => {
@@ -457,6 +534,38 @@ export function ReadingAudio({
       style={{ ...ctrlStyle, color: showRange ? N.gold : N.muted }}
     >
       A–B
+    </button>
+  );
+  const allSaved = listSurahs.length > 0 && listSurahs.every((s) => savedSurahs.has(s));
+  const downloadPct = download ? Math.round((download.done / Math.max(1, download.total)) * 100) : 0;
+  const downloadButton = (
+    <button
+      type="button"
+      onClick={() => void downloadAudio()}
+      disabled={download !== null || allSaved}
+      aria-label={
+        download
+          ? `Downloading ${downloadPct}%`
+          : allSaved
+            ? "Saved for offline listening"
+            : "Download for offline listening"
+      }
+      title={
+        download
+          ? `Downloading… ${downloadPct}%`
+          : allSaved
+            ? "Saved for offline listening"
+            : "Download for offline listening"
+      }
+      style={{
+        ...ctrlStyle,
+        color: download || allSaved ? N.gold : N.muted,
+        minWidth: download ? 44 : 34,
+        display: "grid",
+        placeItems: "center",
+      }}
+    >
+      {download ? `${downloadPct}%` : <Icon name={allSaved ? "check" : "download"} size={16} />}
     </button>
   );
   const rangePanel = showRange ? (
@@ -612,6 +721,7 @@ export function ReadingAudio({
           </div>
           {speedButton}
           {rangeButton}
+          {downloadButton}
           <button
             type="button"
             onClick={toggleLoop}
@@ -681,6 +791,7 @@ export function ReadingAudio({
         </button>
         {speedButton}
         {rangeButton}
+        {downloadButton}
         <span className="audio-status">
           {current ? `Playing ${current}` : "Tap ▶ to play one āyah, or its number to play on"}
         </span>

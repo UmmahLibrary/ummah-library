@@ -18,6 +18,7 @@ const TOOLS = [
   { key: "/adhkar", label: "Adhkār", glyph: "☼", note: "Morning · Evening" },
   { key: "/zakat", label: "Zakat", glyph: "⊜", note: "2.5% calculator" },
   { key: "/hadith", label: "Hadith", glyph: "📖", note: "Search the collections" },
+  { key: "/downloads", label: "Downloads", glyph: "⤓", note: "Offline reciter audio" },
 ];
 
 export default function ToolsPage() {

@@ -59,3 +59,82 @@ describe("repeatRange", () => {
     expect(repeatRange(verses, "2:3", "2:3")).toEqual([{ sura: 2, aya: 3 }]);
   });
 });
+
+import { downloadSurahAudio, isSurahDownloaded } from "./audio";
+import type { AudioStore, DownloadedSurah } from "./ports";
+import type { ReciterPlugin } from "./plugins";
+
+function fakeAudioStore() {
+  const saved = new Map<string, string>(); // key → remote url used
+  const key = (r: string, ref: { sura: number; aya: number }) => `${r}:${ref.sura}:${ref.aya}`;
+  let saveCalls = 0;
+  const store: AudioStore = {
+    has: async (r, ref) => saved.has(key(r, ref)),
+    localUrl: async (r, ref) => (saved.has(key(r, ref)) ? `blob:${key(r, ref)}` : null),
+    save: async (r, ref, remoteUrl) => {
+      saveCalls++;
+      saved.set(key(r, ref), remoteUrl);
+    },
+    removeSurah: async (r, surah) => {
+      for (const k of [...saved.keys()]) if (k.startsWith(`${r}:${surah}:`)) saved.delete(k);
+    },
+    savedSurahs: async () => {
+      const bySurah = new Map<string, DownloadedSurah>();
+      for (const k of saved.keys()) {
+        const [r, s] = k.split(":");
+        const id = `${r}:${s}`;
+        const e = bySurah.get(id) ?? { reciterId: r!, surah: Number(s), ayahCount: 0, bytes: 0 };
+        e.ayahCount++;
+        bySurah.set(id, e);
+      }
+      return [...bySurah.values()];
+    },
+  };
+  return { store, saved, saveCalls: () => saveCalls };
+}
+
+const reciter = {
+  kind: "reciter",
+  id: "alafasy",
+  name: "Alafasy",
+  language: "ar",
+  audioUrlTemplate: "https://everyayah.com/data/Alafasy_128kbps/{surah:3}{ayah:3}.mp3",
+} as ReciterPlugin;
+
+describe("downloadSurahAudio", () => {
+  it("saves every ayah of the surah and reports progress to the end", async () => {
+    const { store, saved } = fakeAudioStore();
+    const progress: number[] = [];
+    await downloadSurahAudio(store, reciter, 114, { onProgress: (p) => progress.push(p.done) });
+    expect(saved.size).toBe(6); // An-Nās has 6 ayahs
+    expect(progress).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(saved.get("alafasy:114:1")).toBe("https://everyayah.com/data/Alafasy_128kbps/114001.mp3");
+  });
+
+  it("is idempotent — a second run re-fetches nothing", async () => {
+    const { store, saveCalls } = fakeAudioStore();
+    await downloadSurahAudio(store, reciter, 114);
+    expect(saveCalls()).toBe(6);
+    await downloadSurahAudio(store, reciter, 114);
+    expect(saveCalls()).toBe(6); // all already present → no new saves
+  });
+
+  it("stops early when cancelled", async () => {
+    const { store, saved } = fakeAudioStore();
+    let done = 0;
+    await downloadSurahAudio(store, reciter, 114, {
+      onProgress: () => (done += 1),
+      cancelled: () => done >= 3, // cancel after 3 progress ticks
+    });
+    expect(saved.size).toBe(3);
+  });
+});
+
+describe("isSurahDownloaded", () => {
+  it("is false until every ayah is saved, then true", async () => {
+    const { store } = fakeAudioStore();
+    expect(await isSurahDownloaded(store, "alafasy", 114)).toBe(false);
+    await downloadSurahAudio(store, reciter, 114);
+    expect(await isSurahDownloaded(store, "alafasy", 114)).toBe(true);
+  });
+});
