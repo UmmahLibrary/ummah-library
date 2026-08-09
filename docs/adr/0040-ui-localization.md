@@ -1,4 +1,4 @@
-# 0038 — UI localization (i18n foundation)
+# 0040 — UI localization (i18n foundation)
 
 - **Status:** Accepted
 - **Date:** 2026-07-03

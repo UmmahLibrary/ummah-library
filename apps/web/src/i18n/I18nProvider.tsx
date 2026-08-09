@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * UI localization runtime (#208, ADR 0038). Holds the active locale (persisted in
+ * UI localization runtime (#208, ADR 0040). Holds the active locale (persisted in
  * `localStorage` under `ul.locale`), exposes a `t()` lookup with an English
  * fallback, and drives `<html lang>` + `<html dir>` so an RTL locale flips the
  * whole layout. Local-first: the choice lives on the device, no network.

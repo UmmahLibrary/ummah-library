@@ -1,5 +1,5 @@
 /**
- * UI localization config (#208, ADR 0038). The interface language is separate
+ * UI localization config (#208, ADR 0040). The interface language is separate
  * from Quran/translation content: this only localizes the app's own chrome.
  * A locale carries a text direction so an RTL language (Urdu, Arabic) flips the
  * whole layout via `<html dir>`.
