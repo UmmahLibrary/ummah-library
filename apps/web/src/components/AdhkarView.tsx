@@ -46,17 +46,18 @@ export function AdhkarView({ dhikr }: { dhikr: readonly Dhikr[] }) {
 
   return (
     <div>
-      {/* Morning / Evening segmented toggle */}
+      {/* Adhkar set picker — morning/evening plus the other Ḥiṣn al-Muslim sets (#36) */}
       <div
         role="tablist"
         aria-label="Adhkar set"
         style={{
           display: "flex",
-          width: "fit-content",
+          flexWrap: "wrap",
+          gap: 6,
           border: `1px solid ${N.border}`,
           borderRadius: 10,
-          overflow: "hidden",
           background: N.card,
+          padding: 4,
           marginBottom: 16,
         }}
       >
@@ -73,7 +74,8 @@ export function AdhkarView({ dhikr }: { dhikr: readonly Dhikr[] }) {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 7,
-                padding: "8px 18px",
+                padding: "8px 14px",
+                borderRadius: 8,
                 fontFamily: N.ui,
                 fontSize: 14,
                 fontWeight: active ? 700 : 500,

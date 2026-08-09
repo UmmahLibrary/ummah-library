@@ -42,10 +42,53 @@ export interface TafsirMeta {
   direction: TextDirection;
 }
 
+/**
+ * Distinguishes a genuine connectivity failure (`fetch` itself rejected) from
+ * an HTTP error response, so callers can show accurate copy instead of a
+ * blanket "check your connection" for e.g. a backend cold-start 503.
+ */
+export class ApiError extends Error {
+  readonly status?: number;
+  readonly isNetworkError: boolean;
+  constructor(message: string, opts: { status?: number; isNetworkError: boolean }) {
+    super(message);
+    this.name = "ApiError";
+    this.status = opts.status;
+    this.isNetworkError = opts.isNetworkError;
+  }
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Retry transient 5xx responses (e.g. a backend cold start) with a short
+// backoff before surfacing an error; client errors and real network failures
+// (offline) aren't retried since another attempt won't fix them.
+const RETRY_DELAYS_MS = [400, 1200];
+
 async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return (await res.json()) as T;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        const retryable = res.status >= 500 && attempt < RETRY_DELAYS_MS.length;
+        if (retryable) {
+          await sleep(RETRY_DELAYS_MS[attempt]!);
+          continue;
+        }
+        throw new ApiError(`HTTP ${res.status}`, { status: res.status, isNetworkError: false });
+      }
+      return (await res.json()) as T;
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      if (attempt < RETRY_DELAYS_MS.length) {
+        await sleep(RETRY_DELAYS_MS[attempt]!);
+        continue;
+      }
+      throw new ApiError(e instanceof Error ? e.message : "Network request failed", {
+        isNetworkError: true,
+      });
+    }
+  }
 }
 
 export const api = {

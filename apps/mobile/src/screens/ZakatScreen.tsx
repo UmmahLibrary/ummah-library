@@ -35,6 +35,14 @@ function toNum(s: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Sanitize free text into a non-negative decimal string: digits and at most one "." */
+function sanitizeDecimal(s: string): string {
+  const digitsAndDots = s.replace(/[^0-9.]/g, "");
+  const firstDot = digitsAndDots.indexOf(".");
+  if (firstDot === -1) return digitsAndDots;
+  return digitsAndDots.slice(0, firstDot + 1) + digitsAndDots.slice(firstDot + 1).replace(/\./g, "");
+}
+
 export function ZakatScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -75,7 +83,10 @@ export function ZakatScreen() {
     [state],
   );
 
-  const havePrices = toNum(state.goldPricePerGram) > 0 && toNum(state.silverPricePerGram) > 0;
+  const havePrices =
+    state.nisabBasis === "gold"
+      ? toNum(state.goldPricePerGram) > 0
+      : toNum(state.silverPricePerGram) > 0;
 
   function money(n: number) {
     return `${state.currency}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -127,7 +138,7 @@ export function ZakatScreen() {
             <TextInput
               style={styles.input}
               value={state.goldPricePerGram}
-              onChangeText={(v) => update({ goldPricePerGram: v })}
+              onChangeText={(v) => update({ goldPricePerGram: sanitizeDecimal(v) })}
               keyboardType="decimal-pad"
               placeholder="e.g. 75"
               placeholderTextColor={colors.muted}
@@ -137,7 +148,7 @@ export function ZakatScreen() {
             <TextInput
               style={styles.input}
               value={state.silverPricePerGram}
-              onChangeText={(v) => update({ silverPricePerGram: v })}
+              onChangeText={(v) => update({ silverPricePerGram: sanitizeDecimal(v) })}
               keyboardType="decimal-pad"
               placeholder="e.g. 0.85"
               placeholderTextColor={colors.muted}
@@ -168,7 +179,7 @@ export function ZakatScreen() {
               <TextInput
                 style={styles.input}
                 value={state.assets[c.id] ?? ""}
-                onChangeText={(v) => setAsset(c.id, v)}
+                onChangeText={(v) => setAsset(c.id, sanitizeDecimal(v))}
                 keyboardType="decimal-pad"
                 placeholder="0"
                 placeholderTextColor={colors.muted}
@@ -183,7 +194,7 @@ export function ZakatScreen() {
             <TextInput
               style={styles.input}
               value={state.liabilities}
-              onChangeText={(v) => update({ liabilities: v })}
+              onChangeText={(v) => update({ liabilities: sanitizeDecimal(v) })}
               keyboardType="decimal-pad"
               placeholder="0"
               placeholderTextColor={colors.muted}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import {
   ADHKAR_OCCASIONS,
@@ -9,7 +9,7 @@ import {
   nextTally,
   sessionProgress,
 } from "@ummahlibrary/core";
-import { api } from "../api";
+import { api, ApiError } from "../api";
 import { KEYS, getJSON, setJSON } from "../storage";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
@@ -38,6 +38,12 @@ export function AdhkarScreen() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [occasion, setOccasion] = useState<AdhkarOccasion>("morning");
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [error, setError] = useState<ApiError | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const retry = useCallback(() => {
+    setStatus("loading");
+    setReloadToken((t) => t + 1);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -48,9 +54,13 @@ export function AdhkarScreen() {
         setCounts(saved);
         setStatus("ready");
       })
-      .catch(() => active && setStatus("error"));
+      .catch((e: unknown) => {
+        if (!active) return;
+        setError(e instanceof ApiError ? e : new ApiError("Failed", { isNetworkError: true }));
+        setStatus("error");
+      });
     return () => { active = false; };
-  }, []);
+  }, [reloadToken]);
 
   function tap(d: Dhikr) {
     setCounts((prev) => {
@@ -82,9 +92,16 @@ export function AdhkarScreen() {
   }
 
   if (status === "error") {
+    const message =
+      error && !error.isNetworkError && error.status && error.status >= 500
+        ? "The server is starting up. Try again in a moment."
+        : "Could not load adhkar. Check your connection.";
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>Could not load adhkar. Check your connection.</Text>
+        <Text style={styles.errorText}>{message}</Text>
+        <Pressable style={styles.chip} onPress={retry}>
+          <Text style={styles.chipText}>Try again</Text>
+        </Pressable>
       </View>
     );
   }
@@ -169,12 +186,20 @@ export function AdhkarScreen() {
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { padding: 16, backgroundColor: c.bg, gap: 10, paddingBottom: 32 },
-    center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg },
+    center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, gap: 14 },
     errorText: { color: c.error, fontSize: 15, textAlign: "center", paddingHorizontal: 24 },
-    tabs: { flexDirection: "row", gap: 8, marginBottom: 4 },
+    chip: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    chipText: { color: c.muted, fontSize: 13 },
+    tabs: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 4 },
     tab: {
-      flex: 1,
       paddingVertical: 10,
+      paddingHorizontal: 14,
       borderRadius: 10,
       borderWidth: 1,
       borderColor: c.border,

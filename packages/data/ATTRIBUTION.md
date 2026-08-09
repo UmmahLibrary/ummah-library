@@ -99,13 +99,39 @@ from [`fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api).
 
 ## Adhkar — `adhkar.json`
 
-- **Source:** [Seen-Arabic/Morning-And-Evening-Adhkar-DB](https://github.com/Seen-Arabic/Morning-And-Evening-Adhkar-DB)
-  (`en.json`), itself derived from **Ḥiṣn al-Muslim** (_Fortress of the Muslim_)
-  by Saʿīd ibn ʿAlī al-Qaḥṭānī.
-- **License:** **MIT** (compatible with AGPL-3.0; attribution retained).
-- Each dhikr keeps its `source` (hadith/Quranic reference, with grading where the
-  upstream provides it) and its `repeat` count. To add the other Ḥiṣn al-Muslim
-  sets (after-salah, sleep, travel, …) grow the adhkar step in `scripts/ingest.ts`.
+Two sources, both derived from **Ḥiṣn al-Muslim** (_Fortress of the Muslim_) by
+Saʿīd ibn ʿAlī al-Qaḥṭānī, merged into one bundled collection (ADR 0016, #36):
+
+- **Morning & evening** — [Seen-Arabic/Morning-And-Evening-Adhkar-DB](https://github.com/Seen-Arabic/Morning-And-Evening-Adhkar-DB)
+  (`en.json`). **License: MIT** (compatible with AGPL-3.0; attribution retained).
+- **After-salah + the daily occasions** (waking, sleep, entering/leaving home,
+  travel, eating, dressing, distress, and a "daily" catch-all for the source's
+  remaining daily-occasion duas — entering/leaving the mosque, wuḍūʾ, rain,
+  wind, sneezing, etc.) — [fitrahive/dua-dhikr](https://github.com/fitrahive/dua-dhikr)
+  (`data/dua-dhikr/dhikr-after-salah/en.json` and `data/dua-dhikr/daily-dua/en.json`).
+  **License: MIT** (compatible with AGPL-3.0; attribution retained). Each entry's
+  `title` (e.g. "Travel Supplication") is folded into the `virtue` field, since
+  `Dhikr` has no separate name field — see `scripts/ingest.ts`.
+
+Each dhikr keeps its `source` (hadith/Quranic reference, with grading where the
+upstream provides it) and its `repeat` count, parsed from the upstream `notes`
+field for the dua-dhikr sets (e.g. `"Read 33x"`).
+
+**Sourcing notes (#36):** other full Ḥiṣn al-Muslim JSON datasets were checked
+and rejected for licensing — `wafaaelmaandy/Hisn-Muslim-Json` and
+`iotmani/hisnul-muslim` carry no license (all-rights-reserved by default).
+`asellam/HisnElMuslim` (MIT, the complete 133-chapter book) was a strong
+candidate but is **Arabic-only** — no English translation or transliteration —
+so using it would have meant authoring unreviewed translations ourselves,
+which conflicts with the project's "established, attributed sources" rule; it
+was passed over in favor of `fitrahive/dua-dhikr`, which already ships
+Arabic + transliteration + translation in the same shape as the existing
+source. Some classical Ḥiṣn al-Muslim chapters (e.g. funeral/burial duas, the
+istikhāra prayer, illness/visiting-the-sick duas) are not yet covered by
+`fitrahive/dua-dhikr`'s categories and so remain unadded; grow the adhkar step
+in `scripts/ingest.ts` if/when a similarly-licensed, similarly-shaped source
+for them turns up.
+
 - **Pending:** a scholar should verify the Arabic vocalisation, translations, and
   gradings before any production launch (see ADR 0016).
 

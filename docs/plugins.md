@@ -44,9 +44,14 @@ with zero-padded forms like `{surah:3}`).
   "name": "Mahmoud Khalil Al-Husary",
   "language": "ar",
   "style": "Murattal",
-  "audioUrlTemplate": "https://everyayah.com/data/Husary_128kbps/{surah:3}{ayah:3}.mp3"
+  "audioUrlTemplate": "https://everyayah.com/data/Husary_128kbps/{surah:3}{ayah:3}.mp3",
+  "quranComId": 2
 }
 ```
+
+`quranComId` is optional — set it only if the reciter also has word-level
+timing data on quran.com; it's what enables per-word audio highlighting for
+that reciter (ADR 0036). Leave it out if not.
 
 ## Add a tafsir
 
@@ -58,7 +63,7 @@ Tafsir is fetched per-surah at runtime (e.g. from
   "kind": "tafsir",
   "id": "ar-tabari",
   "name": "Tafsir al-Tabari",
-  "author": "Muhammad ibn Jarir al-Tabari",
+  "author": "Ibn Jarir al-Tabari",
   "language": "ar",
   "direction": "rtl",
   "surahUrlTemplate": "https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/ar-tafsir-al-tabari/{surah}.json"

@@ -32,8 +32,34 @@ const items: Dhikr[] = [
 ];
 
 describe("ADHKAR_OCCASIONS", () => {
-  it("offers morning then evening", () => {
-    expect(ADHKAR_OCCASIONS.map((o) => o.id)).toEqual(["morning", "evening"]);
+  it("offers morning and evening first, then the other Ḥiṣn al-Muslim sets (#36)", () => {
+    const ids = ADHKAR_OCCASIONS.map((o) => o.id);
+    expect(ids.slice(0, 2)).toEqual(["morning", "evening"]);
+    expect(ids).toEqual([
+      "morning",
+      "evening",
+      "after-salah",
+      "waking",
+      "sleep",
+      "home",
+      "travel",
+      "eating",
+      "dressing",
+      "distress",
+      "daily",
+    ]);
+  });
+
+  it("gives every occasion a non-empty English and Arabic label", () => {
+    for (const o of ADHKAR_OCCASIONS) {
+      expect(o.label.length).toBeGreaterThan(0);
+      expect(o.arabic.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("has no duplicate occasion ids", () => {
+    const ids = ADHKAR_OCCASIONS.map((o) => o.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
 
@@ -41,6 +67,18 @@ describe("filterByOccasion", () => {
   it("returns matching dhikrs sorted by order", () => {
     expect(filterByOccasion(items, "morning").map((d) => d.id)).toEqual(["a", "c"]);
     expect(filterByOccasion(items, "evening").map((d) => d.id)).toEqual(["b", "c"]);
+  });
+
+  it("filters the newer Ḥiṣn al-Muslim occasions the same way (#36)", () => {
+    const grown: Dhikr[] = [
+      ...items,
+      dhikr("d", 4, ["after-salah"]),
+      dhikr("e", 5, ["travel"]),
+      dhikr("f", 6, ["travel"], 3),
+    ];
+    expect(filterByOccasion(grown, "after-salah").map((d) => d.id)).toEqual(["d"]);
+    expect(filterByOccasion(grown, "travel").map((d) => d.id)).toEqual(["e", "f"]);
+    expect(filterByOccasion(grown, "sleep")).toEqual([]);
   });
 });
 
