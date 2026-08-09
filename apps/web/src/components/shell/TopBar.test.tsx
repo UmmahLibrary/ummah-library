@@ -24,4 +24,14 @@ describe("TopBar", () => {
 
     expect(push).toHaveBeenCalledWith("/search?q=mercy");
   });
+
+  it("links to the blog", () => {
+    render(
+      <SearchProvider>
+        <TopBar />
+      </SearchProvider>,
+    );
+
+    expect(screen.getByTitle("Read the blog")).toHaveAttribute("href", "/blog");
+  });
 });

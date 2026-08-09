@@ -15,6 +15,8 @@ export function NamesScreen() {
   const [learned, setLearned] = useState<Record<number, true>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  // The featured/hero card tracks whichever name was most recently tapped.
+  const [selected, setSelected] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -62,7 +64,7 @@ export function NamesScreen() {
   }
 
   const count = Object.keys(learned).length;
-  const featured = names[0];
+  const featured = (selected != null && names.find((n) => n.number === selected)) || names[0];
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
@@ -74,7 +76,7 @@ export function NamesScreen() {
           <View style={styles.featuredWatermark} pointerEvents="none">
             <Khatam size={170} color={colors.accent} sw={1} opacity={0.07} />
           </View>
-          <Text style={styles.featuredKicker}>1 OF 99</Text>
+          <Text style={styles.featuredKicker}>{featured.number} OF {names.length}</Text>
           <Text style={styles.featuredAr}>{featured.arabic}</Text>
           <Text style={styles.featuredTr}>{featured.transliteration}</Text>
           <Text style={styles.featuredMeaning}>{featured.meaning}</Text>
@@ -88,7 +90,10 @@ export function NamesScreen() {
             <Pressable
               key={n.number}
               style={[styles.gridCard, done && styles.gridCardDone]}
-              onPress={() => toggle(n.number)}
+              onPress={() => {
+                setSelected(n.number);
+                toggle(n.number);
+              }}
               accessibilityRole="button"
               accessibilityState={{ selected: done }}
             >

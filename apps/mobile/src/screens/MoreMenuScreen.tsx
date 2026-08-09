@@ -20,9 +20,9 @@ export function MoreMenuScreen({ navigation }: Props) {
     { icon: "star", title: "Your journey", desc: "Streaks, stats & achievements", onPress: () => navigation.navigate("Profile") },
     { icon: "heart", title: "99 Names", desc: "Asmāʾ al-Ḥusná", onPress: () => navigation.navigate("Names") },
     { icon: "globe", title: "Hadith", desc: "Collections of prophetic traditions", onPress: () => navigation.navigate("Hadith") },
-    { icon: "tafsir", title: "Tafsir", desc: "Commentary on the Quran", onPress: () => toRead("Tafsir") },
-    { icon: "bookmark", title: "Bookmarks", desc: "Saved verses & collections", onPress: () => toRead("Collections") },
-    { icon: "check", title: "Reading Goals", desc: "Daily goal, streak & khatma", onPress: () => toRead("ReadingGoals") },
+    { icon: "tafsir", title: "Tafsir", desc: "Commentary on the Quran", onPress: () => navigation.navigate("Tafsir") },
+    { icon: "bookmark", title: "Bookmarks", desc: "Saved verses & collections", onPress: () => navigation.navigate("Collections") },
+    { icon: "check", title: "Reading Goals", desc: "Daily goal, streak & khatma", onPress: () => navigation.navigate("ReadingGoals") },
     { icon: "book", title: "Reading Plans", desc: "Structured journeys through the Book", onPress: () => toRead("Plans") },
     { icon: "settings", title: "Settings", desc: "Theme, fonts, reciter & data", onPress: () => navigation.navigate("Settings") },
   ];
