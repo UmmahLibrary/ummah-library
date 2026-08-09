@@ -37,12 +37,12 @@ export function TabBar() {
               flexDirection: "column",
               alignItems: "center",
               gap: 4,
-              color: active ? N.gold : N.faint,
+              color: active ? N.gold : N.muted,
               textDecoration: "none",
               fontFamily: N.ui,
             }}
           >
-            <Icon name={icon} size={20} sw={1.8} color={active ? N.gold : N.faint} />
+            <Icon name={icon} size={20} sw={1.8} color={active ? N.gold : N.muted} />
             <span style={{ fontSize: 10.5, fontWeight: active ? 700 : 500 }}>{label}</span>
           </Link>
         );

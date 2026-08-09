@@ -239,35 +239,68 @@ interface FawazFullEdition {
 
 /**
  * Ingest the hadith collections at build time (ADR 0022). Each plugin's full
- * English edition is downloaded once, normalized to our `Hadith` shape (keeping
- * every grader's grade), and written to `datasets/hadiths/{id}.json` with source
- * attribution. Returns the per-collection hadith counts for the summary.
+ * English edition is downloaded once and joined by `hadithnumber` with the
+ * matching Arabic edition (fawazahmed0 mirrors every `eng-*` collection as
+ * `ara-*` with identical numbering, #52), normalized to our `Hadith` shape
+ * (keeping every grader's grade), and written to `datasets/hadiths/{id}.json`
+ * with source attribution. Returns the per-collection hadith counts.
  */
 async function ingestHadith(): Promise<number> {
   const plugins = readPlugins("hadiths").filter((p): p is HadithPlugin => p.kind === "hadith");
-  console.log(`• Hadith (${plugins.length} collections)`);
+  console.log(`• Hadith (${plugins.length} collections, English + Arabic)`);
   let total = 0;
   for (const plugin of plugins) {
     const url = hadithCollectionUrl(plugin);
-    const data = await getJson<FawazFullEdition>(url);
+    // The Arabic edition mirrors the English one (eng-bukhari → ara-bukhari).
+    const arabicUrl = url.replace("/eng-", "/ara-");
+    const [data, arabicData] = await Promise.all([
+      getJson<FawazFullEdition>(url),
+      getJson<FawazFullEdition>(arabicUrl).catch(() => null),
+    ]);
+
+    const arabicByNumber = new Map<number, string>();
+    for (const h of arabicData?.hadiths ?? []) {
+      if (h.text && h.text.trim()) arabicByNumber.set(h.hadithnumber, h.text.trim());
+    }
+
     const hadiths = data.hadiths
       .filter((h) => h.text && h.text.trim()) // drop empty/placeholder entries in the source
-      .map((h) => ({
-        collectionId: plugin.id,
-        number: h.hadithnumber,
-        text: h.text.trim(),
-        grades: (h.grades ?? []).map((g) => (typeof g === "string" ? g : `${g.name}: ${g.grade}`)),
-        reference: h.reference,
-      }));
+      .map((h) => {
+        const arabic = arabicByNumber.get(h.hadithnumber);
+        return {
+          collectionId: plugin.id,
+          number: h.hadithnumber,
+          text: h.text.trim(),
+          ...(arabic ? { arabic } : {}),
+          grades: (h.grades ?? []).map((g) => (typeof g === "string" ? g : `${g.name}: ${g.grade}`)),
+          reference: h.reference,
+        };
+      });
     if (hadiths.length < 40) {
       throw new Error(`Hadith ingest for ${plugin.id} looks wrong: ${hadiths.length} hadiths`);
     }
+
+    const withArabic = hadiths.filter((h) => "arabic" in h).length;
+    const coverage = Math.round((withArabic / hadiths.length) * 100);
+    console.log(`  ${plugin.id}: ${hadiths.length} hadith · ${coverage}% Arabic`);
+    if (!arabicData) {
+      console.warn(`  ⚠ ${plugin.id}: Arabic edition unavailable (${arabicUrl}) — shipping English only`);
+    } else if (coverage < 80) {
+      // A present-but-misaligned Arabic edition would silently mis-pair text.
+      throw new Error(`Arabic coverage for ${plugin.id} unexpectedly low: ${coverage}%`);
+    }
+
     await writeJson(`hadiths/${plugin.id}.json`, {
       version: DATA_VERSION,
       collectionId: plugin.id,
       name: plugin.name,
       sections: data.metadata.sections ?? {},
-      source: { url, project: "fawazahmed0/hadith-api", retrieved: new Date().toISOString().slice(0, 10) },
+      source: {
+        url,
+        ...(arabicData ? { arabicUrl } : {}),
+        project: "fawazahmed0/hadith-api",
+        retrieved: new Date().toISOString().slice(0, 10),
+      },
       hadiths,
     });
     total += hadiths.length;

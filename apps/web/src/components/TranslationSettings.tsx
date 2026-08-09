@@ -78,6 +78,11 @@ export function TranslationSettings({
           </button>
         </div>
 
+        <p className="ts-hint">
+          The Verse tab shows every translation you add here at once; the Translations tab (Reading
+          view) shows one at a time — pick which below its dropdown.
+        </p>
+
         <input
           ref={searchRef}
           type="search"

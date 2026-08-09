@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { AppShell } from "./shell/AppShell";
 
 /** Routes that render full-screen with their own layout (no shell). */
-const SHELL_EXCLUDED = ["/landing", "/surah"];
+const SHELL_EXCLUDED = ["/landing", "/surah", "/blog"];
 
 interface Props {
   children: ReactNode;

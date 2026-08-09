@@ -439,12 +439,21 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
       const token = ++tokenRef.current; // cancels any running session
       settleRef.current?.();
       setActiveWord(-1);
+      // Clear any stale "Loading…" left behind by an interrupted whole-āyah
+      // session — this path doesn't buffer, so it should never show it.
+      setBuffering(false);
       void (async () => {
-        const key = verseKeyOf(verse);
         const timing = await getTiming(reciter, verse);
         if (tokenRef.current !== token) return;
         const seg = timing.segments.find((s) => s[0] === wordIndex);
-        if (!seg) return;
+        if (!seg) {
+          // No word-level timing for this word (uncovered reciter/segment
+          // mismatch) — play the whole āyah from its start instead of doing
+          // nothing, so the tap always produces audible feedback.
+          startSession([verse], verse, null);
+          return;
+        }
+        const key = verseKeyOf(verse);
         const player = ensurePlayer(timing.url);
         if (tokenRef.current !== token) return;
         setPlayingKey(key);
@@ -457,7 +466,11 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
         if (tokenRef.current !== token) return;
         setActiveWord(wordIndex);
         player.play();
-        // Pause once playback reaches the word's segment end.
+        // Pause once playback reaches the word's segment end. A stall watchdog
+        // (mirroring startSession's) guards against playback that never
+        // advances (bad URL, stalled network) leaving the UI stuck forever.
+        let lastTime = -1;
+        let lastProgressAt = Date.now();
         const poll = setInterval(() => {
           if (tokenRef.current !== token) {
             clearInterval(poll);
@@ -467,9 +480,27 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
           try {
             t = player.currentTime;
           } catch {
+            clearInterval(poll);
+            setActiveWord(-1);
+            setPlayingKey(null);
             return;
           }
+          if (typeof t === "number" && t !== lastTime) {
+            lastTime = t;
+            lastProgressAt = Date.now();
+          }
           if (typeof t === "number" && t >= endSec) {
+            clearInterval(poll);
+            try {
+              player.pause();
+            } catch {
+              /* already paused */
+            }
+            setActiveWord(-1);
+            setPlayingKey(null);
+            return;
+          }
+          if (Date.now() - lastProgressAt > STALL_MS) {
             clearInterval(poll);
             try {
               player.pause();
@@ -483,7 +514,7 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
         settleRef.current = () => clearInterval(poll);
       })();
     },
-    [reciter, ensurePlayer],
+    [reciter, ensurePlayer, startSession],
   );
 
   // Tear the player down when the screen leaves so no poll/interval lingers,

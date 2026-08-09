@@ -78,6 +78,9 @@ function TopBar({ query, setQuery, searchRef, go, mode, toggleTheme }) {
         {query ? <Icon name="close" size={16} color={N.faint} style={{ cursor: "pointer" }} onClick={() => setQuery("")} /> : <span style={{ fontSize: 12, color: N.faint, border: `1px solid ${N.border}`, borderRadius: 5, padding: "2px 6px" }}>⌘K</span>}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <a href="Ummah Library Blog.html" className="ul-link ul-press" title="Read the blog" style={{ height: 40, padding: "0 14px", borderRadius: 11, border: `1px solid ${N.border}`, background: N.card, color: N.muted, display: "flex", alignItems: "center", gap: 8, flexShrink: 0, textDecoration: "none", fontFamily: N.ui, fontSize: 13.5, fontWeight: 600 }}>
+          <Icon name="tafsir" size={17} /> <span className="ul-hide-sm">Blog</span>
+        </a>
         <button className="ul-link ul-press" onClick={toggleTheme} title={mode === "dark" ? "Switch to a light theme" : "Switch to a dark theme"} style={{ width: 40, height: 40, borderRadius: 11, border: `1px solid ${N.border}`, background: N.card, color: N.muted, display: "grid", placeItems: "center", cursor: "pointer", flexShrink: 0 }}>
           <Icon name={mode === "dark" ? "sun" : "moon"} size={19} />
         </button>

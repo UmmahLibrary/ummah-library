@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppState } from "react-native";
+import { AppState, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -10,11 +10,13 @@ import {
   type LinkingOptions,
   type Theme,
 } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeProvider, useTheme } from "./src/theme";
 import { SettingsProvider } from "./src/state/SettingsContext";
 import { LibraryProvider } from "./src/state/LibraryContext";
 import { RootTabs } from "./src/navigation/RootTabs";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
+import { NotFoundScreen } from "./src/screens/NotFoundScreen";
 import { fontMap } from "./src/fonts";
 import { KEYS, getString, setString } from "./src/storage";
 import { initNotifier } from "./src/notifier";
@@ -23,48 +25,64 @@ import { syncAdhkarReminder } from "./src/adhkar-reminders";
 import { syncPrayerReminders } from "./src/prayer-reminders";
 import { syncSunnahFastReminder } from "./src/sunnah-fast-reminders";
 import { syncIslamicEventReminders } from "./src/islamic-event-reminders";
-import type { RootTabParamList } from "./src/navigation/types";
+import type { RootStackParamList } from "./src/navigation/types";
+
+const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 /** URL routes for the web build and OS deep links (ummahlibrary://). */
-const linking: LinkingOptions<RootTabParamList> = {
+const linking: LinkingOptions<RootStackParamList> = {
   prefixes: ["ummahlibrary://"],
   config: {
     screens: {
-      Home: { screens: { Today: "" } },
-      Read: {
+      Tabs: {
         screens: {
-          SurahList: "read",
-          SurahReader: "surah/:surah",
-          JuzReader: "juz/:juz",
-          Search: "search",
-          Collections: "bookmarks",
-          ReadingGoals: "goals",
-          MushafPage: "page/:page",
-          Tafsir: "tafsir",
-          Plans: "plans",
-          PlanDetail: "plans/:id",
+          Home: { screens: { Today: "" } },
+          Read: {
+            screens: {
+              SurahList: "read",
+              SurahReader: "surah/:surah",
+              JuzReader: "juz/:juz",
+              Search: "search",
+              MushafPage: "page/:page",
+              Plans: "plans",
+              PlanDetail: "plans/:id",
+            },
+          },
+          Tools: {
+            screens: {
+              ToolsList: "tools",
+              Tasbih: "tasbih",
+              Adhkar: "adhkar",
+              PrayerTimes: "prayer-times",
+              PrayerTracker: "tracker",
+              Qibla: "qibla",
+              HijriCalendar: "calendar",
+              Zakat: "zakat",
+              Ramadan: "ramadan",
+              Duas: "duas",
+            },
+          },
+          Memorize: {
+            screens: { HifzDashboard: "hifz", HifzReview: "hifz/review" },
+          },
+          More: {
+            screens: {
+              MoreMenu: "more",
+              Profile: "profile",
+              Settings: "settings",
+              Names: "names",
+              Hadith: "hadith",
+              Collections: "bookmarks",
+              ReadingGoals: "goals",
+              Tafsir: "tafsir",
+            },
+          },
         },
       },
-      Tools: {
-        screens: {
-          ToolsList: "tools",
-          Tasbih: "tasbih",
-          Adhkar: "adhkar",
-          PrayerTimes: "prayer-times",
-          PrayerTracker: "tracker",
-          Qibla: "qibla",
-          HijriCalendar: "calendar",
-          Zakat: "zakat",
-          Ramadan: "ramadan",
-          Duas: "duas",
-        },
-      },
-      Memorize: {
-        screens: { HifzDashboard: "hifz", HifzReview: "hifz/review" },
-      },
-      More: {
-        screens: { MoreMenu: "more", Profile: "profile", Settings: "settings", Names: "names", Hadith: "hadith" },
-      },
+      // Any URL that doesn't match a screen above (React Navigation's documented
+      // catch-all) — without this, an unmatched path resolves to no route and
+      // NavigationContainer silently falls back to the initial state (Home).
+      NotFound: "*",
     },
   },
 };
@@ -84,9 +102,24 @@ function NavRoot() {
     },
   };
   return (
-    <NavigationContainer theme={navTheme} linking={linking}>
+    <NavigationContainer
+      theme={navTheme}
+      linking={linking}
+      // On a cold/direct web navigation, linking resolution is async (one paint
+      // cycle even though getInitialURL is synchronous) and NavigationContainer
+      // renders only this fallback until it resolves — default to a themed
+      // placeholder instead of a blank white flash.
+      fallback={<View style={{ flex: 1, backgroundColor: colors.bg }} />}
+    >
       <StatusBar style={mode === "dark" ? "light" : "dark"} />
-      <RootTabs />
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        <RootStack.Screen name="Tabs" component={RootTabs} />
+        <RootStack.Screen
+          name="NotFound"
+          component={NotFoundScreen}
+          options={{ headerShown: true, title: "Not found" }}
+        />
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 }
