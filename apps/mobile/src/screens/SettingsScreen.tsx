@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import type { MergeStrategy, QuranScript } from "@ummahlibrary/core";
 import { noorThemes } from "@ummahlibrary/ui";
@@ -7,7 +7,16 @@ import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { RECITER, RECITERS } from "../plugins";
 import { MAX_SCALE, MIN_SCALE } from "../types";
+import { clearCache, getCacheStats } from "../offlineCache";
 import { clearAllData, exportBackup, importBackup, itemCount } from "../backup";
+
+/** "1.2 MB", "845 KB", "0 B" — for the cached-content size shown in Settings. */
+function formatBytes(bytes: number): string {
+  if (bytes <= 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 /** Arabic script options (ADR 0035). */
 const SCRIPTS: { id: QuranScript; label: string; sub: string }[] = [
@@ -75,6 +84,29 @@ export function SettingsScreen() {
       ],
     );
   };
+
+  const [cacheStats, setCacheStats] = useState<{ sizeBytes: number; entryCount: number } | null>(
+    null,
+  );
+  const refreshCacheStats = useCallback(() => {
+    void getCacheStats().then(setCacheStats);
+  }, []);
+  useEffect(refreshCacheStats, [refreshCacheStats]);
+
+  function confirmClearCache() {
+    Alert.alert(
+      "Clear cached content",
+      "Removes offline copies of surahs, translations, tafsir, and hadith you've opened. They'll be re-downloaded next time you're online.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: () => void clearCache().then(refreshCacheStats),
+        },
+      ],
+    );
+  }
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -196,6 +228,31 @@ export function SettingsScreen() {
       </View>
 
       <Text style={styles.sectionLabel}>Data</Text>
+      <View style={styles.card}>
+        <View style={[styles.row, styles.rowLast]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowLabel}>Cached content</Text>
+            <Text style={styles.pickSub}>
+              Surahs, translations, tafsir, and hadith you've opened stay readable offline.
+            </Text>
+          </View>
+          <Text style={styles.value}>
+            {cacheStats === null
+              ? "…"
+              : cacheStats.entryCount === 0
+                ? "Empty"
+                : `${formatBytes(cacheStats.sizeBytes)} · ${cacheStats.entryCount}`}
+          </Text>
+        </View>
+        <Pressable
+          style={[styles.clearBtn, (!cacheStats || cacheStats.entryCount === 0) && styles.disabled]}
+          disabled={!cacheStats || cacheStats.entryCount === 0}
+          onPress={confirmClearCache}
+        >
+          <Text style={styles.clearBtnText}>Clear cached content</Text>
+        </Pressable>
+      </View>
+
       <Text style={styles.dataDesc}>
         Everything stays on this device — no account, no server. Export a backup to move your data
         to another device or keep it safe; import it to restore.
@@ -342,6 +399,16 @@ function makeStyles(c: Palette) {
     pickText: { color: c.fg, fontSize: 15, fontFamily: FONT.medium },
     pickTextOn: { color: c.accent, fontFamily: FONT.semibold },
     pickSub: { color: c.faint, fontSize: 12, marginTop: 2 },
+    clearBtn: {
+      marginTop: 13,
+      paddingVertical: 11,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.bg,
+      alignItems: "center",
+    },
+    clearBtnText: { color: c.fg, fontSize: 14.5, fontFamily: FONT.semibold },
     version: { color: c.faint, fontSize: 13, marginTop: 16 },
     dataDesc: { color: c.muted, fontSize: 13.5, lineHeight: 21, marginBottom: 12 },
     btnRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10 },
