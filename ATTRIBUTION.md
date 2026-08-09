@@ -24,7 +24,7 @@ steps) lives in [`packages/data/ATTRIBUTION.md`](packages/data/ATTRIBUTION.md).
 | Arabic Uthmani text + structure | [Tanzil](https://tanzil.net) | **CC-BY-3.0** | verbatim; required notice in data ATTRIBUTION |
 | Translations | [`fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) (mirrors upstream) | per-edition | each translation © its author; redistribution terms vary — vet before launch |
 | 99 Names (`asma.json`) | [`my-prayers/muslim-data`](https://github.com/my-prayers/muslim-data-flutter) | **Apache-2.0** | Names from Qurʾān & Sunnah (public domain) |
-| Adhkar (`adhkar.json`) | [`Seen-Arabic/Morning-And-Evening-Adhkar-DB`](https://github.com/Seen-Arabic/Morning-And-Evening-Adhkar-DB) | **MIT** | from _Ḥiṣn al-Muslim_ by Saʿīd al-Qaḥṭānī |
+| Adhkar (`adhkar.json`) | [`Seen-Arabic/Morning-And-Evening-Adhkar-DB`](https://github.com/Seen-Arabic/Morning-And-Evening-Adhkar-DB) (morning/evening) + [`fitrahive/dua-dhikr`](https://github.com/fitrahive/dua-dhikr) (after-salah + other daily occasions, #36) | **MIT** (both) | from _Ḥiṣn al-Muslim_ by Saʿīd al-Qaḥṭānī |
 | Hadith (`datasets/hadiths/`) | [`fawazahmed0/hadith-api`](https://github.com/fawazahmed0/hadith-api) | per-collection | Bukhārī, Muslim, Abū Dāwūd, Tirmidhī, Nasāʾī, Ibn Mājah; translation © varies |
 | Recitation word-timings (`datasets/timings/`) | [`cpfair/quran-align`](https://github.com/cpfair/quran-align) (Collin Fair) | **CC-BY-4.0** (data) | per-word audio timing for highlighting / tap-to-hear, 7 reciters (ADR 0036); code is MIT, data is CC-BY |
 

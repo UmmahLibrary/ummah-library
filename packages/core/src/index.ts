@@ -30,6 +30,7 @@ export * from "./islamic-events";
 export * from "./sunnah-fasting";
 export * from "./zakat";
 export * from "./adhkar";
+export * from "./privacy";
 export * from "./duas";
 export * from "./reading-goals";
 export * from "./reading-plans";

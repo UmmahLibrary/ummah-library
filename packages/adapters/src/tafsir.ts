@@ -11,6 +11,12 @@ interface SpaTafsirEntry {
   text: string;
 }
 
+/**
+ * Most editions respond with a bare array; some (e.g. `ur-tafseer-ibn-e-kaseer`)
+ * wrap it as `{ ayahs: [...] }` instead. Accept both.
+ */
+type SpaTafsirResponseBody = SpaTafsirEntry[] | { ayahs?: SpaTafsirEntry[] };
+
 type FetchLike = typeof fetch;
 
 /**
@@ -33,8 +39,8 @@ export class HttpTafsirRepository implements TafsirRepository {
     const response = await this.#fetch(tafsirSurahUrl(plugin, surahNumber));
     if (!response.ok) return [];
     // Guard a malformed 200 body (CDN error/placeholder) rather than crashing on `.map`.
-    const data = (await response.json()) as SpaTafsirEntry[] | null;
-    const entries = Array.isArray(data) ? data : [];
+    const data = (await response.json()) as SpaTafsirResponseBody | null;
+    const entries = Array.isArray(data) ? data : Array.isArray(data?.ayahs) ? data.ayahs : [];
     return entries.map((e) => ({
       sura: Number(e.surah),
       aya: Number(e.ayah),

@@ -65,6 +65,11 @@ export function TranslationManager({
             </Pressable>
           </View>
 
+          <Text style={styles.hint}>
+            The Verse tab shows every translation you add here at once; the Translations reading
+            view shows one at a time — pick which from its own selector.
+          </Text>
+
           <TextInput
             style={styles.search}
             placeholder="Search by name, author, or language…"
@@ -138,6 +143,7 @@ function makeStyles(c: Palette) {
     head: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
     title: { color: c.fg, fontSize: 20, fontWeight: "700" },
     close: { color: c.muted, fontSize: 20 },
+    hint: { color: c.muted, fontSize: 12.5, marginTop: 10 },
     search: {
       backgroundColor: c.bgElev,
       borderRadius: 10,
