@@ -23,9 +23,9 @@ import {
   writeKhatma,
   type ReadingState,
 } from "../reading-goals";
-import type { ReadStackParamList } from "../navigation/types";
+import type { MoreStackParamList } from "../navigation/types";
 
-type Props = NativeStackScreenProps<ReadStackParamList, "ReadingGoals">;
+type Props = NativeStackScreenProps<MoreStackParamList, "ReadingGoals">;
 
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 const GOAL_OPTIONS = [2, 4, 8, 16, 20];
@@ -62,6 +62,9 @@ export function ReadingGoalsScreen({ navigation }: Props) {
   const maxWeek = Math.max(1, ...week.map((d) => d.pages));
   const khatmaPct = khatma ? Math.round(progressFraction(khatma.currentPage, khatma.totalPages) * 100) : 0;
   const resumePage = khatma ? Math.min(khatma.totalPages, khatma.currentPage + 1) : 1;
+
+  const openMushafPage = (page: number) =>
+    navigation.getParent()?.navigate("Read", { screen: "MushafPage", params: { page } } as never);
 
   const R = 78;
   const C = 2 * Math.PI * R;
@@ -174,7 +177,7 @@ export function ReadingGoalsScreen({ navigation }: Props) {
           <View style={styles.pills}>
             <Pressable
               style={[styles.pill, styles.pillOn]}
-              onPress={() => navigation.navigate("MushafPage", { page: resumePage })}
+              onPress={() => openMushafPage(resumePage)}
             >
               <Text style={styles.pillTextOn}>Resume p{resumePage}</Text>
             </Pressable>
@@ -191,7 +194,7 @@ export function ReadingGoalsScreen({ navigation }: Props) {
         </View>
       )}
 
-      <Pressable style={styles.openBtn} onPress={() => navigation.navigate("MushafPage", { page: resumePage })}>
+      <Pressable style={styles.openBtn} onPress={() => openMushafPage(resumePage)}>
         <Text style={styles.openBtnText}>▶ Open the Mushaf</Text>
       </Pressable>
       <Text style={styles.foot}>Pages you read in the Mushaf view count towards your goal automatically.</Text>

@@ -1,5 +1,6 @@
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Pressable, Share, StyleSheet, Text, View } from "../Type";
+import * as Clipboard from "expo-clipboard";
 import { createCard } from "@ummahlibrary/core";
 import { Icon } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
@@ -85,12 +86,29 @@ function AyahViewImpl({
   const ref = { sura, aya };
   const memorized = isTracked(ref);
 
-  const share = () => {
+  // On web, Share.share() rejects when the browser has no navigator.share
+  // (react-native-web's default) — fall back to the clipboard so the tap still
+  // does something, with a brief inline confirmation since Alert.alert() is a
+  // no-op on web too.
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const id = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(id);
+  }, [copied]);
+
+  const share = async () => {
     const block = [arabic, ...translations.map((t) => t.text), `— ${sura}:${aya}`]
       .filter(Boolean)
       .join("\n");
     const link = `https://ummahlibrary.org/surah/${sura}#${sura}:${aya}`;
-    void Share.share({ message: `${block}\n${link}` });
+    const message = `${block}\n${link}`;
+    try {
+      await Share.share({ message });
+    } catch {
+      await Clipboard.setStringAsync(message);
+      setCopied(true);
+    }
   };
 
   return (
@@ -111,9 +129,16 @@ function AyahViewImpl({
             <Icon name="star" size={17} color={memorized ? colors.accent : colors.faint} sw={1.8} />
           </Pressable>
           <SaveToCollection sura={sura} aya={aya} asIcon />
-          <Pressable onPress={share} hitSlop={8} accessibilityLabel="Share āyah">
-            <Icon name="share" size={17} color={colors.faint} sw={1.8} />
-          </Pressable>
+          <View>
+            <Pressable onPress={() => void share()} hitSlop={8} accessibilityLabel="Share āyah">
+              <Icon name="share" size={17} color={colors.faint} sw={1.8} />
+            </Pressable>
+            {copied && (
+              <View style={styles.copiedBubble} pointerEvents="none">
+                <Text style={styles.copiedText}>Copied</Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
@@ -229,6 +254,18 @@ function makeStyles(c: Palette) {
       marginBottom: 14,
     },
     actions: { flexDirection: "row", alignItems: "center", gap: 20 },
+    copiedBubble: {
+      position: "absolute",
+      bottom: 24,
+      right: -8,
+      backgroundColor: c.bgElev,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    copiedText: { color: c.fg, fontSize: 11, fontFamily: FONT.medium },
     arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
     // IndoPak Nastaʿlīq face (ADR 0035) — applied over `arabic`/`wbwAr`.
     arabicIndopak: { fontFamily: FONT.arIndopak },

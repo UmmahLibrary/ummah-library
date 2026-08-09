@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,8 +10,8 @@ import {
 } from "../Type";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { TOTAL_JUZ, type Surah } from "@ummahlibrary/core";
-import { api } from "../api";
+import { JUZ_STARTS, TOTAL_JUZ, type Surah } from "@ummahlibrary/core";
+import { api, ApiError } from "../api";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 import { AyahBadge } from "../components/AyahBadge";
@@ -50,36 +50,66 @@ type Row =
   | { kind: "section"; label: string }
   | { kind: "juz"; juz: number };
 
+/** The last surah a juzʾ touches — the next juzʾ starts at aya 1 of a new surah,
+ * or mid-surah (mirrors the web /juz index so the two show the same span). */
+function juzEndSura(n: number): number {
+  if (n >= TOTAL_JUZ) return 114;
+  const next = JUZ_STARTS[n]!;
+  return next.aya > 1 ? next.sura : next.sura - 1;
+}
+
 /** The Qur'ān index — the Read tab's landing (the home dashboard lives on Home). */
 export function SurahListScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<Tab>("surah");
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setError(null);
     api
       .listSurahs()
       .then(setSurahs)
-      .catch(() => setError(true));
+      .catch((e: unknown) =>
+        setError(e instanceof ApiError ? e : new ApiError("Failed", { isNetworkError: true })),
+      );
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const errorMessage = error
+    ? error.isNetworkError
+      ? "Couldn't load surahs. Check your connection."
+      : error.status && error.status >= 500
+        ? "The server is starting up. Try again in a moment."
+        : "Couldn't load surahs."
+    : null;
 
   // Fold diacritics so "fatiha" matches "Al-Fātiḥah", "baqarah" matches
   // "Al-Baqarah", etc. — users type surah names without the macrons/dots.
   const q = fold(query);
+  // Vowel-collapsing folds any run of a single repeated vowel ("aaa...a") down
+  // to one character, however long the run — a 1-character substring is too
+  // low-information to filter a ~114-item list and would otherwise match
+  // almost everything. Require at least 2 folded characters before doing
+  // text substring matching; the numeric surah-number prefix match is exempt
+  // since single-digit searches (e.g. "1") are legitimate.
+  const textQuery = q.length >= 2 ? q : null;
   const filtered = useMemo(() => {
     const list = surahs ?? [];
     if (!q) return list;
     return list.filter(
       (s) =>
         String(s.number).startsWith(q) ||
-        fold(s.transliteration).includes(q) ||
-        fold(s.englishName).includes(q),
+        (textQuery !== null &&
+          (fold(s.transliteration).includes(textQuery) || fold(s.englishName).includes(textQuery))),
     );
-  }, [surahs, q]);
+  }, [surahs, q, textQuery]);
 
   // The list rows depend on the active tab: a flat surah list, the 30 juzʾ, or
   // surahs grouped by place of revelation (Meccan / Medinan).
@@ -103,6 +133,9 @@ export function SurahListScreen({ navigation }: Props) {
     }
     return filtered.map((s) => ({ kind: "surah", surah: s }));
   }, [tab, filtered]);
+
+  // Surah lookup for the juzʾ tab's span labels ("Al-Fātiḥah – Al-Baqarah").
+  const byNumber = useMemo(() => new Map((surahs ?? []).map((s) => [s.number, s])), [surahs]);
 
   const open = (surah: number) => navigation.navigate("SurahReader", { surah });
 
@@ -141,7 +174,14 @@ export function SurahListScreen({ navigation }: Props) {
                 </Pressable>
               ))}
             </View>
-            {error && <Text style={styles.error}>Couldn’t load surahs. Check your connection.</Text>}
+            {error && tab === "surah" && (
+              <View style={styles.errorRow}>
+                <Text style={styles.error}>{errorMessage}</Text>
+                <Pressable style={styles.chip} onPress={load}>
+                  <Text style={styles.chipText}>Try again</Text>
+                </Pressable>
+              </View>
+            )}
             {!surahs && !error && <ActivityIndicator color={colors.accent} style={styles.spinner} />}
           </View>
         }
@@ -153,6 +193,15 @@ export function SurahListScreen({ navigation }: Props) {
             return <Text style={styles.sectionLabel}>{item.label}</Text>;
           }
           if (item.kind === "juz") {
+            const start = JUZ_STARTS[item.juz - 1]!;
+            const first = byNumber.get(start.sura);
+            const lastSura = juzEndSura(item.juz);
+            const last = byNumber.get(lastSura);
+            const span = !first
+              ? "Read continuously"
+              : lastSura === start.sura
+                ? first.transliteration
+                : `${first.transliteration} – ${last?.transliteration ?? ""}`;
             return (
               <Pressable
                 style={styles.row}
@@ -163,7 +212,9 @@ export function SurahListScreen({ navigation }: Props) {
                 </View>
                 <View style={styles.rowMeta}>
                   <Text style={styles.rowTitle}>Juzʾ {item.juz}</Text>
-                  <Text style={styles.rowSub}>Read continuously</Text>
+                  <Text style={styles.rowSub} numberOfLines={1}>
+                    {span}
+                  </Text>
                 </View>
               </Pressable>
             );
@@ -225,7 +276,22 @@ function makeStyles(c: Palette) {
       marginTop: 18,
       marginBottom: 4,
     },
-    error: { color: c.error, marginTop: 12 },
+    error: { color: c.error, flexShrink: 1 },
+    errorRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+      marginTop: 12,
+    },
+    chip: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    chipText: { color: c.muted, fontSize: 13 },
     muted: { color: c.muted, marginTop: 16, fontSize: 14 },
     spinner: { marginTop: 32 },
     row: {

@@ -18,6 +18,7 @@ import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 import { useLibrary } from "../state/LibraryContext";
 import { AyahBadge } from "../components/AyahBadge";
+import { SaveToCollection } from "../components/SaveToCollection";
 import { verseOfToday } from "../verses";
 import { readReadingState } from "../reading-goals";
 import { KEYS, getJSON, getString } from "../storage";
@@ -109,9 +110,9 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.greeting}>Assalāmu ʿalaykum</Text>
           <Text style={styles.title}>Today</Text>
         </View>
-        <Pressable style={styles.bell} onPress={() => toTools("PrayerTimes")}>
+        <View style={styles.bell}>
           <Icon name="bell" size={20} color={colors.muted} sw={1.8} />
-        </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
@@ -168,7 +169,7 @@ export function HomeScreen({ navigation }: Props) {
         <View style={styles.vod}>
           <View style={styles.vodHead}>
             <Text style={styles.kicker}>Verse of the day</Text>
-            <Icon name="bookmark" size={17} color={colors.faint} sw={1.8} />
+            <SaveToCollection sura={vod.sura} aya={vod.aya} asIcon />
           </View>
           <Text style={styles.vodAr}>{vod.ar}</Text>
           <Text style={styles.vodEn}>{vod.en}</Text>

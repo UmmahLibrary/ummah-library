@@ -17,9 +17,17 @@ const SCRIPTS: { id: QuranScript; label: string; sub: string }[] = [
 export function SettingsScreen() {
   const { colors, themeKey, setTheme } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { scale, setScale, reciterId, tafsirId, tafsirs, setTafsirId, script, setScript } =
-    useSettings();
-  const reciter = RECITERS.find((r) => r.id === reciterId) ?? RECITER;
+  const {
+    scale,
+    setScale,
+    reciterId,
+    setReciterId,
+    tafsirId,
+    tafsirs,
+    setTafsirId,
+    script,
+    setScript,
+  } = useSettings();
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -48,7 +56,7 @@ export function SettingsScreen() {
 
       <Text style={styles.sectionLabel}>Reading</Text>
       <View style={styles.card}>
-        <View style={styles.row}>
+        <View style={[styles.row, styles.rowLast]}>
           <Text style={styles.rowLabel}>Font size</Text>
           <View style={styles.scale}>
             <Pressable
@@ -68,10 +76,28 @@ export function SettingsScreen() {
             </Pressable>
           </View>
         </View>
-        <View style={[styles.row, styles.rowLast]}>
-          <Text style={styles.rowLabel}>Reciter</Text>
-          <Text style={styles.value}>{reciter.name}</Text>
-        </View>
+      </View>
+
+      <Text style={styles.sectionLabel}>Reciter</Text>
+      <View style={styles.card}>
+        {RECITERS.map((r, i) => {
+          const on = r.id === reciterId;
+          return (
+            <Pressable
+              key={r.id}
+              style={[styles.pickRow, i < RECITERS.length - 1 && styles.rowDivider]}
+              onPress={() => setReciterId(r.id)}
+            >
+              <View style={[styles.radio, on && styles.radioOn]}>
+                {on && <View style={styles.radioDot} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.pickText, on && styles.pickTextOn]}>{r.name}</Text>
+                <Text style={styles.pickSub}>{r.style}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
 
       <Text style={styles.sectionLabel}>Arabic script</Text>

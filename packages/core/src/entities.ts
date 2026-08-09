@@ -83,7 +83,10 @@ export interface TafsirEntry extends VerseKey {
 export interface Hadith {
   collectionId: string;
   number: number;
+  /** The English translation. */
   text: string;
+  /** The original Arabic, when the collection has an ingested Arabic edition. */
+  arabic?: string;
   grades: string[];
   reference: { book: number; hadith: number };
 }
