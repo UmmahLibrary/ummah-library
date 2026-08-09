@@ -112,6 +112,142 @@ const spec = {
         },
       },
     },
+    "/tafsirs": {
+      get: {
+        summary: "List available tafsir editions",
+        responses: { "200": { description: "Tafsir edition list" } },
+      },
+    },
+    "/surahs/{number}/tafsirs/{edition}": {
+      get: {
+        summary: "Get a surah's tafsir entries in one edition",
+        parameters: [
+          {
+            name: "number",
+            in: "path",
+            required: true,
+            schema: { type: "integer", minimum: 1, maximum: 114 },
+          },
+          { name: "edition", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "Tafsir entries" },
+          "404": { description: "Not found" },
+        },
+      },
+    },
+    "/translations": {
+      get: {
+        summary: "List the full runtime translation catalogue (~490 editions, ADR 0011)",
+        responses: { "200": { description: "Translation catalogue" } },
+      },
+    },
+    "/translations/{edition}/surahs/{number}": {
+      get: {
+        summary: "Get a surah's ayahs in one runtime-catalogue translation edition",
+        parameters: [
+          { name: "edition", in: "path", required: true, schema: { type: "string" } },
+          {
+            name: "number",
+            in: "path",
+            required: true,
+            schema: { type: "integer", minimum: 1, maximum: 114 },
+          },
+        ],
+        responses: {
+          "200": { description: "Translated ayahs" },
+          "404": { description: "Not found" },
+        },
+      },
+    },
+    "/hadith/{collection}": {
+      get: {
+        summary: "Get a hadith collection, including its section index",
+        parameters: [{ name: "collection", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "200": { description: "Hadith collection" },
+          "404": { description: "Not found" },
+        },
+      },
+    },
+    "/hadith/{collection}/sections/{section}": {
+      get: {
+        summary: "Get one section (book/chapter) of a hadith collection",
+        parameters: [
+          { name: "collection", in: "path", required: true, schema: { type: "string" } },
+          { name: "section", in: "path", required: true, schema: { type: "integer", minimum: 1 } },
+        ],
+        responses: {
+          "200": { description: "Hadith section" },
+          "400": { description: "Bad section number" },
+          "404": { description: "Not found" },
+        },
+      },
+    },
+    "/names": {
+      get: {
+        summary: "List the 99 Names of Allah",
+        responses: { "200": { description: "Divine names" } },
+      },
+    },
+    "/adhkar": {
+      get: {
+        summary: "List the morning and evening adhkar",
+        responses: { "200": { description: "Adhkar" } },
+      },
+    },
+    "/prayer-times": {
+      get: {
+        summary: "Compute prayer times for a location and date",
+        parameters: [
+          { name: "lat", in: "query", required: true, schema: { type: "number" } },
+          { name: "lng", in: "query", required: true, schema: { type: "number" } },
+          { name: "date", in: "query", required: true, schema: { type: "string", format: "date" } },
+          {
+            name: "method",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+            description: "Calculation method id, default MuslimWorldLeague",
+          },
+          {
+            name: "madhab",
+            in: "query",
+            required: false,
+            schema: { type: "string", enum: ["shafi", "hanafi"] },
+          },
+          {
+            name: "hlr",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+            description: "High-latitude rule id, default none",
+          },
+        ],
+        responses: {
+          "200": { description: "Prayer times" },
+          "400": { description: "Bad coordinates or date" },
+        },
+      },
+    },
+    "/recitations/{reciterId}/surahs/{number}/timings": {
+      get: {
+        summary: "Get word-level recitation timings for a reciter's surah",
+        parameters: [
+          { name: "reciterId", in: "path", required: true, schema: { type: "string" } },
+          {
+            name: "number",
+            in: "path",
+            required: true,
+            schema: { type: "integer", minimum: 1, maximum: 114 },
+          },
+        ],
+        responses: {
+          "200": { description: "Word timings" },
+          "404": { description: "Not found" },
+        },
+      },
+    },
   },
   components: {
     schemas: {

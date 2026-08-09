@@ -24,7 +24,7 @@ steps) lives in [`packages/data/ATTRIBUTION.md`](packages/data/ATTRIBUTION.md).
 | Arabic Uthmani text + structure | [Tanzil](https://tanzil.net) | **CC-BY-3.0** | verbatim; required notice in data ATTRIBUTION |
 | Translations | [`fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) (mirrors upstream) | per-edition | each translation © its author; redistribution terms vary — vet before launch |
 | 99 Names (`asma.json`) | [`my-prayers/muslim-data`](https://github.com/my-prayers/muslim-data-flutter) | **Apache-2.0** | Names from Qurʾān & Sunnah (public domain) |
-| Adhkar (`adhkar.json`) | [`Seen-Arabic/Morning-And-Evening-Adhkar-DB`](https://github.com/Seen-Arabic/Morning-And-Evening-Adhkar-DB) | **MIT** | from _Ḥiṣn al-Muslim_ by Saʿīd al-Qaḥṭānī |
+| Adhkar (`adhkar.json`) | [`Seen-Arabic/Morning-And-Evening-Adhkar-DB`](https://github.com/Seen-Arabic/Morning-And-Evening-Adhkar-DB) (morning/evening) + [`fitrahive/dua-dhikr`](https://github.com/fitrahive/dua-dhikr) (after-salah + other daily occasions, #36) | **MIT** (both) | from _Ḥiṣn al-Muslim_ by Saʿīd al-Qaḥṭānī |
 | Hadith (`datasets/hadiths/`) | [`fawazahmed0/hadith-api`](https://github.com/fawazahmed0/hadith-api) | per-collection | Bukhārī, Muslim, Abū Dāwūd, Tirmidhī, Nasāʾī, Ibn Mājah; translation © varies |
 | Recitation word-timings (`datasets/timings/`) | [`cpfair/quran-align`](https://github.com/cpfair/quran-align) (Collin Fair) | **CC-BY-4.0** (data) | per-word audio timing for highlighting / tap-to-hear, 7 reciters (ADR 0036); code is MIT, data is CC-BY |
 
@@ -50,6 +50,7 @@ required notices and ingest steps.
 | [jsDelivr → `fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) | translation text (runtime/CDN); per-āyah **transliteration** line (`ara-quran-la`, #150) | per-edition (see §1); transliteration is Tanzil, **CC-BY-3.0**, verbatim |
 | [Google Fonts](https://fonts.google.com) | web UI + Quran typefaces (Hanken Grotesk, IBM Plex Sans Arabic, Amiri) | self-hosted at build via `next/font`. Amiri is **SIL OFL 1.1**; the OFL notice ships with the font and reserved names are unmodified |
 | **IndoPak font** — "AlQuran IndoPak by QuranWBW" / `indopak-nastaleeq-waqf-lazim` (Quran Foundation / QuranWBW), origin [verses.quran.foundation](https://verses.quran.foundation) | the **IndoPak script** typeface (ADR 0035) — the exact font quran.com's `text_indopak` was built for, so the IndoPak letterforms and marks render correctly | Free to use and share **with credit** ("Sadaqa-e-Jaria"; no modification). **Self-hosted verbatim** in the repo (`apps/web/public/fonts/indopak-nastaleeq-waqf-lazim-v4.2.1.woff2`) with this attribution, unmodified. (We first loaded it from the integrator CDN, but cross-origin loads were unreliable and fell back to the wrong face — ADR 0035 §4.) |
+| [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, via the [Overpass API](https://overpass-api.de) | Nearby-mosque search — `amenity=place_of_worship` + `religion=muslim` (ADR 0038) | **ODbL 1.0** — attribution required ("© OpenStreetMap contributors"), shown directly on both finder screens (not a buried footer). Queried server-side per search behind the `PlacesProvider` port; nothing is stored or redistributed. |
 
 ## 4. Code
 

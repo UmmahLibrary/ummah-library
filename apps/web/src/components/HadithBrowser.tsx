@@ -310,6 +310,16 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
                       {HADITH_GRADE_LABEL[cat]}
                     </span>
                   </div>
+                  {h.arabic && (
+                    <p
+                      className="arabic"
+                      dir="rtl"
+                      lang="ar"
+                      style={{ margin: "0 0 14px", fontSize: 22, lineHeight: 2.1, color: N.fg, textAlign: "right" }}
+                    >
+                      {h.arabic}
+                    </p>
+                  )}
                   <p style={{ margin: 0, fontSize: 15.5, lineHeight: 1.7, color: N.fg, fontFamily: N.ui }}>
                     {highlight(h.text, q)}
                   </p>

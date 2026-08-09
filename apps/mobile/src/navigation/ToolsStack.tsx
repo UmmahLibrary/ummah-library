@@ -6,6 +6,7 @@ import { AdhkarScreen } from "../screens/AdhkarScreen";
 import { PrayerTimesScreen } from "../screens/PrayerTimesScreen";
 import { PrayerTrackerScreen } from "../screens/PrayerTrackerScreen";
 import { QiblaScreen } from "../screens/QiblaScreen";
+import { MosqueFinderScreen } from "../screens/MosqueFinderScreen";
 import { HijriCalendarScreen } from "../screens/HijriCalendarScreen";
 import { ZakatScreen } from "../screens/ZakatScreen";
 import { RamadanScreen } from "../screens/RamadanScreen";
@@ -31,6 +32,7 @@ export function ToolsStack() {
       <Stack.Screen name="PrayerTimes" component={PrayerTimesScreen} options={{ title: "Prayer Times" }} />
       <Stack.Screen name="PrayerTracker" component={PrayerTrackerScreen} options={{ title: "Prayer Tracker" }} />
       <Stack.Screen name="Qibla" component={QiblaScreen} options={{ title: "Qibla" }} />
+      <Stack.Screen name="Mosques" component={MosqueFinderScreen} options={{ title: "Nearby Mosques" }} />
       <Stack.Screen name="HijriCalendar" component={HijriCalendarScreen} options={{ title: "Hijri Calendar" }} />
       <Stack.Screen name="Zakat" component={ZakatScreen} options={{ title: "Zakat Calculator" }} />
       <Stack.Screen name="Ramadan" component={RamadanScreen} options={{ title: "Ramadan" }} />

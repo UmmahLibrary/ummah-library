@@ -10,6 +10,7 @@ import type {
   DivineName,
   HadithCollection,
   HadithSection,
+  Place,
   Surah,
   TafsirEntry,
   TranslatedAyah,
@@ -106,6 +107,24 @@ export interface PrayerTimesQuery {
  */
 export interface PrayerTimesCalculator {
   calculate(query: PrayerTimesQuery): Promise<ExtendedPrayerTimings>;
+}
+
+/**
+ * Finds mosques near a point from OpenStreetMap's Overpass API — a public,
+ * read-only, keyless, ODbL-licensed geodata source kept behind this port so
+ * `core` and the apps never call the vendor directly (ADR 0038). Mirrors the
+ * shape of {@link PrayerTimesCalculator}: an external, coordinate-driven
+ * lookup with no accounts and nothing stored server-side.
+ */
+export interface PlacesProvider {
+  /**
+   * Mosques (`amenity=place_of_worship` + `religion=muslim` in OSM) within
+   * `radiusMeters` of `coords`, nearest first. An empty array covers both "none
+   * nearby" and a degraded upstream response (matching the sibling HTTP content
+   * repositories); a hard network failure before any response — offline, DNS —
+   * still rejects, so the caller can render a distinct error state for that case.
+   */
+  nearbyMosques(coords: Coordinates, radiusMeters: number): Promise<readonly Place[]>;
 }
 
 /** Platform-neutral notification permission state (no DOM dependency). */

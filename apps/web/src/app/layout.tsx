@@ -7,6 +7,7 @@ import { PrayerReminderScheduler } from "../components/PrayerReminderScheduler";
 import { PlanReminderScheduler } from "../components/PlanReminderScheduler";
 import { SyncBootstrap } from "../components/SyncBootstrap";
 import { AppShellWrapper } from "../components/AppShellWrapper";
+import { Onboarding } from "../components/Onboarding";
 import { SITE_URL } from "../lib/site";
 // Noor palette (all themes) — generated from packages/ui/src/themes.ts (ADR 0027).
 // Imported before globals.css so the web's next/font overrides for --noor-ui/--noor-ar win.
@@ -92,6 +93,8 @@ const themeScript = `(function(){try{
   d.dataset.theme=t;
   d.dataset.mode=light[t]?"light":"dark";
   d.dataset.readingMode=localStorage.getItem("ul.readingMode")||"translation";
+  /* First-run: flag before paint so the veil covers the app until onboarding mounts */
+  if(!localStorage.getItem("ul.onboarded")) d.dataset.onboard="1";
   /* Noor: set CSS var font families after font vars are available */
   d.style.setProperty("--noor-ui","'Hanken Grotesk', system-ui, sans-serif");
   d.style.setProperty("--noor-ar","'IBM Plex Sans Arabic', serif");
@@ -112,6 +115,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <a href="#main" className="skip-link">
           Skip to content
         </a>
+        {/* Pre-hydration cover for the first-run overlay (shown only when
+            data-onboard="1"); the Onboarding component draws the slides on top. */}
+        <div id="ul-onboard-veil" aria-hidden="true" />
+        <Onboarding />
         <AdhkarReminderBanner />
         <PrayerReminderScheduler />
         <PlanReminderScheduler />

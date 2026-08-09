@@ -91,12 +91,16 @@ export function PrayerTrackerScreen() {
     });
   }
 
-  function cycle(prayer: (typeof OBLIGATORY_PRAYERS)[number]) {
+  function cycleDate(date: string, prayer: (typeof OBLIGATORY_PRAYERS)[number]) {
     setLog((prev) => {
-      const next = setPrayerStatus(prev, today, prayer, nextPrayerStatus(statusFor(prev[today], prayer)));
+      const next = setPrayerStatus(prev, date, prayer, nextPrayerStatus(statusFor(prev[date], prayer)));
       void prayerStore.write(next);
       return next;
     });
+  }
+
+  function cycle(prayer: (typeof OBLIGATORY_PRAYERS)[number]) {
+    cycleDate(today, prayer);
   }
 
   const todayLog = log[today];
@@ -173,8 +177,13 @@ export function PrayerTrackerScreen() {
               const st = d.statuses[pi] ?? "none";
               const dayPaused = isDatePaused(haid, d.date);
               return (
-                <View
+                <Pressable
                   key={d.date}
+                  disabled={dayPaused}
+                  onPress={() => cycleDate(d.date, p)}
+                  accessibilityLabel={`${PRAYER_LABELS[p]}: ${
+                    dayPaused ? "Paused" : STATUS_LABEL[st]
+                  } — tap to change`}
                   style={[
                     styles.cell,
                     dayPaused

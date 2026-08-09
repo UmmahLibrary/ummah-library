@@ -10,6 +10,7 @@ const TOOLS = [
   { key: "/duas", label: "Duʿās", glyph: "🤲", note: "Fortress of the Muslim" },
   { key: "/plans", label: "Reading Plans", glyph: "🗺", note: "Structured journeys" },
   { key: "/qibla", label: "Qibla", glyph: "🧭", note: "118° SE · Direction to Makkah" },
+  { key: "/mosques", label: "Nearby Mosques", glyph: "📍", note: "Find a place to pray" },
   { key: "/hifz", label: "Hifz Review", glyph: "✦", note: "Spaced repetition" },
   { key: "/calendar", label: "Hijri Calendar", glyph: "☾", note: "Islamic dates" },
   { key: "/names", label: "99 Names", glyph: "﷽", note: "Al-Asmāʾ al-Ḥusnā" },
