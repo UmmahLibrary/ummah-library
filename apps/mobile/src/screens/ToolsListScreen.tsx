@@ -13,6 +13,7 @@ const TOOLS: { screen: keyof ToolsStackParamList; icon: IconName; title: string;
   { screen: "PrayerTimes",   icon: "home",    title: "Prayer Times",   desc: "Daily salah times for your location" },
   { screen: "PrayerTracker", icon: "check",   title: "Prayer Tracker", desc: "Log your five daily prayers & streak" },
   { screen: "Qibla",         icon: "compass", title: "Qibla",          desc: "Direction of the Kaaba" },
+  { screen: "Mosques",       icon: "route",   title: "Nearby Mosques", desc: "Find a place to pray, with directions" },
   { screen: "HijriCalendar", icon: "moon",    title: "Hijri Calendar", desc: "Islamic lunar calendar" },
   { screen: "Ramadan",       icon: "star",    title: "Ramadan",        desc: "Ifṭār countdown & fasting tracker" },
   { screen: "Zakat",         icon: "layers",  title: "Zakat",          desc: "Estimate your annual zakat" },

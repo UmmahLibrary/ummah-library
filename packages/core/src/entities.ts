@@ -3,6 +3,7 @@
  * These are the vocabulary the whole system speaks; adapters map external
  * shapes (JSON, DB rows) into these, and apps render them.
  */
+import type { Coordinates } from "./prayer";
 
 export type RevelationPlace = "meccan" | "medinan";
 export type TextDirection = "rtl" | "ltr";
@@ -83,7 +84,10 @@ export interface TafsirEntry extends VerseKey {
 export interface Hadith {
   collectionId: string;
   number: number;
+  /** The English translation. */
   text: string;
+  /** The original Arabic, when the collection has an ingested Arabic edition. */
+  arabic?: string;
   grades: string[];
   reference: { book: number; hadith: number };
 }
@@ -117,7 +121,18 @@ export interface DivineName {
 }
 
 /** When a remembrance is said. */
-export type AdhkarOccasion = "morning" | "evening";
+export type AdhkarOccasion =
+  | "morning"
+  | "evening"
+  | "after-salah"
+  | "waking"
+  | "sleep"
+  | "home"
+  | "travel"
+  | "eating"
+  | "dressing"
+  | "distress"
+  | "daily";
 
 /** A single remembrance (dhikr) from the adhkar collection. */
 export interface Dhikr {
@@ -137,4 +152,18 @@ export interface Dhikr {
   virtue?: string;
   /** The hadith or Quranic reference, where given. */
   source?: string;
+}
+
+/**
+ * A mosque (or other place of worship) sourced from OpenStreetMap via the
+ * `PlacesProvider` port (ADR 0038). Data is © OpenStreetMap contributors,
+ * ODbL — the attribution travels with any UI that renders a `Place`.
+ */
+export interface Place {
+  /** Stable id from the source, e.g. `"osm:node:123456"`. */
+  id: string;
+  name: string;
+  coordinates: Coordinates;
+  /** Free-form street address, when the source provides one. */
+  address?: string;
 }

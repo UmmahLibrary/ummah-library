@@ -42,6 +42,14 @@ flowchart TD
 
 ## Packages
 
+The **`May depend on`** column below is current usage/intent, not all of it
+lint-enforced at this granularity: `eslint-plugin-boundaries` enforces
+`apps → any package`, `packages never → apps`, and `core → nothing` (see the
+rule set in `eslint.config.mjs`), but it does **not** currently stop e.g.
+`apps/mobile` from importing `packages/data` directly — nothing in the
+codebase does that today, but the finer per-app restriction below is a
+convention, not a CI-enforced boundary yet.
+
 | Package           | Responsibility                                                                                                                                                             | May depend on              |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | **`core`**        | Pure domain: entities, structural invariants, SM-2 Hifz, plugin contract, **ports**. No framework, DB, network, or clock.                                                  | _nothing_                  |
@@ -74,7 +82,7 @@ flowchart TD
 - `reminders.ts` — pure reminder orchestration (what to schedule, and when) feeding the `Notifier` port; the web adapter uses in-page timers, mobile an `ExpoNotifier` ([ADR 0019](docs/adr/0019-prayer-reminders.md), [0029](docs/adr/0029-mobile-notifier.md)).
 - `sync.ts` / `sync-engine.ts` — pure HLC (hybrid logical clock) + last-writer-wins merge for the opt-in, end-to-end-encrypted sync; all crypto and transport stay behind ports ([ADR 0033](docs/adr/0033-account-sync.md)).
 - `collections.ts`, `tasbih.ts`, `peek.ts`, `audio.ts`, `islamic-events.ts` — value types + pure helpers for ayah collections, the tasbih counter, hide-and-peek revision, audio segments, and Hijri events.
-- `ports.ts` — **the interfaces** everything implements, in three families: **content repositories** (`QuranRepository`, `TranslationRepository`, `TafsirRepository`, `HadithRepository`, `AsmaRepository`, `AdhkarRepository`, `PlanCatalogPort`); **capability ports** (`PrayerTimesCalculator`, `Notifier`, `PrayerTimingsProvider`); and the **typed local-storage `*Store` ports** for every slice of device state (settings, library, goals, plan, prayer tracker, qaḍāʾ, ḥayḍ, fasting, achievements, tasbih, prayer settings, reminders — [ADR 0024](docs/adr/0024-local-storage-ports.md)), plus the sync seam (`Cipher`, `SyncBackend`, `SyncStateStore` — [ADR 0033](docs/adr/0033-account-sync.md)).
+- `ports.ts` — **the interfaces** everything implements, in three families: **content repositories** (`QuranRepository`, `TranslationRepository`, `TafsirRepository`, `HadithRepository`, `AsmaRepository`, `AdhkarRepository`, `PlanCatalogPort`, `RecitationTimingRepository` — word-level recitation timings, [ADR 0036](docs/adr/0036-bundled-word-level-data.md)); **capability ports** (`PrayerTimesCalculator`, `Notifier`, `PrayerTimingsProvider`); and the **typed local-storage `*Store` ports** for every slice of device state (settings, library, goals, plan, prayer tracker, qaḍāʾ, ḥayḍ, fasting, achievements, tasbih, prayer settings, reminders — [ADR 0024](docs/adr/0024-local-storage-ports.md)), plus the sync seam (`Cipher`, `SyncBackend`, `SyncStateStore` — [ADR 0033](docs/adr/0033-account-sync.md)).
 
 ## Data flow
 
@@ -98,10 +106,10 @@ sequenceDiagram
   api-->>B: prerender /surah/2 + /api/v1/surahs/2
 ```
 
-### Runtime content — tafsir & hadith (on demand, in the browser)
+### Runtime content — tafsir (on demand, in the browser)
 
-Large content isn't bundled; it's fetched on demand through a runtime function
-([ADR 0005](docs/adr/0005-content-plugin-system.md)).
+Large content isn't bundled; tafsir is fetched on demand through a runtime
+function ([ADR 0005](docs/adr/0005-content-plugin-system.md)).
 
 ```mermaid
 sequenceDiagram
@@ -109,7 +117,7 @@ sequenceDiagram
   participant R as /api/v1/.../tafsirs/{id} (dynamic)
   participant api as api (tafsirRepository)
   participant ad as adapters (HttpTafsirRepository)
-  participant CDN as spa5k / fawazahmed0 CDN
+  participant CDN as spa5k CDN
   U->>R: GET (user expands tafsir)
   R->>api: getSurahTafsir(id, surah)
   api->>ad: TafsirRepository port
@@ -117,6 +125,14 @@ sequenceDiagram
   CDN-->>ad: JSON
   ad-->>U: TafsirEntry[]
 ```
+
+Hadith is **not** on this path. Per [ADR 0022](docs/adr/0022-hadith-ingested-search.md)
+it's ingested into `datasets/hadiths/*.json` at build time, same as
+translations, and served by `FileHadithRepository` from `data` — it's on the
+"reading (build time)" path above, plus a runtime read of the already-ingested
+JSON for on-demand section fetches (`outputFileTracingIncludes` ships that
+dataset slice to the function, see below). `HttpHadithRepository` still exists
+in `adapters` but is unwired, superseded plumbing.
 
 ### User state (local-first, optional E2EE sync)
 
@@ -140,8 +156,8 @@ UI are unchanged whether sync is on or off.
 ```mermaid
 flowchart LR
   manifest["plugins/*.json (manifest)"] --> registry["core PluginRegistry"]
-  registry -->|ingested| bundle["datasets/ (translations)"]
-  registry -->|runtime-json| http["adapters → CDN (tafsir, hadith)"]
+  registry -->|ingested| bundle["datasets/ (translations, hadith)"]
+  registry -->|runtime-json| http["adapters → CDN (tafsir)"]
   registry -->|runtime-audio| audio["audio URL template (reciters)"]
 ```
 
@@ -154,9 +170,10 @@ the full runtime catalogue of ~490 editions fetched on demand from the
 Push → GitHub Actions (lint · typecheck · test · build, Node 22) with module
 boundaries enforced → Vercel deploys on merge to `main`. The output is ~1,560
 static pages on the CDN (114 surahs, 30 juzʾ, 604 Mushaf pages, search, …) plus
-a handful of dynamic serverless functions (tRPC, single-ayah, tafsir/hadith, and
-the `POST /api/sync` exchange) that ship the datasets they need via
-`outputFileTracingIncludes`.
+a handful of dynamic serverless functions: tRPC, single-ayah, and the hadith
+section route ship the ingested `datasets/` slice they read via
+`outputFileTracingIncludes`; tafsir fetches from a CDN at request time so needs
+no dataset tracing; `POST /api/sync` touches no dataset at all.
 
 ## Where to put things
 

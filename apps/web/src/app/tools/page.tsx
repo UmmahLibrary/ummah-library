@@ -10,6 +10,7 @@ const TOOLS = [
   { key: "/duas", label: "Duʿās", glyph: "🤲", note: "Fortress of the Muslim" },
   { key: "/plans", label: "Reading Plans", glyph: "🗺", note: "Structured journeys" },
   { key: "/qibla", label: "Qibla", glyph: "🧭", note: "118° SE · Direction to Makkah" },
+  { key: "/mosques", label: "Nearby Mosques", glyph: "📍", note: "Find a place to pray" },
   { key: "/hifz", label: "Hifz Review", glyph: "✦", note: "Spaced repetition" },
   { key: "/calendar", label: "Hijri Calendar", glyph: "☾", note: "Islamic dates" },
   { key: "/names", label: "99 Names", glyph: "﷽", note: "Al-Asmāʾ al-Ḥusnā" },
@@ -17,6 +18,7 @@ const TOOLS = [
   { key: "/adhkar", label: "Adhkār", glyph: "☼", note: "Morning · Evening" },
   { key: "/zakat", label: "Zakat", glyph: "⊜", note: "2.5% calculator" },
   { key: "/hadith", label: "Hadith", glyph: "📖", note: "Search the collections" },
+  { key: "/downloads", label: "Downloads", glyph: "⤓", note: "Offline reciter audio" },
 ];
 
 export default function ToolsPage() {

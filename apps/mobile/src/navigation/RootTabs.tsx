@@ -27,7 +27,7 @@ export function RootTabs() {
         headerShown: false,
         tabBarStyle: { backgroundColor: colors.bg, borderTopColor: colors.border },
         tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.faint,
+        tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontFamily: FONT.medium, fontSize: 11 },
         tabBarIcon: ({ color }) => <Icon name={ICONS[route.name]} size={22} color={color} sw={1.8} />,
       })}

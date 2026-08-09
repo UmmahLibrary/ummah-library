@@ -218,6 +218,36 @@ describe("FileAdhkarRepository + FileAsmaRepository", () => {
     expect(morning.length).not.toBe(evening.length);
   });
 
+  // The other Ḥiṣn al-Muslim sets grown into the ingest for #36 (ADR 0016
+  // anticipated this: "extend to the other sets by growing the ingest — no
+  // architecture change").
+  it("serves the after-salah and other daily occasions added for #36", async () => {
+    const all = await adhkarRepo.all();
+    for (const occasion of [
+      "after-salah",
+      "waking",
+      "sleep",
+      "home",
+      "travel",
+      "eating",
+      "dressing",
+      "distress",
+      "daily",
+    ] as const) {
+      const items = await adhkarRepo.byOccasion(occasion);
+      expect(items.length).toBeGreaterThan(0);
+      for (const d of items) {
+        expect(d.occasions).toContain(occasion);
+        expect(d.arabic.length).toBeGreaterThan(0);
+        expect(d.translation.length).toBeGreaterThan(0);
+        expect(d.transliteration.length).toBeGreaterThan(0);
+      }
+    }
+    // The full Ḥiṣn al-Muslim extension (#36) roughly triples the original
+    // morning/evening-only collection (~34 items).
+    expect(all.length).toBeGreaterThanOrEqual(80);
+  });
+
   it("serves the 99 Names of Allah", async () => {
     expect(await asmaRepo.all()).toHaveLength(99);
   });

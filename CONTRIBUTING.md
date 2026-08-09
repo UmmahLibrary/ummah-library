@@ -17,7 +17,7 @@ Requirements: **Node ≥ 20**, **pnpm** (pinned via `packageManager` in the root
 
 ## Before you open a PR
 
-Run the same checks CI runs:
+Run the checks CI runs:
 
 ```bash
 pnpm lint
@@ -25,6 +25,12 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+CI runs two jobs on every PR: `lint`/`typecheck`/`test:coverage`/`build` (the
+same four checks above, with coverage collected), and a separate `e2e` job
+running the Playwright smoke suite. `pnpm test:coverage` matches CI's coverage
+run exactly; run `pnpm test:e2e` locally too if your change touches a
+user-facing flow.
 
 `pnpm format` autoformats with Prettier.
 

@@ -10,6 +10,7 @@ import type {
   DivineName,
   HadithCollection,
   HadithSection,
+  Place,
   Surah,
   TafsirEntry,
   TranslatedAyah,
@@ -106,6 +107,24 @@ export interface PrayerTimesQuery {
  */
 export interface PrayerTimesCalculator {
   calculate(query: PrayerTimesQuery): Promise<ExtendedPrayerTimings>;
+}
+
+/**
+ * Finds mosques near a point from OpenStreetMap's Overpass API — a public,
+ * read-only, keyless, ODbL-licensed geodata source kept behind this port so
+ * `core` and the apps never call the vendor directly (ADR 0038). Mirrors the
+ * shape of {@link PrayerTimesCalculator}: an external, coordinate-driven
+ * lookup with no accounts and nothing stored server-side.
+ */
+export interface PlacesProvider {
+  /**
+   * Mosques (`amenity=place_of_worship` + `religion=muslim` in OSM) within
+   * `radiusMeters` of `coords`, nearest first. An empty array covers both "none
+   * nearby" and a degraded upstream response (matching the sibling HTTP content
+   * repositories); a hard network failure before any response — offline, DNS —
+   * still rejects, so the caller can render a distinct error state for that case.
+   */
+  nearbyMosques(coords: Coordinates, radiusMeters: number): Promise<readonly Place[]>;
 }
 
 /** Platform-neutral notification permission state (no DOM dependency). */
@@ -455,6 +474,36 @@ export interface ReminderStore {
   writeAdhkarOn(on: boolean): Promise<void>;
   writeSunnahFastOn(on: boolean): Promise<void>;
   writeIslamicEvents(prefs: Record<string, boolean>): Promise<void>;
+}
+
+/** A surah's downloaded audio for one reciter, for the downloads manager (#202). */
+export interface DownloadedSurah {
+  reciterId: string;
+  surah: number;
+  /** Ayahs saved so far (a completed download equals the surah's ayah count). */
+  ayahCount: number;
+  /** Total bytes on device for this surah's saved audio. */
+  bytes: number;
+}
+
+/**
+ * Persists reciter audio on-device for offline playback (#202, ADR 0039), keyed
+ * by reciter + ayah. The web adapter caches responses via the Cache API and hands
+ * back blob URLs; mobile stores files via `expo-file-system` and hands back
+ * `file://` URIs. `core` never touches either — the download *orchestration*
+ * (`downloadSurahAudio` in `audio.ts`) drives this port and stays pure.
+ */
+export interface AudioStore {
+  /** Whether this ayah's audio is already saved for the reciter. */
+  has(reciterId: string, ref: VerseKey): Promise<boolean>;
+  /** A locally-playable URL (`blob:`/`file:`) for the ayah, or `null` if not saved. */
+  localUrl(reciterId: string, ref: VerseKey): Promise<string | null>;
+  /** Download and persist one ayah's audio from its remote URL. Idempotent. */
+  save(reciterId: string, ref: VerseKey, remoteUrl: string): Promise<void>;
+  /** Remove every saved ayah of a surah for the reciter. */
+  removeSurah(reciterId: string, surah: number): Promise<void>;
+  /** Every saved surah across reciters, for the downloads manager. */
+  savedSurahs(): Promise<readonly DownloadedSurah[]>;
 }
 
 /**

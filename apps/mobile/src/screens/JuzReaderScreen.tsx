@@ -10,7 +10,7 @@ import {
   totalWords,
   type VerseKey,
 } from "@ummahlibrary/core";
-import { api } from "../api";
+import { api, ApiError } from "../api";
 import { RECITER, RECITERS } from "../plugins";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
@@ -76,7 +76,9 @@ export function JuzReaderScreen({ route }: Props) {
   const juz = route.params.juz;
   const edition = resolveActiveTranslation(editions, readingTranslation, DEFAULT_EDITION);
   const [lines, setLines] = useState<Line[] | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const retry = useCallback(() => setReloadToken((t) => t + 1), []);
 
   // Memorize / hide-and-peek (#134) — ephemeral, so a juzʾ never opens hidden.
   const [peek, setPeek] = useState(false);
@@ -87,9 +89,9 @@ export function JuzReaderScreen({ route }: Props) {
   useEffect(() => {
     let active = true;
     setLines(null);
-    setError(false);
+    setError(null);
     if (!Number.isInteger(Number(juz)) || Number(juz) < 1 || Number(juz) > TOTAL_JUZ) {
-      setError(true);
+      setError(new ApiError("Invalid juzʾ number", { isNetworkError: false }));
       return () => {
         active = false;
         audio.stop();
@@ -136,12 +138,15 @@ export function JuzReaderScreen({ route }: Props) {
       .then((groups) => {
         if (active) setLines(groups.flat());
       })
-      .catch(() => active && setError(true));
+      .catch((e: unknown) => {
+        if (!active) return;
+        setError(e instanceof ApiError ? e : new ApiError("Failed", { isNetworkError: true }));
+      });
     return () => {
       active = false;
       audio.stop();
     };
-  }, [juz, edition, transliteration, wordTransliteration, script]);
+  }, [juz, edition, transliteration, wordTransliteration, script, reloadToken]);
 
   const verses = useMemo(() => (lines ?? []).map((l) => ({ sura: l.sura, aya: l.aya })), [lines]);
 
@@ -172,9 +177,17 @@ export function JuzReaderScreen({ route }: Props) {
   }, []);
 
   if (error) {
+    const message = error.isNetworkError
+      ? "Couldn’t load this juzʾ. Check your connection."
+      : error.status && error.status >= 500
+        ? "The server is starting up. Try again in a moment."
+        : "Couldn’t load this juzʾ.";
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>Couldn’t load this juzʾ.</Text>
+        <Text style={styles.error}>{message}</Text>
+        <Pressable style={styles.chip} onPress={retry}>
+          <Text style={styles.chipText}>Try again</Text>
+        </Pressable>
       </View>
     );
   }
@@ -318,8 +331,16 @@ export function JuzReaderScreen({ route }: Props) {
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.bg },
-    center: { flex: 1, backgroundColor: c.bg, alignItems: "center", justifyContent: "center" },
-    error: { color: c.error, fontSize: 15 },
+    center: { flex: 1, backgroundColor: c.bg, alignItems: "center", justifyContent: "center", gap: 14 },
+    error: { color: c.error, fontSize: 15, textAlign: "center", paddingHorizontal: 24 },
+    chip: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    chipText: { color: c.muted, fontSize: 13 },
     content: { paddingHorizontal: 18, paddingBottom: 40 },
     audioBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
     audioExtras: { marginBottom: 12 },
