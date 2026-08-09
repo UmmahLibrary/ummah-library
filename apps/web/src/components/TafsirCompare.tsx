@@ -19,7 +19,10 @@ function loadSurahTafsir(tafsirId: string, surah: number): Promise<Map<number, s
   let pending = tafsirCache.get(key);
   if (!pending) {
     pending = fetch(`/api/v1/surahs/${surah}/tafsirs/${tafsirId}`)
-      .then((res) => (res.ok ? (res.json() as Promise<TafsirResponse>) : { entries: [] }))
+      .then((res) => {
+        if (!res.ok) throw new Error(`tafsir_unavailable:${res.status}`);
+        return res.json() as Promise<TafsirResponse>;
+      })
       .then((data) => new Map(data.entries.map((e) => [e.aya, e.text])));
     tafsirCache.set(key, pending);
   }
@@ -163,7 +166,7 @@ function TafsirColumn({
   surah: number;
   aya: number;
 }) {
-  const [state, setState] = useState<"loading" | "ready" | "empty">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [text, setText] = useState("");
 
   useEffect(() => {
@@ -176,7 +179,7 @@ function TafsirColumn({
         setText(entry ?? "");
         setState(entry ? "ready" : "empty");
       })
-      .catch(() => active && setState("empty"));
+      .catch(() => active && setState("error"));
     return () => {
       active = false;
     };
@@ -206,6 +209,9 @@ function TafsirColumn({
       <div className="tafsir-body" dir={isRtl(edition) ? "rtl" : undefined}>
         {state === "loading" && <span className="tafsir-muted">Loading…</span>}
         {state === "empty" && <span className="tafsir-muted">No tafsir for this āyah.</span>}
+        {state === "error" && (
+          <span className="tafsir-muted">Couldn't load {name} right now.</span>
+        )}
         {state === "ready" &&
           text.split("\n").map((p, i) => (p.trim() ? <p key={i}>{p}</p> : null))}
       </div>

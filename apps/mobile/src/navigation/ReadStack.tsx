@@ -4,10 +4,7 @@ import { SurahListScreen } from "../screens/SurahListScreen";
 import { SurahReaderScreen } from "../screens/SurahReaderScreen";
 import { JuzReaderScreen } from "../screens/JuzReaderScreen";
 import { SearchScreen } from "../screens/SearchScreen";
-import { CollectionsScreen } from "../screens/CollectionsScreen";
-import { ReadingGoalsScreen } from "../screens/ReadingGoalsScreen";
 import { MushafPageScreen } from "../screens/MushafPageScreen";
-import { TafsirScreen } from "../screens/TafsirScreen";
 import { PlansScreen } from "../screens/PlansScreen";
 import { PlanDetailScreen } from "../screens/PlanDetailScreen";
 import type { ReadStackParamList } from "./types";
@@ -37,14 +34,11 @@ export function ReadStack() {
         options={({ route }) => ({ title: `Juzʾ ${route.params.juz}` })}
       />
       <Stack.Screen name="Search" component={SearchScreen} options={{ title: "Search" }} />
-      <Stack.Screen name="Collections" component={CollectionsScreen} options={{ title: "Bookmarks" }} />
-      <Stack.Screen name="ReadingGoals" component={ReadingGoalsScreen} options={{ title: "Reading Goals" }} />
       <Stack.Screen
         name="MushafPage"
         component={MushafPageScreen}
         options={{ title: "", headerBackTitle: "Back" }}
       />
-      <Stack.Screen name="Tafsir" component={TafsirScreen} options={{ title: "Tafsir" }} />
       <Stack.Screen name="Plans" component={PlansScreen} options={{ title: "Reading Plans" }} />
       <Stack.Screen name="PlanDetail" component={PlanDetailScreen} options={{ title: "Plan", headerBackTitle: "Plans" }} />
     </Stack.Navigator>

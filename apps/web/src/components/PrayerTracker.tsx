@@ -204,16 +204,24 @@ export function PrayerTracker() {
                 const st = d.statuses[pi] ?? "none";
                 const dayPaused = isDatePaused(haid, d.date);
                 return (
-                  <div
+                  <button
                     key={d.date}
+                    type="button"
+                    disabled={dayPaused}
+                    onClick={() => void cyclePrayer(d.date, p).then(setLog)}
+                    aria-label={`${PRAYER_LABELS[p]} · ${weekdayInitial(d.date)}: ${
+                      dayPaused ? "Paused" : statusLabel(st)
+                    } — tap to change`}
                     title={`${PRAYER_LABELS[p]} · ${weekdayInitial(d.date)}: ${
                       dayPaused ? "Paused" : statusLabel(st)
                     }`}
                     style={{
+                      display: "block",
                       aspectRatio: "1",
                       width: "100%",
                       maxWidth: 30,
                       margin: "0 auto",
+                      padding: 0,
                       borderRadius: 7,
                       background: dayPaused || st === "none" ? "transparent" : statusColor(st),
                       border: dayPaused
@@ -221,6 +229,8 @@ export function PrayerTracker() {
                         : st === "none"
                           ? `1px solid ${N.border}`
                           : "none",
+                      cursor: dayPaused ? "default" : "pointer",
+                      fontFamily: N.ui,
                     }}
                   />
                 );

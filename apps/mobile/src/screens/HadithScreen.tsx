@@ -90,6 +90,7 @@ export function HadithScreen() {
                 </Text>
                 {h.grades[0] ? <Text style={styles.grade}>{h.grades[0]}</Text> : null}
               </View>
+              {h.arabic ? <Text style={styles.arabic}>{h.arabic}</Text> : null}
               <Text style={styles.text}>{h.text}</Text>
               <View style={styles.cardFoot}>
                 <Text style={styles.ref}>
@@ -167,6 +168,15 @@ function makeStyles(c: Palette) {
       paddingVertical: 3,
       paddingHorizontal: 8,
       overflow: "hidden",
+    },
+    arabic: {
+      color: c.fg,
+      fontFamily: FONT.ar,
+      fontSize: 20,
+      lineHeight: 36,
+      textAlign: "right",
+      writingDirection: "rtl",
+      marginBottom: 12,
     },
     text: { color: c.muted, fontSize: 15, lineHeight: 24 },
     cardFoot: { marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.borderSoft },
