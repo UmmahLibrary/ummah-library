@@ -43,6 +43,7 @@ export type MoreStackParamList = {
   Settings: undefined;
   Names: undefined;
   Hadith: undefined;
+  Privacy: undefined;
   Collections: undefined;
   ReadingGoals: undefined;
   Tafsir: undefined;

@@ -25,6 +25,7 @@ export function MoreMenuScreen({ navigation }: Props) {
     { icon: "check", title: "Reading Goals", desc: "Daily goal, streak & khatma", onPress: () => navigation.navigate("ReadingGoals") },
     { icon: "book", title: "Reading Plans", desc: "Structured journeys through the Book", onPress: () => toRead("Plans") },
     { icon: "settings", title: "Settings", desc: "Theme, fonts, reciter & data", onPress: () => navigation.navigate("Settings") },
+    { icon: "eye", title: "Privacy", desc: "How your data is handled", onPress: () => navigation.navigate("Privacy") },
   ];
 
   return (
