@@ -7,6 +7,9 @@ import { SettingsScreen } from "../screens/SettingsScreen";
 import { NamesScreen } from "../screens/NamesScreen";
 import { HadithScreen } from "../screens/HadithScreen";
 import { PrivacyScreen } from "../screens/PrivacyScreen";
+import { CollectionsScreen } from "../screens/CollectionsScreen";
+import { ReadingGoalsScreen } from "../screens/ReadingGoalsScreen";
+import { TafsirScreen } from "../screens/TafsirScreen";
 import type { MoreStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<MoreStackParamList>();
@@ -28,6 +31,9 @@ export function MoreStack() {
       <Stack.Screen name="Names" component={NamesScreen} options={{ title: "99 Names" }} />
       <Stack.Screen name="Hadith" component={HadithScreen} options={{ title: "Hadith" }} />
       <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ title: "Privacy" }} />
+      <Stack.Screen name="Collections" component={CollectionsScreen} options={{ title: "Bookmarks" }} />
+      <Stack.Screen name="ReadingGoals" component={ReadingGoalsScreen} options={{ title: "Reading Goals" }} />
+      <Stack.Screen name="Tafsir" component={TafsirScreen} options={{ title: "Tafsir" }} />
     </Stack.Navigator>
   );
 }

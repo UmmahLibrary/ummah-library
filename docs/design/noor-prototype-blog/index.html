@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ummah Library — Blog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; }
+  code { font-family: ui-monospace, Menlo, monospace; }
+  a { color: var(--ul-gold); }
+  a:hover { color: var(--ul-goldHi); }
+  ::selection { background: var(--ul-goldSoft); }
+
+  /* Article layout: a 680px reading column for text, flanked by a sticky TOC
+     rail on the left and a matching empty gutter on the right so the column
+     stays visually centered rather than shifting toward the rail. The outer
+     measure column itself goes up to 920px — diagrams/tables/code use that
+     full width, while text blocks are capped at 680px within it. */
+  .ul-article-shell { display: flex; align-items: flex-start; gap: 40px; max-width: 1240px; margin: 0 auto; padding: 48px 24px 24px; }
+  .ul-toc-rail, .ul-toc-gutter { flex: 0 0 216px; display: none; }
+  .ul-toc-rail > div { position: sticky; top: 84px; }
+  .ul-article-measure { flex: 1 1 0%; max-width: 920px; margin: 0 auto; min-width: 0; }
+  .ul-textcol { max-width: 680px; margin: 0 auto; }
+  @media (min-width: 1220px) {
+    .ul-toc-rail, .ul-toc-gutter { display: block; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#0A0B0F">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0A0B0F"/>
+    <g transform="translate(600 400)" fill="none" stroke="#E6B855" stroke-width="9">
+      <rect x="-150" y="-150" width="300" height="300"/>
+      <rect x="-150" y="-150" width="300" height="300" transform="rotate(45)"/>
+      <circle cx="0" cy="0" r="62"/>
+    </g>
+  </svg>
+</template>
+<div id="root"></div>
+<script type="text/babel" src="mobile/kit.jsx" data-presets="react"></script>
+<script type="text/babel" src="brand/logo.jsx" data-presets="react"></script>
+<script src="blog/blogdata.js"></script>
+<script type="text/babel" src="blog/tweaks-panel.jsx" data-presets="react"></script>
+<script type="text/babel" src="blog/blogkit.jsx" data-presets="react"></script>
+<script type="text/babel" src="blog/blogscreens.jsx" data-presets="react"></script>
+</body>
+</html>

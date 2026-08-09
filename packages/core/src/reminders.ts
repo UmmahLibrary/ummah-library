@@ -11,7 +11,7 @@
  * shared notifier can serve the plan, adhkar, and prayer reminder families
  * without one family clearing another's pending notifications.
  */
-import type { AdhkarOccasion } from "./entities";
+import type { AdhkarReminderOccasion } from "./adhkar";
 import type { Notifier, PlanStore, PrayerTimingsProvider, ReminderStore } from "./ports";
 import { nextAdhkarReminder } from "./adhkar";
 import { addGregorianDays } from "./hijri";
@@ -27,12 +27,15 @@ export const SUNNAH_FAST_REMINDER_ID = "sunnah-fast:next";
 /** Stable notification id for an Islamic-event reminder (rescheduling replaces it). */
 export const islamicEventReminderId = (eventId: string): string => `event:${eventId}`;
 
-const ADHKAR_OCCASION_LIST: readonly AdhkarOccasion[] = ["morning", "evening"];
-const ADHKAR_LABEL: Record<AdhkarOccasion, string> = { morning: "morning", evening: "evening" };
-const ADHKAR_EMOJI: Record<AdhkarOccasion, string> = { morning: "🌅", evening: "🌆" };
+const ADHKAR_OCCASION_LIST: readonly AdhkarReminderOccasion[] = ["morning", "evening"];
+const ADHKAR_LABEL: Record<AdhkarReminderOccasion, string> = {
+  morning: "morning",
+  evening: "evening",
+};
+const ADHKAR_EMOJI: Record<AdhkarReminderOccasion, string> = { morning: "🌅", evening: "🌆" };
 
 /** Stable notification id for an adhkar occasion (rescheduling replaces it). */
-export const adhkarReminderId = (occasion: AdhkarOccasion): string => `adhkar:${occasion}`;
+export const adhkarReminderId = (occasion: AdhkarReminderOccasion): string => `adhkar:${occasion}`;
 /** Stable notification id for a prayer reminder (rescheduling replaces it). */
 export const prayerReminderId = (prayer: PrayerName): string => `prayer:${prayer}`;
 
@@ -57,7 +60,9 @@ export interface ReminderSyncDeps {
  * isn't granted, there's no active plan (or it's paused, #68), or the time is
  * malformed.
  */
-export async function syncPlanReminder(deps: ReminderSyncDeps & { plans: PlanStore }): Promise<void> {
+export async function syncPlanReminder(
+  deps: ReminderSyncDeps & { plans: PlanStore },
+): Promise<void> {
   const { notifier, reminders, plans, now } = deps;
   await notifier.cancel(PLAN_REMINDER_ID);
 

@@ -46,12 +46,24 @@ stay on each hadith for transparency.
 - **Good:** instant, **offline**, reliable hadith with real cross-collection
   search + grade filters — the design's experience — reusing pure `core` logic.
   The external runtime dependency is gone.
-- **Cost:** ~19 MB of generated datasets in the repo (the static-first trade,
-  0003); the client downloads ~5 MB (compressed) once for global search.
+- **Cost:** ~38 MB of generated datasets in the repo (the static-first trade,
+  0003) now that each collection also carries its Arabic edition; the client
+  downloads a collection at a time (compressed) and caches it for offline search.
 - **Scholar review:** ingested translations and the derived grade categories are
   Islamic content — this ships `needs-scholar-review`.
-- **Limits / follow-ups:** English only (Arabic editions are ~40 MB more — a
-  deliberate follow-up); the source has **no narrator/topic fields** (the
-  narrator is embedded in the text), so the design's "Browse by topic" chips and
-  Arabic card text are deferred. `HttpHadithRepository` is kept as a valid
-  online adapter (e.g. for an online-only deployment) but is no longer wired.
+- **Limits / follow-ups:** the source has **no narrator/topic fields** (the
+  narrator is embedded in the text), so the design's "Browse by topic" chips are
+  deferred. `HttpHadithRepository` is kept as a valid online adapter (e.g. for an
+  online-only deployment) but is no longer wired.
+
+## Update (#52): Arabic editions ingested
+
+Each collection is now joined at ingest time with its matching Arabic edition —
+fawazahmed0 mirrors every `eng-*` collection as `ara-*` with **identical
+`hadithnumber`** (verified: 100% overlap across all six), so the join is exact.
+`Hadith` gained an optional `arabic` field; the ingest attaches it, the datasets
+carry it (source attribution records both edition URLs), and `FileHadithRepository`
+passes it straight through the static API route. The reader (web `HadithBrowser`
+and mobile `HadithScreen`) renders the Arabic RTL above the English translation.
+This is the "Arabic card text" follow-up the original entry deferred; it roughly
+doubles the bundled hadith size (the deliberate offline-Arabic trade).
