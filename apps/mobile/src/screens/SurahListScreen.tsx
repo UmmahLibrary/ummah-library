@@ -10,7 +10,7 @@ import {
 } from "../Type";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { TOTAL_JUZ, type Surah } from "@ummahlibrary/core";
+import { JUZ_STARTS, TOTAL_JUZ, type Surah } from "@ummahlibrary/core";
 import { api, ApiError } from "../api";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
@@ -49,6 +49,14 @@ type Row =
   | { kind: "surah"; surah: Surah }
   | { kind: "section"; label: string }
   | { kind: "juz"; juz: number };
+
+/** The last surah a juzʾ touches — the next juzʾ starts at aya 1 of a new surah,
+ * or mid-surah (mirrors the web /juz index so the two show the same span). */
+function juzEndSura(n: number): number {
+  if (n >= TOTAL_JUZ) return 114;
+  const next = JUZ_STARTS[n]!;
+  return next.aya > 1 ? next.sura : next.sura - 1;
+}
 
 /** The Qur'ān index — the Read tab's landing (the home dashboard lives on Home). */
 export function SurahListScreen({ navigation }: Props) {
@@ -126,6 +134,9 @@ export function SurahListScreen({ navigation }: Props) {
     return filtered.map((s) => ({ kind: "surah", surah: s }));
   }, [tab, filtered]);
 
+  // Surah lookup for the juzʾ tab's span labels ("Al-Fātiḥah – Al-Baqarah").
+  const byNumber = useMemo(() => new Map((surahs ?? []).map((s) => [s.number, s])), [surahs]);
+
   const open = (surah: number) => navigation.navigate("SurahReader", { surah });
 
   return (
@@ -182,6 +193,15 @@ export function SurahListScreen({ navigation }: Props) {
             return <Text style={styles.sectionLabel}>{item.label}</Text>;
           }
           if (item.kind === "juz") {
+            const start = JUZ_STARTS[item.juz - 1]!;
+            const first = byNumber.get(start.sura);
+            const lastSura = juzEndSura(item.juz);
+            const last = byNumber.get(lastSura);
+            const span = !first
+              ? "Read continuously"
+              : lastSura === start.sura
+                ? first.transliteration
+                : `${first.transliteration} – ${last?.transliteration ?? ""}`;
             return (
               <Pressable
                 style={styles.row}
@@ -192,7 +212,9 @@ export function SurahListScreen({ navigation }: Props) {
                 </View>
                 <View style={styles.rowMeta}>
                   <Text style={styles.rowTitle}>Juzʾ {item.juz}</Text>
-                  <Text style={styles.rowSub}>Read continuously</Text>
+                  <Text style={styles.rowSub} numberOfLines={1}>
+                    {span}
+                  </Text>
                 </View>
               </Pressable>
             );
