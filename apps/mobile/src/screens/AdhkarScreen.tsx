@@ -196,10 +196,10 @@ function makeStyles(c: Palette) {
       borderColor: c.border,
     },
     chipText: { color: c.muted, fontSize: 13 },
-    tabs: { flexDirection: "row", gap: 8, marginBottom: 4 },
+    tabs: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 4 },
     tab: {
-      flex: 1,
       paddingVertical: 10,
+      paddingHorizontal: 14,
       borderRadius: 10,
       borderWidth: 1,
       borderColor: c.border,
