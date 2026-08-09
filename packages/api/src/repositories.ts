@@ -2,6 +2,7 @@ import type {
   AdhkarRepository,
   AsmaRepository,
   HadithRepository,
+  PlacesProvider,
   PlanCatalogPort,
   PluginRegistry,
   PrayerTimesCalculator,
@@ -24,6 +25,7 @@ import {
   AdhanPrayerTimes,
   HttpTafsirRepository,
   HttpTranslationCatalog,
+  OverpassPlacesProvider,
 } from "@ummahlibrary/adapters";
 
 /** The Quran (Arabic + structure) repository wired to the ingested datasets. */
@@ -55,6 +57,9 @@ export const recitationTimingRepository: RecitationTimingRepository =
 
 /** Prayer-times calculator (adhan behind the core port) — see ADR 0012. */
 export const prayerTimes: PrayerTimesCalculator = new AdhanPrayerTimes();
+
+/** Nearby-mosque search via OpenStreetMap's Overpass API — see ADR 0038. */
+export const placesProvider: PlacesProvider = new OverpassPlacesProvider();
 
 /** The bundled adhkar collection (morning & evening) — see ADR 0016. */
 export const adhkarRepository: AdhkarRepository = new FileAdhkarRepository();

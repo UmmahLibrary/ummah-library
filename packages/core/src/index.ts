@@ -24,6 +24,7 @@ export * from "./haid";
 export * from "./fasting-qada";
 export * from "./achievements";
 export * from "./qibla";
+export * from "./geo";
 export * from "./hijri";
 export * from "./islamic-events";
 export * from "./sunnah-fasting";

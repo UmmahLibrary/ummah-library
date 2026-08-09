@@ -12,6 +12,7 @@ export { HttpTafsirRepository } from "./tafsir";
 export { HttpHadithRepository } from "./hadith";
 export { HttpTranslationCatalog } from "./translation-catalog";
 export { AdhanPrayerTimes } from "./prayer-times";
+export { DEFAULT_OVERPASS_ENDPOINT, OverpassPlacesProvider } from "./places";
 
 const key = (ayah: VerseKey): string => `${ayah.sura}:${ayah.aya}`;
 const byMushafOrder = (a: HifzRecord, b: HifzRecord): number => compareVerseKeys(a.ayah, b.ayah);
