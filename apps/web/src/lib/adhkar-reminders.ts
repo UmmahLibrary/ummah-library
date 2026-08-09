@@ -6,7 +6,7 @@
  * `syncAdhkarReminder` in `@ummahlibrary/core`. Delivery is the {@link Notifier}
  * port (fires while a tab is open); no server push.
  */
-import type { AdhkarOccasion, Coordinates, Notifier } from "@ummahlibrary/core";
+import type { AdhkarReminderOccasion, Coordinates, Notifier } from "@ummahlibrary/core";
 import { syncAdhkarReminder as coreSyncAdhkarReminder } from "@ummahlibrary/core";
 import { webPrayerSettingsStore } from "./prayer-settings-store";
 import { webPrayerTimingsProvider } from "./prayer-timings-provider";
@@ -15,11 +15,14 @@ import { webReminderStore } from "./reminder-store";
 /** Event dispatched on a preference change so the banner re-syncs. */
 export const REMINDERS_KEY = "ul.adhkarReminders";
 
-export const ADHKAR_LABEL: Record<AdhkarOccasion, string> = {
+export const ADHKAR_LABEL: Record<AdhkarReminderOccasion, string> = {
   morning: "morning",
   evening: "evening",
 };
-export const ADHKAR_EMOJI: Record<AdhkarOccasion, string> = { morning: "🌅", evening: "🌆" };
+export const ADHKAR_EMOJI: Record<AdhkarReminderOccasion, string> = {
+  morning: "🌅",
+  evening: "🌆",
+};
 
 export async function remindersEnabled(): Promise<boolean> {
   return (await webReminderStore.read()).adhkarOn;

@@ -141,8 +141,8 @@ curl https://ummahlibrary.org/api/v1/surahs/2/translations/eng-khattab
 ## Tech
 
 Next.js · Expo / React Native · tRPC · REST/OpenAPI · `adhan` prayer times ·
-SQLite (mobile Hifz) · WebCrypto (E2EE sync) · Tanzil Quran data ·
-`fawazahmed0/quran-api` translations.
+AsyncStorage (mobile local-first state) · WebCrypto (E2EE sync) · Tanzil Quran
+data · `fawazahmed0/quran-api` translations.
 
 ## Contributing
 

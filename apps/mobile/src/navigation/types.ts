@@ -11,10 +11,7 @@ export type ReadStackParamList = {
   SurahReader: { surah: number };
   JuzReader: { juz: number };
   Search: undefined;
-  Collections: undefined;
-  ReadingGoals: undefined;
   MushafPage: { page: number };
-  Tafsir: undefined;
   Plans: undefined;
   PlanDetail: { id: string };
 };
@@ -46,6 +43,10 @@ export type MoreStackParamList = {
   Settings: undefined;
   Names: undefined;
   Hadith: undefined;
+  Privacy: undefined;
+  Collections: undefined;
+  ReadingGoals: undefined;
+  Tafsir: undefined;
 };
 
 /** The bottom tabs — Home · Read · Tools · Memorize · More (Noor mobile design). */
@@ -55,4 +56,10 @@ export type RootTabParamList = {
   Tools: NavigatorScreenParams<ToolsStackParamList> | undefined;
   Memorize: NavigatorScreenParams<HifzStackParamList> | undefined;
   More: NavigatorScreenParams<MoreStackParamList> | undefined;
+};
+
+/** The app root: the tab bar, plus a catch-all for unrecognised URLs/deep links (#246). */
+export type RootStackParamList = {
+  Tabs: NavigatorScreenParams<RootTabParamList> | undefined;
+  NotFound: undefined;
 };
