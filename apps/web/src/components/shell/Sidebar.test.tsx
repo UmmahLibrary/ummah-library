@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { I18nProvider } from "../../i18n/I18nProvider";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 
@@ -7,7 +8,7 @@ import { Sidebar } from "./Sidebar";
 
 describe("Sidebar", () => {
   it("renders the nav groups and items", () => {
-    render(<Sidebar />);
+    render(<Sidebar />, { wrapper: I18nProvider });
 
     expect(screen.getByText("Read")).toBeInTheDocument();
     expect(screen.getByText("Worship")).toBeInTheDocument();

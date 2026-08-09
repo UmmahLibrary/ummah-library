@@ -7,6 +7,7 @@ import { PrayerReminderScheduler } from "../components/PrayerReminderScheduler";
 import { PlanReminderScheduler } from "../components/PlanReminderScheduler";
 import { SyncBootstrap } from "../components/SyncBootstrap";
 import { AppShellWrapper } from "../components/AppShellWrapper";
+import { I18nProvider } from "../i18n/I18nProvider";
 import { Onboarding } from "../components/Onboarding";
 import { SITE_URL } from "../lib/site";
 // Noor palette (all themes) — generated from packages/ui/src/themes.ts (ADR 0027).
@@ -123,7 +124,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <PrayerReminderScheduler />
         <PlanReminderScheduler />
         <SyncBootstrap />
-        <AppShellWrapper>{children}</AppShellWrapper>
+        <I18nProvider>
+          <AppShellWrapper>{children}</AppShellWrapper>
+        </I18nProvider>
         <ServiceWorkerRegister />
       </body>
     </html>
