@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Web `AudioStore` adapter (#202, ADR 0037): reciter audio saved for offline
+ * Web `AudioStore` adapter (#202, ADR 0039): reciter audio saved for offline
  * playback via the **Cache API**. Each ayah is fetched once (everyayah sends
  * `Access-Control-Allow-Origin: *`, so the cross-origin blob is readable) and
  * stored under a synthetic same-origin key; playback reads it back as a blob

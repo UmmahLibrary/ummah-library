@@ -468,7 +468,7 @@ export interface DownloadedSurah {
 }
 
 /**
- * Persists reciter audio on-device for offline playback (#202, ADR 0037), keyed
+ * Persists reciter audio on-device for offline playback (#202, ADR 0039), keyed
  * by reciter + ayah. The web adapter caches responses via the Cache API and hands
  * back blob URLs; mobile stores files via `expo-file-system` and hands back
  * `file://` URIs. `core` never touches either — the download *orchestration*
