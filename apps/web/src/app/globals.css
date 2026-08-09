@@ -33,18 +33,32 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+/* Hidden-until-focused via clipping to a 1px box, not an off-canvas offset —
+   an offset like `left: -9999px` extends the document's scrollable area in
+   that direction, which is catastrophic under `dir="rtl"` (ADR 0040): the
+   viewport can end up scrolled to that dead space instead of the app. */
 .skip-link {
   position: absolute;
-  left: -9999px;
   top: 0;
+  inset-inline-start: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
   background: var(--accent);
   color: var(--bg);
   padding: 0.5rem 1rem;
   z-index: 10;
 }
 .skip-link:focus {
-  left: 0.5rem;
   top: 0.5rem;
+  inset-inline-start: 0.5rem;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
 }
 .theme-toggle {
   background: none;
