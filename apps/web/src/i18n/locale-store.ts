@@ -1,5 +1,5 @@
 /**
- * Web persistence for the chosen UI locale (#208, ADR 0024/0038), under
+ * Web persistence for the chosen UI locale (#208, ADR 0024/0040), under
  * `ul.locale`. The sanctioned `localStorage` home; the i18n *runtime* lives in
  * `I18nProvider`. A synced adapter (#25) could replace this without touching the
  * provider.

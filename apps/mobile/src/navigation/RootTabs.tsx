@@ -1,6 +1,8 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Icon, type IconName } from "@ummahlibrary/ui";
 import { useTheme } from "../theme";
+import { useT } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
 import { FONT } from "../fonts";
 import { HomeStack } from "./HomeStack";
 import { ReadStack } from "./ReadStack";
@@ -19,8 +21,17 @@ const ICONS: Record<keyof RootTabParamList, IconName> = {
   More: "menu",
 };
 
+const LABEL_KEYS: Record<keyof RootTabParamList, MessageKey> = {
+  Home: "tab.home",
+  Read: "tab.read",
+  Tools: "tab.tools",
+  Memorize: "tab.memorize",
+  More: "tab.more",
+};
+
 export function RootTabs() {
   const { colors } = useTheme();
+  const t = useT();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -30,6 +41,7 @@ export function RootTabs() {
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontFamily: FONT.medium, fontSize: 11 },
         tabBarIcon: ({ color }) => <Icon name={ICONS[route.name]} size={22} color={color} sw={1.8} />,
+        tabBarLabel: t(LABEL_KEYS[route.name]),
       })}
     >
       <Tab.Screen name="Home" component={HomeStack} />

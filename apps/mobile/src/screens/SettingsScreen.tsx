@@ -3,6 +3,8 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import type { MergeStrategy, QuranScript } from "@ummahlibrary/core";
 import { noorThemes } from "@ummahlibrary/ui";
 import { useTheme, THEMES, type Palette } from "../theme";
+import { useI18n } from "../i18n/I18nProvider";
+import { LOCALES } from "../i18n/config";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { RECITER, RECITERS } from "../plugins";
@@ -27,6 +29,7 @@ const SCRIPTS: { id: QuranScript; label: string; sub: string }[] = [
 export function SettingsScreen() {
   const { colors, themeKey, setTheme } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { locale, setLocale, t } = useI18n();
   const {
     scale,
     setScale,
@@ -127,6 +130,27 @@ export function SettingsScreen() {
                 accessibilityLabel={t.label}
               >
                 <View style={[styles.swatchDot, { backgroundColor: noorThemes[t.key].accent }]} />
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <Text style={styles.sectionLabel}>{t("common.language")}</Text>
+      <View style={styles.card}>
+        <Text style={styles.pickSub}>{t("settings.languageHint")}</Text>
+        <View style={[styles.swatchRow, { marginTop: 13 }]}>
+          {LOCALES.map((l) => {
+            const on = l.code === locale;
+            return (
+              <Pressable
+                key={l.code}
+                onPress={() => setLocale(l.code)}
+                style={[styles.langPill, on && styles.langPillOn]}
+                accessibilityLabel={l.label}
+                accessibilityState={{ selected: on }}
+              >
+                <Text style={[styles.pillText, on && styles.pillTextOn]}>{l.label}</Text>
               </Pressable>
             );
           })}
@@ -359,6 +383,15 @@ function makeStyles(c: Palette) {
       justifyContent: "center",
     },
     swatchDot: { width: 13, height: 13, borderRadius: 7 },
+    langPill: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.bg,
+    },
+    langPillOn: { borderColor: c.accent, backgroundColor: c.accentSoft },
     row: {
       flexDirection: "row",
       alignItems: "center",
