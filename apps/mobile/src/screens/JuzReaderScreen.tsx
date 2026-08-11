@@ -17,6 +17,7 @@ import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { useSurahAudio, verseKeyOf } from "../audio/useSurahAudio";
 import { AudioRangeControls } from "../components/AudioRangeControls";
+import { DownloadButton } from "../components/DownloadButton";
 import { MemorizeBar } from "../components/MemorizeBar";
 import { DEFAULT_EDITION, TRANSLIT_EDITION } from "../types";
 import { fetchSurahWordTranslit } from "../word-translit";
@@ -149,6 +150,7 @@ export function JuzReaderScreen({ route }: Props) {
   }, [juz, edition, transliteration, wordTransliteration, script, reloadToken]);
 
   const verses = useMemo(() => (lines ?? []).map((l) => ({ sura: l.sura, aya: l.aya })), [lines]);
+  const listSurahs = useMemo(() => Array.from(new Set(verses.map((v) => v.sura))), [verses]);
 
   // Peek geometry: per-āyah words and the global index each āyah starts at, so the
   // shared reveal cursor maps onto every word in reading order.
@@ -221,6 +223,7 @@ export function JuzReaderScreen({ route }: Props) {
         >
           <Text style={[styles.loopText, audio.loop && styles.loopTextOn]}>🔁 Loop</Text>
         </Pressable>
+        <DownloadButton audio={audio} surahs={listSurahs} colors={colors} />
       </View>
       <View style={styles.audioExtras}>
         <AudioRangeControls audio={audio} verses={verses} />

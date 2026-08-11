@@ -35,6 +35,7 @@ export type ToolsStackParamList = {
   Zakat: undefined;
   Ramadan: undefined;
   Duas: undefined;
+  Downloads: undefined;
 };
 
 /** The "More" tab's stack: a menu → secondary sections. */

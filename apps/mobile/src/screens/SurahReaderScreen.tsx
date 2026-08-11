@@ -35,6 +35,7 @@ import { fetchSurahWordTranslit } from "../word-translit";
 import { fetchSurahIndopak } from "../indopak";
 import { ReaderControls } from "../components/ReaderControls";
 import { AudioRangeControls } from "../components/AudioRangeControls";
+import { DownloadButton } from "../components/DownloadButton";
 import { MemorizeBar } from "../components/MemorizeBar";
 import { ReadingTranslationPicker } from "../components/ReadingTranslationPicker";
 import { TranslationManager } from "../components/TranslationManager";
@@ -509,6 +510,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
             sw={1.8}
           />
         </Pressable>
+        <DownloadButton audio={audio} surahs={[n]} colors={colors} />
       </View>
       <View style={styles.audioExtras}>
         <AudioRangeControls audio={audio} verses={verses} />
