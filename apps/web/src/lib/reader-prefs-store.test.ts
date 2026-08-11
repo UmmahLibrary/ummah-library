@@ -3,11 +3,15 @@ import {
   readLastRead,
   readLastReadFull,
   readLoop,
+  readPlayMode,
   readScroll,
+  readTranslationVoice,
   readWordByWord,
   writeLastRead,
   writeLoop,
+  writePlayMode,
   writeScroll,
+  writeTranslationVoice,
   writeWordByWord,
 } from "./reader-prefs-store";
 
@@ -74,5 +78,26 @@ describe("reader-prefs-store", () => {
     expect(readScroll("ul.scroll.2")).toBe(0);
     writeScroll("ul.scroll.2", 540);
     expect(readScroll("ul.scroll.2")).toBe(540);
+  });
+
+  it("round-trips the translation-audio voice, clearing on null", () => {
+    expect(readTranslationVoice()).toBeNull();
+    writeTranslationVoice("eng-sahih-walk");
+    expect(readTranslationVoice()).toBe("eng-sahih-walk");
+    writeTranslationVoice(null);
+    expect(readTranslationVoice()).toBeNull();
+  });
+
+  it("defaults the play mode to arabic-only and round-trips a valid choice", () => {
+    expect(readPlayMode()).toBe("arabic-only");
+    writePlayMode("interleaved");
+    expect(readPlayMode()).toBe("interleaved");
+    writePlayMode("translation-only");
+    expect(readPlayMode()).toBe("translation-only");
+  });
+
+  it("falls back to arabic-only on a corrupt/unrecognized stored play mode", () => {
+    localStorage.setItem("ul.playMode", "not-a-real-mode");
+    expect(readPlayMode()).toBe("arabic-only");
   });
 });

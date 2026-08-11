@@ -7,6 +7,7 @@ import { pluginRegistry, quranRepository } from "@ummahlibrary/api";
 import { SITE_URL } from "../../../lib/site";
 
 const RECITERS = pluginRegistry.byKind("reciter");
+const TRANSLATION_VOICES = pluginRegistry.byKind("translation-audio");
 const TAFSIRS = pluginRegistry.byKind("tafsir").map((t) => ({ id: t.id, name: t.name }));
 
 // Render all 114 surahs at build time — no data access at runtime.
@@ -112,6 +113,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
             : null
         }
         reciters={RECITERS}
+        translationVoices={TRANSLATION_VOICES}
         tafsirs={TAFSIRS}
       />
     </div>

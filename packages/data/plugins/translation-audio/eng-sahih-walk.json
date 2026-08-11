@@ -1,0 +1,7 @@
+{
+  "kind": "translation-audio",
+  "id": "eng-sahih-walk",
+  "name": "Ibrahim Walk (Saheeh International)",
+  "language": "en",
+  "audioUrlTemplate": "https://everyayah.com/data/English/Sahih_Intnl_Ibrahim_Walk_192kbps/{surah:3}{ayah:3}.mp3"
+}

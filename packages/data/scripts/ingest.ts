@@ -117,6 +117,10 @@ async function writePluginRegistry(): Promise<void> {
     ...reciters,
     ...readPlugins("tafsirs"),
     ...readPlugins("hadiths"),
+    // Translation-audio voices (#204, ADR 0041) — per-ayah recitation of a
+    // translation's text, same everyayah URL-template model as reciters but a
+    // distinct kind, so every existing byKind("reciter") stays Arabic-only.
+    ...readPlugins("translation-audio"),
   ];
   await writeJson("plugins.json", { version: DATA_VERSION, plugins: allPlugins });
 }

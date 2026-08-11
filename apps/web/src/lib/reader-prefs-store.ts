@@ -13,6 +13,10 @@ const LOOP_KEY = "ul.loop";
 const RATE_KEY = "ul.audioRate";
 // Mirrors the event key exported by components/WordByWord.
 const WBW_KEY = "ul.wbw";
+// Translation-audio (#204): which voice, and whether/how it plays alongside
+// the Arabic reciter.
+const TRANSLATION_VOICE_KEY = "ul.translationVoice";
+const PLAY_MODE_KEY = "ul.playMode";
 
 /** The last-read position: the surah, the furthest āyah reached, and that
  *  surah's āyah count at write time (so the home card can show progress). */
@@ -119,6 +123,46 @@ export function readRate(): number {
 export function writeRate(rate: number): void {
   try {
     localStorage.setItem(RATE_KEY, String(clampPlaybackRate(rate)));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** The remembered translation-audio voice id, or `null` for none selected. */
+export function readTranslationVoice(): string | null {
+  try {
+    return localStorage.getItem(TRANSLATION_VOICE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function writeTranslationVoice(id: string | null): void {
+  try {
+    if (id) localStorage.setItem(TRANSLATION_VOICE_KEY, id);
+    else localStorage.removeItem(TRANSLATION_VOICE_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+const VALID_PLAY_MODES = new Set(["arabic-only", "translation-only", "interleaved"]);
+
+/** How translation audio plays alongside the Arabic reciter; defaults to Arabic-only. */
+export function readPlayMode(): "arabic-only" | "translation-only" | "interleaved" {
+  try {
+    const raw = localStorage.getItem(PLAY_MODE_KEY);
+    return raw && VALID_PLAY_MODES.has(raw)
+      ? (raw as "arabic-only" | "translation-only" | "interleaved")
+      : "arabic-only";
+  } catch {
+    return "arabic-only";
+  }
+}
+
+export function writePlayMode(mode: "arabic-only" | "translation-only" | "interleaved"): void {
+  try {
+    localStorage.setItem(PLAY_MODE_KEY, mode);
   } catch {
     /* storage unavailable */
   }

@@ -4,6 +4,7 @@ import {
   PluginRegistry,
   type ReciterPlugin,
   type TafsirPlugin,
+  type TranslationAudioPlugin,
   type TranslationPlugin,
   fillVerseTemplate,
   hadithSectionUrl,
@@ -48,6 +49,14 @@ const ibnKathir: TafsirPlugin = {
   direction: "ltr",
   surahUrlTemplate: "https://cdn.example/tafsir/ibn-kathir/{surah}.json",
 };
+const sahihWalk: TranslationAudioPlugin = {
+  kind: "translation-audio",
+  id: "eng-sahih-walk",
+  name: "Ibrahim Walk (Saheeh International)",
+  language: "en",
+  audioUrlTemplate:
+    "https://everyayah.com/data/English/Sahih_Intnl_Ibrahim_Walk_192kbps/{surah:3}{ayah:3}.mp3",
+};
 
 describe("fillVerseTemplate", () => {
   it("fills plain and zero-padded placeholders", () => {
@@ -60,6 +69,11 @@ describe("url helpers", () => {
   it("builds EveryAyah audio urls", () => {
     expect(reciterAudioUrl(alafasy, { sura: 1, aya: 1 })).toBe(
       "https://everyayah.com/data/Alafasy_128kbps/001001.mp3",
+    );
+  });
+  it("builds a translation-audio voice's urls the same way a reciter's are built", () => {
+    expect(reciterAudioUrl(sahihWalk, { sura: 1, aya: 1 })).toBe(
+      "https://everyayah.com/data/English/Sahih_Intnl_Ibrahim_Walk_192kbps/001001.mp3",
     );
   });
   it("resolves quran.com timing audio paths (relative, protocol-relative, absolute)", () => {
@@ -90,6 +104,7 @@ describe("validatePlugin", () => {
     expect(validatePlugin(alafasy)).toEqual([]);
     expect(validatePlugin(ibnKathir)).toEqual([]);
     expect(validatePlugin(bukhari)).toEqual([]);
+    expect(validatePlugin(sahihWalk)).toEqual([]);
   });
   it("reports problems", () => {
     expect(validatePlugin({ ...khattab, source: "" })).toContain("translation: missing source");
@@ -98,6 +113,9 @@ describe("validatePlugin", () => {
     ).toContain("tafsir: surahUrlTemplate must contain {surah}");
     expect(validatePlugin({ ...bukhari, sectionUrlTemplate: "https://x/none" })).toContain(
       "hadith: sectionUrlTemplate must contain {section}",
+    );
+    expect(validatePlugin({ ...sahihWalk, audioUrlTemplate: "https://x/no-placeholder" })).toContain(
+      "translation-audio: audioUrlTemplate must contain {surah}",
     );
   });
 
@@ -123,11 +141,15 @@ describe("PluginRegistry", () => {
       khattab,
       alafasy,
       ibnKathir,
+      sahihWalk,
       { ...khattab, id: "off", enabled: false },
     ]);
     expect(registry.get("eng-khattab")).toBe(khattab);
     expect(registry.byKind("translation").map((p) => p.id)).toEqual(["eng-khattab"]); // "off" excluded
     expect(registry.byKind("reciter")).toHaveLength(1);
-    expect(registry.all()).toHaveLength(4);
+    // A translation-audio voice never shows up under "reciter" — every existing
+    // byKind("reciter") call site keeps meaning exactly "Arabic reciters" (#204).
+    expect(registry.byKind("translation-audio").map((p) => p.id)).toEqual(["eng-sahih-walk"]);
+    expect(registry.all()).toHaveLength(5);
   });
 });

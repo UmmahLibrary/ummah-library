@@ -173,6 +173,14 @@ not stored in this repo.
   from [everyayah.com](https://everyayah.com) and [quran.com](https://quran.com):
   Alafasy, Abdul Basit, Al-Minshawi, Al-Shuraim, As-Sudais, Al-Husary, Al-Ghamdi,
   Al-Shatri. No audio is redistributed by this repo.
+- **Translation-audio voices** (`plugins/translation-audio/`, #204) — spoken
+  recitation of a translation's text, **streamed at runtime** from
+  [everyayah.com](https://everyayah.com), the same way reciters are: Ibrahim
+  Walk (English, reading the Saheeh International translation) and Shamshad Ali
+  Khan (Urdu). No audio is redistributed by this repo; neither voice's exact
+  source text is confirmed to match one of our bundled translation editions, so
+  no `translationEditionId` cross-reference is set — the voice's own name is the
+  attribution.
 - **Tafsirs** (`plugins/tafsirs/`) — Tafsīr al-Muyassar (King Fahd Complex),
   Tafsīr al-Ṭabarī, Tafsīr Ibn Kathīr (English/Urdu/Bengali), Maʿārif-ul-Qurʾān
   (Muftī Muḥammad Shafīʿ). Each remains © its author/publisher.

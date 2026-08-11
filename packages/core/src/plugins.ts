@@ -13,7 +13,7 @@
  */
 import type { TextDirection, VerseKey } from "./entities";
 
-export type PluginKind = "translation" | "tafsir" | "reciter" | "hadith";
+export type PluginKind = "translation" | "tafsir" | "reciter" | "hadith" | "translation-audio";
 
 interface PluginBase {
   id: string;
@@ -65,7 +65,33 @@ export interface HadithPlugin extends PluginBase {
   sectionUrlTemplate: string;
 }
 
-export type ContentPlugin = TranslationPlugin | TafsirPlugin | ReciterPlugin | HadithPlugin;
+/**
+ * A translation-audio voice (#204): a spoken recording of a translation's text,
+ * per ayah — the same URL-template model as a {@link ReciterPlugin}'s Arabic
+ * audio, just a different language and no word-level timing. Kept as its own
+ * plugin kind (rather than a `role` on `ReciterPlugin`) so every existing
+ * `byKind("reciter")` call site keeps meaning exactly "Arabic reciters" with no
+ * filtering required.
+ */
+export interface TranslationAudioPlugin extends PluginBase {
+  kind: "translation-audio";
+  /** URL with `{surah}` / `{ayah}` (often `{surah:3}{ayah:3}`), same shape as a reciter's. */
+  audioUrlTemplate: string;
+  /**
+   * The bundled translation edition id this voice reads, when we're confident of
+   * the match (`packages/data/plugins/translations/*.json`'s `id`). Left unset
+   * when the voice's exact source text isn't one of our bundled editions — `name`
+   * carries the human-readable description either way.
+   */
+  translationEditionId?: string;
+}
+
+export type ContentPlugin =
+  | TranslationPlugin
+  | TafsirPlugin
+  | ReciterPlugin
+  | HadithPlugin
+  | TranslationAudioPlugin;
 
 const pad = (value: number, width: number): string => String(value).padStart(width, "0");
 
@@ -83,9 +109,9 @@ export function fillVerseTemplate(template: string, ref: VerseKey): string {
   return fillTemplate(template, { surah: ref.sura, ayah: ref.aya });
 }
 
-/** The audio URL for one ayah of a reciter. */
-export function reciterAudioUrl(reciter: ReciterPlugin, ref: VerseKey): string {
-  return fillVerseTemplate(reciter.audioUrlTemplate, ref);
+/** The audio URL for one ayah of a reciter or translation-audio voice. */
+export function reciterAudioUrl(source: { audioUrlTemplate: string }, ref: VerseKey): string {
+  return fillVerseTemplate(source.audioUrlTemplate, ref);
 }
 
 /** quran.com's word-timing audio CDN — the base for resolving timing paths. */
@@ -130,6 +156,9 @@ export function validatePlugin(plugin: ContentPlugin): string[] {
   }
   if (plugin.kind === "reciter" && !/\{surah/.test(plugin.audioUrlTemplate)) {
     errors.push("reciter: audioUrlTemplate must contain {surah}");
+  }
+  if (plugin.kind === "translation-audio" && !/\{surah/.test(plugin.audioUrlTemplate)) {
+    errors.push("translation-audio: audioUrlTemplate must contain {surah}");
   }
   if (plugin.kind === "hadith" && !plugin.sectionUrlTemplate?.includes("{section}")) {
     errors.push("hadith: sectionUrlTemplate must contain {section}");

@@ -24,6 +24,7 @@ import { WordByWord } from "../../../components/WordByWord";
 import { MemorizeBar } from "../../../components/MemorizeBar";
 
 const RECITERS = pluginRegistry.byKind("reciter");
+const TRANSLATION_VOICES = pluginRegistry.byKind("translation-audio");
 
 export const dynamicParams = false;
 
@@ -152,7 +153,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
 
         <WordByWord />
 
-        <ReadingAudio verses={verses} reciters={RECITERS} />
+        <ReadingAudio verses={verses} reciters={RECITERS} translationVoices={TRANSLATION_VOICES} />
 
         {sections.map((section) => (
           <section key={section.surah.number}>
