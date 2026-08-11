@@ -27,9 +27,12 @@ Persistence is a platform adapter behind the port:
   **blob object URL**. everyayah sends `Access-Control-Allow-Origin: *`, so the
   cross-origin blob is readable and **no service worker is needed**. Implemented in
   `apps/web/src/lib/audio-store.ts`.
-- **Mobile — `expo-file-system`** (follow-up, same issue): download each ayah under
-  the app document dir and hand back a `file://` URI. The core port is already
-  platform-agnostic and ready for it.
+- **Mobile — `expo-file-system`.** Each ayah downloads to
+  `<document dir>/ul-audio/{reciter}/{sura}/{aya}.mp3` (`File.downloadFileAsync`)
+  and hands back a `file://` URI. Persistent app-document storage, not the
+  OS-reclaimable cache dir `offlineCache.ts` uses for disposable content — a
+  download is a deliberate user action, so it survives storage pressure the same
+  way a user photo would. Implemented in `apps/mobile/src/audio/audio-store.ts`.
 
 The player prefers a saved copy: before streaming, it asks the store for a local
 URL and, when present, plays that and uses the **bundled** word timings (ADR 0036,
@@ -46,8 +49,12 @@ local copy is added.
 - **Cost:** device storage — a full surah of a 128 kbps reciter is a few MB.
   Bounded by the reader downloading explicitly, per surah, and able to delete.
 - **Scope of this change:** web is implemented and verified (download → offline
-  playback via Playwright offline mode). The **mobile adapter + download UI is the
-  remaining follow-up** under this issue; it was deferred here because
-  `expo-file-system` can't be installed/verified in the current dev environment.
-- **Reuse:** the port + orchestration are shared, so the mobile adapter is a thin
-  file-system mirror of the web one.
+  playback via Playwright offline mode). Mobile is implemented — the
+  `expo-file-system` adapter, a download button in the surah/juzʾ audio bar, a
+  `/Downloads` screen under Tools, and the player preferring a saved file over
+  streaming — verified by `tsc`/lint/the adapter's unit test suite; not yet
+  exercised on a physical device or simulator (none available in this dev
+  environment), so a manual airplane-mode pass is recommended before release.
+- **Reuse:** the port + orchestration are shared — the mobile adapter (~80 lines)
+  is a thin file-system mirror of the web one, and both call the same
+  `downloadSurahAudio`/`isSurahDownloaded` in `core`.

@@ -17,6 +17,7 @@ const TOOLS: { screen: keyof ToolsStackParamList; icon: IconName; title: string;
   { screen: "HijriCalendar", icon: "moon",    title: "Hijri Calendar", desc: "Islamic lunar calendar" },
   { screen: "Ramadan",       icon: "star",    title: "Ramadan",        desc: "Ifṭār countdown & fasting tracker" },
   { screen: "Zakat",         icon: "layers",  title: "Zakat",          desc: "Estimate your annual zakat" },
+  { screen: "Downloads",     icon: "download",title: "Downloads",      desc: "Reciter audio saved for offline listening" },
 ];
 
 type Props = NativeStackScreenProps<ToolsStackParamList, "ToolsList">;

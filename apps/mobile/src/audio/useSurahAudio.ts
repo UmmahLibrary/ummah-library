@@ -15,7 +15,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import {
+  ayahCountOf,
   clampPlaybackRate,
+  downloadSurahAudio,
   reciterAudioUrl,
   repeatRange,
   type ReciterPlugin,
@@ -23,6 +25,7 @@ import {
 } from "@ummahlibrary/core";
 import { KEYS, getString, setString } from "../storage";
 import { api } from "../api";
+import { mobileAudioStore } from "./audio-store";
 
 const STALL_MS = 8000;
 const POLL_MS = 60;
@@ -123,6 +126,12 @@ export interface SurahAudio {
   /** Tap-a-word-to-hear (#145): play just one word of a verse, from its timing segment. */
   playWord: (verse: VerseKey, wordIndex: number) => void;
   stop: () => void;
+  /** Offline downloads (#202): surahs of the current reciter saved on-device. */
+  savedSurahs: Set<number>;
+  /** In-flight download progress across every surah being downloaded, or null. */
+  downloadProgress: { done: number; total: number } | null;
+  /** Download every listed surah's audio for the current reciter, with progress. */
+  downloadSurahs: (surahs: number[]) => void;
 }
 
 export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
@@ -131,6 +140,12 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
   const [activeWord, setActiveWord] = useState(-1);
   const [loop, setLoopState] = useState(false);
   const [rate, setRateState] = useState(1);
+  // Offline downloads (#202): in-flight progress + which of this reciter's
+  // surahs are already saved on-device.
+  const [downloadProgress, setDownloadProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  );
+  const [savedSurahs, setSavedSurahs] = useState<Set<number>>(new Set());
 
   const playerRef = useRef<AudioPlayer | null>(null);
   const tokenRef = useRef(0);
@@ -182,6 +197,44 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
       /* no active player */
     }
   }, []);
+
+  // Reflect which of this reciter's surahs are already downloaded.
+  const refreshSaved = useCallback(() => {
+    void mobileAudioStore.savedSurahs().then((saved) => {
+      setSavedSurahs(
+        new Set(
+          saved
+            .filter((s) => s.reciterId === reciter.id && s.ayahCount >= ayahCountOf(s.surah))
+            .map((s) => s.surah),
+        ),
+      );
+    });
+  }, [reciter.id]);
+  useEffect(refreshSaved, [refreshSaved]);
+
+  // Download every listed surah's audio for the current reciter (#202), reporting
+  // progress across the whole batch (a juzʾ spans several surahs).
+  const downloadSurahs = useCallback(
+    (surahs: number[]) => {
+      if (downloadProgress) return;
+      const total = surahs.reduce((n, s) => n + ayahCountOf(s), 0);
+      let done = 0;
+      setDownloadProgress({ done: 0, total });
+      void (async () => {
+        try {
+          for (const s of surahs) {
+            await downloadSurahAudio(mobileAudioStore, reciter, s, {
+              onProgress: () => setDownloadProgress({ done: ++done, total }),
+            });
+          }
+        } finally {
+          setDownloadProgress(null);
+          refreshSaved();
+        }
+      })();
+    },
+    [reciter, downloadProgress, refreshSaved],
+  );
 
   // The one persistent player, created lazily and re-sourced with replace().
   const ensurePlayer = useCallback((src: string): AudioPlayer => {
@@ -255,9 +308,16 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
             setBuffering(true);
             setActiveWord(-1);
 
-            const timing = await getTiming(reciter, v);
+            // Offline downloads (#202): prefer a saved copy over streaming. Word
+            // highlighting still needs `getTiming`'s bundled timings, but those are
+            // already read-through cached (`api.ts`/`offlineCache.ts`) so this
+            // resolves offline too once the surah has been opened once online.
+            const [timing, local] = await Promise.all([
+              getTiming(reciter, v),
+              mobileAudioStore.localUrl(reciter.id, v),
+            ]);
             if (tokenRef.current !== token) return;
-            const src = timing.url;
+            const src = local ?? timing.url;
             const segments: Segment[] | null = timing.segments.length ? timing.segments : null;
 
             const player = ensurePlayer(src);
@@ -454,7 +514,11 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
           return;
         }
         const key = verseKeyOf(verse);
-        const player = ensurePlayer(timing.url);
+        // Offline downloads (#202): prefer a saved copy over streaming, same as
+        // the whole-āyah session above.
+        const local = await mobileAudioStore.localUrl(reciter.id, verse);
+        if (tokenRef.current !== token) return;
+        const player = ensurePlayer(local ?? timing.url);
         if (tokenRef.current !== token) return;
         setPlayingKey(key);
         const endSec = seg[3] / 1000;
@@ -545,5 +609,8 @@ export function useSurahAudio(reciter: ReciterPlugin): SurahAudio {
     playRange,
     playWord,
     stop,
+    savedSurahs,
+    downloadProgress,
+    downloadSurahs,
   };
 }
