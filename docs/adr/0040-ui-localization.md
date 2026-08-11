@@ -32,7 +32,7 @@ for free and keeps the bundle lean.
 
 ## Scope of this change (phased)
 
-This lands **Phase 0–1**: the infrastructure + RTL wiring + picker, with a
+This lands **Phase 0–1** on web: the infrastructure + RTL wiring + picker, with a
 **starter slice** of strings extracted (the app-shell nav + common chrome) and a
 second locale (**Urdu, RTL**) proving the mechanism end-to-end. Extracting the
 remaining UI strings is incremental follow-up under #208 — each screen swaps its
@@ -41,6 +41,32 @@ literals for `t()` keys with no further architecture change.
 The Urdu strings are a **first pass flagged for native review**; the deliverable
 here is the localization *infrastructure*, not authoritative translations, so this
 carries `needs-scholar-review` for the language content.
+
+**Phase 4 (mobile + extension parity)** is also landed: each platform gets its
+own `en`/`ur` catalogue and runtime, following the pattern already established
+for its persistence layer rather than a shared package (a `packages/i18n` was an
+open question in the original issue; deferred rather than decided here — the
+duplication mirrors how reciter/plugin manifests are already mirrored into
+`apps/mobile/src/plugins.ts`, per that file's own comment).
+
+- **`apps/mobile/src/i18n/`** — `config.ts`/`messages.ts`/`I18nProvider.tsx`
+  (React context, mirrors `apps/mobile/src/theme.tsx`) /`locale-store.ts`
+  (AsyncStorage under `ul.locale`, same key the web app uses). Starter slice:
+  the bottom tab bar labels + the Settings language section. Deliberately does
+  **not** call `I18nManager.forceRTL` — that needs a full app restart and a
+  reload mechanism (`expo-updates`) this app doesn't yet depend on, so native
+  RTL layout mirroring is left as a follow-up rather than shipped unverified (no
+  device/simulator was available to verify it in this change). `localeDir()` is
+  still exposed for the existing per-element `writingDirection: "rtl"` pattern
+  already used for Arabic text.
+- **`apps/extension/src/lib/locale.ts` + `locale-store.ts` + `messages.ts`** —
+  collapsed into the extension's flat `lib/` layout and its existing
+  sync-mirror-plus-`chrome.storage.sync` split (mirrors `theme.ts`/
+  `theme-store.ts`), rather than a Context provider — the popup's whole
+  component tree is small enough that `theme`/`locale` are drilled as props, the
+  same shape the app already uses for its theme. Starter slice: the popup's own
+  chrome (verse-of-day label, sūra search label, theme label, footer links) plus
+  a language picker next to the existing theme picker.
 
 ## Consequences
 

@@ -12,6 +12,7 @@ import {
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeProvider, useTheme } from "./src/theme";
+import { I18nProvider } from "./src/i18n/I18nProvider";
 import { SettingsProvider } from "./src/state/SettingsContext";
 import { LibraryProvider } from "./src/state/LibraryContext";
 import { RootTabs } from "./src/navigation/RootTabs";
@@ -168,11 +169,13 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <SettingsProvider>
-          <LibraryProvider>
-            <AppGate />
-          </LibraryProvider>
-        </SettingsProvider>
+        <I18nProvider>
+          <SettingsProvider>
+            <LibraryProvider>
+              <AppGate />
+            </LibraryProvider>
+          </SettingsProvider>
+        </I18nProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

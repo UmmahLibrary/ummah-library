@@ -12,16 +12,30 @@ import { homeUrl, openUrl, settingsUrl, surahUrl } from "./lib/links";
 import { getPref, setPref } from "./lib/storage";
 import { filterSurahs } from "./lib/surah-filter";
 import { applyTheme, getStoredTheme, readThemeSync, setStoredTheme, THEME_KEYS } from "./lib/theme";
+import {
+  applyLocale,
+  getStoredLocale,
+  LOCALES,
+  readLocaleSync,
+  setStoredLocale,
+  type Locale,
+} from "./lib/locale";
+import { MESSAGES, type MessageKey } from "./lib/messages";
 
 const PAD = 16;
 
 export function Popup() {
   const [theme, setTheme] = useState<ThemeKey>(readThemeSync());
+  const [locale, setLocale] = useState<Locale>(readLocaleSync());
 
   useEffect(() => {
     void getStoredTheme().then((key) => {
       setTheme(key);
       applyTheme(key);
+    });
+    void getStoredLocale().then((code) => {
+      setLocale(code);
+      applyLocale(code);
     });
   }, []);
 
@@ -30,12 +44,19 @@ export function Popup() {
     void setStoredTheme(key);
   }
 
+  function changeLocale(code: Locale) {
+    setLocale(code);
+    void setStoredLocale(code);
+  }
+
+  const t = (key: MessageKey): string => MESSAGES[locale]?.[key] ?? MESSAGES.en[key] ?? key;
+
   return (
     <main style={{ padding: PAD, display: "flex", flexDirection: "column", gap: 14 }}>
       <Header />
-      <VerseOfDay />
-      <SurahJump />
-      <Footer theme={theme} onTheme={changeTheme} />
+      <VerseOfDay t={t} />
+      <SurahJump t={t} />
+      <Footer theme={theme} onTheme={changeTheme} locale={locale} onLocale={changeLocale} t={t} />
     </main>
   );
 }
@@ -90,7 +111,7 @@ const LABEL_STYLE = {
   fontFamily: N.ui,
 } as const;
 
-function VerseOfDay() {
+function VerseOfDay({ t }: { t: (key: MessageKey) => string }) {
   const [edition, setEdition] = useState<string>(DEFAULT_EDITION);
   const [editions, setEditions] = useState<readonly Translation[]>([]);
   const [verse, setVerse] = useState<VerseData | null>(null);
@@ -133,7 +154,7 @@ function VerseOfDay() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={LABEL_STYLE}>Verse of the day</span>
+        <span style={LABEL_STYLE}>{t("popup.verseOfDay")}</span>
         {editions.length > 0 && (
           <Dropdown
             ariaLabel="Translation"
@@ -184,7 +205,7 @@ function VerseOfDay() {
   );
 }
 
-function SurahJump() {
+function SurahJump({ t }: { t: (key: MessageKey) => string }) {
   const [surahs, setSurahs] = useState<readonly Surah[]>([]);
   const [query, setQuery] = useState("");
 
@@ -196,7 +217,7 @@ function SurahJump() {
 
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={LABEL_STYLE}>Jump to a sūra</span>
+      <span style={LABEL_STYLE}>{t("popup.jumpToSurah")}</span>
       <input
         type="search"
         value={query}
@@ -252,7 +273,19 @@ function SurahJump() {
   );
 }
 
-function Footer({ theme, onTheme }: { theme: ThemeKey; onTheme: (key: ThemeKey) => void }) {
+function Footer({
+  theme,
+  onTheme,
+  locale,
+  onLocale,
+  t,
+}: {
+  theme: ThemeKey;
+  onTheme: (key: ThemeKey) => void;
+  locale: Locale;
+  onLocale: (code: Locale) => void;
+  t: (key: MessageKey) => string;
+}) {
   const link = { color: N.muted, fontSize: 12, textDecoration: "none", fontFamily: N.ui } as const;
   return (
     <footer
@@ -265,18 +298,55 @@ function Footer({ theme, onTheme }: { theme: ThemeKey; onTheme: (key: ThemeKey) 
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={LABEL_STYLE}>Theme</span>
+        <span style={LABEL_STYLE}>{t("popup.theme")}</span>
         <ThemePicker value={theme} onChange={onTheme} />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={LABEL_STYLE}>{t("common.language")}</span>
+        <LanguagePicker value={locale} onChange={onLocale} />
       </div>
       <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
         <a href={homeUrl()} target="_blank" rel="noreferrer" style={link}>
-          Open Ummah Library
+          {t("popup.openApp")}
         </a>
         <a href={settingsUrl()} target="_blank" rel="noreferrer" style={link}>
-          Settings
+          {t("common.settings")}
         </a>
       </div>
     </footer>
+  );
+}
+
+function LanguagePicker({ value, onChange }: { value: Locale; onChange: (code: Locale) => void }) {
+  return (
+    <div role="radiogroup" aria-label="Language" style={{ display: "flex", gap: 6 }}>
+      {LOCALES.map((l) => {
+        const active = l.code === value;
+        return (
+          <button
+            key={l.code}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            lang={l.code}
+            onClick={() => onChange(l.code)}
+            style={{
+              padding: "3px 9px",
+              borderRadius: 999,
+              border: `1px solid ${active ? N.gold : N.border}`,
+              background: active ? N.goldSoft : "transparent",
+              color: active ? N.gold : N.muted,
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: N.ui,
+            }}
+          >
+            {l.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

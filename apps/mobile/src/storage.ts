@@ -56,6 +56,7 @@ export const KEYS = {
   sunnahFastReminders: "ul.sunnahFastReminders",
   islamicEventReminders: "ul.islamicEventReminders",
   adhkarTimings: "ul.adhkarTimings",
+  locale: "ul.locale",
 } as const;
 
 export async function getJSON<T>(
