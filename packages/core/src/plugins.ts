@@ -78,10 +78,17 @@ export interface TranslationAudioPlugin extends PluginBase {
   /** URL with `{surah}` / `{ayah}` (often `{surah:3}{ayah:3}`), same shape as a reciter's. */
   audioUrlTemplate: string;
   /**
-   * The bundled translation edition id this voice reads, when we're confident of
-   * the match (`packages/data/plugins/translations/*.json`'s `id`). Left unset
-   * when the voice's exact source text isn't one of our bundled editions — `name`
-   * carries the human-readable description either way.
+   * The translation edition id this voice reads, once verified (by comparing
+   * verse text against the voice's known source, not guessed from the name).
+   * Two distinct id spaces, depending which is the actual match:
+   *   - a **bundled** edition id (`packages/data/plugins/translations/*.json`'s
+   *     `id`) — resolvable via the small ingested set every reader already has
+   *     offline, or
+   *   - a **full-catalogue** edition id (the fawazahmed0 `name` slug served by
+   *     `HttpTranslationCatalog`, ADR 0011) — resolvable only via that ~490-edition
+   *     runtime catalogue, for a match that isn't one of our bundled editions.
+   * Left unset when no verified match exists; `name` carries the human-readable
+   * description either way.
    */
   translationEditionId?: string;
 }

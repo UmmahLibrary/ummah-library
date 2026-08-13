@@ -3,5 +3,6 @@
   "id": "urd-shamshad",
   "name": "Shamshad Ali Khan (Urdu)",
   "language": "ur",
-  "audioUrlTemplate": "https://everyayah.com/data/translations/urdu_shamshad_ali_khan_46kbps/{surah:3}{ayah:3}.mp3"
+  "audioUrlTemplate": "https://everyayah.com/data/translations/urdu_shamshad_ali_khan_46kbps/{surah:3}{ayah:3}.mp3",
+  "translationEditionId": "urd-jalandhry"
 }

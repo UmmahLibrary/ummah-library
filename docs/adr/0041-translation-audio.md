@@ -69,14 +69,31 @@ as it does in interleaved mode) without behaviour drift in the common case.
   descriptive `name`, e.g. *"Ibrahim Walk (Saheeh International)"*, rather than
   a cross-reference to a bundled text edition.
 
-**No `translationEditionId` is set on either shipped voice.** Neither Ibrahim
-Walk's nor Shamshad Ali Khan's exact source text is confirmed to match one of
-our bundled translation editions (`packages/data/plugins/translations/`) —
-Ibrahim Walk reads Saheeh International specifically, which isn't one of our
-bundled editions today. Guessing a match would misattribute the audio to the
-wrong printed text, so the field (present on the type, per the issue's own
-"optional" framing) stays unset for now; the voice's `name` carries the
-description instead.
+**`translationEditionId` is set on both voices, each verified by comparing
+verse text — not guessed from a name** (see `ATTRIBUTION.md` for the full
+method):
+- **Ibrahim Walk → `eng-ummmuhammad`.** everyayah's "Sahih Intnl" folder name
+  and Saheeh International's actual translator-of-record ("Umm Muhammad", the
+  collective pen name fawazahmed0/Tanzil catalogue this edition under) are
+  different strings — confirmed by fetching Tanzil's canonical `en.sahih` and
+  fawazahmed0's `eng-ummmuhammad` and diffing verse text (Al-Ikhlās 112:1
+  matches word-for-word). This edition is **not** one of our bundled English
+  editions (only `eng-khattab` is) — it resolves through the full
+  fawazahmed0 catalogue at runtime (`HttpTranslationCatalog`, ADR 0011), a
+  different id space than a bundled edition id. The `TranslationAudioPlugin`
+  doc comment spells out which id space applies per voice, since a future
+  reader can't tell just by looking at the string.
+- **Shamshad Ali Khan → `urd-jalandhry`.** Confirmed via two independent
+  archive.org listing descriptions naming Fateh Muhammad Jalandhry as the
+  translator read alongside his recitation. This edition **is** one of our
+  bundled editions.
+
+Neither match came from the everyayah folder name alone — a folder called
+"Sahih Intnl" turned out to reference a translator name ("Umm Muhammad") that
+doesn't contain "Sahih" anywhere, so name-matching alone would have missed it
+(or worse, guessed wrong). This is why the original scope note below said
+"guessing a match would misattribute the audio" — the fix was to stop
+guessing and verify against real text instead.
 
 **Scope: web only**, per the issue's own "web first; mobile follow-up
 acceptable." `apps/mobile`'s hardcoded `RECITERS`/`plugins.ts` (mobile can't
