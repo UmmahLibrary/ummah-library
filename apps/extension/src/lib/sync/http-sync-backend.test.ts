@@ -21,13 +21,13 @@ describe("createHttpSyncBackend (extension)", () => {
     const out = await createHttpSyncBackend({ fetchImpl }).exchange("acc", [good]);
     expect(captured!.url).toBe("https://ummahlibrary.org/api/sync");
     expect((captured!.init.headers as Record<string, string>).authorization).toBe("Bearer acc");
-    expect(out).toEqual([good]);
+    expect(out.entries).toEqual([good]);
   });
 
   it("drops reply entries with a malformed clock", async () => {
     const bad = [good, { id: "z", hlc: { millis: -1, counter: 0, node: "n" }, ciphertext: "c", nonce: "i" }, "x"];
     const fetchImpl = (async () => resp({ entries: bad })) as unknown as typeof fetch;
-    expect(await createHttpSyncBackend({ fetchImpl }).exchange("a", [])).toEqual([good]);
+    expect((await createHttpSyncBackend({ fetchImpl }).exchange("a", [])).entries).toEqual([good]);
   });
 
   it("throws on a non-OK response", async () => {

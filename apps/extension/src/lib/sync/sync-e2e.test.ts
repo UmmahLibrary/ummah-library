@@ -43,7 +43,7 @@ function inMemoryServer(): SyncBackend {
     exchange: async (accountId, entries) => {
       const { merged } = mergeEntries(store.get(accountId) ?? [], entries);
       store.set(accountId, merged);
-      return merged;
+      return { entries: merged };
     },
   };
 }
