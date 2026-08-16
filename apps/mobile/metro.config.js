@@ -22,4 +22,23 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, "node_modules"),
 ];
 
+// 3. Don't watch/crawl apps/web's Next.js build output. Watching the whole
+//    workspace root (above) sweeps it in, and Next constantly creates and
+//    deletes files under .next while compiling — Metro's Windows fallback
+//    watcher throws ENOENT and crashes when a dir vanishes mid-scan.
+//    Build the pattern from an escaped absolute path (not a literal "/"
+//    regex) so it matches on Windows, where paths use "\" separators.
+//    Append to (don't replace) Expo's default blockList RegExp.
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const defaultBlockList = config.resolver.blockList;
+config.resolver.blockList = [
+  ...(defaultBlockList
+    ? Array.isArray(defaultBlockList)
+      ? defaultBlockList
+      : [defaultBlockList]
+    : []),
+  new RegExp(`${escapeRegExp(path.join(workspaceRoot, "apps", "web", ".next"))}.*`),
+  new RegExp(`${escapeRegExp(path.join(workspaceRoot, "apps", "web", "out"))}.*`),
+];
+
 module.exports = config;
