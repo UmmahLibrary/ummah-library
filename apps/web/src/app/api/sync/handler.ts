@@ -1,22 +1,20 @@
 /**
- * The `/api/sync` request logic (#25, ADR 0033), separated from the Next route
+ * The `/api/sync` request logic (#25, ADR 0033/0035), separated from the Next route
  * shell so it unit-tests against an {@link SyncStore} fake. It authenticates the
  * Bearer `accountId`, validates the encrypted entries (size/shape caps guard the
- * unauthenticated, E2E-encrypted endpoint against abuse), then converges the
- * client's set with the stored set via the pure core `mergeEntries` and persists
- * the result. The server never decrypts anything.
+ * unauthenticated, E2E-encrypted endpoint against abuse), merges the client's push
+ * with the stored set via the pure core `mergeEntries`, and returns only the
+ * **delta** past the client's `cursor` (ADR 0035), paged. The server never
+ * decrypts anything.
  */
-import { type SyncEntry, mergeEntries } from "@ummahlibrary/core";
-import type { SyncStore } from "./sync-store";
+import { type SyncEntry, hlcCompare, mergeEntries } from "@ummahlibrary/core";
+import type { ServerEntry, SyncStore } from "./sync-store";
 
-// Element-level merge (ADR 0034) flattens each map key into one entry per element,
-// so an account holds hundreds of entries (Phase 1) instead of ~16. Headroom for
-// that; per-entry size (below) + per-account/IP rate limiting stay the real abuse
-// guards. The unbounded key (`ul.hifz`) is gated on the incremental-pull cursor.
-const MAX_ENTRIES = 2000;
+const MAX_ENTRIES = 2000; // max push entries per request (clients page well under this)
 const MAX_CIPHERTEXT = 64 * 1024;
 const MAX_NONCE = 256;
 const MAX_NODE = 128;
+const MAX_DELTA = 1000; // max entries returned per delta page (ADR 0035 — the client pages via `more`)
 
 /**
  * A clock field must be a non-negative safe integer. Rejects `NaN`/`Infinity`
@@ -58,7 +56,18 @@ function isValidEntry(v: unknown): v is SyncEntry {
   );
 }
 
-/** Run one sync exchange: authenticate, validate, converge by clock, persist. */
+/** Re-read a stored entry's version, defaulting a missing/corrupt one to 0. */
+function versionOf(e: SyncEntry): number {
+  const v = (e as ServerEntry).v;
+  return isClockInt(v) ? v : 0;
+}
+
+/**
+ * Run one sync exchange (ADR 0035): authenticate, validate, merge by clock, assign
+ * a server version to every entry the push changed, persist, and return the delta
+ * newer than the client's `cursor` (paged, with a `more` flag), excluding the
+ * client's own unchanged pushes (it already has those).
+ */
 export async function handleSync(
   input: { authorization: string | null; body: unknown },
   store: SyncStore,
@@ -66,15 +75,50 @@ export async function handleSync(
   const accountId = parseAccountId(input.authorization);
   if (!accountId) return { status: 401, body: { error: "missing or malformed account id" } };
 
-  const entries = (input.body as { entries?: unknown } | null)?.entries;
-  if (!Array.isArray(entries)) return { status: 400, body: { error: "entries must be an array" } };
-  if (entries.length > MAX_ENTRIES) return { status: 413, body: { error: "too many entries" } };
-  if (!entries.every(isValidEntry)) return { status: 400, body: { error: "malformed entry" } };
+  const body = input.body as { entries?: unknown; cursor?: unknown } | null;
+  const push = body?.entries;
+  if (!Array.isArray(push)) return { status: 400, body: { error: "entries must be an array" } };
+  if (push.length > MAX_ENTRIES) return { status: 413, body: { error: "too many entries" } };
+  if (!push.every(isValidEntry)) return { status: 400, body: { error: "malformed entry" } };
+  const cursor = isClockInt(body?.cursor) ? (body!.cursor as number) : 0;
 
-  // Re-validate the stored set on read: a value persisted before this hardening
-  // (or hand-edited in Redis) must not poison the merge with a malformed clock.
-  const stored = (await store.get(accountId)).filter(isValidEntry);
-  const merged = mergeEntries(stored, entries).merged;
-  await store.set(accountId, merged);
-  return { status: 200, body: { entries: merged } };
+  // Re-validate the stored set on read: a value persisted before this hardening (or
+  // hand-edited in Redis) must not poison the merge with a malformed clock.
+  const stored: ServerEntry[] = (await store.get(accountId))
+    .filter(isValidEntry)
+    .map((e) => ({ ...e, v: versionOf(e) }));
+
+  let top = stored.reduce((max, e) => Math.max(max, e.v), 0);
+  const { merged, incoming } = mergeEntries(stored, push); // stored = local, push = remote ⇒ incoming = push won
+  const changedIds = new Set(incoming.map((e) => e.id));
+  const storedV = new Map(stored.map((e) => [e.id, e.v]));
+  // A push-changed entry gets a fresh (higher) version; an unchanged one keeps its
+  // version — UNLESS that version is ≤ 0, which means it was written by the pre-v3
+  // server (no `v` field, defaulted to 0). Such legacy entries must be re-stamped
+  // above 0 on the first v3 exchange, or a fresh device's cursor-0 delta (`v > 0`)
+  // would exclude them forever and never converge after the upgrade.
+  const next: ServerEntry[] = merged.map((e) => {
+    const prior = storedV.get(e.id) ?? 0;
+    return { ...e, v: changedIds.has(e.id) || prior <= 0 ? ++top : prior };
+  });
+  await store.set(accountId, next);
+
+  const pushedHlc = new Map(push.map((e) => [e.id, e.hlc]));
+  const delta = next
+    .filter((e) => e.v > cursor)
+    // Don't echo the client's own pushes back unchanged — it already has them.
+    .filter((e) => !(pushedHlc.has(e.id) && hlcCompare(e.hlc, pushedHlc.get(e.id)!) === 0))
+    .sort((a, b) => a.v - b.v);
+  const page = delta.slice(0, MAX_DELTA);
+  const more = delta.length > page.length;
+  const nextCursor = more ? page[page.length - 1]!.v : top;
+
+  return {
+    status: 200,
+    body: {
+      entries: page.map(({ v: _v, ...entry }) => entry),
+      cursor: nextCursor,
+      more,
+    },
+  };
 }

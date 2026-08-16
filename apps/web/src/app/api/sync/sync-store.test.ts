@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { SyncEntry } from "@ummahlibrary/core";
-import { InMemorySyncStore, UpstashSyncStore, syncStoreFromEnv } from "./sync-store";
+import { InMemorySyncStore, type ServerEntry, UpstashSyncStore, syncStoreFromEnv } from "./sync-store";
 
-const entry = (id: string): SyncEntry => ({
+const entry = (id: string): ServerEntry => ({
   id,
   hlc: { millis: 1, counter: 0, node: "n" },
   ciphertext: "ct",
   nonce: "iv",
+  v: 1,
 });
 
 type Call = { url: string; init?: RequestInit };

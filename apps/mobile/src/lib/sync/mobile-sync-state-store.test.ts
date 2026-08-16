@@ -97,4 +97,11 @@ describe("createMobileSyncStateStore — element-merge (v2) for a map key", () =
     );
     expect(store.identify!('"bare scalar"')).toBeNull();
   });
+
+  it("persists and reports the incremental-pull cursor (ADR 0035)", async () => {
+    const store = createMobileSyncStateStore([NOTES]);
+    expect(await store.getCursor!()).toBe(0);
+    await store.setCursor!(7);
+    expect(await store.getCursor!()).toBe(7);
+  });
 });

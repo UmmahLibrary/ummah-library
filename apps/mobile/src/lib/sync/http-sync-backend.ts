@@ -57,15 +57,19 @@ export function createHttpSyncBackend(options: HttpSyncBackendOptions = {}): Syn
   const endpoint = options.endpoint ?? defaultEndpoint();
   const doFetch = options.fetchImpl ?? fetch;
   return {
-    exchange: async (accountId, entries) => {
+    exchange: async (accountId, entries, cursor) => {
       const res = await doFetch(endpoint, {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${accountId}` },
-        body: JSON.stringify({ entries }),
+        body: JSON.stringify({ entries, cursor }),
       });
       if (!res.ok) throw new Error(`sync failed (${res.status})`);
-      const data = (await res.json()) as { entries?: unknown };
-      return Array.isArray(data.entries) ? data.entries.filter(isValidEntry) : [];
+      const data = (await res.json()) as { entries?: unknown; cursor?: unknown; more?: unknown };
+      return {
+        entries: Array.isArray(data.entries) ? data.entries.filter(isValidEntry) : [],
+        cursor: typeof data.cursor === "number" ? data.cursor : undefined,
+        more: data.more === true,
+      };
     },
   };
 }

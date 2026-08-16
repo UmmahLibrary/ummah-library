@@ -22,7 +22,15 @@ import {
   wrapElement,
 } from "@ummahlibrary/core";
 import { getItem, multiGet, removeItem, setItem } from "./storage";
-import { clockOf, loadMeta, reconcileMeta, saveMeta, setClockIn } from "./sync-meta";
+import {
+  clockOf,
+  loadMeta,
+  readCursor,
+  reconcileMeta,
+  saveMeta,
+  setClockIn,
+  writeCursor,
+} from "./sync-meta";
 import { getNodeId } from "./sync-node";
 
 function parseJson(raw: string | null): unknown {
@@ -96,5 +104,7 @@ export function createMobileSyncStateStore(
       if (!env || !keySet.has(env.mk) || shapeOf(env.mk).kind !== "map") return null;
       return explodeKey(env.mk, env.k);
     },
+    getCursor: () => readCursor(),
+    setCursor: (cursor) => writeCursor(cursor),
   };
 }

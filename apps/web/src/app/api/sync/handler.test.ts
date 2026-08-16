@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { SyncEntry } from "@ummahlibrary/core";
 import { handleSync, parseAccountId } from "./handler";
-import { InMemorySyncStore } from "./sync-store";
+import { InMemorySyncStore, type ServerEntry } from "./sync-store";
 
 const ACCT = "a".repeat(64);
 const auth = `Bearer ${ACCT}`;
-const entry = (id: string, millis: number, ciphertext: string | null = "ct"): SyncEntry => ({
+const entry = (id: string, millis: number, ciphertext: string | null = "ct"): ServerEntry => ({
   id,
   hlc: { millis, counter: 0, node: "n" },
   ciphertext,
   nonce: ciphertext === null ? "" : "iv",
+  v: 1,
 });
 
 describe("parseAccountId", () => {
@@ -53,7 +54,7 @@ describe("handleSync", () => {
     expect(r.status).toBe(400);
   });
 
-  it("converges the client set with the stored set and persists it", async () => {
+  it("converges + persists the merged set and returns the stored-only delta", async () => {
     const store = new InMemorySyncStore();
     await store.set(ACCT, [entry("x", 10, "old"), entry("y", 5)]);
 
@@ -63,12 +64,39 @@ describe("handleSync", () => {
     );
 
     expect(r.status).toBe(200);
+    // the server converged + persisted all three (the newer client `x` won)
+    const stored = Object.fromEntries((await store.get(ACCT)).map((e) => [e.id, e]));
+    expect(stored.x!.ciphertext).toBe("new");
+    expect(stored.y).toBeDefined();
+    expect(stored.z).toBeDefined();
+    // the delta returns only what the client didn't have — its own pushes (x, z) are excluded
     const out = (r.body as { entries: SyncEntry[] }).entries;
-    const byId = Object.fromEntries(out.map((e) => [e.id, e]));
-    expect(byId.x!.ciphertext).toBe("new"); // newer client write won
-    expect(byId.y).toBeDefined(); // stored-only kept
-    expect(byId.z).toBeDefined(); // client-only added
-    expect((await store.get(ACCT)).length).toBe(3); // persisted
+    expect(out.map((e) => e.id)).toEqual(["y"]);
+  });
+
+  it("migrates a legacy entry (no version field) so a fresh device still pulls it", async () => {
+    const store = new InMemorySyncStore();
+    // a v2-era entry, stored before per-entry versions existed (no `v`)
+    await store.set(ACCT, [
+      {
+        id: "legacy",
+        hlc: { millis: 100, counter: 0, node: "old" },
+        ciphertext: "ct",
+        nonce: "iv",
+      } as unknown as ServerEntry,
+    ]);
+    const r = await handleSync({ authorization: auth, body: { entries: [], cursor: 0 } }, store);
+    expect((r.body as { entries: SyncEntry[] }).entries.map((e) => e.id)).toEqual(["legacy"]);
+  });
+
+  it("returns only the delta past the client's cursor (incremental pull, ADR 0035)", async () => {
+    const store = new InMemorySyncStore();
+    await handleSync({ authorization: auth, body: { entries: [entry("x", 10)] } }, store); // x → v1
+    const b1 = await handleSync({ authorization: auth, body: { entries: [], cursor: 0 } }, store);
+    expect((b1.body as { entries: SyncEntry[] }).entries.map((e) => e.id)).toEqual(["x"]);
+    const cursor = (b1.body as { cursor: number }).cursor;
+    const b2 = await handleSync({ authorization: auth, body: { entries: [], cursor } }, store);
+    expect((b2.body as { entries: SyncEntry[] }).entries).toEqual([]); // nothing new past the cursor
   });
 
   it("accepts a tombstone entry (null ciphertext)", async () => {
@@ -123,12 +151,18 @@ describe("handleSync", () => {
   it("re-validates the stored set so a previously-corrupt entry can't poison the merge", async () => {
     const store = new InMemorySyncStore();
     await store.set(ACCT, [
-      { id: "bad", hlc: { millis: Infinity, counter: 0, node: "" }, ciphertext: "x", nonce: "iv" } as unknown as SyncEntry,
+      {
+        id: "bad",
+        hlc: { millis: Infinity, counter: 0, node: "" },
+        ciphertext: "x",
+        nonce: "iv",
+        v: 1,
+      } as unknown as ServerEntry,
     ]);
     const r = await handleSync({ authorization: auth, body: { entries: [entry("good", 5)] } }, store);
     expect(r.status).toBe(200);
-    const out = (r.body as { entries: SyncEntry[] }).entries;
-    expect(out.some((e) => e.id === "bad")).toBe(false); // corrupt stored entry dropped
-    expect(out.some((e) => e.id === "good")).toBe(true);
+    const stored = await store.get(ACCT);
+    expect(stored.some((e) => e.id === "bad")).toBe(false); // corrupt stored entry dropped on re-validate
+    expect(stored.some((e) => e.id === "good")).toBe(true); // the good push persisted
   });
 });

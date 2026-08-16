@@ -38,7 +38,7 @@ describe("createHttpSyncBackend", () => {
     expect(captured!.init.method).toBe("POST");
     expect((captured!.init.headers as Record<string, string>).authorization).toBe("Bearer acc-123");
     expect(JSON.parse(captured!.init.body as string)).toEqual({ entries: [goodEntry] });
-    expect(out).toEqual([goodEntry]);
+    expect(out.entries).toEqual([goodEntry]);
   });
 
   it("derives the endpoint from EXPO_PUBLIC_API_BASE_URL's origin (not the /api/v1 prefix)", async () => {
@@ -63,7 +63,7 @@ describe("createHttpSyncBackend", () => {
     ];
     const fetchImpl = (async () => jsonResponse({ entries: bad })) as unknown as typeof fetch;
     const out = await createHttpSyncBackend({ endpoint: "https://x/api/sync", fetchImpl }).exchange("a", []);
-    expect(out).toEqual([goodEntry]);
+    expect(out.entries).toEqual([goodEntry]);
   });
 
   it("throws when the server responds non-OK", async () => {
