@@ -46,4 +46,31 @@ describe("syncIfEnabled", () => {
     await syncIfEnabled();
     expect(create).toHaveBeenCalledTimes(2);
   });
+
+  it("coalesces concurrent calls into a single in-flight round", async () => {
+    enableSync("phrase-a");
+    let release!: (v: { pushed: number; pulled: number; applied: number }) => void;
+    syncNow.mockImplementationOnce(() => new Promise((r) => (release = r)));
+    const p1 = syncIfEnabled();
+    const p2 = syncIfEnabled();
+    expect(p1).toBe(p2); // same in-flight promise (focus + visibilitychange double-fire)
+    await vi.waitFor(() => expect(syncNow).toHaveBeenCalledTimes(1));
+    release({ pushed: 0, pulled: 0, applied: 0 });
+    await Promise.all([p1, p2]);
+    expect(syncNow).toHaveBeenCalledTimes(1);
+  });
+
+  it("resetSyncRuntime clears the in-flight round so the next call starts fresh", async () => {
+    enableSync("phrase-a");
+    let release!: (v: { pushed: number; pulled: number; applied: number }) => void;
+    syncNow.mockImplementationOnce(() => new Promise((r) => (release = r)));
+    const p1 = syncIfEnabled();
+    await vi.waitFor(() => expect(syncNow).toHaveBeenCalledTimes(1));
+    resetSyncRuntime();
+    const p2 = syncIfEnabled();
+    expect(p2).not.toBe(p1);
+    release({ pushed: 0, pulled: 0, applied: 0 });
+    await Promise.all([p1, p2]);
+    expect(syncNow).toHaveBeenCalledTimes(2);
+  });
 });

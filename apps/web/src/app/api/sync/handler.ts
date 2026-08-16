@@ -9,7 +9,11 @@
 import { type SyncEntry, mergeEntries } from "@ummahlibrary/core";
 import type { SyncStore } from "./sync-store";
 
-const MAX_ENTRIES = 500;
+// Element-level merge (ADR 0034) flattens each map key into one entry per element,
+// so an account holds hundreds of entries (Phase 1) instead of ~16. Headroom for
+// that; per-entry size (below) + per-account/IP rate limiting stay the real abuse
+// guards. The unbounded key (`ul.hifz`) is gated on the incremental-pull cursor.
+const MAX_ENTRIES = 2000;
 const MAX_CIPHERTEXT = 64 * 1024;
 const MAX_NONCE = 256;
 const MAX_NODE = 128;

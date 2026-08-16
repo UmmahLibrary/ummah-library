@@ -53,4 +53,16 @@ export const MANAGED_KEYS: readonly string[] = [
   "ul.prayerMadhab",
   "ul.prayerHighLat",
   "ul.prayerCoords",
+  // Element-merged collection/set keys (v2, ADR 0034 — Phase 1, bounded cardinality).
+  // Each syncs per element via `sync-shapes.ts`, so concurrent edits to different
+  // entries don't clobber. The date-keyed logs (prayer/reading/ramadan worship) are
+  // Phase 2 and `ul.hifz` is Phase 3 (gated on the incremental-pull cursor).
+  "ul.ayahNotes",
+  "ul.collections",
+  "ul.qada",
+  "ul.haid",
+  "ul.asmaLearned",
+  "ul.ramadanFasts",
+  "ul.badges",
+  "ul.readingActive",
 ];

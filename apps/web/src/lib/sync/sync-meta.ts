@@ -95,12 +95,28 @@ function hashValue(value: string | null): string {
  * when a key that *did* have a value (prior meta) becomes null — a real deletion.
  */
 export function reconcile(keys: readonly string[], now: Date, node: string): void {
+  const values = new Map<string, string | null>();
+  for (const key of keys) values.set(key, getItem(key));
+  reconcileValues(values, now, node);
+}
+
+/**
+ * Like {@link reconcile}, but over already-computed `key → value` pairs. The
+ * element-merge store (ADR 0034) flattens a map key into synthetic element keys
+ * that have no storage entry of their own, so it supplies the values directly.
+ * Same diff-at-sync semantics and the same never-tombstone-a-never-seen-key
+ * invariant — applied per element.
+ */
+export function reconcileValues(
+  valuesByKey: ReadonlyMap<string, string | null>,
+  now: Date,
+  node: string,
+): void {
   const meta = readMeta();
   let changed = false;
-  for (const key of keys) {
-    const raw = getItem(key);
+  for (const [key, raw] of valuesByKey) {
     const prev = meta[key];
-    if (raw === null && !prev) continue; // never-seen absent key — not a deletion
+    if (raw === null && !prev) continue; // never-seen absent key/element — not a deletion
     const hash = hashValue(raw);
     if (prev && prev.hash === hash) continue;
     const base = prev ? prev.hlc : hlcInit(node);
@@ -109,6 +125,11 @@ export function reconcile(keys: readonly string[], now: Date, node: string): voi
     changed = true;
   }
   if (changed) writeMeta(meta);
+}
+
+/** Every key currently tracked in the sidecar — lets the store tombstone a locally-removed element. */
+export function metaKeys(): string[] {
+  return Object.keys(readMeta());
 }
 
 /** The current clock for a key (a fresh clock if it has no meta yet). */

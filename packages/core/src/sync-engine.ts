@@ -64,15 +64,25 @@ export async function runSync(deps: SyncDeps): Promise<SyncOutcome> {
 
   let applied = 0;
   for (const entry of incoming) {
-    const key = keyById.get(entry.id);
-    if (key === undefined) continue; // a key this build doesn't manage
+    let key = keyById.get(entry.id);
     if (entry.ciphertext === null) {
+      // A tombstone. Only meaningful for a key we already track; an unknown id with
+      // no ciphertext can't be identified (nothing to decrypt) and names something
+      // this device never had — so there is nothing to delete.
+      if (key === undefined) continue;
       await state.apply(key, null, entry.hlc);
       applied++;
       continue;
     }
     const plaintext = await cipher.decrypt(entry.ciphertext, entry.nonce);
     if (plaintext === null) continue; // foreign or corrupt — never clobber local
+    if (key === undefined) {
+      // An element first created on another device: its opaque id isn't in our map,
+      // but its decrypted payload is self-describing (ADR 0034) — let the store
+      // resolve it to a synthetic key, so discovery completes in this one round.
+      key = state.identify?.(plaintext) ?? undefined;
+      if (key === undefined) continue; // not an element this build manages
+    }
     await state.apply(key, plaintext, entry.hlc);
     applied++;
   }
