@@ -47,4 +47,22 @@ describe("POST /api/sync (dev fallback)", () => {
     expect(res.headers.get("access-control-allow-methods")).toContain("POST");
     expect(res.headers.get("access-control-allow-headers")).toContain("authorization");
   });
+
+  it("rate-limits a flooding client with 429 + Retry-After (ADR 0033)", async () => {
+    // A distinct IP so this doesn't share the default "anon" window with other tests.
+    const flood = () =>
+      new Request("http://localhost/api/sync", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: AUTH,
+          "x-forwarded-for": "203.0.113.7",
+        },
+        body: JSON.stringify({ entries: [] }),
+      });
+    let res = await POST(flood());
+    for (let i = 0; i < 500 && res.status !== 429; i++) res = await POST(flood());
+    expect(res.status).toBe(429);
+    expect(res.headers.get("retry-after")).toBeTruthy();
+  });
 });

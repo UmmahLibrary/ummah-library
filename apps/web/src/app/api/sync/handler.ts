@@ -8,6 +8,7 @@
  * decrypts anything.
  */
 import { type SyncEntry, hlcCompare, mergeEntries } from "@ummahlibrary/core";
+import type { Lock } from "./lock";
 import type { ServerEntry, SyncStore } from "./sync-store";
 
 const MAX_ENTRIES = 2000; // max push entries per request (clients page well under this)
@@ -67,10 +68,15 @@ function versionOf(e: SyncEntry): number {
  * a server version to every entry the push changed, persist, and return the delta
  * newer than the client's `cursor` (paged, with a `more` flag), excluding the
  * client's own unchanged pushes (it already has those).
+ *
+ * The read → merge → write is serialized per account by the optional {@link Lock}
+ * (ADR 0035) so two devices pushing at once can't lose a write; without a lock it
+ * behaves as before (fine for a single instance / tests).
  */
 export async function handleSync(
   input: { authorization: string | null; body: unknown },
   store: SyncStore,
+  lock?: Lock,
 ): Promise<SyncResult> {
   const accountId = parseAccountId(input.authorization);
   if (!accountId) return { status: 401, body: { error: "missing or malformed account id" } };
@@ -82,43 +88,44 @@ export async function handleSync(
   if (!push.every(isValidEntry)) return { status: 400, body: { error: "malformed entry" } };
   const cursor = isClockInt(body?.cursor) ? (body!.cursor as number) : 0;
 
-  // Re-validate the stored set on read: a value persisted before this hardening (or
-  // hand-edited in Redis) must not poison the merge with a malformed clock.
-  const stored: ServerEntry[] = (await store.get(accountId))
-    .filter(isValidEntry)
-    .map((e) => ({ ...e, v: versionOf(e) }));
+  // The atomic critical section: re-read, merge, version, persist, compute the delta.
+  const exchange = async (): Promise<SyncResult> => {
+    // Re-validate the stored set on read: a value persisted before this hardening
+    // (or hand-edited in Redis) must not poison the merge with a malformed clock.
+    const stored: ServerEntry[] = (await store.get(accountId))
+      .filter(isValidEntry)
+      .map((e) => ({ ...e, v: versionOf(e) }));
 
-  let top = stored.reduce((max, e) => Math.max(max, e.v), 0);
-  const { merged, incoming } = mergeEntries(stored, push); // stored = local, push = remote ⇒ incoming = push won
-  const changedIds = new Set(incoming.map((e) => e.id));
-  const storedV = new Map(stored.map((e) => [e.id, e.v]));
-  // A push-changed entry gets a fresh (higher) version; an unchanged one keeps its
-  // version — UNLESS that version is ≤ 0, which means it was written by the pre-v3
-  // server (no `v` field, defaulted to 0). Such legacy entries must be re-stamped
-  // above 0 on the first v3 exchange, or a fresh device's cursor-0 delta (`v > 0`)
-  // would exclude them forever and never converge after the upgrade.
-  const next: ServerEntry[] = merged.map((e) => {
-    const prior = storedV.get(e.id) ?? 0;
-    return { ...e, v: changedIds.has(e.id) || prior <= 0 ? ++top : prior };
-  });
-  await store.set(accountId, next);
+    let top = stored.reduce((max, e) => Math.max(max, e.v), 0);
+    const { merged, incoming } = mergeEntries(stored, push); // stored = local, push = remote ⇒ incoming = push won
+    const changedIds = new Set(incoming.map((e) => e.id));
+    const storedV = new Map(stored.map((e) => [e.id, e.v]));
+    // A push-changed entry gets a fresh (higher) version; an unchanged one keeps its
+    // version — UNLESS that version is ≤ 0, which means it was written by the pre-v3
+    // server (no `v` field, defaulted to 0). Such legacy entries must be re-stamped
+    // above 0 on the first v3 exchange, or a fresh device's cursor-0 delta (`v > 0`)
+    // would exclude them forever and never converge after the upgrade.
+    const next: ServerEntry[] = merged.map((e) => {
+      const prior = storedV.get(e.id) ?? 0;
+      return { ...e, v: changedIds.has(e.id) || prior <= 0 ? ++top : prior };
+    });
+    await store.set(accountId, next);
 
-  const pushedHlc = new Map(push.map((e) => [e.id, e.hlc]));
-  const delta = next
-    .filter((e) => e.v > cursor)
-    // Don't echo the client's own pushes back unchanged — it already has them.
-    .filter((e) => !(pushedHlc.has(e.id) && hlcCompare(e.hlc, pushedHlc.get(e.id)!) === 0))
-    .sort((a, b) => a.v - b.v);
-  const page = delta.slice(0, MAX_DELTA);
-  const more = delta.length > page.length;
-  const nextCursor = more ? page[page.length - 1]!.v : top;
+    const pushedHlc = new Map(push.map((e) => [e.id, e.hlc]));
+    const delta = next
+      .filter((e) => e.v > cursor)
+      // Don't echo the client's own pushes back unchanged — it already has them.
+      .filter((e) => !(pushedHlc.has(e.id) && hlcCompare(e.hlc, pushedHlc.get(e.id)!) === 0))
+      .sort((a, b) => a.v - b.v);
+    const page = delta.slice(0, MAX_DELTA);
+    const more = delta.length > page.length;
+    const nextCursor = more ? page[page.length - 1]!.v : top;
 
-  return {
-    status: 200,
-    body: {
-      entries: page.map(({ v: _v, ...entry }) => entry),
-      cursor: nextCursor,
-      more,
-    },
+    return {
+      status: 200,
+      body: { entries: page.map(({ v: _v, ...entry }) => entry), cursor: nextCursor, more },
+    };
   };
+
+  return lock ? lock.withLock(accountId, exchange) : exchange();
 }
