@@ -38,6 +38,7 @@ export * from "./reminders";
 export * from "./backup";
 export * from "./sync";
 export * from "./sync-engine";
+export * from "./sync-keys";
 export * from "./collections";
 export * from "./tasbih";
 export * from "./audio";
