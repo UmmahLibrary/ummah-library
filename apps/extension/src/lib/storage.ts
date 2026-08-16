@@ -51,8 +51,23 @@ async function write(area: Area, key: string, value: unknown): Promise<void> {
   }
 }
 
+async function remove(area: Area, key: string): Promise<void> {
+  const ca = chromeArea(area);
+  if (ca) {
+    await ca.remove(key);
+    return;
+  }
+  try {
+    localStorage.removeItem(NS + key);
+  } catch {
+    /* storage unavailable — non-fatal */
+  }
+}
+
 export const getPref = <T>(key: string, fallback: T): Promise<T> => read("sync", key, fallback);
 export const setPref = (key: string, value: unknown): Promise<void> => write("sync", key, value);
 
 export const getCache = <T>(key: string, fallback: T): Promise<T> => read("local", key, fallback);
 export const setCache = (key: string, value: unknown): Promise<void> => write("local", key, value);
+/** Forget a device-local value entirely (used to erase the sync secret on disable). */
+export const removeCache = (key: string): Promise<void> => remove("local", key);

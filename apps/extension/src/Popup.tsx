@@ -21,6 +21,8 @@ import {
   type Locale,
 } from "./lib/locale";
 import { MESSAGES, type MessageKey } from "./lib/messages";
+import { syncIfEnabled } from "./lib/sync/sync-runtime";
+import { SyncPanel } from "./SyncPanel";
 
 const PAD = 16;
 
@@ -37,6 +39,18 @@ export function Popup() {
       setLocale(code);
       applyLocale(code);
     });
+    // Cross-device sync (#25), if the user has opted in — a no-op otherwise.
+    // Failures (offline, server unprovisioned) are swallowed; local-first carries on.
+    void syncIfEnabled()
+      .then((outcome) => {
+        // A pulled theme is now in storage + the mirror — reflect it without a reopen.
+        if (outcome && outcome.applied > 0)
+          void getStoredTheme().then((key) => {
+            setTheme(key);
+            applyTheme(key);
+          });
+      })
+      .catch(() => {});
   }, []);
 
   function changeTheme(key: ThemeKey) {
@@ -56,6 +70,7 @@ export function Popup() {
       <Header />
       <VerseOfDay t={t} />
       <SurahJump t={t} />
+      <SyncPanel />
       <Footer theme={theme} onTheme={changeTheme} locale={locale} onLocale={changeLocale} t={t} />
     </main>
   );

@@ -112,9 +112,15 @@ non-extractable WebCrypto key in IndexedDB — is a later option.) The Settings 
   an AsyncStorage `SyncStateStore` + clock sidecar, and a "Sync across devices" Settings
   screen that syncs on launch and on foreground (`AppState`). The managed-key set now
   lives in `core` (`sync-keys.ts`) as the single shared contract across platforms.
-- **Deferred:** the extension cipher + CORS on `/api/sync`; Upstash provisioning +
-  deploy; a **live in-app/in-tab refresh** after a synced value is applied (today a
-  pulled change surfaces on the next read/navigation or app relaunch — the in-memory
-  React contexts re-read on mount, not on a sync event; true on web and mobile alike);
-  and the v2 refinements (element-level merge for set/map keys, atomic server merge
-  under concurrent push, an incremental pull cursor).
+  The **browser extension** also syncs now: it reuses the web WebCrypto `Cipher`
+  scheme, bridges the two prefs it shares with the contract (`ul.theme`,
+  `ul.hijriAdjust`) to its own `chrome.storage` layout + value formats, keeps the
+  recovery secret device-local in `chrome.storage.local`, and a compact popup panel
+  drives it; `/api/sync` answers a CORS preflight so the `chrome-extension://` popup's
+  authenticated POST can reach it.
+- **Deferred:** Upstash provisioning + deploy; a **live in-app/in-tab refresh** after a
+  synced value is applied (today a pulled change surfaces on the next read/navigation
+  or app relaunch — the in-memory React contexts re-read on mount, not on a sync event;
+  true on web, mobile, and the extension alike); and the v2 refinements (element-level
+  merge for set/map keys, atomic server merge under concurrent push, an incremental
+  pull cursor).
