@@ -27,6 +27,7 @@ import { syncPrayerReminders } from "./src/prayer-reminders";
 import { syncSunnahFastReminder } from "./src/sunnah-fast-reminders";
 import { syncIslamicEventReminders } from "./src/islamic-event-reminders";
 import { syncIfEnabled } from "./src/lib/sync/sync-runtime";
+import { emitSyncApplied } from "./src/lib/sync/sync-events";
 import type { RootStackParamList } from "./src/navigation/types";
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -160,7 +161,12 @@ export default function App() {
       void syncPrayerReminders();
       void syncSunnahFastReminder();
       void syncIslamicEventReminders();
-      void syncIfEnabled().catch(() => {});
+      void syncIfEnabled()
+        .then((outcome) => {
+          // A pulled value landed — re-hydrate the contexts so it shows without a relaunch.
+          if (outcome && outcome.applied > 0) emitSyncApplied();
+        })
+        .catch(() => {});
     };
     void initNotifier().then(syncAll);
     const sub = AppState.addEventListener("change", (s) => {
