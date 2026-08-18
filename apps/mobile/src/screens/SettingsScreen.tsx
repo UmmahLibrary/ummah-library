@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import Constants from "expo-constants";
 import type { MergeStrategy, QuranScript } from "@ummahlibrary/core";
 import { noorThemes } from "@ummahlibrary/ui";
 import { useTheme, THEMES, type Palette } from "../theme";
@@ -350,7 +351,9 @@ export function SettingsScreen() {
         Arabic text: Tanzil (CC-BY 3.0). Translations, tafsir, and hadith via Ummah Library
         datasets and their respective sources. Recitation by {RECITER.name}.
       </Text>
-      <Text style={styles.version}>Ummah Library · v1.0.0</Text>
+      <Text style={styles.version}>
+        Ummah Library · v{Constants.expoConfig?.version ?? "—"}
+      </Text>
     </ScrollView>
   );
 }
