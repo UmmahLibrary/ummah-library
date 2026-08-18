@@ -8,6 +8,7 @@ import {
   type PrayerTimings,
   gregorianToHijri,
   hijriMonth,
+  hijriToGregorian,
 } from "@ummahlibrary/core";
 import { Khatam, Icon, type IconName } from "@ummahlibrary/ui";
 import { api } from "../api";
@@ -47,6 +48,14 @@ export function RamadanScreen({ navigation }: Props) {
   const isRamadan = hijri.month === 9;
   const ramadanDay = isRamadan ? hijri.day : null;
 
+  // The Gregorian date Ramadan 1 falls on this Hijri year — used to scope the
+  // khatm-progress reading count to pages read during Ramadan itself, not the
+  // reader's entire reading history.
+  const ramadanStartGreg = hijriToGregorian({ year: hijri.year, month: 9, day: 1 }, 0);
+  const ramadanStartStr = localISODate(
+    new Date(ramadanStartGreg.year, ramadanStartGreg.month - 1, ramadanStartGreg.day),
+  );
+
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
@@ -58,7 +67,11 @@ export function RamadanScreen({ navigation }: Props) {
       setWorship(m[today] ?? {}),
     );
     void getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord).then((log) =>
-      setPagesRead(Object.values(log).reduce((a, b) => a + b, 0)),
+      setPagesRead(
+        // YYYY-MM-DD keys sort lexicographically, so a plain string compare
+        // scopes the sum to Ramadan itself rather than the reader's lifetime log.
+        Object.entries(log).reduce((a, [date, n]) => (date >= ramadanStartStr ? a + n : a), 0),
+      ),
     );
     void (async () => {
       const coords = await getJSON<Coordinates | null>(KEYS.prayerCoords, null);
