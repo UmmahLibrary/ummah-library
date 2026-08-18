@@ -50,10 +50,13 @@ const FILTERS: { key: "all" | ResultType; label: string }[] = [
   { key: "adhkar", label: "Adhkār" },
 ];
 
-// The unified index is large (~6k āyāt × 2 languages); build it once per session.
-let indexCache: Promise<SearchItem[]> | null = null;
+// The unified index is large (~6k āyāt × 2 languages); build it once per session
+// — but only cache a *complete* build. A build that hit a network failure (e.g.
+// the very first search happened offline) is retried on the next mount instead
+// of leaving search permanently degraded for the rest of the session.
+let indexCache: Promise<{ items: SearchItem[]; complete: boolean }> | null = null;
 
-async function buildIndex(surahs: Surah[]): Promise<SearchItem[]> {
+async function buildIndex(surahs: Surah[]): Promise<{ items: SearchItem[]; complete: boolean }> {
   const labelFor = new Map(surahs.map((s) => [s.number, `${s.transliteration} · ${s.englishName}`]));
   const items: SearchItem[] = [];
 
@@ -69,18 +72,22 @@ async function buildIndex(surahs: Surah[]): Promise<SearchItem[]> {
     });
   }
 
-  const [arabic, english, names, adhkar] = await Promise.all([
-    api.getSearchCorpus().catch(() => [] as { s: number; a: number; t: string }[]),
-    fetch(ENGLISH_URL)
-      .then((r) =>
-        r.ok
-          ? (r.json() as Promise<{ quran: { chapter: number; verse: number; text: string }[] }>)
-          : null,
-      )
-      .catch(() => null),
-    api.listNames().catch(() => []),
-    api.listAdhkar().catch(() => []),
+  const results = await Promise.allSettled([
+    api.getSearchCorpus(),
+    fetch(ENGLISH_URL).then((r) =>
+      r.ok
+        ? (r.json() as Promise<{ quran: { chapter: number; verse: number; text: string }[] }>)
+        : Promise.reject(new Error(`HTTP ${r.status}`)),
+    ),
+    api.listNames(),
+    api.listAdhkar(),
   ]);
+  const [arabicResult, englishResult, namesResult, adhkarResult] = results;
+  const arabic = arabicResult.status === "fulfilled" ? arabicResult.value : [];
+  const english = englishResult.status === "fulfilled" ? englishResult.value : null;
+  const names = namesResult.status === "fulfilled" ? namesResult.value : [];
+  const adhkar = adhkarResult.status === "fulfilled" ? adhkarResult.value : [];
+  const complete = results.every((r) => r.status === "fulfilled");
 
   for (const v of arabic) {
     items.push({
@@ -122,7 +129,7 @@ async function buildIndex(surahs: Surah[]): Promise<SearchItem[]> {
     });
   }
 
-  return items;
+  return { items, complete };
 }
 
 /** Wrap the first case-insensitive match of `q` in `text` with the `hl` style. */
@@ -154,16 +161,31 @@ export function SearchScreen({ navigation }: Props) {
 
   useEffect(() => {
     void getJSON<string[]>(KEYS.searchHistory, [], Array.isArray).then(setHistory);
-    if (!indexCache) indexCache = api.listSurahs().then(buildIndex);
+    if (!indexCache) {
+      indexCache = api
+        .listSurahs()
+        .then(buildIndex)
+        .catch((err: unknown) => {
+          // listSurahs() itself failed (e.g. fully offline) — don't cache a
+          // rejected promise forever; let the next mount try again.
+          indexCache = null;
+          throw err;
+        });
+    }
     let active = true;
-    void indexCache.then((items) => {
-      if (!active) return;
-      indexRef.current = items;
-      setIndexReady(true);
-      // The user may have typed before the index finished — search now.
-      const pending = queryRef.current.trim();
-      if (pending.length >= 2) setResults(searchText(items, pending, 60));
-    });
+    void indexCache
+      .then(({ items, complete }) => {
+        if (!complete) indexCache = null; // partial build — retry next time, not this session forever
+        if (!active) return;
+        indexRef.current = items;
+        setIndexReady(true);
+        // The user may have typed before the index finished — search now.
+        const pending = queryRef.current.trim();
+        if (pending.length >= 2) setResults(searchText(items, pending, 60));
+      })
+      .catch(() => {
+        if (active) setIndexReady(true);
+      });
     return () => {
       active = false;
     };
