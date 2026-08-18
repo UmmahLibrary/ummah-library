@@ -203,13 +203,12 @@ function makeStyles(c: Palette) {
     },
     greeting: { color: c.muted, fontSize: 13, marginBottom: 2 },
     title: { color: c.fg, fontSize: 26, fontFamily: FONT.extrabold, letterSpacing: -0.5 },
+    // Not a button — there's no notification center to open yet, so this is
+    // deliberately unstyled as one (no badge/border) rather than looking
+    // tappable and doing nothing.
     bell: {
       width: 42,
       height: 42,
-      borderRadius: 21,
-      backgroundColor: c.bgElev,
-      borderWidth: 1,
-      borderColor: c.border,
       alignItems: "center",
       justifyContent: "center",
     },
