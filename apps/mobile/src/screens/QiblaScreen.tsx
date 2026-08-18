@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from "../Type";
 import * as Location from "expo-location";
-import { Magnetometer } from "expo-sensors";
 import { type Coordinates, compassPoint, qiblaDirection } from "@ummahlibrary/core";
 import { KEYS, getJSON, setJSON } from "../storage";
 import { useTheme, type Palette } from "../theme";
@@ -13,13 +12,6 @@ type Status = "idle" | "locating" | "ready" | "denied" | "error";
 function angularGap(a: number, b: number): number {
   const d = Math.abs(a - b) % 360;
   return d > 180 ? 360 - d : d;
-}
-
-/** Compass heading from raw magnetometer x/y (device held flat). */
-function magnetometerHeading(x: number, y: number): number {
-  let h = Math.atan2(-y, x) * (180 / Math.PI);
-  if (h < 0) h += 360;
-  return h;
 }
 
 export function QiblaScreen() {
@@ -39,25 +31,38 @@ export function QiblaScreen() {
     });
   }, []);
 
-  // Live magnetometer compass. Not every platform has a magnetometer (e.g. the
-  // web preview) — degrade gracefully to a static bearing rather than crashing.
+  // Live compass heading via the OS's own sensor fusion (accelerometer +
+  // magnetometer, tilt-compensated) rather than raw magnetometer x/y — and
+  // `trueHeading` is declination-corrected using the device's last-known
+  // location, so it lines up with `qiblaDirection`'s true-north bearing
+  // instead of comparing a magnetic heading against a true one. Falls back to
+  // `magHeading` when location permission isn't granted yet (trueHeading is
+  // -1 in that case), and degrades gracefully where there's no compass
+  // hardware at all (e.g. the web preview) rather than crashing.
   useEffect(() => {
     let sub: { remove: () => void } | undefined;
-    try {
-      Magnetometer.setUpdateInterval(100);
-      sub = Magnetometer.addListener(({ x, y }) => {
-        const h = magnetometerHeading(x, y);
-        setHeading(h);
-        Animated.timing(dialRotation, {
-          toValue: -h,
-          duration: 100,
-          useNativeDriver: true,
-        }).start();
+    let cancelled = false;
+    Location.watchHeadingAsync((h) => {
+      if (cancelled) return;
+      const heading = h.trueHeading >= 0 ? h.trueHeading : h.magHeading;
+      setHeading(heading);
+      Animated.timing(dialRotation, {
+        toValue: -heading,
+        duration: 100,
+        useNativeDriver: true,
+      }).start();
+    })
+      .then((s) => {
+        if (cancelled) s.remove();
+        else sub = s;
+      })
+      .catch(() => {
+        /* no compass hardware on this platform — show a static qibla bearing */
       });
-    } catch {
-      /* no magnetometer on this platform — show a static qibla bearing */
-    }
-    return () => sub?.remove();
+    return () => {
+      cancelled = true;
+      sub?.remove();
+    };
   }, [dialRotation]);
 
   async function locate() {
