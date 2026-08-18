@@ -72,13 +72,21 @@ export async function importBackup(strategy: MergeStrategy): Promise<ActionResul
   if (errors.length) return { ok: false, message: errors.join(" ") };
 
   const incoming = (parsed as { data: Record<string, string> }).data;
-  const merged = mergeBackups(await snapshot(), incoming, strategy);
+  const current = await snapshot();
+  const merged = mergeBackups(current, incoming, strategy);
   try {
     await restore(merged, strategy === "replace");
   } catch {
     return { ok: false, message: "Couldn’t write to storage." };
   }
-  const applied = Object.keys(incoming).length;
+  // "replace" always writes every incoming key; "keep-mine" only fills in keys
+  // this device didn't already have (mergeBackups keeps the existing value for
+  // any overlap) — count what was actually applied, not the backup's total
+  // size, so a mostly-overlapping "keep mine" import doesn't overstate itself.
+  const applied =
+    strategy === "replace"
+      ? Object.keys(incoming).length
+      : Object.keys(incoming).filter((k) => !(k in current)).length;
   return { ok: true, applied, message: `Restored ${applied} item${applied === 1 ? "" : "s"}.` };
 }
 
