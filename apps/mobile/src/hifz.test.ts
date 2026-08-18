@@ -40,7 +40,10 @@ describe("surahProgressMap", () => {
 });
 
 describe("advanceStreak", () => {
-  const now = new Date("2025-06-14T12:00:00.000Z");
+  // Local-component constructor (not a UTC ISO string) so the local Y-M-D is
+  // deterministic regardless of the machine's timezone — matches localISODate's
+  // own test convention (utils.test.ts).
+  const now = new Date(2025, 5, 14, 12, 0, 0);
   it("starts a streak at 1", () => {
     expect(advanceStreak({ count: 0, lastDate: "" }, now)).toEqual({ count: 1, lastDate: "2025-06-14" });
   });
@@ -54,7 +57,11 @@ describe("advanceStreak", () => {
   it("resets after a gap", () => {
     expect(advanceStreak({ count: 9, lastDate: "2025-06-10" }, now)).toEqual({ count: 1, lastDate: "2025-06-14" });
   });
-  it("toDateStr formats UTC YYYY-MM-DD", () => {
+  it("toDateStr formats the local (not UTC) YYYY-MM-DD, matching every other streak in the app", () => {
     expect(toDateStr(now)).toBe("2025-06-14");
+    // A day whose UTC date differs from its local date (e.g. late evening in a
+    // positive UTC-offset zone) must still bucket by the local calendar day.
+    const lateLocalNight = new Date(2025, 5, 14, 23, 30, 0);
+    expect(toDateStr(lateLocalNight)).toBe("2025-06-14");
   });
 });
