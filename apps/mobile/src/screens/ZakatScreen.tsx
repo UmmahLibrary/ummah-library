@@ -43,6 +43,13 @@ function sanitizeDecimal(s: string): string {
   return digitsAndDots.slice(0, firstDot + 1) + digitsAndDots.slice(firstDot + 1).replace(/\./g, "");
 }
 
+/** Strip digits from the currency symbol field — a symbol/code ("$", "AED") never
+ *  contains one, and allowing digits here let a stray one silently fuse into the
+ *  displayed totals (money() concatenates currency + amount with no separator). */
+function sanitizeCurrency(s: string): string {
+  return s.replace(/[0-9]/g, "");
+}
+
 export function ZakatScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -54,6 +61,9 @@ export function ZakatScreen() {
       setState({
         ...DEFAULT,
         ...saved,
+        // Self-heal a currency value saved before sanitizeCurrency existed —
+        // a stray digit in it used to silently fuse into the displayed totals.
+        currency: sanitizeCurrency(saved.currency ?? DEFAULT.currency) || DEFAULT.currency,
         assets: { ...EMPTY_ASSETS, ...(saved.assets ?? {}) },
       });
     });
@@ -89,7 +99,11 @@ export function ZakatScreen() {
       : toNum(state.silverPricePerGram) > 0;
 
   function money(n: number) {
-    return `${state.currency}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    // Sanitize defensively even here — a value written by another route (e.g. a
+    // synced payload from another device) could still carry a stray digit, and
+    // a bare concatenation would silently fuse it into the total.
+    const symbol = sanitizeCurrency(state.currency) || DEFAULT.currency;
+    return `${symbol}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   return (
@@ -130,7 +144,7 @@ export function ZakatScreen() {
             <TextInput
               style={styles.input}
               value={state.currency}
-              onChangeText={(v) => update({ currency: v })}
+              onChangeText={(v) => update({ currency: sanitizeCurrency(v) })}
               maxLength={4}
             />
           </Row>
