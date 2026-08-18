@@ -49,7 +49,12 @@ export function PlanReminderToggle() {
   }, []);
 
   async function toggle(next: boolean) {
-    if (next && expoNotifier.permission() !== "granted") await expoNotifier.requestPermission();
+    // Turning on requires the OS permission — if the user denies it, leave the
+    // switch off rather than showing "on" for a reminder that will never fire.
+    if (next && expoNotifier.permission() !== "granted") {
+      await expoNotifier.requestPermission();
+      if (expoNotifier.permission() !== "granted") return;
+    }
     setOn(next);
     await setPlanReminderPref({ on: next, time });
   }

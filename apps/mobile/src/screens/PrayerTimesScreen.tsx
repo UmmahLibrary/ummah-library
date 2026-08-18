@@ -148,7 +148,12 @@ export function PrayerTimesScreen() {
 
   async function toggleReminder(name: PrayerName) {
     const turningOn = !reminders[name];
-    if (turningOn && expoNotifier.permission() !== "granted") await expoNotifier.requestPermission();
+    // Turning on requires the OS permission — if the user denies it, leave the
+    // reminder off rather than showing "on" for one that will never fire.
+    if (turningOn && expoNotifier.permission() !== "granted") {
+      await expoNotifier.requestPermission();
+      if (expoNotifier.permission() !== "granted") return;
+    }
     setReminders(await setPrayerReminder(name, turningOn));
   }
 

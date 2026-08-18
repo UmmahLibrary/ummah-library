@@ -65,7 +65,12 @@ export function HijriCalendarScreen() {
 
   async function toggleReminder(eventId: string) {
     const on = !reminders[eventId];
-    if (on && expoNotifier.permission() !== "granted") await expoNotifier.requestPermission();
+    // Turning on requires the OS permission — if the user denies it, leave the
+    // reminder off rather than showing "on" for one that will never fire.
+    if (on && expoNotifier.permission() !== "granted") {
+      await expoNotifier.requestPermission();
+      if (expoNotifier.permission() !== "granted") return;
+    }
     setReminders(await setEventReminder(eventId, on));
   }
 

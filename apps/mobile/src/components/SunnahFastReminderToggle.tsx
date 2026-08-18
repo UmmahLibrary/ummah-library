@@ -60,7 +60,12 @@ export function SunnahFastReminderToggle({ adjust = 0 }: { adjust?: number }) {
   const next = fasts[0];
 
   async function toggle(nextOn: boolean) {
-    if (nextOn && expoNotifier.permission() !== "granted") await expoNotifier.requestPermission();
+    // Turning on requires the OS permission — if the user denies it, leave the
+    // switch off rather than showing "on" for a reminder that will never fire.
+    if (nextOn && expoNotifier.permission() !== "granted") {
+      await expoNotifier.requestPermission();
+      if (expoNotifier.permission() !== "granted") return;
+    }
     setOn(nextOn);
     await setSunnahFastReminderOn(nextOn);
   }
