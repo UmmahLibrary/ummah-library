@@ -4,6 +4,8 @@
  * same local-first SM-2 state identically (ADR 0006). The SM-2 engine itself
  * lives in `@ummahlibrary/core`; this module only derives view-model summaries.
  */
+import { localISODate } from "./utils";
+
 // Strength + per-surah progress derivations are pure logic; they live in core
 // (shared with the web reader) and are re-exported here so existing imports keep
 // their path. `surahProgressMap(records, now)` — pass `allRecords()`.
@@ -33,8 +35,10 @@ export interface StreakData {
 
 export const EMPTY_STREAK: StreakData = { count: 0, lastDate: "" };
 
+/** Local calendar date — the streak's "day" is the reader's own day, matching
+ *  every other streak in the app (prayer tracker, reading goals), not UTC. */
 export function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return localISODate(d);
 }
 
 /**
