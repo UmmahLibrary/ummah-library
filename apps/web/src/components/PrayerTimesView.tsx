@@ -27,6 +27,7 @@ import {
   readPrayerReminderPrefs,
   setPrayerReminder,
 } from "../lib/prayer-reminders";
+import { fmtPrayerTime } from "../lib/prayer-time-format";
 import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { WebNotifier } from "../lib/web-notifier";
 
@@ -36,13 +37,6 @@ type Status = "idle" | "locating" | "loading" | "ready" | "error" | "denied";
 function localDate(d: Date): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-function fmtTime(src: string | Date): string {
-  const d = typeof src === "string" ? new Date(src) : src;
-  // A polar-invalid timing is "" (→ Invalid Date); show a dash, not "Invalid Date" / a throw.
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function countdown(target: Date, now: Date): string {
@@ -312,7 +306,7 @@ export function PrayerTimesView() {
                   {PRAYER_LABELS[next.name]}
                 </span>
                 <span style={{ fontSize: 26, fontWeight: 700, color: N.fg }}>
-                  {fmtTime(next.at)}
+                  {fmtPrayerTime(next.at, coords)}
                 </span>
               </div>
               <div style={{ fontSize: 14, color: N.muted }}>
@@ -363,7 +357,7 @@ export function PrayerTimesView() {
                       flexShrink: 0,
                     }}
                   >
-                    {fmtTime(timings[name])}
+                    {fmtPrayerTime(timings[name], coords)}
                   </span>
                   {/* Reserve the toggle slot on every card (incl. Sunrise) so the
                       times line up in a column. */}
@@ -438,7 +432,7 @@ export function PrayerTimesView() {
                     flexShrink: 0,
                   }}
                 >
-                  {timings[name] ? fmtTime(timings[name]) : "—"}
+                  {timings[name] ? fmtPrayerTime(timings[name], coords) : "—"}
                 </span>
               </div>
             ))}
@@ -492,7 +486,7 @@ export function PrayerTimesView() {
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          {d.timings ? fmtTime(d.timings[p]) : "—"}
+                          {d.timings ? fmtPrayerTime(d.timings[p], coords) : "—"}
                         </div>
                       ))}
                     </div>

@@ -3,19 +3,16 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
+  type Coordinates,
   OBLIGATORY_PRAYERS,
   PRAYER_LABELS,
   type PrayerTimings,
   nextPrayer,
 } from "@ummahlibrary/core";
 import { Icon, Khatam, N } from "@ummahlibrary/ui";
+import { fmtPrayerTime } from "../lib/prayer-time-format";
+import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
-
-function fmtTime(src: string | Date): string {
-  const d = typeof src === "string" ? new Date(src) : src;
-  if (Number.isNaN(d.getTime())) return "—"; // polar-empty timing → Invalid Date
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
 
 function countdown(target: Date, now: Date): string {
   if (Number.isNaN(target.getTime())) return "—";
@@ -42,10 +39,12 @@ const heroStyle = {
 export function ToolsPrayerCard() {
   const [ready, setReady] = useState(false);
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
+  const [coords, setCoords] = useState<Coordinates | null>(null);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     setReady(true);
+    void webPrayerSettingsStore.read().then(({ coords: c }) => setCoords(c));
     void webPrayerTimingsProvider.getTodaysTimings().then((t) => {
       if (t) setTimings(t);
     });
@@ -127,7 +126,7 @@ export function ToolsPrayerCard() {
               {PRAYER_LABELS[next.name]}
             </span>
             <span style={{ fontSize: 20, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
-              {fmtTime(next.at)}
+              {fmtPrayerTime(next.at, coords)}
             </span>
           </div>
           <div style={{ fontSize: 13.5, color: N.muted, fontFamily: N.ui, marginBottom: 16 }}>
@@ -173,7 +172,7 @@ export function ToolsPrayerCard() {
                       fontVariantNumeric: "tabular-nums",
                     }}
                   >
-                    {fmtTime(timings[p])}
+                    {fmtPrayerTime(timings[p], coords)}
                   </div>
                 </div>
               );
