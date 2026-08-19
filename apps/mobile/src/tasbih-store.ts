@@ -7,14 +7,39 @@
 import type { TasbihRecord, TasbihStore } from "@ummahlibrary/core";
 import { KEYS, getJSON, isObjectRecord, setJSON } from "./storage";
 
-const isTasbihRecord = (v: unknown): boolean =>
-  v === null ||
-  (isObjectRecord(v) &&
-    typeof (v as TasbihRecord).total === "number" &&
-    typeof (v as TasbihRecord).target === "number" &&
-    typeof (v as TasbihRecord).phraseId === "string");
+/** The pre-per-phrase-progress shape (a single shared total/target). */
+interface LegacyRecord {
+  phraseId: string;
+  total: number;
+  target: number;
+}
+
+const isLegacyRecord = (v: unknown): v is LegacyRecord =>
+  isObjectRecord(v) &&
+  typeof (v as LegacyRecord).phraseId === "string" &&
+  typeof (v as LegacyRecord).total === "number" &&
+  typeof (v as LegacyRecord).target === "number";
+
+const isTasbihRecord = (v: unknown): v is TasbihRecord =>
+  isObjectRecord(v) &&
+  typeof (v as TasbihRecord).phraseId === "string" &&
+  isObjectRecord((v as TasbihRecord).phrases);
 
 export const mobileTasbihStore: TasbihStore = {
-  read: () => getJSON<TasbihRecord | null>(KEYS.tasbih, null, isTasbihRecord),
+  read: async () => {
+    const raw = await getJSON<unknown>(KEYS.tasbih, null);
+    if (isTasbihRecord(raw)) return raw;
+    // Migrate the old single-total shape: the phrase being counted when this
+    // was last saved keeps its progress, filed under its own entry.
+    if (isLegacyRecord(raw)) {
+      const migrated: TasbihRecord = {
+        phraseId: raw.phraseId,
+        phrases: { [raw.phraseId]: { total: raw.total, target: raw.target } },
+      };
+      await setJSON(KEYS.tasbih, migrated);
+      return migrated;
+    }
+    return null;
+  },
   write: (record) => setJSON(KEYS.tasbih, record),
 };

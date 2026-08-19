@@ -1,19 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DHIKR_PHRASES, type TasbihRecord, tasbihState } from "@ummahlibrary/core";
+import {
+  DHIKR_PHRASES,
+  type TasbihRecord,
+  tasbihPhraseProgress,
+  tasbihState,
+} from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
 import { NoorPageFrame } from "./NoorPageFrame";
 import { DEFAULT_TASBIH, readTasbih, writeTasbih } from "../lib/tasbih";
 
 const PRESET_IDS = ["subhanallah", "alhamdulillah", "allahuakbar", "tahlil"] as const;
-
-const PHRASE_TARGETS: Record<string, number> = {
-  subhanallah: 33,
-  alhamdulillah: 33,
-  allahuakbar: 34,
-  tahlil: 100,
-};
 
 export function TasbihPageClient() {
   const [ready, setReady] = useState(false);
@@ -29,8 +27,10 @@ export function TasbihPageClient() {
 
   const presets = DHIKR_PHRASES.filter((p) => (PRESET_IDS as readonly string[]).includes(p.id));
   const phrase = DHIKR_PHRASES.find((p) => p.id === state.phraseId) ?? presets[0]!;
-  const view = tasbihState(state.total, state.target);
-  const target = state.target;
+  // Each phrase's own progress — switching phrases (below) never touches this.
+  const progress = tasbihPhraseProgress(state, state.phraseId);
+  const view = tasbihState(progress.total, progress.target);
+  const target = progress.target;
 
   function update(next: TasbihRecord) {
     setState(next);
@@ -40,22 +40,29 @@ export function TasbihPageClient() {
   function tap() {
     setPulse((v) => v + 1);
     setState((prev) => {
-      const next: TasbihRecord = { ...prev, total: prev.total + 1 };
+      const cur = tasbihPhraseProgress(prev, prev.phraseId);
+      const nextProgress = { total: cur.total + 1, target: cur.target };
+      const next: TasbihRecord = {
+        ...prev,
+        phrases: { ...prev.phrases, [prev.phraseId]: nextProgress },
+      };
       void writeTasbih(next);
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
         // count wraps to 0 exactly when a round completes
-        navigator.vibrate(tasbihState(next.total, next.target).count === 0 ? 60 : 12);
+        navigator.vibrate(tasbihState(nextProgress.total, nextProgress.target).count === 0 ? 60 : 12);
       }
       return next;
     });
   }
 
   function selectPhrase(phraseId: string) {
-    update({ phraseId, total: 0, target: PHRASE_TARGETS[phraseId] ?? 33 });
+    // Only the displayed phrase changes — each phrase's own total/target stays
+    // put, so switching away and back doesn't lose (or merge into) progress.
+    update({ ...state, phraseId });
   }
 
   function reset() {
-    update({ ...state, total: 0 });
+    update({ ...state, phrases: { ...state.phrases, [state.phraseId]: { total: 0, target } } });
   }
 
   const pct = target > 0 ? view.count / target : 0;

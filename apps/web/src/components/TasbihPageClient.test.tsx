@@ -27,16 +27,32 @@ describe("TasbihPageClient", () => {
     expect(dial()).toHaveAccessibleName(/1 of 33/);
   });
 
-  it("switching the dhikr preset resets the count and its target", async () => {
+  it("switching the dhikr preset shows that phrase's own count, at its own target", async () => {
     render(<TasbihPageClient />);
 
     await userEvent.click(await screen.findByRole("button", { name: /Count/ })); // count → 1
     await userEvent.click(screen.getByRole("button", { name: "Allāhu Akbar" }));
 
-    expect(dial()).toHaveAccessibleName(/0 of 34/); // reset, target 34
+    // A never-counted phrase starts at zero, at its own default target (34).
+    expect(dial()).toHaveAccessibleName(/0 of 34/);
   });
 
-  it("the Reset button clears the running count and persists it", async () => {
+  it("switching phrases and back does not lose the earlier phrase's progress", async () => {
+    render(<TasbihPageClient />);
+
+    const d = await screen.findByRole("button", { name: /Count/ });
+    await userEvent.click(d);
+    await userEvent.click(d);
+    expect(dial()).toHaveAccessibleName(/2 of 33/); // SubḥānAllāh at 2
+
+    await userEvent.click(screen.getByRole("button", { name: "Alḥamdulillāh" }));
+    expect(dial()).toHaveAccessibleName(/0 of 33/); // a different, uncounted phrase
+
+    await userEvent.click(screen.getByRole("button", { name: "SubḥānAllāh" }));
+    expect(dial()).toHaveAccessibleName(/2 of 33/); // SubḥānAllāh's count is still there
+  });
+
+  it("the Reset button clears only the current phrase's count, and persists it", async () => {
     render(<TasbihPageClient />);
 
     const d = await screen.findByRole("button", { name: /Count/ });
@@ -46,6 +62,7 @@ describe("TasbihPageClient", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Reset" }));
     expect(dial()).toHaveAccessibleName(/0 of 33/);
-    expect(JSON.parse(localStorage.getItem("ul.tasbih2") ?? "{}").total).toBe(0);
+    const stored = JSON.parse(localStorage.getItem("ul.tasbih2") ?? "{}");
+    expect(stored.phrases.subhanallah.total).toBe(0);
   });
 });
