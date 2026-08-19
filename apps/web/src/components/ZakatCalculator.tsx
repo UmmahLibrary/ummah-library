@@ -32,6 +32,13 @@ function num(s: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Strip digits from the currency symbol field — a symbol/code ("$", "AED") never
+ *  contains one, and allowing digits here let a stray one silently fuse into the
+ *  displayed totals (money() concatenates currency + amount with no separator). */
+function sanitizeCurrency(s: string): string {
+  return s.replace(/[0-9]/g, "");
+}
+
 const sectionLabel = {
   fontSize: 12,
   letterSpacing: 1,
@@ -125,6 +132,9 @@ export function ZakatCalculator() {
       setState({
         ...DEFAULT_STATE,
         ...saved,
+        // Self-heal a currency value saved before sanitizeCurrency existed — a
+        // stray digit in it used to silently fuse into the displayed totals.
+        currency: sanitizeCurrency(saved.currency ?? DEFAULT_STATE.currency) || DEFAULT_STATE.currency,
         assets: { ...EMPTY_ASSETS, ...(saved.assets ?? {}) },
       });
     }
@@ -150,8 +160,10 @@ export function ZakatCalculator() {
     [state],
   );
 
-  const money = (n: number) =>
-    `${state.currency}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const money = (n: number) => {
+    const symbol = sanitizeCurrency(state.currency) || DEFAULT_STATE.currency;
+    return `${symbol}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   const havePrices = num(state.goldPricePerGram) > 0 && num(state.silverPricePerGram) > 0;
 
@@ -200,7 +212,7 @@ export function ZakatCalculator() {
             <Field
               label="Currency"
               value={state.currency}
-              onChange={(v) => setState((s) => ({ ...s, currency: v.slice(0, 4) }))}
+              onChange={(v) => setState((s) => ({ ...s, currency: sanitizeCurrency(v).slice(0, 4) }))}
               placeholder="$"
             />
             <Field
