@@ -109,7 +109,7 @@ export function HifzReview({
           All caught up!
         </div>
         <div style={{ fontSize: 14.5, color: N.muted, marginBottom: 28, fontFamily: N.ui }}>
-          {queue.length} āyah{queue.length !== 1 ? "āt" : ""} reviewed · {total} tracked in total.
+          {queue.length} {queue.length === 1 ? "āyah" : "āyāt"} reviewed · {total} tracked in total.
         </div>
         <Link
           href="/hifz"
