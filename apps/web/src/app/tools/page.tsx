@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { N } from "@ummahlibrary/ui";
 import { ToolsPrayerCard } from "../../components/ToolsPrayerCard";
+import { ToolsQiblaCard } from "../../components/ToolsQiblaCard";
 
 const TOOLS = [
   { key: "/prayer-times", label: "Prayer Times", glyph: "🕌", note: "Daily salah times" },
@@ -9,7 +10,7 @@ const TOOLS = [
   { key: "/tracker", label: "Prayer Tracker", glyph: "📿", note: "Log & build streaks" },
   { key: "/duas", label: "Duʿās", glyph: "🤲", note: "Fortress of the Muslim" },
   { key: "/plans", label: "Reading Plans", glyph: "🗺", note: "Structured journeys" },
-  { key: "/qibla", label: "Qibla", glyph: "🧭", note: "118° SE · Direction to Makkah" },
+  { key: "/qibla", label: "Qibla", glyph: "🧭", note: "Direction to Makkah" },
   { key: "/mosques", label: "Nearby Mosques", glyph: "📍", note: "Find a place to pray" },
   { key: "/hifz", label: "Hifz Review", glyph: "✦", note: "Spaced repetition" },
   { key: "/calendar", label: "Hijri Calendar", glyph: "☾", note: "Islamic dates" },
@@ -63,90 +64,7 @@ export default function ToolsPage() {
           <ToolsPrayerCard />
 
           {/* Qibla featured */}
-          <Link
-            href="/qibla"
-            style={{
-              borderRadius: 18,
-              padding: 24,
-              background: N.card,
-              border: `1px solid ${N.border}`,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-              textDecoration: "none",
-            }}
-          >
-            {/* Compass decoration */}
-            <div style={{ position: "relative", width: 150, height: 150, marginBottom: 16 }}>
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: "50%",
-                  border: `1px solid ${N.border}`,
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 14,
-                  borderRadius: "50%",
-                  border: `1px dashed ${N.borderSoft}`,
-                }}
-              />
-              {(["N", "E", "S", "W"] as const).map((d, i) => (
-                <span
-                  key={d}
-                  style={{
-                    position: "absolute",
-                    fontSize: 11,
-                    color: N.faint,
-                    top: i === 0 ? 6 : i === 2 ? "auto" : "50%",
-                    bottom: i === 2 ? 6 : "auto",
-                    left: i === 3 ? 8 : i === 1 ? "auto" : "50%",
-                    right: i === 1 ? 8 : "auto",
-                    transform: i === 0 || i === 2 ? "translateX(-50%)" : "translateY(-50%)",
-                  }}
-                >
-                  {d}
-                </span>
-              ))}
-              {/* Needle */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  width: 4,
-                  height: 56,
-                  background: N.goldGrad,
-                  borderRadius: 2,
-                  transformOrigin: "bottom center",
-                  transform: "translate(-50%, -100%) rotate(118deg)",
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  width: 12,
-                  height: 12,
-                  borderRadius: 6,
-                  background: N.gold,
-                  transform: "translate(-50%, -50%)",
-                }}
-              />
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
-              Qibla · 118° SE
-            </div>
-            <div style={{ fontSize: 13, color: N.muted, marginTop: 3, fontFamily: N.ui }}>
-              Direction to the Kaʿbah
-            </div>
-          </Link>
+          <ToolsQiblaCard />
         </div>
 
         {/* All tools grid */}
