@@ -39,6 +39,19 @@ function sanitizeCurrency(s: string): string {
   return s.replace(/[0-9]/g, "");
 }
 
+/** Strip anything but digits and a single decimal point from an amount field.
+ *  Wealth/price amounts can't be negative — `sumValues`/the niṣāb math already
+ *  treat a negative entry as if the field were blank, so accepting the "-"
+ *  keystroke just let a mistyped value vanish from the totals with no
+ *  explanation. Blocking it at input time (like the currency field already
+ *  blocks digits) is the same fix in the same spot. */
+function sanitizeAmount(s: string): string {
+  const cleaned = s.replace(/[^0-9.]/g, "");
+  const dot = cleaned.indexOf(".");
+  if (dot === -1) return cleaned;
+  return cleaned.slice(0, dot + 1) + cleaned.slice(dot + 1).replace(/\./g, "");
+}
+
 const sectionLabel = {
   fontSize: 12,
   letterSpacing: 1,
@@ -168,10 +181,13 @@ export function ZakatCalculator() {
   const havePrices = num(state.goldPricePerGram) > 0 && num(state.silverPricePerGram) > 0;
 
   function setAsset(id: string, value: string) {
-    setState((s) => ({ ...s, assets: { ...s.assets, [id]: value } }));
+    setState((s) => ({ ...s, assets: { ...s.assets, [id]: sanitizeAmount(value) } }));
   }
+  // "Reset amounts" clears what it says — the entered wealth figures — and
+  // leaves currency, gold/silver prices, and the niṣāb basis alone; a user
+  // recalculating for a new scenario shouldn't lose prices they looked up.
   function reset() {
-    setState({ ...DEFAULT_STATE, currency: state.currency });
+    setState((s) => ({ ...s, assets: { ...EMPTY_ASSETS }, liabilities: "" }));
   }
 
   return (
@@ -219,13 +235,13 @@ export function ZakatCalculator() {
               label="Gold / gram"
               placeholder="e.g. 75"
               value={state.goldPricePerGram}
-              onChange={(v) => setState((s) => ({ ...s, goldPricePerGram: v }))}
+              onChange={(v) => setState((s) => ({ ...s, goldPricePerGram: sanitizeAmount(v) }))}
             />
             <Field
               label="Silver / gram"
               placeholder="e.g. 0.85"
               value={state.silverPricePerGram}
-              onChange={(v) => setState((s) => ({ ...s, silverPricePerGram: v }))}
+              onChange={(v) => setState((s) => ({ ...s, silverPricePerGram: sanitizeAmount(v) }))}
             />
           </div>
           <div style={{ fontSize: 13.5, color: N.muted, margin: "2px 0 8px", fontFamily: N.ui }}>
@@ -278,7 +294,7 @@ export function ZakatCalculator() {
             hint="Immediate debts & bills due now"
             prefix={state.currency}
             value={state.liabilities}
-            onChange={(v) => setState((s) => ({ ...s, liabilities: v }))}
+            onChange={(v) => setState((s) => ({ ...s, liabilities: sanitizeAmount(v) }))}
           />
         </div>
 
