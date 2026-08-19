@@ -3,7 +3,11 @@ import { quranRepository, translationRepository } from "@ummahlibrary/api";
 import { apiJson } from "../../../../../../../lib/api-response";
 
 export const dynamic = "force-static";
-export const dynamicParams = false;
+// Deliberately not `dynamicParams = false`: an id outside generateStaticParams
+// must still reach the GET handler below so it returns the JSON 404 error
+// instead of Next's generic HTML not-found page (the public API's documented
+// error shape — see openapi.json).
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   const editions = await translationRepository.listTranslations();
