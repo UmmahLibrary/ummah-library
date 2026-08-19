@@ -5,7 +5,7 @@
  * `@ummahlibrary/core`. A window event lets the tracker page re-render on change
  * — the established pattern from the prayer tracker.
  */
-import { type PrayerName, type QadaLog, adjustQada, setQada } from "@ummahlibrary/core";
+import type { QadaLog } from "@ummahlibrary/core";
 import { webQadaStore as store } from "./qada-store";
 
 export const QADA_EVENT = "ul.qada";
@@ -22,18 +22,15 @@ export function readQada(): Promise<QadaLog> {
   return store.read();
 }
 
-/** Adjust a prayer's backlog by `delta` (clamped at zero) and persist. */
-export async function adjustQadaCount(prayer: PrayerName, delta: number): Promise<QadaLog> {
-  const next = adjustQada(await store.read(), prayer, delta);
-  await store.write(next);
+/**
+ * Persist an already-computed backlog and notify subscribers. Callers that
+ * mutate on every tap (the +/- steppers) compute `next` from their own
+ * in-memory state via `adjustQada`/`setQada` (from `@ummahlibrary/core`) and
+ * pass it straight here — routing every tap through a fresh `store.read()`
+ * first would race when taps land faster than the read/write round trip
+ * resolves, silently dropping updates.
+ */
+export async function writeQada(log: QadaLog): Promise<void> {
+  await store.write(log);
   emit();
-  return next;
-}
-
-/** Set a prayer's backlog to an explicit count and persist. */
-export async function setQadaCount(prayer: PrayerName, count: number): Promise<QadaLog> {
-  const next = setQada(await store.read(), prayer, count);
-  await store.write(next);
-  emit();
-  return next;
 }
