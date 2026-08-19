@@ -5,13 +5,14 @@ import { useEffect, useState } from "react";
 import {
   type FastingQadaLog,
   type HaidLog,
+  adjustFastingMadeUp,
   fastingMadeUp,
   fastingQadaOwed,
   fastingQadaRemaining,
 } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
 import { HAID_EVENT, readHaid } from "../lib/haid";
-import { FASTING_QADA_EVENT, adjustFastingMadeUpCount, readFastingQada } from "../lib/fasting-qada";
+import { FASTING_QADA_EVENT, readFastingQada, writeFastingQada } from "../lib/fasting-qada";
 import { readHijriAdjust } from "../lib/hijri";
 import { today } from "../lib/prayer-tracker";
 
@@ -62,6 +63,14 @@ export function FastingQadaTracker() {
   const remaining = fastingQadaRemaining(log, owed);
   const madeUp = fastingMadeUp(log, owed);
 
+  function adjustMadeUp(delta: number) {
+    setLog((prev) => {
+      const next = adjustFastingMadeUp(prev, delta, owed);
+      void writeFastingQada(next);
+      return next;
+    });
+  }
+
   return (
     <div style={{ ...card, padding: 24, marginTop: 18 }}>
       <div
@@ -95,7 +104,7 @@ export function FastingQadaTracker() {
                 label="Mark one fast made up"
                 symbol="−"
                 disabled={remaining === 0}
-                onClick={() => void adjustFastingMadeUpCount(1, owed).then(setLog)}
+                onClick={() => adjustMadeUp(1)}
               />
               <span
                 aria-live="polite"
@@ -114,7 +123,7 @@ export function FastingQadaTracker() {
                 label="Undo one made-up fast"
                 symbol="+"
                 disabled={madeUp === 0}
-                onClick={() => void adjustFastingMadeUpCount(-1, owed).then(setLog)}
+                onClick={() => adjustMadeUp(-1)}
               />
             </div>
           </div>

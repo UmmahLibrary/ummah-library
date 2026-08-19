@@ -2,9 +2,17 @@
 
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
-import { OBLIGATORY_PRAYERS, PRAYER_LABELS, type QadaLog, owedFor, totalOwed } from "@ummahlibrary/core";
+import {
+  OBLIGATORY_PRAYERS,
+  PRAYER_LABELS,
+  type PrayerName,
+  type QadaLog,
+  adjustQada,
+  owedFor,
+  totalOwed,
+} from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
-import { QADA_EVENT, adjustQadaCount, readQada } from "../lib/qada";
+import { QADA_EVENT, readQada, writeQada } from "../lib/qada";
 
 const card: CSSProperties = {
   background: N.card,
@@ -30,6 +38,14 @@ export function QadaTracker() {
     window.addEventListener(QADA_EVENT, onChange);
     return () => window.removeEventListener(QADA_EVENT, onChange);
   }, []);
+
+  function adjust(prayer: PrayerName, delta: number) {
+    setLog((prev) => {
+      const next = adjustQada(prev, prayer, delta);
+      void writeQada(next);
+      return next;
+    });
+  }
 
   if (!ready) return null;
 
@@ -67,7 +83,7 @@ export function QadaTracker() {
                   label={`Make up one ${PRAYER_LABELS[p]}`}
                   symbol="−"
                   disabled={owed === 0}
-                  onClick={() => void adjustQadaCount(p, -1).then(setLog)}
+                  onClick={() => adjust(p, -1)}
                 />
                 <span
                   aria-live="polite"
@@ -85,7 +101,7 @@ export function QadaTracker() {
                 <Step
                   label={`Record a missed ${PRAYER_LABELS[p]}`}
                   symbol="+"
-                  onClick={() => void adjustQadaCount(p, 1).then(setLog)}
+                  onClick={() => adjust(p, 1)}
                 />
               </div>
             </div>

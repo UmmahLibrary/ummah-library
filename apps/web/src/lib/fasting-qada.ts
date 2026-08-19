@@ -5,7 +5,7 @@
  * adapter `webFastingQadaStore`, ADR 0024). A window event lets the tracker page
  * re-render on change — the established pattern from the prayer/qaḍāʾ trackers.
  */
-import { type FastingQadaLog, adjustFastingMadeUp } from "@ummahlibrary/core";
+import type { FastingQadaLog } from "@ummahlibrary/core";
 import { webFastingQadaStore as store } from "./fasting-qada-store";
 
 export const FASTING_QADA_EVENT = "ul.fastingQada";
@@ -22,10 +22,14 @@ export function readFastingQada(): Promise<FastingQadaLog> {
   return store.read();
 }
 
-/** Make up one fast (`+1`) or undo (`-1`), clamped to `[0, owed]`, and persist. */
-export async function adjustFastingMadeUpCount(delta: number, owed: number): Promise<FastingQadaLog> {
-  const next = adjustFastingMadeUp(await store.read(), delta, owed);
-  await store.write(next);
+/**
+ * Persist an already-computed log and notify subscribers. The +/- stepper
+ * computes `next` from its own in-memory state via `adjustFastingMadeUp`
+ * (from `@ummahlibrary/core`) and passes it straight here — reading from the
+ * store fresh on every tap would race when taps land faster than the
+ * read/write round trip resolves, silently dropping updates.
+ */
+export async function writeFastingQada(log: FastingQadaLog): Promise<void> {
+  await store.write(log);
   emit();
-  return next;
 }
