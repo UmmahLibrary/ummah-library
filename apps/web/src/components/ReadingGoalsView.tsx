@@ -313,6 +313,18 @@ export function ReadingGoalsView() {
               {d} days
             </button>
           ))
+        ) : khatma.currentPage >= khatma.totalPages ? (
+          <>
+            <span style={{ fontSize: 13, color: N.gold, fontWeight: 700, fontFamily: N.ui }}>
+              Alhamdulillah — khatm complete! 🎉
+            </span>
+            <button onClick={() => adjustKhatma(-1)} style={pill(false)}>
+              −1
+            </button>
+            <button onClick={() => void clearKhatma()} style={pill(false)}>
+              Start a new khatm
+            </button>
+          </>
         ) : (
           <>
             <span style={{ fontSize: 13, color: N.muted, fontFamily: N.ui }}>

@@ -27,4 +27,17 @@ describe("ReadingGoalsView", () => {
       expect(JSON.parse(localStorage.getItem("ul.readingGoal") ?? "{}").target).toBe(16),
     );
   });
+
+  it("shows a completion message instead of 'Resume' once the khatm is finished", async () => {
+    localStorage.setItem(
+      "ul.khatma",
+      JSON.stringify({ totalPages: 604, currentPage: 604, targetDate: "2026-09-18" }),
+    );
+
+    render(<ReadingGoalsView />);
+
+    expect(await screen.findByText(/khatm complete/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Resume p/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/d left/)).not.toBeInTheDocument();
+  });
 });
