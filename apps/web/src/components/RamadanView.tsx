@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { type PrayerTimings, gregorianToHijri, hijriMonth } from "@ummahlibrary/core";
+import { type Coordinates, type PrayerTimings, gregorianToHijri, hijriMonth } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
+import { fmtPrayerTime } from "../lib/prayer-time-format";
 import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
 import { RAMADAN_EVENT, readFasts, readWorship, toggleFast, toggleWorship } from "../lib/ramadan";
@@ -20,11 +21,6 @@ const WORSHIP: { key: string; label: string; icon: IconName }[] = [
 function localDate(d: Date): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-function fmtTime(src: string | Date): string {
-  const d = typeof src === "string" ? new Date(src) : src;
-  if (Number.isNaN(d.getTime())) return "—"; // polar-empty timing → Invalid Date
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 function countdown(target: Date, now: Date): string {
   if (Number.isNaN(target.getTime())) return "—";
@@ -58,7 +54,7 @@ const sectionLabel = {
 export function RamadanView() {
   const [now, setNow] = useState(() => new Date());
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
-  const [hasCoords, setHasCoords] = useState(false);
+  const [coords, setCoords] = useState<Coordinates | null>(null);
   const [fasts, setFasts] = useState<Record<number, true>>({});
   const [worship, setWorship] = useState<Record<string, true>>({});
   const [pagesRead, setPagesRead] = useState(0);
@@ -73,7 +69,7 @@ export function RamadanView() {
     sync();
     window.addEventListener(RAMADAN_EVENT, sync);
 
-    void webPrayerSettingsStore.read().then(({ coords }) => setHasCoords(coords !== null));
+    void webPrayerSettingsStore.read().then(({ coords: c }) => setCoords(c));
     void webPrayerTimingsProvider.getTodaysTimings().then((t) => {
       if (t) setTimings(t);
     });
@@ -146,8 +142,8 @@ export function RamadanView() {
               {beforeIftar ? countdown(iftar, now) : "🌙 Iftar mubarak"}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12.5, color: N.muted, fontFamily: N.ui }}>
-              <span>Suhūr {fmtTime(timings!.fajr)}</span>
-              <span>Ifṭār {fmtTime(timings!.maghrib)}</span>
+              <span>Suhūr {fmtPrayerTime(timings!.fajr, coords)}</span>
+              <span>Ifṭār {fmtPrayerTime(timings!.maghrib, coords)}</span>
             </div>
             <div style={{ height: 7, borderRadius: 4, background: N.border, overflow: "hidden", marginTop: 6 }}>
               <div style={{ width: `${dayProgress}%`, height: "100%", background: N.goldGrad }} />
@@ -159,9 +155,9 @@ export function RamadanView() {
               Ifṭār countdown
             </div>
             <div style={{ fontSize: 14.5, color: N.muted, marginTop: 10, fontFamily: N.ui }}>
-              {hasCoords ? "Loading today’s times…" : "Set your location to see suhūr & ifṭār times."}
+              {coords ? "Loading today’s times…" : "Set your location to see suhūr & ifṭār times."}
             </div>
-            {!hasCoords && (
+            {!coords && (
               <Link
                 href="/prayer-times"
                 style={{

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
+  type Coordinates,
   PRAYER_LABELS,
   type PrayerTimings,
   computeStreak,
@@ -10,14 +11,10 @@ import {
 } from "@ummahlibrary/core";
 import { Khatam, N } from "@ummahlibrary/ui";
 import { HomePrayerCard } from "./HomePrayerCard";
+import { fmtPrayerTime } from "../lib/prayer-time-format";
+import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
 import { readReadingState, today } from "../lib/reading-goals";
-
-function fmtTime(src: string | Date): string {
-  const d = typeof src === "string" ? new Date(src) : src;
-  if (Number.isNaN(d.getTime())) return "—"; // polar-empty timing → Invalid Date
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
 
 function countdown(target: Date, now: Date): string {
   if (Number.isNaN(target.getTime())) return "—";
@@ -34,6 +31,7 @@ const C = 2 * Math.PI * 27;
 export function HomeHeroCards() {
   const [ready, setReady] = useState(false);
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
+  const [coords, setCoords] = useState<Coordinates | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [reading, setReading] = useState({ pages: 0, goal: 4, streak: 0 });
 
@@ -42,6 +40,7 @@ export function HomeHeroCards() {
     void readReadingState().then((s) =>
       setReading({ pages: s.pagesToday, goal: s.goal, streak: computeStreak(s.activeDates, today()) }),
     );
+    void webPrayerSettingsStore.read().then(({ coords: c }) => setCoords(c));
     void webPrayerTimingsProvider.getTodaysTimings().then((t) => {
       if (t) setTimings(t);
     });
@@ -139,7 +138,7 @@ export function HomeHeroCards() {
                 {PRAYER_LABELS[next.name]}
               </span>
               <span style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.1, color: N.fg }}>
-                {fmtTime(next.at)}
+                {fmtPrayerTime(next.at, coords)}
               </span>
             </div>
             <div style={{ fontSize: 12.5, color: N.muted }}>
