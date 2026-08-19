@@ -1,46 +1,51 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, Vibration, View } from "../Type";
 import Svg, { Circle } from "react-native-svg";
-import { DHIKR_PHRASES, TASBIH_TARGETS, tasbihState } from "@ummahlibrary/core";
+import {
+  DHIKR_PHRASES,
+  TASBIH_TARGETS,
+  type TasbihRecord,
+  tasbihPhraseProgress,
+  tasbihState,
+} from "@ummahlibrary/core";
 import { mobileTasbihStore as store } from "../tasbih-store";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 
-interface Stored {
-  total: number;
-  target: number;
-  phraseId: string;
-}
-
-const DEFAULT: Stored = { total: 0, target: 33, phraseId: "subhanallah" };
+const DEFAULT: TasbihRecord = { phraseId: "subhanallah", phrases: {} };
 
 export function TasbihScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [state, setState] = useState<Stored>(DEFAULT);
+  const [state, setState] = useState<TasbihRecord>(DEFAULT);
 
   useEffect(() => {
     void store.read().then((s) => setState(s ?? DEFAULT));
   }, []);
 
-  function persist(next: Stored) {
+  function persist(next: TasbihRecord) {
     setState(next);
     void store.write(next);
   }
 
-  const view = tasbihState(state.total, state.target);
+  // Each phrase's own progress — switching the chip below never touches this.
+  const progress = tasbihPhraseProgress(state, state.phraseId);
+  const view = tasbihState(progress.total, progress.target);
   const phrase = DHIKR_PHRASES.find((p) => p.id === state.phraseId) ?? DHIKR_PHRASES[0]!;
-  const justLapped = view.count === 0 && state.total > 0;
+  const justLapped = view.count === 0 && progress.total > 0;
 
   function tap() {
-    persist({ ...state, total: state.total + 1 });
-    Vibration.vibrate(view.count + 1 === state.target ? 60 : 12);
+    persist({
+      ...state,
+      phrases: { ...state.phrases, [state.phraseId]: { ...progress, total: progress.total + 1 } },
+    });
+    Vibration.vibrate(view.count + 1 === progress.target ? 60 : 12);
   }
 
   const ringR = 118;
   const ringC = 2 * Math.PI * ringR;
-  const pct = Math.min(1, (justLapped ? state.target : view.count) / state.target);
+  const pct = Math.min(1, (justLapped ? progress.target : view.count) / progress.target);
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
@@ -78,9 +83,9 @@ export function TasbihScreen() {
         <Pressable style={styles.dial} onPress={tap} accessibilityRole="button" accessibilityLabel="Count">
           <Text style={styles.dialAr}>{phrase.arabic}</Text>
           <Text style={[styles.dialCount, justLapped && styles.dialCountLapped]}>
-            {justLapped ? state.target : view.count}
+            {justLapped ? progress.target : view.count}
           </Text>
-          <Text style={styles.dialTarget}>of {state.target}</Text>
+          <Text style={styles.dialTarget}>of {progress.target}</Text>
         </Pressable>
       </View>
 
@@ -102,10 +107,15 @@ export function TasbihScreen() {
             {TASBIH_TARGETS.map((t) => (
               <Pressable
                 key={t}
-                style={[styles.chip, t === state.target && styles.chipOn]}
-                onPress={() => persist({ ...state, target: t })}
+                style={[styles.chip, t === progress.target && styles.chipOn]}
+                onPress={() =>
+                  persist({
+                    ...state,
+                    phrases: { ...state.phrases, [state.phraseId]: { ...progress, target: t } },
+                  })
+                }
               >
-                <Text style={[styles.chipText, t === state.target && styles.chipTextOn]}>
+                <Text style={[styles.chipText, t === progress.target && styles.chipTextOn]}>
                   {t}
                 </Text>
               </Pressable>
@@ -113,7 +123,15 @@ export function TasbihScreen() {
           </View>
         </View>
 
-        <Pressable style={styles.resetBtn} onPress={() => persist({ ...state, total: 0 })}>
+        <Pressable
+          style={styles.resetBtn}
+          onPress={() =>
+            persist({
+              ...state,
+              phrases: { ...state.phrases, [state.phraseId]: { ...progress, total: 0 } },
+            })
+          }
+        >
           <Text style={styles.resetText}>Reset</Text>
         </Pressable>
       </View>

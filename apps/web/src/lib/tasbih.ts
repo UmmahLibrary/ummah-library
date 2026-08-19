@@ -9,8 +9,7 @@ import { webTasbihStore as store } from "./tasbih-store";
 
 export const DEFAULT_TASBIH: TasbihRecord = {
   phraseId: DHIKR_PHRASES[0]!.id,
-  total: 0,
-  target: 33,
+  phrases: {},
 };
 
 export async function readTasbih(): Promise<TasbihRecord> {
