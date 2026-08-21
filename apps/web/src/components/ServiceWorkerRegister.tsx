@@ -13,8 +13,17 @@ export function ServiceWorkerRegister() {
       void navigator.serviceWorker
         .getRegistrations()
         .then((regs) => regs.forEach((r) => void r.unregister()));
+      // Only drop the service worker's own caches (sw.js's `ul-static-*`/`ul-pages-*`) —
+      // not unrelated Cache API users like the offline audio downloads (`ul-audio-*`),
+      // which would otherwise get silently wiped on every dev reload.
       if (typeof caches !== "undefined") {
-        void caches.keys().then((keys) => keys.forEach((k) => void caches.delete(k)));
+        void caches
+          .keys()
+          .then((keys) =>
+            keys
+              .filter((k) => k.startsWith("ul-static-") || k.startsWith("ul-pages-"))
+              .forEach((k) => void caches.delete(k)),
+          );
       }
       return;
     }

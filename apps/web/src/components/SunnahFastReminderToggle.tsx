@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { type UpcomingSunnahFast, upcomingSunnahFasts } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
-import { readHijriAdjust } from "../lib/hijri";
+import { HIJRI_ADJUST_KEY, readHijriAdjust } from "../lib/hijri";
 import { WebNotifier } from "../lib/web-notifier";
 import { remindersEnabled, setRemindersEnabled, syncSunnahFastReminder } from "../lib/sunnah-fast-reminders";
 
@@ -52,12 +52,14 @@ export function SunnahFastReminderToggle() {
   const [adjust, setAdjust] = useState(0);
 
   useEffect(() => {
-    const a = readHijriAdjust();
-    setAdjust(a);
+    const update = () => setAdjust(readHijriAdjust());
+    update();
+    window.addEventListener(HIJRI_ADJUST_KEY, update);
     void remindersEnabled().then((on) => {
       setEnabled(on);
       setReady(true);
     });
+    return () => window.removeEventListener(HIJRI_ADJUST_KEY, update);
   }, []);
 
   const fasts = useMemo<UpcomingSunnahFast[]>(
