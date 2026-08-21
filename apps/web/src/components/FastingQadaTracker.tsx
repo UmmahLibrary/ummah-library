@@ -13,7 +13,7 @@ import {
 import { N } from "@ummahlibrary/ui";
 import { HAID_EVENT, readHaid } from "../lib/haid";
 import { FASTING_QADA_EVENT, readFastingQada, writeFastingQada } from "../lib/fasting-qada";
-import { readHijriAdjust } from "../lib/hijri";
+import { HIJRI_ADJUST_KEY, readHijriAdjust } from "../lib/hijri";
 import { today } from "../lib/prayer-tracker";
 
 const card: CSSProperties = {
@@ -43,17 +43,20 @@ export function FastingQadaTracker() {
 
   useEffect(() => {
     setTodayStr(today());
-    setAdjust(readHijriAdjust());
     void readHaid().then(setHaid);
     void readFastingQada().then(setLog);
     setReady(true);
     const onHaid = () => void readHaid().then(setHaid);
     const onQada = () => void readFastingQada().then(setLog);
+    const onAdjust = () => setAdjust(readHijriAdjust());
+    onAdjust();
     window.addEventListener(HAID_EVENT, onHaid);
     window.addEventListener(FASTING_QADA_EVENT, onQada);
+    window.addEventListener(HIJRI_ADJUST_KEY, onAdjust);
     return () => {
       window.removeEventListener(HAID_EVENT, onHaid);
       window.removeEventListener(FASTING_QADA_EVENT, onQada);
+      window.removeEventListener(HIJRI_ADJUST_KEY, onAdjust);
     };
   }, []);
 

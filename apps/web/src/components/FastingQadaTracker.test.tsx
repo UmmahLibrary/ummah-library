@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { hijriToGregorian } from "@ummahlibrary/core";
+import { writeHijriAdjust } from "../lib/hijri";
 import { FastingQadaTracker } from "./FastingQadaTracker";
 
 // A Ramaḍān (Hijri month 9) day as YYYY-MM-DD, for building a ḥayḍ pause whose
@@ -39,5 +40,18 @@ describe("FastingQadaTracker", () => {
     await waitFor(() =>
       expect(JSON.parse(localStorage.getItem("ul.fastingQada") ?? "{}").madeUp).toBe(0),
     );
+  });
+
+  it("recomputes owed fasts when the Hijri sighting adjustment changes elsewhere on the page", async () => {
+    // A pause on Ramaḍān's last day at adjust=0 shifts past month-end (out of
+    // Ramaḍān) once the page-wide adjustment moves +2 — so owed should drop to 0.
+    localStorage.setItem("ul.haid", JSON.stringify([{ start: ram(29), end: ram(29) }]));
+    render(<FastingQadaTracker />);
+
+    expect(await screen.findByText(/0 of 1 made up/i)).toBeInTheDocument();
+
+    act(() => writeHijriAdjust(2));
+
+    expect(await screen.findByText(/No fasts to make up/i)).toBeInTheDocument();
   });
 });
