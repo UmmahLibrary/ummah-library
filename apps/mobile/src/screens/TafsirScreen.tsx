@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import { TOTAL_SURAHS, type Surah, type TafsirEntry } from "@ummahlibrary/core";
 import { api, type TafsirMeta } from "../api";
 import { useTheme, type Palette } from "../theme";
@@ -47,6 +47,15 @@ export function TafsirScreen() {
   const meta = surahs.find((s) => s.number === surah);
   const editionName = tafsirs.find((t) => t.id === edition)?.name ?? "Tafsir";
 
+  const header = (
+    <>
+      <Text style={styles.surahTitle}>
+        {meta ? `${meta.transliteration} · ${meta.englishName}` : `Surah ${surah}`}
+      </Text>
+      <Text style={styles.editionName}>{editionName}</Text>
+    </>
+  );
+
   return (
     <View style={styles.screen}>
       <View style={styles.controls}>
@@ -77,21 +86,30 @@ export function TafsirScreen() {
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.surahTitle}>
-          {meta ? `${meta.transliteration} · ${meta.englishName}` : `Surah ${surah}`}
-        </Text>
-        <Text style={styles.editionName}>{editionName}</Text>
-
-        {error ? (
-          <Text style={styles.muted}>Couldn’t load this tafsir. Try another edition.</Text>
-        ) : entries === null ? (
-          <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
-        ) : entries.length === 0 ? (
-          <Text style={styles.muted}>No tafsir available for this surah in this edition.</Text>
-        ) : (
-          entries.map((e) => (
-            <View key={e.aya} style={styles.entry}>
+      {error || entries === null ? (
+        <ScrollView contentContainerStyle={styles.body}>
+          {header}
+          {error ? (
+            <Text style={styles.muted}>Couldn’t load this tafsir. Try another edition.</Text>
+          ) : (
+            <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
+          )}
+        </ScrollView>
+      ) : (
+        // A long edition (e.g. unabridged Tafsir al-Tabari) over a long surah can run
+        // to hundreds of entries; rendering them all at once in a plain ScrollView
+        // blocked the JS thread for well over a minute (observed: 6000+ skipped
+        // frames). FlatList virtualizes so only on-screen entries are mounted.
+        <FlatList
+          data={entries}
+          keyExtractor={(e) => String(e.aya)}
+          contentContainerStyle={styles.body}
+          ListHeaderComponent={<>{header}</>}
+          ListEmptyComponent={
+            <Text style={styles.muted}>No tafsir available for this surah in this edition.</Text>
+          }
+          renderItem={({ item: e }) => (
+            <View style={styles.entry}>
               <Text style={styles.ayaRef}>
                 {surah}:{e.aya}
               </Text>
@@ -104,9 +122,9 @@ export function TafsirScreen() {
                   </Text>
                 ))}
             </View>
-          ))
-        )}
-      </ScrollView>
+          )}
+        />
+      )}
     </View>
   );
 }
