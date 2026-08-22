@@ -69,13 +69,19 @@ export function SettingsScreen() {
     setBusy(true);
     const res = await importBackup(strategy);
     setBusy(false);
-    if (res.message) setStatus(res);
+    // importBackup writes AsyncStorage directly, bypassing the settings/theme/
+    // library contexts' own setters, so an already-open screen won't reflect
+    // the restored values (e.g. theme, reciter) until the app restarts —
+    // same caveat web's Data section states explicitly (DataBackup.tsx).
+    if (res.message) {
+      setStatus({ ...res, message: res.ok ? `${res.message} Restart the app to see it fully applied.` : res.message });
+    }
   };
 
   const onErase = () => {
     Alert.alert(
       "Erase all data?",
-      "This removes every bookmark, note, prayer log and setting on this device. It can’t be undone.",
+      "This removes every bookmark, note, prayer log and setting on this device. It can’t be undone. Restart the app afterwards to see the reset fully applied.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -83,7 +89,14 @@ export function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             const n = await clearAllData();
-            setStatus({ ok: true, message: `Cleared ${n} item${n === 1 ? "" : "s"}.` });
+            // clearAllData wipes AsyncStorage directly, bypassing the settings/
+            // theme/library contexts' own setters, so this screen (and others)
+            // keep showing the erased values until the app restarts — mirrors
+            // web's "Cleared N items. Reload to start fresh." (DataBackup.tsx).
+            setStatus({
+              ok: true,
+              message: `Cleared ${n} item${n === 1 ? "" : "s"}. Restart the app to start fresh.`,
+            });
           },
         },
       ],
@@ -167,7 +180,7 @@ export function SettingsScreen() {
             <Pressable
               style={[styles.scaleBtn, scale <= MIN_SCALE && styles.disabled]}
               disabled={scale <= MIN_SCALE}
-              onPress={() => setScale(scale - 0.1)}
+              onPress={() => setScale((prev) => prev - 0.1)}
             >
               <Text style={styles.scaleText}>A−</Text>
             </Pressable>
@@ -175,7 +188,7 @@ export function SettingsScreen() {
             <Pressable
               style={[styles.scaleBtn, scale >= MAX_SCALE && styles.disabled]}
               disabled={scale >= MAX_SCALE}
-              onPress={() => setScale(scale + 0.1)}
+              onPress={() => setScale((prev) => prev + 0.1)}
             >
               <Text style={styles.scaleText}>A+</Text>
             </Pressable>

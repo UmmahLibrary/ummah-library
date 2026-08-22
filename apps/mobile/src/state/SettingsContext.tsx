@@ -46,7 +46,7 @@ interface SettingsValue {
   setReciterId: (id: string) => void;
   setTafsirId: (id: string) => void;
   setTafsirCompare: (ids: string[]) => void;
-  setScale: (scale: number) => void;
+  setScale: (scale: number | ((prev: number) => number)) => void;
   setTransliteration: (on: boolean) => void;
   setWordTransliteration: (on: boolean) => void;
   setTapToHear: (on: boolean) => void;
@@ -133,10 +133,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     void writeTafsirCompare(ids);
   }, []);
 
-  const setScale = useCallback((next: number) => {
-    const clamped = clampScale(next);
-    setScaleState(clamped);
-    void store.writeScale(clamped);
+  // Accepts an updater function (like setState) so rapid taps on the A-/A+
+  // stepper each apply on top of the latest value instead of racing on a
+  // stale `scale` closure — see the identical fix for TasbihScreen's dial.
+  const setScale = useCallback((next: number | ((prev: number) => number)) => {
+    setScaleState((prev) => {
+      const clamped = clampScale(typeof next === "function" ? next(prev) : next);
+      void store.writeScale(clamped);
+      return clamped;
+    });
   }, []);
 
   const setTransliteration = useCallback((on: boolean) => {
