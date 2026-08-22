@@ -407,7 +407,7 @@ function makeStyles(c: Palette) {
     prayerNameNext: { color: c.accent, fontFamily: FONT.bold },
     prayerAr: { color: c.faint, fontSize: 17, writingDirection: "rtl", fontFamily: FONT.ar },
     prayerArNext: { color: c.accentHi },
-    prayerTime: { color: c.muted, fontSize: 16, fontFamily: FONT.semibold, width: 56, textAlign: "right" },
+    prayerTime: { color: c.muted, fontSize: 16, fontFamily: FONT.semibold, width: 78, textAlign: "right" },
     prayerTimeNext: { color: c.accent },
     controls: { gap: 16 },
     pickerRow: { gap: 8 },
