@@ -13,7 +13,7 @@
  */
 import type { TextDirection, VerseKey } from "./entities";
 
-export type PluginKind = "translation" | "tafsir" | "reciter" | "hadith";
+export type PluginKind = "translation" | "tafsir" | "reciter" | "hadith" | "translation-audio";
 
 interface PluginBase {
   id: string;
@@ -65,7 +65,40 @@ export interface HadithPlugin extends PluginBase {
   sectionUrlTemplate: string;
 }
 
-export type ContentPlugin = TranslationPlugin | TafsirPlugin | ReciterPlugin | HadithPlugin;
+/**
+ * A translation-audio voice (#204): a spoken recording of a translation's text,
+ * per ayah — the same URL-template model as a {@link ReciterPlugin}'s Arabic
+ * audio, just a different language and no word-level timing. Kept as its own
+ * plugin kind (rather than a `role` on `ReciterPlugin`) so every existing
+ * `byKind("reciter")` call site keeps meaning exactly "Arabic reciters" with no
+ * filtering required.
+ */
+export interface TranslationAudioPlugin extends PluginBase {
+  kind: "translation-audio";
+  /** URL with `{surah}` / `{ayah}` (often `{surah:3}{ayah:3}`), same shape as a reciter's. */
+  audioUrlTemplate: string;
+  /**
+   * The translation edition id this voice reads, once verified (by comparing
+   * verse text against the voice's known source, not guessed from the name).
+   * Two distinct id spaces, depending which is the actual match:
+   *   - a **bundled** edition id (`packages/data/plugins/translations/*.json`'s
+   *     `id`) — resolvable via the small ingested set every reader already has
+   *     offline, or
+   *   - a **full-catalogue** edition id (the fawazahmed0 `name` slug served by
+   *     `HttpTranslationCatalog`, ADR 0011) — resolvable only via that ~490-edition
+   *     runtime catalogue, for a match that isn't one of our bundled editions.
+   * Left unset when no verified match exists; `name` carries the human-readable
+   * description either way.
+   */
+  translationEditionId?: string;
+}
+
+export type ContentPlugin =
+  | TranslationPlugin
+  | TafsirPlugin
+  | ReciterPlugin
+  | HadithPlugin
+  | TranslationAudioPlugin;
 
 const pad = (value: number, width: number): string => String(value).padStart(width, "0");
 
@@ -83,9 +116,9 @@ export function fillVerseTemplate(template: string, ref: VerseKey): string {
   return fillTemplate(template, { surah: ref.sura, ayah: ref.aya });
 }
 
-/** The audio URL for one ayah of a reciter. */
-export function reciterAudioUrl(reciter: ReciterPlugin, ref: VerseKey): string {
-  return fillVerseTemplate(reciter.audioUrlTemplate, ref);
+/** The audio URL for one ayah of a reciter or translation-audio voice. */
+export function reciterAudioUrl(source: { audioUrlTemplate: string }, ref: VerseKey): string {
+  return fillVerseTemplate(source.audioUrlTemplate, ref);
 }
 
 /** quran.com's word-timing audio CDN — the base for resolving timing paths. */
@@ -130,6 +163,9 @@ export function validatePlugin(plugin: ContentPlugin): string[] {
   }
   if (plugin.kind === "reciter" && !/\{surah/.test(plugin.audioUrlTemplate)) {
     errors.push("reciter: audioUrlTemplate must contain {surah}");
+  }
+  if (plugin.kind === "translation-audio" && !/\{surah/.test(plugin.audioUrlTemplate)) {
+    errors.push("translation-audio: audioUrlTemplate must contain {surah}");
   }
   if (plugin.kind === "hadith" && !plugin.sectionUrlTemplate?.includes("{section}")) {
     errors.push("hadith: sectionUrlTemplate must contain {section}");

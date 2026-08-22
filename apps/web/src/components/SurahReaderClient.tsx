@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { type ReciterPlugin, pageNumberOf } from "@ummahlibrary/core";
+import { type ReciterPlugin, type TranslationAudioPlugin, pageNumberOf } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import { AyahTranslations } from "./AyahTranslations";
 import { AyahTransliteration } from "./AyahTransliteration";
@@ -61,6 +61,7 @@ interface Props {
   prevSurah: { number: number; transliteration: string } | null;
   nextSurah: { number: number; transliteration: string } | null;
   reciters: ReciterPlugin[];
+  translationVoices: TranslationAudioPlugin[];
   tafsirs: { id: string; name: string }[];
 }
 
@@ -109,6 +110,7 @@ export function SurahReaderClient({
   prevSurah,
   nextSurah,
   reciters,
+  translationVoices,
   tafsirs,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -614,6 +616,7 @@ export function SurahReaderClient({
       <ReadingAudio
         verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
         reciters={reciters}
+        translationVoices={translationVoices}
         variant="dock"
         // Listening advances the current/resume āyah too, not just scrolling.
         onAyah={(v) => markCurrentAya(v.aya)}

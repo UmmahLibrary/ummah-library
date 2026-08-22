@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, waitFor } from "@testing-library/react";
-import type { ReciterPlugin } from "@ummahlibrary/core";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReciterPlugin, TranslationAudioPlugin } from "@ummahlibrary/core";
 import { ReadingAudio } from "./ReadingAudio";
 
 const ALAFASY: ReciterPlugin = {
@@ -10,6 +10,15 @@ const ALAFASY: ReciterPlugin = {
   language: "ar",
   audioUrlTemplate: "https://everyayah.com/data/Alafasy_128kbps/{surah:3}{ayah:3}.mp3",
   quranComId: 7,
+};
+
+const SAHIH_WALK: TranslationAudioPlugin = {
+  kind: "translation-audio",
+  id: "eng-sahih-walk",
+  name: "Ibrahim Walk (Saheeh International)",
+  language: "en",
+  audioUrlTemplate:
+    "https://everyayah.com/data/English/Sahih_Intnl_Ibrahim_Walk_192kbps/{surah:3}{ayah:3}.mp3",
 };
 
 beforeEach(() => {
@@ -56,5 +65,51 @@ describe("ReadingAudio — tap a word to hear (#145)", () => {
         expect.stringContaining("/verses/by_key/1:1?audio=7"),
       ),
     );
+  });
+});
+
+describe("ReadingAudio — translation-audio voices (#204)", () => {
+  it("shows no translation-mode control when no voices are available", () => {
+    render(<ReadingAudio verses={[{ sura: 1, aya: 1 }]} reciters={[ALAFASY]} />);
+    expect(screen.queryByLabelText(/Translation audio/i)).toBeNull();
+  });
+
+  it("cycling the mode button steps arabic-only → interleaved → translation-only → arabic-only, revealing the voice picker only when a translation mode is active", () => {
+    render(
+      <ReadingAudio
+        verses={[{ sura: 1, aya: 1 }]}
+        reciters={[ALAFASY]}
+        translationVoices={[SAHIH_WALK]}
+      />,
+    );
+
+    const button = screen.getByLabelText("Translation audio off");
+    expect(screen.queryByText(SAHIH_WALK.name)).toBeNull();
+
+    fireEvent.click(button);
+    expect(screen.getByLabelText("Arabic + translation audio")).toBeInTheDocument();
+    expect(screen.getByText(SAHIH_WALK.name)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Arabic + translation audio"));
+    expect(screen.getByLabelText("Translation audio only")).toBeInTheDocument();
+    expect(screen.getByText(SAHIH_WALK.name)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Translation audio only"));
+    expect(screen.getByLabelText("Translation audio off")).toBeInTheDocument();
+    expect(screen.queryByText(SAHIH_WALK.name)).toBeNull();
+  });
+
+  it("shows a select instead of a label once more than one voice is available", () => {
+    const urduVoice: TranslationAudioPlugin = { ...SAHIH_WALK, id: "urd-shamshad", name: "Shamshad Ali Khan" };
+    render(
+      <ReadingAudio
+        verses={[{ sura: 1, aya: 1 }]}
+        reciters={[ALAFASY]}
+        translationVoices={[SAHIH_WALK, urduVoice]}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText("Translation audio off"));
+    const select = screen.getByLabelText("Translation-audio voice") as HTMLSelectElement;
+    expect([...select.options].map((o) => o.textContent)).toEqual([SAHIH_WALK.name, urduVoice.name]);
   });
 });

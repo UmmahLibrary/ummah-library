@@ -5,7 +5,7 @@
  */
 import type { VerseKey } from "./entities";
 import type { AudioStore } from "./ports";
-import { type ReciterPlugin, reciterAudioUrl } from "./plugins";
+import { reciterAudioUrl } from "./plugins";
 import { ayahCountOf } from "./quran-structure";
 
 /** Selectable playback speeds, slowest→fastest (`1` is normal). */
@@ -69,15 +69,16 @@ export interface AudioDownloadProgress {
 }
 
 /**
- * Download every ayah of a surah for a reciter into the {@link AudioStore},
- * reporting progress and honouring cancellation. Idempotent — an ayah already
- * saved is skipped, so a resumed download only fetches the gaps. Pure
- * orchestration: every network/disk touch is the injected store's `save`, so it
- * stays deterministic and testable with a fake store.
+ * Download every ayah of a surah for a reciter (or translation-audio voice,
+ * #204 — same URL-template shape) into the {@link AudioStore}, reporting
+ * progress and honouring cancellation. Idempotent — an ayah already saved is
+ * skipped, so a resumed download only fetches the gaps. Pure orchestration:
+ * every network/disk touch is the injected store's `save`, so it stays
+ * deterministic and testable with a fake store.
  */
 export async function downloadSurahAudio(
   store: AudioStore,
-  reciter: ReciterPlugin,
+  reciter: { id: string; audioUrlTemplate: string },
   surah: number,
   opts: { onProgress?: (p: AudioDownloadProgress) => void; cancelled?: () => boolean } = {},
 ): Promise<void> {
@@ -101,4 +102,39 @@ export async function isSurahDownloaded(
   const saved = await store.savedSurahs();
   const entry = saved.find((s) => s.reciterId === reciterId && s.surah === surah);
   return entry !== undefined && entry.ayahCount >= ayahCountOf(surah);
+}
+
+// ── Translation-audio playback (#204) ────────────────────────────────────────
+
+/** How a verse list plays when a translation-audio voice is selected alongside a reciter. */
+export type TranslationPlayMode = "arabic-only" | "translation-only" | "interleaved";
+
+/** One step of a playback queue: which verse, and which voice reads it. */
+export interface PlayQueueItem<T> {
+  verse: T;
+  source: "arabic" | "translation";
+}
+
+/**
+ * Expand a verse list into an ordered playback queue for the chosen mode
+ * (#204). `"arabic-only"` is a 1:1 passthrough — every item plays exactly as
+ * plain reciter playback always has, so that default mode changes nothing
+ * about existing behaviour. `"interleaved"` plays each verse's Arabic then its
+ * translation before advancing; `"translation-only"` skips the Arabic voice
+ * entirely.
+ */
+export function buildPlayQueue<T>(
+  verses: readonly T[],
+  mode: TranslationPlayMode,
+): PlayQueueItem<T>[] {
+  if (mode === "translation-only") {
+    return verses.map((verse) => ({ verse, source: "translation" as const }));
+  }
+  if (mode === "interleaved") {
+    return verses.flatMap((verse) => [
+      { verse, source: "arabic" as const },
+      { verse, source: "translation" as const },
+    ]);
+  }
+  return verses.map((verse) => ({ verse, source: "arabic" as const }));
 }
