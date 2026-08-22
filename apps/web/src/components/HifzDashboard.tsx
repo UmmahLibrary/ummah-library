@@ -219,7 +219,7 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
         >
           <div>
             <div style={{ fontSize: 17, fontWeight: 800, color: N.fg, fontFamily: N.ui }}>
-              {dueCount} āyah{dueCount !== 1 ? "āt" : ""} ready for review
+              {dueCount} {dueCount === 1 ? "āyah" : "āyāt"} ready for review
             </div>
             <div style={{ fontSize: 13, color: N.muted, marginTop: 4, fontFamily: N.ui }}>
               Keep your streak alive — a few minutes is all it takes.

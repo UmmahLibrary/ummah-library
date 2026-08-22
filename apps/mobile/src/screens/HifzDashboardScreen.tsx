@@ -131,7 +131,7 @@ export function HifzDashboardScreen({ navigation }: Props) {
             <View style={styles.cta}>
               <View style={styles.ctaText}>
                 <Text style={styles.ctaTitle}>
-                  {dueCount} āyah{dueCount !== 1 ? "āt" : ""} ready for review
+                  {dueCount} {dueCount === 1 ? "āyah" : "āyāt"} ready for review
                 </Text>
                 <Text style={styles.ctaSub}>Keep your streak alive — a few minutes is all it takes.</Text>
               </View>
