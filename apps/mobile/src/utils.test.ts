@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   adhkarToday,
   fmtCountdown,
+  fmtPrayerTime,
   fmtTime,
   localISODate,
   weekdayOfGregorian,
@@ -51,6 +52,33 @@ describe("fmtTime", () => {
     expect(fmtTime("2026-06-21T12:00:00Z")).toMatch(/\d/); // some time rendered
     expect(fmtTime("")).toBe("—"); // empty polar timing, not "Invalid Date"
     expect(fmtTime(new Date("nope"))).toBe("—");
+  });
+});
+
+describe("fmtPrayerTime", () => {
+  const london = { latitude: 51.5074, longitude: -0.1278 };
+
+  it("renders in the timezone of the given coordinates, not the device's", () => {
+    // A traveler (or a desktop browser) whose device clock is on some other
+    // zone should still see London's own wall-clock time for a London prayer.
+    const instant = "2026-06-21T12:00:00Z";
+    const expected = new Date(instant).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Europe/London",
+    });
+    expect(fmtPrayerTime(instant, london)).toBe(expected);
+  });
+
+  it("falls back to the device timezone when coordinates are unknown", () => {
+    const instant = "2026-06-21T12:00:00Z";
+    const expected = new Date(instant).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    expect(fmtPrayerTime(instant, null)).toBe(expected);
+  });
+
+  it("dashes an empty/invalid instant (polar timing) instead of throwing", () => {
+    expect(fmtPrayerTime("", london)).toBe("—");
+    expect(fmtPrayerTime(new Date("nope"), london)).toBe("—");
   });
 });
 

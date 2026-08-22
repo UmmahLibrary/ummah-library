@@ -1,5 +1,8 @@
 /** Pure utility functions shared across mobile screens. All are deterministic and unit-tested. */
 
+import tzLookup from "tz-lookup";
+import type { Coordinates } from "@ummahlibrary/core";
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** Local calendar date as YYYY-MM-DD. Prayer times and goals are a local-time concept. */
@@ -18,6 +21,31 @@ export function fmtTime(src: string | Date): string {
   // A polar-invalid prayer time arrives as "" (→ Invalid Date); show a dash, not "Invalid Date".
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/** The IANA timezone for a location, or `undefined` if none is known/valid. */
+export function timeZoneFor(coords: Coordinates | null | undefined): string | undefined {
+  if (!coords) return undefined;
+  try {
+    return tzLookup(coords.latitude, coords.longitude);
+  } catch {
+    return undefined; // out-of-range lat/lng — let the caller fall back to device TZ
+  }
+}
+
+/**
+ * A prayer instant as a short locale time, in the timezone of the
+ * *coordinates it was computed for* — not the device's own timezone.
+ * `toLocaleTimeString` falls back to the device clock's zone when no
+ * `timeZone` is given, which silently mis-renders every prayer time
+ * whenever the viewing device's timezone doesn't match the saved location
+ * (a traveler who hasn't updated their phone's TZ, a desktop browser, etc).
+ */
+export function fmtPrayerTime(src: string | Date, coords: Coordinates | null | undefined): string {
+  const d = typeof src === "string" ? new Date(src) : src;
+  if (Number.isNaN(d.getTime())) return "—";
+  const timeZone = timeZoneFor(coords);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", ...(timeZone && { timeZone }) });
 }
 
 /** Human-readable countdown: "2h 15m" or "8m". Returns "0m" when target is past. */
