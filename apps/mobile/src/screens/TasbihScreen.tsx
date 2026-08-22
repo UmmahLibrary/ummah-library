@@ -35,12 +35,20 @@ export function TasbihScreen() {
   const phrase = DHIKR_PHRASES.find((p) => p.id === state.phraseId) ?? DHIKR_PHRASES[0]!;
   const justLapped = view.count === 0 && progress.total > 0;
 
+  // Reads/writes via the functional setState form so rapid taps in the same
+  // event-loop tick each see the latest count instead of racing on the same
+  // stale `progress` closure (which would otherwise only ever apply +1).
   function tap() {
-    persist({
-      ...state,
-      phrases: { ...state.phrases, [state.phraseId]: { ...progress, total: progress.total + 1 } },
+    setState((prev) => {
+      const prog = tasbihPhraseProgress(prev, prev.phraseId);
+      const next: TasbihRecord = {
+        ...prev,
+        phrases: { ...prev.phrases, [prev.phraseId]: { ...prog, total: prog.total + 1 } },
+      };
+      void store.write(next);
+      Vibration.vibrate(prog.total + 1 === prog.target ? 60 : 12);
+      return next;
     });
-    Vibration.vibrate(view.count + 1 === progress.target ? 60 : 12);
   }
 
   const ringR = 118;
