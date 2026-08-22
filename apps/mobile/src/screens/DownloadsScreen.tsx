@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import { useFocusEffect } from "@react-navigation/native";
 import { ayahCountOf, type DownloadedSurah } from "@ummahlibrary/core";
 import { Icon } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
@@ -34,15 +35,19 @@ export function DownloadsScreen() {
     void mobileAudioStore.savedSurahs().then((saved) => setItems([...saved]));
   }, []);
 
+  // Re-read on every focus, not just on mount — a download started from a surah
+  // reader and finished elsewhere shouldn't leave this screen showing stale
+  // (or "nothing downloaded yet") state when the user navigates back to it.
+  useFocusEffect(refresh);
+
   useEffect(() => {
-    refresh();
     void api
       .listSurahs()
       .then((list) => setSurahNames(Object.fromEntries(list.map((s) => [s.number, s.transliteration]))))
       .catch(() => {
         /* names are cosmetic — the list still renders by number */
       });
-  }, [refresh]);
+  }, []);
 
   if (items === null) {
     return (
