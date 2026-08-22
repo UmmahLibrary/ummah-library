@@ -8,9 +8,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./sync-settings", () => ({ isSyncEnabled: vi.fn(), readSyncSecret: vi.fn() }));
 vi.mock("./sync-controller", () => ({ createSyncControllerFromSecret: vi.fn() }));
+vi.mock("./sync-events", () => ({ emitSyncApplied: vi.fn() }));
 
 import { isSyncEnabled, readSyncSecret } from "./sync-settings";
 import { createSyncControllerFromSecret } from "./sync-controller";
+import { emitSyncApplied } from "./sync-events";
 import { resetSyncRuntime, syncIfEnabled } from "./sync-runtime";
 
 const OUTCOME = { pushed: 1, pulled: 1, applied: 1 };
@@ -41,6 +43,26 @@ describe("syncIfEnabled", () => {
     vi.mocked(createSyncControllerFromSecret).mockResolvedValue({ syncNow });
     expect(await syncIfEnabled()).toEqual(OUTCOME);
     expect(syncNow).toHaveBeenCalledOnce();
+  });
+
+  it("emits sync-applied so contexts re-hydrate when a remote write won", async () => {
+    vi.mocked(isSyncEnabled).mockResolvedValue(true);
+    vi.mocked(readSyncSecret).mockResolvedValue("secret");
+    vi.mocked(createSyncControllerFromSecret).mockResolvedValue({
+      syncNow: vi.fn().mockResolvedValue({ pushed: 0, pulled: 1, applied: 1 }),
+    });
+    await syncIfEnabled();
+    expect(emitSyncApplied).toHaveBeenCalledOnce();
+  });
+
+  it("doesn't emit sync-applied when the round applied nothing", async () => {
+    vi.mocked(isSyncEnabled).mockResolvedValue(true);
+    vi.mocked(readSyncSecret).mockResolvedValue("secret");
+    vi.mocked(createSyncControllerFromSecret).mockResolvedValue({
+      syncNow: vi.fn().mockResolvedValue({ pushed: 1, pulled: 0, applied: 0 }),
+    });
+    await syncIfEnabled();
+    expect(emitSyncApplied).not.toHaveBeenCalled();
   });
 
   it("caches the cipher by secret until reset", async () => {

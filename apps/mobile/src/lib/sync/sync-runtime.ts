@@ -12,6 +12,7 @@
  */
 import type { SyncOutcome } from "@ummahlibrary/core";
 import { type SyncController, createSyncControllerFromSecret } from "./sync-controller";
+import { emitSyncApplied } from "./sync-events";
 import { isSyncEnabled, readSyncSecret } from "./sync-settings";
 
 let cached: { secret: string; controller: Promise<SyncController> } | null = null;
@@ -28,7 +29,13 @@ async function run(): Promise<SyncOutcome | null> {
   if (!(await isSyncEnabled())) return null;
   const secret = await readSyncSecret();
   if (!secret) return null;
-  return (await controllerFor(secret)).syncNow();
+  const outcome = await (await controllerFor(secret)).syncNow();
+  // The engine writes AsyncStorage directly (bypassing every feature's own
+  // setter), so re-hydrate the contexts that mirror it in memory — but only
+  // when a remote write actually won, to avoid a pointless re-read on every
+  // round (most rounds pull nothing new).
+  if (outcome.applied > 0) emitSyncApplied();
+  return outcome;
 }
 
 /** Run one sync round if sync is enabled; resolves `null` when it's off. Coalesces concurrent calls. */
