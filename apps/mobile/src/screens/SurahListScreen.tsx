@@ -116,7 +116,21 @@ export function SurahListScreen({ navigation }: Props) {
   // surahs grouped by place of revelation (Meccan / Medinan).
   const rows = useMemo<Row[]>(() => {
     if (tab === "juz") {
-      return Array.from({ length: TOTAL_JUZ }, (_, i) => ({ kind: "juz", juz: i + 1 }));
+      const all = Array.from({ length: TOTAL_JUZ }, (_, i) => i + 1);
+      if (!q) return all.map((juz) => ({ kind: "juz", juz }));
+      // The search box promises "surah, juz or verse" — a juzʾ matches by its own
+      // number (like a surah does) or by containing a surah that matches the text
+      // query, so searching a surah name also surfaces the juzʾ(s) it spans.
+      const filteredNumbers = new Set(filtered.map((s) => s.number));
+      return all
+        .filter((juz) => {
+          if (String(juz).startsWith(q)) return true;
+          const start = JUZ_STARTS[juz - 1]!.sura;
+          const end = juzEndSura(juz);
+          for (let n = start; n <= end; n++) if (filteredNumbers.has(n)) return true;
+          return false;
+        })
+        .map((juz) => ({ kind: "juz", juz }));
     }
     if (tab === "rev") {
       const out: Row[] = [];
@@ -133,7 +147,7 @@ export function SurahListScreen({ navigation }: Props) {
       return out;
     }
     return filtered.map((s) => ({ kind: "surah", surah: s }));
-  }, [tab, filtered]);
+  }, [tab, filtered, q]);
 
   // Surah lookup for the juzʾ tab's span labels ("Al-Fātiḥah – Al-Baqarah").
   const byNumber = useMemo(() => new Map((surahs ?? []).map((s) => [s.number, s])), [surahs]);
@@ -196,7 +210,11 @@ export function SurahListScreen({ navigation }: Props) {
           </View>
         }
         ListEmptyComponent={
-          surahs && q ? <Text style={styles.muted}>No surahs match “{query}”.</Text> : null
+          surahs && q ? (
+            <Text style={styles.muted}>
+              No {tab === "juz" ? "juzʾ" : "surahs"} match “{query}”.
+            </Text>
+          ) : null
         }
         renderItem={({ item }) => {
           if (item.kind === "section") {
