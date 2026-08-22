@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TAFSIR_KEY, readTafsir, writeTafsir } from "./tafsir";
+import { TAFSIR_COMPARE_KEY, TAFSIR_KEY, readCompare, readTafsir, writeCompare, writeTafsir } from "./tafsir";
 
 beforeEach(() => localStorage.clear());
 afterEach(() => localStorage.clear());
@@ -21,5 +21,21 @@ describe("tafsir selection", () => {
     await writeTafsir("x");
     expect(handler).toHaveBeenCalledOnce();
     window.removeEventListener(TAFSIR_KEY, handler);
+  });
+});
+
+describe("tafsir comparison set", () => {
+  it("round-trips the chosen comparison editions", () => {
+    expect(readCompare()).toEqual([]);
+    writeCompare(["en-ibn-kathir", "ar-muyassar"]);
+    expect(readCompare()).toEqual(["en-ibn-kathir", "ar-muyassar"]);
+  });
+
+  it("broadcasts TAFSIR_COMPARE_KEY on write so open panels re-render", () => {
+    const handler = vi.fn();
+    window.addEventListener(TAFSIR_COMPARE_KEY, handler);
+    writeCompare(["ar-muyassar"]);
+    expect(handler).toHaveBeenCalledOnce();
+    window.removeEventListener(TAFSIR_COMPARE_KEY, handler);
   });
 });
