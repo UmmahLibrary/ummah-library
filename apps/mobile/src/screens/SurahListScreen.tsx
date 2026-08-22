@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { JUZ_STARTS, TOTAL_JUZ, type Surah } from "@ummahlibrary/core";
+import { Icon } from "@ummahlibrary/ui";
 import { api, ApiError } from "../api";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
@@ -150,7 +151,16 @@ export function SurahListScreen({ navigation }: Props) {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
-            <Text style={styles.h1}>Qur'ān</Text>
+            <View style={styles.headerRow}>
+              <Text style={styles.h1}>Qur'ān</Text>
+              <Pressable
+                onPress={() => navigation.navigate("Search")}
+                hitSlop={10}
+                accessibilityLabel="Search verses, names, and adhkār"
+              >
+                <Icon name="search" size={22} color={colors.accent} sw={1.8} />
+              </Pressable>
+            </View>
             <TextInput
               style={styles.search}
               placeholder="Search surah, juz or verse"
@@ -242,7 +252,14 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.bg },
     listContent: { paddingHorizontal: 18, paddingBottom: 32 },
-    h1: { color: c.fg, fontSize: 30, fontFamily: FONT.extrabold, letterSpacing: -0.6, marginTop: 8, marginBottom: 14 },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 8,
+      marginBottom: 14,
+    },
+    h1: { color: c.fg, fontSize: 30, fontFamily: FONT.extrabold, letterSpacing: -0.6 },
     search: {
       backgroundColor: c.bgElev,
       borderRadius: 12,
