@@ -81,6 +81,13 @@ export function ZakatScreen() {
     update({ assets: { ...state.assets, [id]: value } });
   }
 
+  // "Reset amounts" clears what it says — the entered wealth figures — and
+  // leaves currency, gold/silver prices, and the niṣāb basis alone; a user
+  // recalculating for a new scenario shouldn't lose prices they looked up.
+  function reset() {
+    update({ assets: { ...EMPTY_ASSETS }, liabilities: "" });
+  }
+
   const result = useMemo(
     () =>
       calculateZakat({
@@ -216,7 +223,7 @@ export function ZakatScreen() {
           </Row>
         </View>
 
-        <Pressable style={styles.resetBtn} onPress={() => update({ ...DEFAULT, currency: state.currency })}>
+        <Pressable style={styles.resetBtn} onPress={reset}>
           <Text style={styles.resetText}>Reset amounts</Text>
         </Pressable>
         <Text style={styles.foot}>Calculated on your device — nothing you enter leaves this app.</Text>
