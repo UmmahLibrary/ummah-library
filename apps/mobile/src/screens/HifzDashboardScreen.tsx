@@ -68,8 +68,9 @@ export function HifzDashboardScreen({ navigation }: Props) {
     }
     items.sort((a, b) => b.dueCount - a.dueCount || a.surahNumber - b.surahNumber);
     return items;
-    // trackedCount changes whenever the hifz store mutates — recompute then.
-  }, [surahs, trackedCount]);
+    // allRecords' identity changes whenever the hifz store mutates (including a
+    // review rating, which doesn't change trackedCount) — recompute then.
+  }, [surahs, allRecords]);
 
   // Weakest surahs (lowest strength first) to guide focus.
   const weak = useMemo<QueueItem[]>(() => {
@@ -83,8 +84,7 @@ export function HifzDashboardScreen({ navigation }: Props) {
           : null;
       })
       .filter((x): x is QueueItem => x !== null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [surahs, trackedCount]);
+  }, [surahs, allRecords]);
 
   // Review-activity heatmap + longest streak from the forward-looking log.
   const heatmap = useMemo<HeatmapDay[]>(() => activityHeatmap(reviewLog, now), [reviewLog]);
@@ -131,7 +131,7 @@ export function HifzDashboardScreen({ navigation }: Props) {
             <View style={styles.cta}>
               <View style={styles.ctaText}>
                 <Text style={styles.ctaTitle}>
-                  {dueCount} āyah{dueCount !== 1 ? "āt" : ""} ready for review
+                  {dueCount} {dueCount === 1 ? "āyah" : "āyāt"} ready for review
                 </Text>
                 <Text style={styles.ctaSub}>Keep your streak alive — a few minutes is all it takes.</Text>
               </View>

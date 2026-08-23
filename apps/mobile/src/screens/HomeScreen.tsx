@@ -22,7 +22,7 @@ import { SaveToCollection } from "../components/SaveToCollection";
 import { verseOfToday } from "../verses";
 import { readReadingState } from "../reading-goals";
 import { KEYS, getJSON, getString } from "../storage";
-import { fmtCountdown, fmtTime, localISODate } from "../utils";
+import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
 import type { HomeStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<HomeStackParamList, "Today">;
@@ -34,6 +34,7 @@ export function HomeScreen({ navigation }: Props) {
   const { lastRead } = useLibrary();
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
+  const [coords, setCoords] = useState<Coordinates | null>(null);
   const [now, setNow] = useState(() => new Date());
   // Reading progress (daily pages / goal) for the continue-reading progress bar.
   const [readPct, setReadPct] = useState(0);
@@ -57,12 +58,13 @@ export function HomeScreen({ navigation }: Props) {
       getJSON<Coordinates | null>(KEYS.prayerCoords, null),
       getString(KEYS.prayerMethod),
       getString(KEYS.prayerMadhab),
-    ]).then(([coords, method, madhab]) => {
-      if (!active || !coords) return;
+    ]).then(([c, method, madhab]) => {
+      if (!active || !c) return;
+      setCoords(c);
       void api
         .getPrayerTimes({
-          lat: coords.latitude,
-          lng: coords.longitude,
+          lat: c.latitude,
+          lng: c.longitude,
           date: localISODate(new Date()),
           method: method ?? DEFAULT_CALCULATION_METHOD,
           madhab: (madhab as Madhab) || "shafi",
@@ -152,7 +154,7 @@ export function HomeScreen({ navigation }: Props) {
                 <Text style={styles.prayerLabel}>Next prayer · {PRAYER_LABELS[nextP.name]}</Text>
                 <Text style={styles.prayerValue}>in {fmtCountdown(nextP.at, now)}</Text>
               </View>
-              <Text style={styles.prayerTime}>{fmtTime(nextP.at)}</Text>
+              <Text style={styles.prayerTime}>{fmtPrayerTime(nextP.at, coords)}</Text>
             </>
           ) : (
             <>

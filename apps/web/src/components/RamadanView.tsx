@@ -10,6 +10,7 @@ import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
 import { RAMADAN_EVENT, readFasts, readWorship, toggleFast, toggleWorship } from "../lib/ramadan";
 import { readReadingState } from "../lib/reading-goals";
+import { HIJRI_ADJUST_KEY, readHijriAdjust } from "../lib/hijri";
 
 const WORSHIP: { key: string; label: string; icon: IconName }[] = [
   { key: "suhur", label: "Suhūr", icon: "sun" },
@@ -58,6 +59,7 @@ export function RamadanView() {
   const [fasts, setFasts] = useState<Record<number, true>>({});
   const [worship, setWorship] = useState<Record<string, true>>({});
   const [pagesRead, setPagesRead] = useState(0);
+  const [hijriAdjust, setHijriAdjust] = useState(0);
   const today = localDate(new Date());
 
   useEffect(() => {
@@ -77,13 +79,20 @@ export function RamadanView() {
   }, [today]);
 
   useEffect(() => {
+    setHijriAdjust(readHijriAdjust());
+    const onAdjust = () => setHijriAdjust(readHijriAdjust());
+    window.addEventListener(HIJRI_ADJUST_KEY, onAdjust);
+    return () => window.removeEventListener(HIJRI_ADJUST_KEY, onAdjust);
+  }, []);
+
+  useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
   const hijri = gregorianToHijri(
     { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() },
-    0,
+    hijriAdjust,
   );
   const isRamadan = hijri.month === 9;
   const ramadanDay = isRamadan ? hijri.day : null;

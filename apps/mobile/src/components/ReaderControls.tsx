@@ -26,7 +26,7 @@ export function ReaderControls({
   mode: ReadingMode;
   onMode: (m: ReadingMode) => void;
   scale: number;
-  onScale: (n: number) => void;
+  onScale: (n: number | ((prev: number) => number)) => void;
   transliteration: boolean;
   onTransliteration: (on: boolean) => void;
   wordTransliteration: boolean;
@@ -56,14 +56,14 @@ export function ReaderControls({
           <Pressable
             style={styles.scaleBtn}
             disabled={scale <= MIN_SCALE}
-            onPress={() => onScale(scale - 0.1)}
+            onPress={() => onScale((prev) => prev - 0.1)}
           >
             <Text style={styles.scaleText}>A−</Text>
           </Pressable>
           <Pressable
             style={styles.scaleBtn}
             disabled={scale >= MAX_SCALE}
-            onPress={() => onScale(scale + 0.1)}
+            onPress={() => onScale((prev) => prev + 0.1)}
           >
             <Text style={styles.scaleText}>A+</Text>
           </Pressable>

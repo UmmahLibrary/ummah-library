@@ -206,6 +206,9 @@ importers:
       react-native-web:
         specifier: ^0.21.0
         version: 0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      tz-lookup:
+        specifier: ^6.1.25
+        version: 6.1.25
     devDependencies:
       '@babel/core':
         specifier: ^7.25.0
@@ -216,6 +219,9 @@ importers:
       '@types/react':
         specifier: 19.2.3
         version: 19.2.3
+      '@types/tz-lookup':
+        specifier: ^6.1.2
+        version: 6.1.2
       typescript:
         specifier: ^5.9.2
         version: 5.9.3

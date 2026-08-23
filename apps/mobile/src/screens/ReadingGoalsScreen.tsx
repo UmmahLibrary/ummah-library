@@ -71,17 +71,34 @@ export function ReadingGoalsScreen({ navigation }: Props) {
 
   const changeGoal = (next: number) => void writeGoal(next).then(refresh);
   const startKhatma = (days: number) => {
-    const plan: KhatmaPlan = {
-      totalPages: TOTAL_PAGES_MADANI,
-      currentPage: khatma?.currentPage ?? 0,
-      targetDate: addDays(today, days),
-    };
-    void writeKhatma(plan).then(refresh);
+    setState((prev) => {
+      if (!prev) return prev;
+      const plan: KhatmaPlan = {
+        totalPages: TOTAL_PAGES_MADANI,
+        currentPage: prev.khatma?.currentPage ?? 0,
+        targetDate: addDays(today, days),
+      };
+      void writeKhatma(plan);
+      return { ...prev, khatma: plan };
+    });
   };
+  // Updates via the functional setState form (and persists as a side effect,
+  // rather than reading the prior page from the closure and re-fetching
+  // after the write) so rapid +1/-1 taps each apply on top of the latest
+  // page instead of racing on a stale `khatma` snapshot — see the identical
+  // Qada-tracker fix (55adba5) this mirrors.
   const adjustKhatma = (delta: number) => {
-    if (!khatma) return;
-    const currentPage = Math.min(khatma.totalPages, Math.max(0, khatma.currentPage + delta));
-    void writeKhatma({ ...khatma, currentPage }).then(refresh);
+    setState((prev) => {
+      if (!prev?.khatma) return prev;
+      const currentPage = Math.min(prev.khatma.totalPages, Math.max(0, prev.khatma.currentPage + delta));
+      const plan: KhatmaPlan = { ...prev.khatma, currentPage };
+      void writeKhatma(plan);
+      return { ...prev, khatma: plan };
+    });
+  };
+  const clearKhatmaAndRefresh = () => {
+    setState((prev) => (prev ? { ...prev, khatma: null } : prev));
+    void clearKhatma();
   };
 
   return (
@@ -167,6 +184,18 @@ export function ReadingGoalsScreen({ navigation }: Props) {
             </Pressable>
           ))}
         </View>
+      ) : khatma.currentPage >= khatma.totalPages ? (
+        <View style={styles.khatmaBox}>
+          <Text style={styles.khatmaComplete}>Alhamdulillah — khatm complete! 🎉</Text>
+          <View style={styles.pills}>
+            <Pressable style={styles.pill} onPress={() => adjustKhatma(-1)}>
+              <Text style={styles.pillText}>−1</Text>
+            </Pressable>
+            <Pressable style={styles.pill} onPress={clearKhatmaAndRefresh}>
+              <Text style={styles.pillText}>Start a new khatm</Text>
+            </Pressable>
+          </View>
+        </View>
       ) : (
         <View style={styles.khatmaBox}>
           <Text style={styles.khatmaInfo}>
@@ -187,7 +216,7 @@ export function ReadingGoalsScreen({ navigation }: Props) {
             <Pressable style={styles.pill} onPress={() => adjustKhatma(-1)}>
               <Text style={styles.pillText}>−1</Text>
             </Pressable>
-            <Pressable style={styles.pill} onPress={() => void clearKhatma().then(refresh)}>
+            <Pressable style={styles.pill} onPress={clearKhatmaAndRefresh}>
               <Text style={styles.pillText}>Clear</Text>
             </Pressable>
           </View>
@@ -265,6 +294,7 @@ function makeStyles(c: Palette) {
     pillTextOn: { color: c.accent, fontSize: 13, fontFamily: FONT.bold },
     khatmaBox: { gap: 10 },
     khatmaInfo: { color: c.muted, fontSize: 13, lineHeight: 19 },
+    khatmaComplete: { color: c.accent, fontSize: 13, fontWeight: "700" },
     openBtn: {
       marginTop: 8,
       backgroundColor: c.accent,

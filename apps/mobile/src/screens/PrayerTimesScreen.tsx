@@ -24,7 +24,7 @@ import { api } from "../api";
 import { KEYS, getJSON, getString, setJSON, setString } from "../storage";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
-import { fmtCountdown, fmtTime, localISODate } from "../utils";
+import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
 import { expoNotifier } from "../notifier";
 import { type PrayerReminderPrefs, readPrayerReminderPrefs, setPrayerReminder } from "../prayer-reminders";
 
@@ -210,7 +210,7 @@ export function PrayerTimesScreen() {
               <Text style={styles.heroLabel}>Next · {PRAYER_LABELS[next.name]}</Text>
               <Text style={styles.heroCountdown}>{fmtCountdown(next.at, now)}</Text>
               <Text style={styles.heroSub}>
-                until {PRAYER_LABELS[next.name]} at {fmtTime(next.at)}
+                until {PRAYER_LABELS[next.name]} at {fmtPrayerTime(next.at, coords)}
               </Text>
             </View>
           )}
@@ -238,7 +238,7 @@ export function PrayerTimesScreen() {
                   </Text>
                   <Text style={[styles.prayerAr, isNext && styles.prayerArNext]}>{PRAYER_AR[name]}</Text>
                   <Text style={[styles.prayerTime, isNext && styles.prayerTimeNext]}>
-                    {fmtTime(timings[name])}
+                    {fmtPrayerTime(timings[name], coords)}
                   </Text>
                   {OBLIGATORY_PRAYERS.includes(name) && (
                     <Pressable
@@ -265,7 +265,7 @@ export function PrayerTimesScreen() {
                 <Icon name="moon" size={20} color={colors.muted} sw={1.8} />
                 <Text style={styles.prayerName}>{SUPPLEMENTARY_TIMING_LABELS[name]}</Text>
                 <Text style={styles.prayerTime}>
-                  {timings[name] ? fmtTime(timings[name]) : "—"}
+                  {timings[name] ? fmtPrayerTime(timings[name], coords) : "—"}
                 </Text>
               </View>
             ))}
@@ -407,7 +407,7 @@ function makeStyles(c: Palette) {
     prayerNameNext: { color: c.accent, fontFamily: FONT.bold },
     prayerAr: { color: c.faint, fontSize: 17, writingDirection: "rtl", fontFamily: FONT.ar },
     prayerArNext: { color: c.accentHi },
-    prayerTime: { color: c.muted, fontSize: 16, fontFamily: FONT.semibold, width: 56, textAlign: "right" },
+    prayerTime: { color: c.muted, fontSize: 16, fontFamily: FONT.semibold, width: 78, textAlign: "right" },
     prayerTimeNext: { color: c.accent },
     controls: { gap: 16 },
     pickerRow: { gap: 8 },

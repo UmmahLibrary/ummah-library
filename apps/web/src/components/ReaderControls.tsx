@@ -33,11 +33,15 @@ export function ReaderControls({
     });
   }, [surahNumber]);
 
+  // Functional setState so rapid A-/A+ taps in the same tick each apply on
+  // top of the latest scale instead of racing on a stale `scale` closure.
   function changeScale(delta: number): void {
-    const next = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((scale + delta) * 10) / 10));
-    setScale(next);
-    void writeScale(next);
-    document.documentElement.style.setProperty("--reading-scale", String(next));
+    setScale((prev) => {
+      const next = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((prev + delta) * 10) / 10));
+      void writeScale(next);
+      document.documentElement.style.setProperty("--reading-scale", String(next));
+      return next;
+    });
   }
 
   function toggleBookmark(): void {

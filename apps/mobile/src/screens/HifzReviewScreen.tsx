@@ -107,7 +107,7 @@ export function HifzReviewScreen({ navigation }: Props) {
         <Text style={styles.doneTitle}>All caught up!</Text>
         <Text style={styles.muted}>
           {queue.length > 0
-            ? `${queue.length} āyah${queue.length === 1 ? "" : "āt"} reviewed · `
+            ? `${queue.length} ${queue.length === 1 ? "āyah" : "āyāt"} reviewed · `
             : ""}
           {trackedCount} tracked in total.
         </Text>

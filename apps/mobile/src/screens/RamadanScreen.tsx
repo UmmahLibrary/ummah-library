@@ -15,7 +15,7 @@ import { api } from "../api";
 import { KEYS, getJSON, getString, isObjectRecord, setJSON } from "../storage";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
-import { fmtCountdown, fmtTime, localISODate } from "../utils";
+import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
 import type { ToolsStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<ToolsStackParamList, "Ramadan">;
@@ -40,18 +40,20 @@ export function RamadanScreen({ navigation }: Props) {
   const [now, setNow] = useState(() => new Date());
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
   const [hasCoords, setHasCoords] = useState(false);
+  const [coords, setCoords] = useState<Coordinates | null>(null);
   const [fasts, setFasts] = useState<Record<number, true>>({});
   const [worship, setWorship] = useState<Record<string, true>>({});
   const [pagesRead, setPagesRead] = useState(0);
+  const [hijriAdjust, setHijriAdjust] = useState(0);
 
-  const hijri = gregorianToHijri(todayGreg(), 0);
+  const hijri = gregorianToHijri(todayGreg(), hijriAdjust);
   const isRamadan = hijri.month === 9;
   const ramadanDay = isRamadan ? hijri.day : null;
 
   // The Gregorian date Ramadan 1 falls on this Hijri year — used to scope the
   // khatm-progress reading count to pages read during Ramadan itself, not the
   // reader's entire reading history.
-  const ramadanStartGreg = hijriToGregorian({ year: hijri.year, month: 9, day: 1 }, 0);
+  const ramadanStartGreg = hijriToGregorian({ year: hijri.year, month: 9, day: 1 }, hijriAdjust);
   const ramadanStartStr = localISODate(
     new Date(ramadanStartGreg.year, ramadanStartGreg.month - 1, ramadanStartGreg.day),
   );
@@ -59,6 +61,13 @@ export function RamadanScreen({ navigation }: Props) {
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    void getString(KEYS.hijriAdjust).then((raw) => {
+      const n = Number(raw);
+      if (Number.isFinite(n)) setHijriAdjust(Math.max(-2, Math.min(2, n)));
+    });
   }, []);
 
   useEffect(() => {
@@ -74,15 +83,16 @@ export function RamadanScreen({ navigation }: Props) {
       ),
     );
     void (async () => {
-      const coords = await getJSON<Coordinates | null>(KEYS.prayerCoords, null);
-      if (!coords) return;
+      const c = await getJSON<Coordinates | null>(KEYS.prayerCoords, null);
+      if (!c) return;
       setHasCoords(true);
+      setCoords(c);
       const method = (await getString(KEYS.prayerMethod)) ?? DEFAULT_CALCULATION_METHOD;
       const madhab = ((await getString(KEYS.prayerMadhab)) as Madhab) || "shafi";
       try {
         const t = await api.getPrayerTimes({
-          lat: coords.latitude,
-          lng: coords.longitude,
+          lat: c.latitude,
+          lng: c.longitude,
           date: today,
           method,
           madhab,
@@ -143,8 +153,8 @@ export function RamadanScreen({ navigation }: Props) {
               {beforeIftar ? fmtCountdown(iftar, now) : "🌙 Iftar mubarak"}
             </Text>
             <View style={styles.heroBarRow}>
-              <Text style={styles.heroBarLabel}>Suhūr {suhurEnd ? fmtTime(timings!.fajr) : "—"}</Text>
-              <Text style={styles.heroBarLabel}>Ifṭār {fmtTime(timings!.maghrib)}</Text>
+              <Text style={styles.heroBarLabel}>Suhūr {suhurEnd ? fmtPrayerTime(timings!.fajr, coords) : "—"}</Text>
+              <Text style={styles.heroBarLabel}>Ifṭār {fmtPrayerTime(timings!.maghrib, coords)}</Text>
             </View>
             <View style={styles.heroTrack}>
               <View
