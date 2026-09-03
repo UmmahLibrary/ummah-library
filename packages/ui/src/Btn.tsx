@@ -15,6 +15,10 @@ interface BtnProps {
   icon?: IconName;
   disabled?: boolean;
   type?: "button" | "submit" | "reset";
+  /** Accessible name. Required in practice for an icon-only button (no
+   *  `children`), which otherwise renders with no name at all for a screen
+   *  reader — the icon is decorative markup, not text. */
+  ariaLabel?: string;
 }
 
 const SIZES: Record<BtnSize, { p: string; fs: number; r: number }> = {
@@ -59,6 +63,7 @@ export function Btn({
   icon,
   disabled,
   type = "button",
+  ariaLabel,
 }: BtnProps) {
   const z = SIZES[size];
   return (
@@ -66,6 +71,7 @@ export function Btn({
       type={type}
       onClick={onClick}
       disabled={disabled}
+      aria-label={ariaLabel}
       style={{
         display: "inline-flex",
         alignItems: "center",

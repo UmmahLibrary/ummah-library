@@ -101,6 +101,7 @@ export function BlogIndexClient({ articles }: Props) {
           )}
           {tagList.length > 0 && (
             <select
+              aria-label="Filter posts by tag"
               value={activeTag ?? ""}
               onChange={(e) => {
                 setActiveTag(e.target.value || null);

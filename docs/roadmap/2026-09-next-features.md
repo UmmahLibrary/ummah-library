@@ -55,53 +55,42 @@ the infrastructure half of **#208** (i18n — ADR 0040 Accepted).
 
 These are the highest value-per-effort work available, and neither has an issue.
 
-### A. Web accessibility is systemically broken — and it's a `packages/ui` fix
+### A. Web accessibility — audited, fixed, and now gated
 
-The Lighthouse all-routes audit (QA log, 2026-06-30) found five a11y defects
-across **29 of 29 routes**. Only the first was ever fixed.
+> **Corrected 2026-09-03, after the work landed.** This section originally
+> asserted, on the strength of the June Lighthouse sweep, that four findings were
+> still live across 23–29 routes and that every icon-only button in the app was
+> unlabelable. **That was wrong**, and wrong for a specific reason worth
+> recording: the measurements behind it were line-scoped `grep`s, which cannot
+> see a JSX attribute that sits on the following line. Most of those selects and
+> buttons _were_ labelled. An axe run settled it properly.
 
-| Finding                           | Routes | Status today                                                  |
-| --------------------------------- | ------ | ------------------------------------------------------------- |
-| `color-contrast` (`--noor-faint`) | 29/29  | ✅ **fixed** — `themes.ts:65` lightened `#5c6273` → `#7d8392` |
-| `button-name` (icon-only buttons) | 23/29  | ❌ **still live**                                             |
-| `link-text` ("More")              | 27/29  | ❌ **still live**                                             |
-| `label-content-name-mismatch`     | 5/29   | ❌ **still live**                                             |
-| `select-name`                     | 2/29   | ❌ **still live**                                             |
+**What the axe re-audit (WCAG 2.1 A/AA, 28 routes) actually found.** Of the five
+June findings, one had been fixed earlier (the contrast token), three were not
+reproducible (`link-text` — `TabBar.tsx` already carries an `aria-label`;
+`button-name`; `label-content-name-mismatch`), and one was still live
+(`select-name`, the blog tag filter).
 
-Verified root cause — this is not 23 separate bugs, it's **two**:
+It also found **two real defects Lighthouse never reported**:
 
-1. **`packages/ui/src/Btn.tsx` has no `aria-label` prop** and does not spread
-   extra props onto the `<button>`. So `<Btn icon="x" />` — an icon-only button,
-   used across the whole app — is **structurally incapable** of having an
-   accessible name. Every icon-only button in the web app inherits the defect.
-2. **`<select>` elements are unlabelled** — 10 in `apps/web/src`, **0** with an
-   `aria-label` or associated `<label>`.
+1. **`/profile`, 8 nodes.** Not the token: locked achievement cards carried a
+   card-wide `opacity: 0.55`, blending the "Locked" caption to **2.32:1**. Fixed
+   by dimming only the decorative glyph.
+2. **`/surah/2` and `/juz/1`, 434 nodes.** The translation loading skeleton was
+   `<p aria-busy aria-label>`; ARIA prohibits `aria-label` on a bare `<p>`, so the
+   label was invalid on every skeleton. Fixed with `role="status"`. It only
+   appears while translations are in flight — which is exactly why a single
+   hand-run audit missed it, and why the gate matters more than the fixes.
 
-For scale: `apps/web/src` has 145 `<button>`s and 38 `aria-label`s. The mobile
-app, by contrast, uses `accessibilityLabel` widely — **web a11y lags mobile.**
+**Shipped:** those fixes, plus `ariaLabel` on `Btn` (web + native) and `Seg` —
+`Btn` genuinely had no way to name an icon-only button, which was a real latent
+API gap even though few call sites hit it today — and `e2e/a11y.spec.ts`, which
+asserts zero WCAG A/AA violations across 28 routes. **Result: 28/28 clean.**
 
-There is also **no automated a11y test** anywhere in the repo (the Playwright
-suite has 14 specs, none of them axe).
-
-**Why this ranks first:** no new dependency, no dataset, no license question, no
-scholar review, no ADR. It's a props change in one shared primitive plus call-site
-labels — and it lifts every route at once. It is also the only item on this whole
-list that is a **correctness defect rather than a new feature**: the app currently
-ships an announced-and-broken experience for screen-reader users.
-
-**Plan**
-
-- Add `ariaLabel?: string` to `BtnProps` (and `Seg`), render it as `aria-label`.
-  Consider making it **required when `children` is absent** via a discriminated
-  union, so the compiler prevents the defect recurring.
-- Label the 10 `<select>`s; give the "More" nav link real text or an `aria-label`.
-- Add `@axe-core/playwright` and one `e2e/a11y.spec.ts` sweeping a representative
-  route set, asserting zero serious/critical violations. That converts a
-  one-off audit into a regression gate.
-- Mirror the primitive change in `Btn.native.tsx` (`accessibilityLabel`) so the
-  design system stays symmetric (ADR 0023).
-
-No ADR needed — this changes no architectural decision.
+**The transferable lesson:** the June audit's value decayed silently because
+nothing re-ran it. Six weeks later nobody could say which findings still stood,
+and a plan built on it inherited the error. The gate, not the fixes, is the part
+that keeps paying.
 
 ### B. i18n is announced but ~2% delivered
 
@@ -242,14 +231,14 @@ re-litigate the sourcing question.
 
 ## 5. Recommended sequence
 
-| #   | Work                                                                         | Why here                                                               | ADR?    |
-| --- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------- |
-| 0   | Tracker hygiene — tick #152/#38, close #202, re-scope #208, note #52 on #200 | 10 min; stops repeated re-derivation                                   | no      |
-| 1   | **Web a11y**: `Btn`/`Seg` `ariaLabel`, label the selects, axe spec in CI     | Defect not feature; one shared fix lifts 29 routes; zero external risk | no      |
-| 2   | **i18n rollout** (#208) + pre-hydration locale script                        | Finishes an announced feature that's ~2% delivered                     | no      |
-| 3   | **#200 related hadith**, route B                                             | Newly unblocked; no new data, license or review                        | **yes** |
-| 4   | **#204 translation audio**                                                   | Near drop-in on an existing model; same audience as 2                  | maybe   |
-| 5   | ADR 0039 mobile airplane-mode pass → close #202                              | Last step to closure                                                   | no      |
+| #   | Work                                                                                            | Why here                                                     | ADR?    |
+| --- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------- |
+| 0   | Tracker hygiene — tick #152/#38, close #202, re-scope #208, note #52 on #200                    | 10 min; stops repeated re-derivation                         | no      |
+| 1   | ~~**Web a11y**~~ — **done 2026-09-03**: 2 real defects fixed, `ariaLabel` added, axe gate 28/28 | Was a defect, not a feature; the gate is what keeps it fixed | no      |
+| 2   | **i18n rollout** (#208) + pre-hydration locale script                                           | Finishes an announced feature that's ~2% delivered           | no      |
+| 3   | **#200 related hadith**, route B                                                                | Newly unblocked; no new data, license or review              | **yes** |
+| 4   | **#204 translation audio**                                                                      | Near drop-in on an existing model; same audience as 2        | maybe   |
+| 5   | ADR 0039 mobile airplane-mode pass → close #202                                                 | Last step to closure                                         | no      |
 
 Items 1 and 2 are deliberately ahead of every new feature. The product's breadth
 is already its strength; the weakest thing about it right now is that two of the

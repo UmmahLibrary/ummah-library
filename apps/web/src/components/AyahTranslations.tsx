@@ -64,9 +64,13 @@ export function AyahTranslations({ surah, aya }: { surah: number; aya: number })
     };
   }, [surah, aya]);
 
+  // `role="status"` below is load-bearing, not decoration: ARIA prohibits
+  // `aria-label` on a bare <p> (generic role), so without a role the label is
+  // invalid and axe flags every skeleton on the page — 434 of them on a long
+  // surah. `status` also announces the swap once the translation arrives.
   if (loading && lines.length === 0) {
     return (
-      <p className="ayah-tr" aria-busy="true" aria-label="Loading translation">
+      <p className="ayah-tr" role="status" aria-busy="true" aria-label="Loading translation">
         <span className="skeleton-line" style={{ display: "block", maxWidth: "82%" }} />
       </p>
     );

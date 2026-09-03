@@ -15,6 +15,10 @@ interface BtnProps {
   disabled?: boolean;
   /** Ignored on native — type attribute is web-only. */
   type?: "button" | "submit" | "reset";
+  /** Accessible name. Required in practice for an icon-only button (no
+   *  `children`), which otherwise has no name for a screen reader. Mirrors the
+   *  web `Btn` prop so callers share one interface (ADR 0023). */
+  ariaLabel?: string;
 }
 
 const SIZES: Record<BtnSize, { py: number; px: number; fs: number; r: number }> = {
@@ -30,6 +34,7 @@ export function Btn({
   onClick,
   icon,
   disabled,
+  ariaLabel,
 }: BtnProps) {
   const c = useNoorTheme();
   const z = SIZES[size];
@@ -44,12 +49,20 @@ export function Btn({
   }).v;
 
   const textColor: string =
-    variant === "gold" ? c.ink : variant === "soft" ? c.accent : variant === "quiet" ? c.muted : c.fg;
+    variant === "gold"
+      ? c.ink
+      : variant === "soft"
+        ? c.accent
+        : variant === "quiet"
+          ? c.muted
+          : c.fg;
 
   return (
     <Pressable
       onPress={onClick}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={ariaLabel}
       style={[
         styles.base,
         { paddingVertical: z.py, paddingHorizontal: z.px, borderRadius: z.r },

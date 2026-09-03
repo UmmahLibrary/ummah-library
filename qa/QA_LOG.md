@@ -45,6 +45,7 @@ mutation analysis). Native-fuzz/load/soak/chaos: **N/A** (see Scope note).
   reproduced + verified for reachability in the sweep before any fix.
 
 ### Frontier selected for cycle 1
+
 Risk-grouped adversarial sweep (find → adversarially verify reachability):
 G1 sync+trust-boundary · G2 calendar/astronomy · G3 SRS/plans/trackers ·
 G4 numeric/parsing/roundtrip · G5 adapters/data.
@@ -54,14 +55,16 @@ G4 numeric/parsing/roundtrip · G5 adapters/data.
 ## Cycle 1 — adversarial sweep, fixes, property tests (2026-06-24)
 
 ### Method
+
 A multi-agent sweep ran 10 bug-hunters across the frontier (read-only adversarial
 mutation analysis + edge-case hunting), then a skeptic verifier per finding traced
-the real code, defaulting to **refute**, judging both *is it a real defect* and
-*is it reachable through a type-valid entry point*. **38 candidates → 22 survived,
+the real code, defaulting to **refute**, judging both _is it a real defect_ and
+_is it reachable through a type-valid entry point_. **38 candidates → 22 survived,
 16 refuted.** Each surviving code defect was then reproduced with a fail-first
 regression test, root-cause fixed, and re-run green.
 
 ### VERDICT
+
 **Hardened, with residual risk honestly bounded below.** Full loop green
 (`lint`/`typecheck`/`test`/`build`). **707 tests** (was 685; +22), 0 threshold
 failures. Coverage stays above every gate; core branch 96.25 → **96.47**.
@@ -71,70 +74,78 @@ nothing new surfaced.
 ### Bugs fixed (root cause + fail-first regression test each)
 
 **Trust boundary — `POST /api/sync` (the only stateful server surface)**
+
 - **isValidEntry accepted non-finite/out-of-range clocks** (`1e400`→`Infinity`
   via JSON) → permanent last-writer-wins key poisoning. Now requires a non-negative
-  *safe integer* for `millis`/`counter` (`isClockInt`). *[medium, security]*
+  _safe integer_ for `millis`/`counter` (`isClockInt`). _[medium, security]_
 - **`nonce`/`node` length uncapped** → per-entry size cap defeated. Added
-  `MAX_NONCE=256`, `MAX_NODE=128`; `node` must be non-empty. *[low]*
+  `MAX_NONCE=256`, `MAX_NODE=128`; `node` must be non-empty. _[low]_
 - **Stored set trusted un-revalidated** → a pre-hardening/hand-edited Redis value
-  could poison a merge. Now `stored.filter(isValidEntry)` before merge. *[medium]*
+  could poison a merge. Now `stored.filter(isValidEntry)` before merge. _[medium]_
 - **Client `sync-meta` lost the clock on a setClock→clockFor round-trip** (encoded
   string `parseHlc` rejected → zero clock → applied remote entry re-applies forever).
-  Now stores the `Hlc` **structurally** (lossless) with legacy-string migration. *[medium]*
+  Now stores the `Hlc` **structurally** (lossless) with legacy-string migration. _[medium]_
 
 **Astronomy / dates**
+
 - **`AdhanPrayerTimes.calculate` threw `RangeError` at polar latitudes** (only the
   Sunnah markers were guarded, not the 5 prayers + sunrise → API 500). Now all six
-  timings + Imsāk route through the `iso()` guard. *[medium]*
+  timings + Imsāk route through the `iso()` guard. _[medium]_
 - **`duaOfToday` leaked the host timezone** (local year-start mixed with absolute
-  epoch) — a **core-purity violation** (AGENTS rule 3). Now computed wholly in UTC. *[bug]*
+  epoch) — a **core-purity violation** (AGENTS rule 3). Now computed wholly in UTC. _[bug]_
 - **`isValidDateString` accepted impossible days** (Feb 30 → silently rolled to Mar 2).
-  Now requires the parsed instant to re-serialise to the same calendar day. *[robustness]*
+  Now requires the parsed instant to re-serialise to the same calendar day. _[robustness]_
 
 **Pure-core robustness (corrupt/foreign input reaching a total function)**
+
 - **`periodLength` returned `NaN`** for a non-date (`Math.max(1, NaN)` is `NaN`) —
-  broke the "never below 1" contract. Now `Number.isFinite`-guarded. *[low]*
+  broke the "never below 1" contract. Now `Number.isFinite`-guarded. _[low]_
 - **`validatePlugin` threw `TypeError`** on a manifest missing its URL template
-  (cast `as ContentPlugin` at the JSON boundary). Now optional-chaining-guarded. *[low]*
+  (cast `as ContentPlugin` at the JSON boundary). Now optional-chaining-guarded. _[low]_
 - **`validateBackup` accepted an array as `data`** (`typeof [] === "object"`) →
-  array indices spread into bare `localStorage` keys on import. Now rejects arrays. *[low]*
+  array indices spread into bare `localStorage` keys on import. Now rejects arrays. _[low]_
 - **`compassPoint` returned `undefined`** for a non-finite bearing (the `!`
-  non-null assertion lied). Now `Number.isFinite`-guarded → `"N"`. *[low]*
+  non-null assertion lied). Now `Number.isFinite`-guarded → `"N"`. _[low]_
 - **`estimateMinutes` was ~30× wrong for a non-contiguous portion** (measured the
   linear span first→last unit instead of summing listed units). Now `sliceAyahs`
-  sums per-unit (equal for contiguous, correct for listed). *[bug, display-only]*
+  sums per-unit (equal for contiguous, correct for listed). _[bug, display-only]_
 
 **Adapters (runtime CDN fetch — malformed-200 robustness)**
+
 - `HttpTranslationCatalog`, `HttpTafsirRepository`, `HttpHadithRepository` crashed
   on a 200-OK response with a non-conforming body (CDN error/placeholder page) →
   `TypeError`/500. All three now `Array.isArray`/optional-chaining guard the shape
-  and degrade gracefully (`[]` / plugin-name fallback). *[low]*
+  and degrade gracefully (`[]` / plugin-name fallback). _[low]_
 
 ### Tests added without a code change (mutation-killers, code already correct)
+
 - **Zakat niṣāb boundary** (`>=`, doctrinally load-bearing): exact-equality + one-
   cent-below cases pin the inclusive boundary against a `>` regression.
 - **`getTranslatedAyah`** present/absent-ref test (was entirely untested).
 - **Property invariants** (`invariants.property.test.ts`, seeded, `QA_SEED`-overridable):
   HLC total order, `mergeEntries` convergence/commutativity/idempotence, `encodeHlc∘
-  parseHlc` round-trip, qibla bearing range, zakat boundary+monotonicity — 2000 cases
+parseHlc` round-trip, qibla bearing range, zakat boundary+monotonicity — 2000 cases
   each, killing the tie-resolution / total-order / formula mutants the sweep flagged.
 
 ### Refuted (recorded so a re-run won't re-chase them)
+
 16 candidates were verified-and-dropped. The notable ones:
-- **"far-future clock freezes a key forever"** — *false positive*: `hlcTick`
+
+- **"far-future clock freezes a key forever"** — _false positive_: `hlcTick`
   advances the counter from the stored base, so the next local write beats the
   poison stamp. The headline divergence does not exist.
 - **literal-`NaN` clock breaks total order** — unreachable: `NaN` has no JSON
   literal; `parseHlc`/`isClockInt` reject non-finite. (Server guard added anyway.)
-- A family of *"non-finite/`NaN` poisons X"* (tasbih, achievements, reading-goals
+- A family of _"non-finite/`NaN` poisons X"_ (tasbih, achievements, reading-goals
   `progressFraction`/`khatmaDailyTarget`, `verseOfDay`, `sumValues`, hijri negative
   years / out-of-range month) — all **type-unreachable through first-party input**;
   they require externally-corrupted `localStorage`/`AsyncStorage`. See residual risk.
 
 ### Residual risk (honest boundary of this run)
+
 1. **Corrupt-local-state hardening (deferred, low).** Several pure functions can
    produce `NaN`/`undefined` if fed a non-finite number or bad date that only a
-   *tampered* local store (devtools) or a *future untrusted peer-sync source* could
+   _tampered_ local store (devtools) or a _future untrusted peer-sync source_ could
    supply — not reachable via type-valid first-party input today. When the #25 sync
    adapter begins ingesting peer values into these stores, add `Number.isFinite`/
    date validation at each store's `read()` boundary (the right single choke point).
@@ -144,17 +155,18 @@ nothing new surfaced.
    `MAX_ENTRIES` is capped). Self-account only (the 64-hex accountId is the capability),
    but a non-conforming client rotating fabricated ids can grow its stored set. ADR 0033
    names rate-limiting as the mitigation; consider a per-account total cap or an explicit
-   ADR note. *Tracked, not fixed.*
+   ADR note. _Tracked, not fixed._
 3. **`streakWithPauses` on a corrupt ancient open ḥayḍ period** does ~740k iterations
    (~1s UI stall) before an accidental year-0 bound stops it. Bounded, not a hang;
-   a defensive lower-bound guard is a cheap follow-up. *Tracked, not fixed.*
+   a defensive lower-bound guard is a cheap follow-up. _Tracked, not fixed._
 4. **Mutation score is unmeasured.** This run used manual mutation analysis + property
    pinning; no Stryker number exists. See CI rec.
 5. **`packages/data` `FileAdhkarRepository`/`FileAsmaRepository`** (index.ts 177-191)
-   remain untested at the adapter level (the underlying `core` filter *is* tested).
+   remain untested at the adapter level (the underlying `core` filter _is_ tested).
    Low risk; add-test recommended.
 
 ### Why a re-run is cheap
+
 `qa/INVENTORY.md` (surface), `COVERAGE.json` (numbers + flags), `TRIED.jsonl` (every
 attack + the 16 refutations), `SEEDS.json` (reproducible seeds), and the persisted
 property harness mean a second run resumes at threshold: it skips everything in TRIED
@@ -162,6 +174,7 @@ that passed, re-runs only the property/confirmation seeds, and exits quickly unl
 new code landed.
 
 ### CI recommendations (so regressions can't reintroduce what was fixed)
+
 1. **Run `invariants.property.test.ts` in CI** (already in the suite) and add a
    nightly job that sweeps a range of `QA_SEED` values — turns the property harness
    into a continuous fuzzer with reproducible failures.
@@ -180,6 +193,7 @@ new code landed.
 ## Cycle 2 — resume run, swept the unexercised frontier (2026-06-24)
 
 ### Why a re-run found things (the prompt's own diagnostic)
+
 Cycle 1's convergence was **partial**: its sweep deep-dived `packages/core`, the sync
 engine, the `/api/sync` handler, and the HTTP adapters — but **never exercised L5
 (`apps/web/src/lib/*` browser stores + the E2EE cipher) or L6 (the runtime v1 REST
@@ -196,12 +210,14 @@ over-total clamp, and the previously-untested `FileAdhkar`/`FileAsma` data adapt
 (data branch cov 85.71 → 89.09).
 
 ### Sweep: 25 candidates → 13 confirmed, 12 "refuted"
+
 **Caveat (honesty):** ~5 of the 12 "refuted" were actually **unverified** — their
 skeptic agents hit a subagent **session limit** and returned no verdict. They are
-*not* claimed clean; they describe the same store-`read()` class as the confirmed
+_not_ claimed clean; they describe the same store-`read()` class as the confirmed
 findings and are carried as **residual risk #6** below.
 
 ### Bugs fixed this cycle (root cause + fail-first test each)
+
 - **[HIGH, security] Backup swept the sync sidecar `ul.sync.*`** — `isBackupKey` was a
   bare `ul.` prefix, so **Export wrote the E2EE recovery secret into a plaintext file**
   and **Import cloned another device's `ul.sync.node`**, colliding the HLC tiebreaker.
@@ -219,24 +235,25 @@ findings and are carried as **residual risk #6** below.
   force-dynamic ayah route and the tRPC `getTranslation` procedure). Fixed:
   `Object.prototype.hasOwnProperty.call` (covers both repository methods).
 - **[medium, peer-sync] Client trusted the server reply shape** — `http-sync-backend`
-  returned `data.entries` verbatim; a malicious/compromised server (untrusted per ADR
-  0033) could return a malformed/non-finite clock that poisons local HLC ordering.
+  returned `data.entries` verbatim; a malicious/compromised server (untrusted per ADR 0033) could return a malformed/non-finite clock that poisons local HLC ordering.
   Fixed: filter the reply through `isClockInt`/shape guards, symmetric with the
   cycle-1 server-inbound hardening.
 - **[medium, peer-sync] `readEditions` could return a non-array** from a corrupt/
   peer-synced `ul.editions` → reader crashes on `.map`/`new Set`. Fixed: `Array.isArray`
-  + string-element guard → defaults.
+  - string-element guard → defaults.
 - **[low] Public REST error (4xx) responses were cached** `public, max-age=3600,
-  s-maxage=86400` (a transient 400 / later-resolved 404 pinned for a day). Fixed:
+s-maxage=86400` (a transient 400 / later-resolved 404 pinned for a day). Fixed:
   `apiJson` sends `no-store` for `status >= 400`.
 
 ### Result
+
 Full loop green: **719 tests** (685 baseline → +34 across both cycles), 0 threshold
 failures, build OK. Coverage rose: `data` 90.44→**94.92** stmt / 85.71→**89.09** branch;
 `web/lib` now 79.78/80.98 (all above gate). Property confirmation re-ran clean on a
 fresh seed (271828).
 
 ### Cycle-2 residual risk (honest — carried forward, not fixed)
+
 6. **Store-`read()` validation class (the real systemic gap).** Confirmed reachable
    via the **#25 peer-sync boundary**: a peer device's value is decrypted and
    `state.apply()`-ed into `localStorage` with **no per-key shape/value validation**,
@@ -252,15 +269,16 @@ fresh seed (271828).
    This is the single most valuable cycle-3 task.
 7. **`prayer-timings-provider` cache key is date-only** (medium) — ignores
    coords/method/madhab, so stale prayer/adhkar reminder times survive a location
-   change until midnight. Fix: fingerprint the cache key. *Tracked.*
+   change until midnight. Fix: fingerprint the cache key. _Tracked._
 8. **`prayer-times` route accepts impossible dates** (low) — `2026-02-30` returns 200
    with a date/timings mismatch (no crash — cycle-1 `iso()` guard absorbs it). Fix:
-   round-trip-validate the date in the route. *Tracked.*
+   round-trip-validate the date in the route. _Tracked._
 9. **`HttpTranslationCatalog` interpolates the `edition` param without
    `encodeURIComponent`** (low) — bounded (host is pinned; bad path → non-200 → 404),
-   but inconsistent with the registry-gated sibling adapters. *Tracked.*
+   but inconsistent with the registry-gated sibling adapters. _Tracked._
 
 ### CI recommendations (additions)
+
 6. **Validate managed-key shapes in the sync `apply()` path** (or each store `read()`)
    so a malformed peer value can't crash a consumer — this closes residual #6 as a class.
 7. **Exclude `ul.sync.*` from backup is now enforced by a test** — keep it; never let
@@ -271,14 +289,16 @@ fresh seed (271828).
 ## Cycle 3 — closed the store-`read()` corrupt-value class (2026-06-24)
 
 ### Focus
+
 Cycle 2's **#1 residual** was the systemic gap: a #25 peer value is decrypted and
 written to `localStorage` with no shape check, then each store's `read()` does an
-unchecked `JSON.parse(...) as T` whose `try/catch` only catches *syntax* errors — so a
+unchecked `JSON.parse(...) as T` whose `try/catch` only catches _syntax_ errors — so a
 **valid-JSON-but-wrong-shape** value (peer-synced or corrupt) passes through and crashes
 consumers. Worked **inline** (reproduce → fail-first test → fix → verify), no subagents,
 to avoid the cycle-2 session-limit problem.
 
 ### Fixed (each reproduced first, then guarded at the `read()` boundary)
+
 - **`hifz-store.read()`** — `ul.hifz` = `null`/array/scalar made `allRecords` crash on
   `Object.entries(null)` and `isTracked` on `… in null`. Now requires a plain object map → `{}`.
 - **`library-store` (`bookmarks`/`collections`/`notes`)** — a non-array `ul.bookmarks`
@@ -292,22 +312,25 @@ to avoid the cycle-2 session-limit problem.
 - **`sync-meta.readMeta`** — the structural-clock branch was accepted on **truthiness**;
   now validated with `isValidHlc` (non-negative-int millis/counter, non-empty node),
   symmetric with the strict legacy-string path and the cycle-2 server/backend guards.
-  *(This made an empty-node clock invalid everywhere, so the cycle-1 "lossless empty-node"
+  _(This made an empty-node clock invalid everywhere, so the cycle-1 "lossless empty-node"
   regression test was superseded by a "lossless **valid** clock" test — a stronger
-  invariant: valid clocks round-trip exactly, invalid ones are dropped.)*
+  invariant: valid clocks round-trip exactly, invalid ones are dropped.)_
 
 ### Result
+
 Full loop green: **724 tests** (+5), 0 threshold failures, build OK. `web/lib` branch
 80.98 → **82**. Fresh-seed property confirmation clean (141421).
 
 ### Note on the durable design
+
 Cycle 3 hardened each store's **own** `read()` (each store owns its shape contract —
 cleaner than a central validator that must know every shape, and it defends against
-*both* peer-sync and local corruption). The complementary sync-`apply()`-path guard
+_both_ peer-sync and local corruption). The complementary sync-`apply()`-path guard
 (CI rec #6) remains a good belt-and-braces addition but is no longer load-bearing for
 these stores.
 
 ### Cycle-3 residual (low / tracked — deliberately not fixed)
+
 - **`prayer-settings-store`** method/madhab read unvalidated (low) — every current
   consumer routes through `/api/v1/prayer-times`, which re-validates, so no live impact.
   Guard on read when a client-side consumer starts trusting the raw value.
@@ -327,6 +350,7 @@ mobile's stores are byte-for-byte mirrors of the web stores — so cycle-3's fix
 were **still missing in mobile**. (PRODUCTIVE cycle → loop continues.)
 
 **Fixed (each with a test):**
+
 - **Mobile store-`read()` class** — `storage.getJSON` had no validator, so
   `library-store` (bookmarks `.includes` crash), `plan-store` (corrupt `ActivePlan`),
   and `settings-store` (NaN `scale`) all had the identical cycle-3 crashes. Added a
@@ -334,7 +358,7 @@ were **still missing in mobile**. (PRODUCTIVE cycle → loop continues.)
   shared `isActivePlan`. New AsyncStorage-mocked test (`stores-corrupt.test.ts`).
 - **`isActivePlan` moved into core** (it owns `ActivePlan`); web + mobile plan-stores
   both import it now — one validator, not three copies. Core test added.
-- **`prayer-timings-provider` date-only cache key** (the cycle-2 *tracked residual*,
+- **`prayer-timings-provider` date-only cache key** (the cycle-2 _tracked residual_,
   unfixed on **both** platforms) — served a stale city's times until midnight after a
   location/method change. Fixed on web **and** mobile: the cache key now fingerprints
   `date + coords + method + madhab + hlr`. Web stale-on-change regression test added.
@@ -350,6 +374,7 @@ Cycle 3 fixed only the **flagged** web stores; a grep showed ~14 more with the s
 unvalidated `JSON.parse(...) as T`. Audited them all. **Fixed 11** that genuinely
 crash a consumer on a corrupt/peer-synced wrong-shape value (each via a `read()`
 shape guard, all in one consolidated `store-corruption.test.ts`):
+
 - **Object-map → `{}`:** `qada`, `prayer-tracker`, `asma`, `ramadan` (fasts+worship),
   `reading-goals` (log), `adhkar-counts` (requires a usable `counts` map).
 - **Array → `[]`:** `haid`, `search-history`, `achievements`, `reading-goals`
@@ -405,6 +430,7 @@ shape at the `read()` boundary, so a #25 peer-synced or locally-corrupt value fa
 gracefully instead of crashing a consumer.
 
 **Residual (all low / tracked / justified):**
+
 - Mutation score still unmeasured (Stryker → CI) — the one unmet convergence criterion.
 - `UpstashSyncStore.get` could `.filter` a non-array if Redis returned corrupt bytes
   (server-written data; below reachability bar) — optional `Array.isArray` guard.
@@ -418,7 +444,7 @@ A further re-run resumes at threshold and exits after one clean confirmation pas
 ## Cycles 11–15 — re-run to THREE consecutive dry cycles (2026-06-24)
 
 Re-invoked with a stricter stop condition (3 consecutive dry). Each cycle swept a
-*fresh, previously-unexercised* frontier so dryness is meaningful, not a re-scan.
+_fresh, previously-unexercised_ frontier so dryness is meaningful, not a re-scan.
 
 - **Cycle 11 (DRY):** the **v1 REST route handlers**. Robust — `isValidSurahNumber`/
   `isValidVerseRef` guard NaN+integer+range, hadith section integer-checked, edition/
@@ -432,8 +458,8 @@ Re-invoked with a stricter stop condition (3 consecutive dry). Each cycle swept 
   shared `utils` + 4 web components (`PrayerTimesView`, `HomeHeroCards`, `ToolsPrayerCard`,
   `RamadanView`) to guard `Number.isNaN → "—"`, and changed the throwing call sites to pass
   `next.at` (a Date) instead of `.toISOString()`. Also `AdhkarReminderToggle`. Mobile
-  `utils.test.ts` extended; web verified by tsc+build. *(A grep then confirmed **zero**
-  remaining `.toISOString()` throw-risks.)*
+  `utils.test.ts` extended; web verified by tsc+build. _(A grep then confirmed **zero**
+  remaining `.toISOString()` throw-risks.)_
 - **Cycle 13 (DRY):** web component logic — divisions, `[0]`/empty-array, `reduce`,
   `toLocale*`. All guarded (optional chaining, `=== 0` division guards, hardened-store data,
   `ProfileView` `fresh[0]` behind a length+`&&` guard).
@@ -444,10 +470,11 @@ Re-invoked with a stricter stop condition (3 consecutive dry). Each cycle swept 
   `time.split(":").map(Number)` on a string can't crash.
 
 ### The reachability bar (applied consistently)
+
 A finding counts as a bug if it's a **crash, data corruption, or first-party-reachable
 wrong behaviour**. Below the bar (noted, not counted, consistent with the cycle-1/2 refuted
 self-tamper findings): cosmetic `"Invalid Date"`/`NaN%`-width on an extreme-polar edge that
-doesn't throw; deep *content*-validity of a type-valid string (e.g. a `HH:MM` reminder, an
+doesn't throw; deep _content_-validity of a type-valid string (e.g. a `HH:MM` reminder, an
 ISO date) — type/shape is validated at every `read()` boundary, content is not (the same
 scope I declined throughout, e.g. qada values, haid period dates).
 
@@ -462,6 +489,7 @@ unchanged from the cycle-8 convergence (Stryker score; the below-bar cosmetic/co
 ---
 
 ## Convergence status after 3 cycles
+
 Inventory complete; coverage above every gate (core 99.63/96.47, adapters 98.77/88,
 data 94.92/89.09, web/lib 80.09/82); 724 tests green + property confirmation across 8
 seeds; **35 reachable defects fixed** (cycle 1: 11 incl. core-purity; cycle 2: 6 incl.
@@ -496,21 +524,22 @@ packages a local `vitest.config`, or adjust the turbo `test` task).
 
 > **Update (cycle 16):** the per-package `pnpm test` issue above was fixed in commit
 > `d43f11f` (local `vitest.config` for core/data/adapters/mobile). `pnpm --filter
-> @ummahlibrary/core test` now works (388→396 tests), which is what made the scoped
+@ummahlibrary/core test` now works (388→396 tests), which is what made the scoped
 > Stryker re-measures below practical.
 
 ---
 
 ## Cycle 16 — ran the deferred Stryker pass; MEASURED the mutation score (2026-06-30)
 
-**Why this cycle exists.** Cycles 1–15 converged on everything *except* the one criterion
+**Why this cycle exists.** Cycles 1–15 converged on everything _except_ the one criterion
 the log itself kept flagging: **the mutation score was never actually measured** — it was
 "manual mutation analysis + property pinning," with Stryker left config-only. Resuming the
-converged run, the single non-redundant frontier was to *measure it*. (Stryker turned out
+converged run, the single non-redundant frontier was to _measure it_. (Stryker turned out
 not to be materialised in `node_modules` — it was lockfile-only — so step one was
 `pnpm install`.)
 
 ### The measurement (the finding)
+
 Full Stryker pass over `packages/core` (29 files, 24m29s):
 
 ```
@@ -520,15 +549,15 @@ All files | 80.72% score (covered 81.47%) | 2696 killed · 12 timeout · 616 sur
 **80.72% meets the ≥80% target — but the number itself is the finding.** Line/branch
 coverage is ~99% while mutation is 80.72%: the suite **executes** the code far more than it
 **asserts** its behaviour. This is the prompt's own "mutation score was inflated by
-hand-waving" branch — the prior manual analysis was right about the *logic* it looked at,
+hand-waving" branch — the prior manual analysis was right about the _logic_ it looked at,
 but it never measured the **content tables**, and those dominate the gap.
 
 **Survivor breakdown (the honest reframe):**
 
-| Class | Count | % | Mutation types | Severity |
-| ----- | ----- | - | -------------- | -------- |
-| **Content / data tables** | 390 | 63% | StringLiteral 324 + ObjectLiteral 64 + ArrayDecl 2 | low — a dropped/blanked label/hint/dhikr/method-id ships silently; one integrity test per table kills them |
-| **Real logic** | 226 | 37% | Conditional 95, Equality 47, Arithmetic 33, Logical 20, Method 11, Regex 10, … | the genuine test-strength gaps; some equivalent, most unpinned behaviour |
+| Class                     | Count | %   | Mutation types                                                                 | Severity                                                                                                   |
+| ------------------------- | ----- | --- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| **Content / data tables** | 390   | 63% | StringLiteral 324 + ObjectLiteral 64 + ArrayDecl 2                             | low — a dropped/blanked label/hint/dhikr/method-id ships silently; one integrity test per table kills them |
+| **Real logic**            | 226   | 37% | Conditional 95, Equality 47, Arithmetic 33, Logical 20, Method 11, Regex 10, … | the genuine test-strength gaps; some equivalent, most unpinned behaviour                                   |
 
 So **logic is strong** (consistent with the 99% branch coverage and the cycles-1–15 manual
 analysis); the deficit is mostly unpinned content. The weakest modules by score:
@@ -536,13 +565,14 @@ analysis); the deficit is mostly unpinned content. The weakest modules by score:
 `search` 54.8, `islamic-events` 57.4, `reminders` 67.1.
 
 ### Hardened this cycle (3 highest-value weak modules; each re-measured exact)
+
 No production-code bug was found — these were **decorative-test gaps**, which is exactly
 what mutation testing exists to surface. Tests added strengthen assertions; nothing was
 weakened.
 
 - **`zakat.ts` 51.67% → 98.33%** (doctrinally load-bearing, so first). The property test
-  *claimed* to pin zakat but never exercised: a **negative liability** (must clamp to 0,
-  not subtract a negative and *inflate* net wealth), a **NaN liability** (→ 0), or a
+  _claimed_ to pin zakat but never exercised: a **negative liability** (must clamp to 0,
+  not subtract a negative and _inflate_ net wealth), a **NaN liability** (→ 0), or a
   **zero niṣāb-basis price** (missing market data must make `meetsNisab` false, not charge
   2.5% on everything via a 0 threshold). Added those three behaviour tests + a category-table
   integrity test. The single remaining survivor (`:75` `v>0`→`v>=0` in `sumValues`) is an
@@ -555,12 +585,13 @@ weakened.
   `MADHABS` were entirely untested and `CALCULATION_METHODS` had only the default id pinned.
   These ids are **adapter-load-bearing** (they must match `adhan`'s preset names — a blanked
   id silently breaks the real calculation), so integrity tests here are meaningful, not
-  cosmetic. The prayer *logic* (`nextPrayer`/`prayerReminders`/validators) was already pinned.
+  cosmetic. The prayer _logic_ (`nextPrayer`/`prayerReminders`/validators) was already pinned.
 
 Net: **103 survivors → killed**, projected aggregate **80.72% → ≈83.8%**. Core tests
 388 → **396** (+8). Fresh-seed property confirmation clean (seed 5702887, ~12k cases).
 
 ### Residual (honest — the long tail, prioritised)
+
 The aggregate now meets the threshold, so this is **not** a blocking gap — but the per-module
 tail is uneven and worth a roadmap rather than a "suite is uniformly strong" claim:
 
@@ -577,6 +608,7 @@ tail is uneven and worth a roadmap rather than a "suite is uniformly strong" cla
 4. **Equivalent mutants** (e.g. zakat `sumValues` `>0`/`>=0`) — justified, uncounted.
 
 ### CI recommendation (so the measured floor can't silently erode)
+
 1. **Wire Stryker into CI scoped to `packages/core`** and set `thresholds.break: 80` now
    (the measured aggregate — a ratchet, exactly like the coverage gates). Raise toward 85+
    as the content-table and `islamic-events`/`search` survivors are closed. It's pure +
@@ -586,7 +618,8 @@ tail is uneven and worth a roadmap rather than a "suite is uniformly strong" cla
 3. Keep the existing `invariants.property.test.ts` + the coverage ratchet — both held.
 
 ### Verdict
-The one outstanding convergence criterion (a *measured* mutation score) is now closed with a
+
+The one outstanding convergence criterion (a _measured_ mutation score) is now closed with a
 real number: **80.72%** aggregate, ≥ the 80% target, with the three weakest high-value modules
 hardened to 98–100% and the rest documented as a prioritised, low-severity roadmap. Full loop
 constraints respected (lint/build remain Windows-blocked per the standing note; verified via
@@ -601,12 +634,12 @@ unless new code lands.
 criterion but left **criterion #6 (full suite green, deterministic) UNMET**: the full
 workspace run had **2 red tests** — `packages/ui` `theme-css.test.ts` drift — which cycle 16
 flagged as "pre-existing, out-of-scope" and deliberately did not fix. This re-run's prompt
-makes "full suite green" a hard criterion and rule #1 says *strengthen the code, not the test*,
+makes "full suite green" a hard criterion and rule #1 says _strengthen the code, not the test_,
 so the red suite was the single genuine frontier. This is the prompt's **"a new code change
 introduced it since last run"** branch: the IndoPak/translation commits added the drift tests,
 and the repo's missing line-ending config made them platform-flaky.
 
-**Root cause (and a correction to cycle 16).** Cycle 16 *guessed* the drift was prettier
+**Root cause (and a correction to cycle 16).** Cycle 16 _guessed_ the drift was prettier
 trailing-whitespace. **That guess was wrong.** Reproduced and traced properly this time:
 
 - `git ls-files --eol` → `i/lf  w/crlf  attr/` for both CSS files: **LF in the repo index,
@@ -640,11 +673,13 @@ cycle 16). `packages/ui` 9/9. Fresh-seed property confirmation clean (seed 92274
 #6 is now genuinely satisfied on a Windows checkout, not just in CI.
 
 ### CI recommendation (addition)
+
 - **Keep the `.gitattributes`** and consider a CI check that asserts tracked text files are LF
   (e.g. `git ls-files --eol | grep -v 'w/lf' | grep -v binary` is empty) so a CRLF file can't
   be committed and re-introduce this class.
 
 ### Residual after cycle 17
+
 Unchanged from cycle 16 (all low-severity, tracked): the ~226 mutation **logic survivors**
 (priority: `islamic-events` 57%, `search` 55%) and the ~287 **content-table survivors** (one
 integrity test per table), plus the justified equivalent mutants. The CRLF class is now closed
@@ -662,6 +697,7 @@ with **real logic survivors** — not content tables. Used the persisted cycle-1
 target their exact survivors, so no re-scan.
 
 ### `search.ts` — 54.79% → **97.26%** (31 survivors killed; +5 tests)
+
 The verse-ranking algorithm was executed but barely asserted. Pinned, with exact scores:
 
 - **Arabic normalization rules** (`normalizeForSearch`) — each substitution pinned: tatweel is
@@ -670,7 +706,7 @@ The verse-ranking algorithm was executed but barely asserted. Pinned, with exact
   ("light" inside "delight") scores **1**. Kills the `if(true)`/`if(false)`/empty-regex mutants
   that the old "finds by token" tests left unconstrained.
 - **Whole-phrase bonus + multi-token guard** (`:45`) — a contiguous "patience light" scores **6**,
-  scattered tokens **4**, and a *single*-token query gets **no** bonus (2, not 3). Kills the
+  scattered tokens **4**, and a _single_-token query gets **no** bonus (2, not 3). Kills the
   `&&`/`||`, `>1`→`>=1`/`<=1`, `if(true/false)`, and `+=`→`-=` mutants.
 - **Sort + tie-break comparators** (`:72`, `:94`–`:95`) — `searchText` sorts score-desc and
   honours the limit; `searchVerses` breaks ties by sura→aya→source (a golden ordering of
@@ -682,6 +718,7 @@ only changes the word-boundary bonus for a token containing a regex metacharacte
 already pass the `indexOf` literal-substring gate to matter — a low-value edge.
 
 ### `islamic-events.ts` — 57.41% → **95.37%** (41 survivors killed; +3 tests)
+
 The 13 arithmetic survivors were all in the Gregorian→**Julian-Day-Number** `dayNumber()`
 helper. Root insight: `dayNumber` is consumed **only as a difference** (`daysUntil =
 dn(event) − dn(today)`), and **every existing `daysUntil` assertion compared two dates in the
@@ -692,7 +729,7 @@ survived. Fixes:
   StringLiteral survivors.
 - **Two golden full-year resolutions** — `upcomingIslamicEvents` pinned to exact Gregorian dates
   **and** `daysUntil` for all 14 events, from a **June** `today` (events span Jun 2026→Jun 2027)
-  *and* from a **December** `today` (a different Julian-day month-term parity). The June anchor
+  _and_ from a **December** `today` (a different Julian-day month-term parity). The June anchor
   kills the `a`/`y`/`m`-dependent flips; the December anchor additionally kills the
   `floor((153m±2)/5)` flip the June anchor left cancelling. Golden values were generated from the
   real `hijri.ts` conversion and are regenerable from the two fixed `today`s.
@@ -705,11 +742,13 @@ any span shorter than 4/100/400 Gregorian years, while `upcomingIslamicEvents` o
 ≤13 months ahead. These are genuine equivalents for every reachable input, not hand-waving.
 
 ### Result
+
 Full workspace **812/812 green, exit 0** (804→812), all coverage gates met. Fresh-seed property
 confirmation clean (seed 14930352). Two of the lowest-mutation modules are now ~95–97%, lifting
 the **projected core aggregate ≈80.72% → ≈85.9%**.
 
 ### Residual after cycle 18 (prioritised)
+
 - **Logic survivors** still open in `achievements` (42.6%), `hijri` (78.4%), `reminders` (67.1%),
   `fasting-qada` (75.4%), `hadith` (73.5%), `translations` (76.5%), `reading-plans` (81.9%),
   `backup` (79.4%) — the same pattern (pin exact behaviour, not just execute). `achievements` (70
@@ -728,7 +767,7 @@ residual. Triaged each by survivor type from the persisted cycle-16 log before w
 `achievements` (70 survivors, **all StringLiteral** → content), `languages` (55, **near-all
 content**), `fasting-qada` (14, **all logic**).
 
-- **`achievements.ts` 42.62% → 100%** (70 killed; +3 tests). The badge-unlock *logic* was already
+- **`achievements.ts` 42.62% → 100%** (70 killed; +3 tests). The badge-unlock _logic_ was already
   pinned; the gap was the `BADGES` data table. Pinned the exact `[id, metric, target, category]`
   tuple for all 13 badges — `metric` indexes `stats[badge.metric]`, so a blanked metric silently
   makes a badge **never unlock** (behaviourally load-bearing, not just copy) — plus non-empty
@@ -747,6 +786,7 @@ content**), `fasting-qada` (14, **all logic**).
   pathological corrupt input, not output; the `>`-vs-`>=` bound differs only at an exact 1000-day span.
 
 ### Result
+
 Full workspace **824/824 green, exit 0** (812→824), all coverage gates met. Fresh-seed property
 confirmation clean (seed 24157817). The **eight** lowest-scoring core modules
 (zakat/tasbih/prayer/search/islamic-events/achievements/languages/fasting-qada) are now all
@@ -754,6 +794,7 @@ confirmation clean (seed 24157817). The **eight** lowest-scoring core modules
 baseline → ~90% now).
 
 ### Residual after cycle 19 (prioritised)
+
 - **Logic survivors** still open in `hijri` (78.4%), `reminders` (67.1% — 12 content + 11 logic),
   `hadith` (73.5%), `translations` (76.5%), `reading-plans` (81.9%), `backup` (79.4%). Each is the
   same exercise (pin behaviour). `reminders` is the next-lowest.
@@ -772,7 +813,7 @@ baseline → ~90% now).
   tests asserted only `scheduled.has(id)`, never the **payload** or the **enabled-but-permission-
   denied** path. Added (mocking the `Notifier` port): adhkar + prayer schedule **nothing** when
   enabled but permission is denied, and prayer schedules nothing without a location; **exact
-  payloads** (title/body/tag/at) for morning *and* evening adhkar and a prayer — which pins the
+  payloads** (title/body/tag/at) for morning _and_ evening adhkar and a prayer — which pins the
   `ADHKAR_LABEL`/`ADHKAR_EMOJI` tables (the evening-only test had left the **morning** row
   unexercised, a clean missed kill caught by re-measuring) and the inline copy; pinned the
   exported constants/id-helpers. **6 survivors, justified:** 5 in `localDateStr` (local-time
@@ -782,18 +823,20 @@ baseline → ~90% now).
 - **`hadith.ts` 73.47% → 95.92%** (+5 tests). Grade-string parsing + label table. Added: the
   optional-hyphen al-Albānī regex (`Alalbani` with no hyphen still wins over a daif first grade); a
   bare grade with no `Grader: ` prefix; a grader **name** containing a grade word (`Daifullah:
-  Sahih` → `sahih`, not `daif`) pinning that only the part after `": "` is classified; an
+Sahih` → `sahih`, not `daif`) pinning that only the part after `": "` is classified; an
   unrecognised word → `unknown` (reaches the final `return`, killing `if (true)`/`return ""`); and
   the exact `HADITH_GRADE_LABEL`. **2 survivors, justified:** the `:31` slice-offset flips
   (`indexOf("")→0`, `slice +2→-2`) are near-equivalent — the final
   `.toLowerCase().replace(/[^a-z]/g,"").includes(keyword)` is robust to a few extra leading chars.
 
 ### Result
+
 Full workspace **835/835 green, exit 0** (824→835), all coverage gates met. Fresh-seed property
 confirmation clean (seed 39088169). **Ten** formerly-weak modules are now **88–100%**, lifting the
 **projected core aggregate ≈89.9% → ≈90.8%** (crossed 90%).
 
 ### Residual after cycle 20 (prioritised)
+
 - Remaining tail: `translations` (76.5%), `hijri` (78.4%), `backup` (79.4%), `reading-plans`
   (81.9%) — all already near/above 80%; same pin-the-behaviour exercise.
 - Justified equivalents accumulated across cycles (reminders `localDateStr` TZ-display; hadith
@@ -846,15 +889,70 @@ Best-Practices 100 · SEO 92**; Best-Practices is **100 on every route**. Lowest
 82, `/` and `/surah/2` 89 (large DOM / long lists). The audit confirmed the a11y issues are
 **systemic (shared components), not page-specific** — five distinct findings:
 
-| Finding | Routes hit | What |
-| --- | --- | --- |
-| `color-contrast` | **29/29** | the `--noor-faint` token (above) |
-| `link-text` | 27/29 | non-descriptive links (e.g. "More") — shared nav |
-| `button-name` | 23/29 | icon-only buttons missing an accessible name |
-| `label-content-name-mismatch` | 5/29 | visible label ≠ accessible name |
-| `select-name` | 2/29 | `<select>` without an associated label |
+| Finding                       | Routes hit | What                                             |
+| ----------------------------- | ---------- | ------------------------------------------------ |
+| `color-contrast`              | **29/29**  | the `--noor-faint` token (above)                 |
+| `link-text`                   | 27/29      | non-descriptive links (e.g. "More") — shared nav |
+| `button-name`                 | 23/29      | icon-only buttons missing an accessible name     |
+| `label-content-name-mismatch` | 5/29       | visible label ≠ accessible name                  |
+| `select-name`                 | 2/29       | `<select>` without an associated label           |
 
 Because these live in shared nav/header/button components (`packages/ui` + the web shell), a
 handful of component fixes would lift accessibility across **all** routes. Reported, not
 auto-fixed (a11y-label + design-token changes are the maintainer's call). Logged in `TRIED.jsonl`
 (`LIGHTHOUSE-ALL-ROUTES`).
+
+---
+
+## Accessibility re-audit + regression gate (2026-09-03)
+
+Re-ran the accessibility dimension the 2026-06-30 Lighthouse sweep opened, this
+time with **axe-core (WCAG 2.1 A/AA) across 28 routes**, and converted the result
+into a permanent gate (`e2e/a11y.spec.ts`). Prompted by a planning pass
+(`docs/roadmap/2026-09-next-features.md`) that took the June findings at face
+value — the re-audit shows most of them had already been fixed and the planning
+note was corrected against this run.
+
+**Status of the five June findings, measured rather than assumed:**
+
+| June finding                      | June scope   | 2026-09-03                                                              |
+| --------------------------------- | ------------ | ----------------------------------------------------------------------- |
+| `color-contrast` (`--noor-faint`) | 29/29 routes | fixed earlier (token lightened `#5c6273`→`#7d8392`)                     |
+| `link-text` ("More")              | 27/29        | already fixed — `TabBar.tsx` carries an `aria-label`                    |
+| `button-name`                     | 23/29        | not reproducible; icon-only buttons carry text, `title` or `aria-label` |
+| `label-content-name-mismatch`     | 5/29         | not reproducible                                                        |
+| `select-name`                     | 2/29         | **still live** — the blog tag filter; fixed here                        |
+
+**Two genuine defects the axe run found that Lighthouse had not reported:**
+
+1. **`color-contrast` on `/profile`, 8 nodes.** Not the token — locked achievement
+   cards carried a card-wide `opacity: 0.55`, which blended the "Locked" caption
+   to **#4c505b on #101218 = 2.32:1** against a 4.5:1 requirement. Fixed by
+   dimming only the decorative glyph and moving the caption to `N.muted`; the
+   locked state still reads from the glyph, the non-gold border and the caption.
+2. **`aria-prohibited-attr` on `/surah/2` and `/juz/1`, 434 nodes.** The
+   translation loading skeleton was `<p aria-busy aria-label>`; ARIA prohibits
+   `aria-label` on a bare `<p>` (generic role), so the label was invalid on every
+   skeleton on the page. Fixed with `role="status"`, which also announces the
+   swap when the translation arrives. Only appears while translations are
+   in flight, which is why a single-shot audit can miss it.
+
+**Result: 28/28 routes, zero WCAG 2.1 A/AA violations.**
+
+Hardening alongside the fixes: `Btn` (web + native) and `Seg` gained an
+`ariaLabel` prop — `Btn` previously had no way to name an icon-only button at
+all, and `Seg` rendered as an unnamed row of buttons; `Seg` also gained
+`role="group"` and `aria-pressed`.
+
+**Also fixed (pre-existing, unrelated):** `SunnahFastReminderToggle.test.tsx` was
+failing on `main`. It asserted that a Hijri sighting adjustment changes the
+upcoming-fasts list, but the adjustment moves only the white days (Hijri 13–15),
+never the Gregorian Mondays/Thursdays. On 2026-09-03 the next six fasts were all
+Mon/Thu, so the assertion was unsatisfiable and the suite was red though the
+component is correct. The clock is now pinned to 2026-01-01, which puts three
+white days in the window.
+
+**Caveat:** axe covers machine-checkable failures only (contrast, names, roles,
+labels). It is a floor, not a substitute for keyboard and screen-reader passes,
+and the June audit's `link-text`/`button-name` findings were partly heuristics
+axe does not reproduce.
