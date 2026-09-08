@@ -6,11 +6,13 @@ test.describe("Hifz memorization", () => {
 
     // Track the first āyah for memorization via the per-āyah "More" menu.
     await page.getByRole("button", { name: "More" }).first().click();
-    await page.getByRole("button", { name: "Memorize" }).click();
+    // The menu's rows are `menuitem`, not `button`: the container is
+    // role="menu", which ARIA requires to hold menuitem children.
+    await page.getByRole("menuitem", { name: "Memorize" }).click();
     // The action confirms, then the menu's entry flips to "Stop memorizing".
     await expect(page.getByText("Added to Hifz")).toBeVisible();
     await page.getByRole("button", { name: "More" }).first().click();
-    await expect(page.getByRole("button", { name: "Stop memorizing" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Stop memorizing" })).toBeVisible();
 
     // The Hifz dashboard now lists it as due, with a review CTA.
     await page.goto("/hifz");
