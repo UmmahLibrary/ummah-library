@@ -36,6 +36,7 @@ import type { ActivePlan, PlanTemplate } from "./reading-plans";
 import type { KhatmaPlan } from "./reading-goals";
 import type { Hlc, SyncEntry, SyncExchangeResult, SyncRecord } from "./sync";
 import type { SurahTiming } from "./audio";
+import type { HadithLink } from "./verse-hadith";
 
 /** Access to the Arabic Quran text and surah structure. */
 export interface QuranRepository {
@@ -171,6 +172,21 @@ export interface HadithRepository {
   getSection(collectionId: string, section: number): Promise<HadithSection | null>;
   /** A whole collection (every hadith + section names) for client-side browse/search. */
   getCollection(collectionId: string): Promise<HadithCollection | null>;
+}
+
+/**
+ * Verse → hadith links (#200, ADR 0041). Links are **verbatim quotations**: a
+ * hadith appears under an ayah only when its Arabic contains a contiguous run of
+ * that ayah's words. Generated at build time from the two corpora we already
+ * ship, so a lookup needs no network and works offline.
+ *
+ * The port is deliberately wider than today's one implementation: a vetted
+ * topical mapping, should one ever become available under an acceptable licence,
+ * drops in behind this same interface without a redesign.
+ */
+export interface VerseHadithLinkRepository {
+  /** The hadith linked to one ayah — `[]` when none are. */
+  linksForVerse(ref: VerseKey): Promise<readonly HadithLink[]>;
 }
 
 /** Access to the 99 Names of Allah. */

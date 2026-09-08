@@ -49,6 +49,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0038](0038-nearby-mosque-finder.md)          | Nearby mosque finder: OpenStreetMap behind a `PlacesProvider` port                 | Accepted                                  |
 | [0039](0039-offline-reciter-audio.md)         | Offline reciter audio: `AudioStore` port; web Cache API (mobile follow-up)         | Accepted                                  |
 | [0040](0040-ui-localization.md)               | UI localization: in-house typed i18n + RTL; nav slice + Urdu (foundation)          | Accepted                                  |
+| [0041](0041-verse-hadith-links.md)            | Verse↔hadith links: a derived verbatim-quotation index, not an ingested mapping    | Accepted                                  |
 
 ## Writing a new ADR
 

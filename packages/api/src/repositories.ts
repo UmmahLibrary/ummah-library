@@ -10,6 +10,7 @@ import type {
   RecitationTimingRepository,
   TafsirRepository,
   TranslationRepository,
+  VerseHadithLinkRepository,
 } from "@ummahlibrary/core";
 import {
   BundledPlanCatalog,
@@ -19,6 +20,7 @@ import {
   FileQuranRepository,
   FileRecitationTimingRepository,
   FileTranslationRepository,
+  FileVerseHadithLinkRepository,
   loadPluginRegistry,
 } from "@ummahlibrary/data";
 import {
@@ -50,6 +52,14 @@ export const tafsirRepository: TafsirRepository = new HttpTafsirRepository(plugi
 
 /** Hadith collections served from the ingested datasets — see ADR 0022. */
 export const hadithRepository: HadithRepository = new FileHadithRepository();
+
+/**
+ * Verse→hadith links by verbatim quotation, from the generated dataset — see
+ * ADR 0041. Holds references only; `relatedHadith` below joins them to the text
+ * in `hadithRepository`.
+ */
+export const verseHadithLinkRepository: VerseHadithLinkRepository =
+  new FileVerseHadithLinkRepository();
 
 /** Bundled word-by-word recitation timings (quran-align) — see ADR 0036. */
 export const recitationTimingRepository: RecitationTimingRepository =
