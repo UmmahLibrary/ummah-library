@@ -173,6 +173,26 @@ not stored in this repo.
   from [everyayah.com](https://everyayah.com) and [quran.com](https://quran.com):
   Alafasy, Abdul Basit, Al-Minshawi, Al-Shuraim, As-Sudais, Al-Husary, Al-Ghamdi,
   Al-Shatri. No audio is redistributed by this repo.
+- **Translation-audio voices** (`plugins/translation-audio/`, #204) — spoken
+  recitation of a translation's text, **streamed at runtime** from
+  [everyayah.com](https://everyayah.com), the same way reciters are. Each
+  voice's exact source text was verified against its `translationEditionId`
+  (not assumed from the voice's name):
+  - **Ibrahim Walk (English)** reads **Saheeh International**. everyayah files
+    this under the translator collective's name, "Umm Muhammad" — confirmed by
+    fetching [Tanzil's](https://tanzil.net) canonical `en.sahih` text and
+    fawazahmed0/quran-api's `eng-ummmuhammad` edition and comparing verse text
+    directly (Al-Ikhlās 112:1 matches word-for-word). `eng-ummmuhammad` is
+    **not** one of our bundled English editions (only `eng-khattab` is) — it
+    resolves through the full fawazahmed0 catalogue at runtime
+    (`HttpTranslationCatalog`, ADR 0011), not the small ingested set.
+  - **Shamshad Ali Khan (Urdu)** reads **Fateh Muhammad Jalandhry's**
+    translation — confirmed via two independent archive.org listing
+    descriptions naming "Moulana Fateh Muhammad Jalandhari" as the translator
+    read alongside his recitation voice. This edition **is** one of our
+    bundled editions (`plugins/translations/urd-jalandhry.json`).
+
+  No audio is redistributed by this repo.
 - **Tafsirs** (`plugins/tafsirs/`) — Tafsīr al-Muyassar (King Fahd Complex),
   Tafsīr al-Ṭabarī, Tafsīr Ibn Kathīr (English/Urdu/Bengali), Maʿārif-ul-Qurʾān
   (Muftī Muḥammad Shafīʿ). Each remains © its author/publisher.

@@ -43,6 +43,9 @@ export const appRouter = t.router({
   /** Available reciters (audio). */
   listReciters: t.procedure.query(() => pluginRegistry.byKind("reciter")),
 
+  /** Available translation-audio voices (#204) — spoken translation recitation. */
+  listTranslationAudioVoices: t.procedure.query(() => pluginRegistry.byKind("translation-audio")),
+
   /** Available tafsir editions. */
   listTafsirs: t.procedure.query(() => pluginRegistry.byKind("tafsir")),
 

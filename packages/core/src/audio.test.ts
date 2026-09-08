@@ -138,3 +138,41 @@ describe("isSurahDownloaded", () => {
     expect(await isSurahDownloaded(store, "alafasy", 114)).toBe(true);
   });
 });
+
+import { buildPlayQueue } from "./audio";
+
+describe("buildPlayQueue", () => {
+  const verses = [
+    { sura: 112, aya: 1 },
+    { sura: 112, aya: 2 },
+  ];
+
+  it("arabic-only is a 1:1 passthrough — unchanged behaviour by default", () => {
+    expect(buildPlayQueue(verses, "arabic-only")).toEqual([
+      { verse: verses[0], source: "arabic" },
+      { verse: verses[1], source: "arabic" },
+    ]);
+  });
+
+  it("translation-only skips the Arabic voice entirely", () => {
+    expect(buildPlayQueue(verses, "translation-only")).toEqual([
+      { verse: verses[0], source: "translation" },
+      { verse: verses[1], source: "translation" },
+    ]);
+  });
+
+  it("interleaved plays each verse's Arabic then its translation before advancing", () => {
+    expect(buildPlayQueue(verses, "interleaved")).toEqual([
+      { verse: verses[0], source: "arabic" },
+      { verse: verses[0], source: "translation" },
+      { verse: verses[1], source: "arabic" },
+      { verse: verses[1], source: "translation" },
+    ]);
+  });
+
+  it("an empty verse list produces an empty queue in every mode", () => {
+    expect(buildPlayQueue([], "arabic-only")).toEqual([]);
+    expect(buildPlayQueue([], "translation-only")).toEqual([]);
+    expect(buildPlayQueue([], "interleaved")).toEqual([]);
+  });
+});

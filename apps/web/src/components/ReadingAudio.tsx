@@ -2,8 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  type PlayQueueItem,
   type ReciterPlugin,
+  type TranslationAudioPlugin,
+  type TranslationPlayMode,
   ayahCountOf,
+  buildPlayQueue,
   cyclePlaybackRate,
   downloadSurahAudio,
   quranComAudioUrl,
@@ -12,7 +16,16 @@ import {
 } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
 import { readReciter, writeReciter } from "../lib/reader-prefs";
-import { readLoop, readRate, writeLoop, writeRate } from "../lib/reader-prefs-store";
+import {
+  readLoop,
+  readPlayMode,
+  readRate,
+  readTranslationVoice,
+  writeLoop,
+  writePlayMode,
+  writeRate,
+  writeTranslationVoice,
+} from "../lib/reader-prefs-store";
 import { type Segment, bundledSegments } from "../lib/audio-timing";
 import { webAudioStore } from "../lib/audio-store";
 
@@ -97,12 +110,16 @@ async function getTiming(reciter: ReciterPlugin, verseKey: string): Promise<Timi
 export function ReadingAudio({
   verses,
   reciters,
+  translationVoices = [],
   variant = "inline",
   onAyah,
   startVerse,
 }: {
   verses: Verse[];
   reciters: ReciterPlugin[];
+  /** Translation-audio voices (#204) — spoken recitation of a translation's
+   *  text, playable alongside or instead of the Arabic reciter. */
+  translationVoices?: TranslationAudioPlugin[];
   /** "inline" = compact bar inside content (juzʾ); "dock" = fixed bottom player (surah reader). */
   variant?: "inline" | "dock";
   /** Called when an āyah starts playing — lets the reader advance its resume position. */
@@ -116,6 +133,11 @@ export function ReadingAudio({
   const [isPlaying, setIsPlaying] = useState(false);
   const [loop, setLoop] = useState(false);
   const [rate, setRate] = useState(1);
+  // Translation-audio (#204): which voice, and how it plays alongside the
+  // Arabic reciter. Off by default — selecting a mode is an explicit choice.
+  const [translationVoiceId, setTranslationVoiceId] = useState(translationVoices[0]?.id ?? "");
+  const [playMode, setPlayMode] = useState<TranslationPlayMode>("arabic-only");
+  const playModeRef = useRef<TranslationPlayMode>("arabic-only");
   // A→B range-repeat UI state (the panel + the chosen bounds/count).
   const [showRange, setShowRange] = useState(false);
   const [rangeFrom, setRangeFrom] = useState<string | null>(null);
@@ -126,10 +148,12 @@ export function ReadingAudio({
   // Read live inside the playback `onended` closure, not a stale capture.
   const loopRef = useRef(false);
   const rateRef = useRef(1);
-  // The verse list the current playback traverses — the whole list, or an A→B
-  // slice while range-repeating. `repeatRef` holds the countdown while a range
-  // loop is active (Infinity = until stopped); null otherwise.
-  const activeListRef = useRef<Verse[]>(verses);
+  // `repeatRef` holds the countdown while an A→B range loop is active
+  // (Infinity = until stopped); null otherwise. The queue itself (the whole
+  // list, an A→B slice, or a single tapped āyah — each possibly expanded to
+  // interleave translation audio, #204) is passed explicitly through the
+  // recursive `play()` calls below rather than held in a ref, so advancing
+  // never has to re-derive "where am I" by re-searching the list.
   const repeatRef = useRef<{ remaining: number } | null>(null);
   const versesRef = useRef(verses);
   versesRef.current = verses;
@@ -202,6 +226,17 @@ export function ReadingAudio({
     const savedRate = readRate();
     setRate(savedRate);
     rateRef.current = savedRate;
+    const savedVoice = readTranslationVoice();
+    if (savedVoice && translationVoices.some((v) => v.id === savedVoice)) {
+      setTranslationVoiceId(savedVoice);
+    }
+    const savedPlayMode = readPlayMode();
+    // A saved mode that needs a voice, but no voice is available on this
+    // list/build, degrades to Arabic-only rather than silently playing nothing.
+    if (savedPlayMode === "arabic-only" || translationVoices.length > 0) {
+      setPlayMode(savedPlayMode);
+      playModeRef.current = savedPlayMode;
+    }
 
     // The reader toolbar can change the reciter; keep the dock in sync.
     const onReciter = (e: Event) => {
@@ -231,21 +266,33 @@ export function ReadingAudio({
     if (audioRef.current) audioRef.current.playbackRate = next;
   }
 
+  /** Cycle Arabic-only → Arabic+translation → translation-only (#204), off a
+   *  no-op when there's no translation voice to cycle into. */
+  function cyclePlayMode() {
+    if (translationVoices.length === 0) return;
+    const order: TranslationPlayMode[] = ["arabic-only", "interleaved", "translation-only"];
+    const next = order[(order.indexOf(playModeRef.current) + 1) % order.length]!;
+    playModeRef.current = next;
+    setPlayMode(next);
+    writePlayMode(next);
+    stop();
+  }
+
   /** Play the whole list from `start`, advancing ayah-to-ayah (no range loop). */
   function playAll(start: Verse) {
     repeatRef.current = null;
-    activeListRef.current = versesRef.current;
-    void play(start, true);
+    const queue = buildPlayQueue(versesRef.current, playModeRef.current);
+    const idx = queue.findIndex((q) => q.verse.sura === start.sura && q.verse.aya === start.aya);
+    void play(queue, idx >= 0 ? idx : 0, "repeatOrLoop");
   }
 
   /** Loop the inclusive A→B range `count` times (Infinity = until stopped). */
   function playRange(from: string | null, to: string | null, count: number) {
     const slice = repeatRange(versesRef.current, from, to);
-    const start = slice[0];
-    if (!start) return;
+    const queue = buildPlayQueue(slice, playModeRef.current);
+    if (queue.length === 0) return;
     repeatRef.current = { remaining: count };
-    activeListRef.current = slice;
-    void play(start, true);
+    void play(queue, 0, "repeatOrLoop");
   }
 
   function clearWord() {
@@ -290,70 +337,102 @@ export function ReadingAudio({
     clearWord();
   }
 
-  async function play(verse: Verse, advance: boolean) {
+  /**
+   * Play one queue item (an āyah's Arabic recitation or its translation-audio,
+   * #204) and, on end, auto-advance to the next item in `queue`. `atEnd`
+   * governs only what happens once the queue itself is exhausted: `"stop"` for
+   * a single tapped āyah (never loops, even if the whole-surah loop toggle is
+   * on — matches the pre-#204 `advance: false` behaviour exactly), or
+   * `"repeatOrLoop"` to consult the A→B repeat countdown / loop toggle, same as
+   * plain reciter playback always has.
+   */
+  async function play(
+    queue: PlayQueueItem<Verse>[],
+    idx: number,
+    atEnd: "stop" | "repeatOrLoop",
+  ) {
+    const item = queue[idx];
+    if (!item) return stop();
+    const { verse, source } = item;
     const reciter = reciters.find((r) => r.id === reciterId) ?? reciters[0];
-    if (!reciter) {
+    const voice = translationVoices.find((v) => v.id === translationVoiceId);
+    if ((source === "arabic" && !reciter) || (source === "translation" && !voice)) {
       stop();
       return;
     }
     const key = keyOf(verse);
     const token = ++tokenRef.current;
     const audio = (audioRef.current ??= new Audio());
-    // Detach the previous āyah's handlers and pause it BEFORE any await: playAll/
-    // playRange mutate the shared refs (activeListRef/repeatRef) synchronously, so a
-    // stale onended firing during the fetchTiming await would advance the wrong āyah
-    // or decrement the new range's count. Neutralize it here, before we yield.
+    // Detach the previous āyah's handlers and pause it BEFORE any await: a
+    // stale onended firing during the await below would advance past the
+    // wrong item or decrement the new range's count. Neutralize it here,
+    // before we yield.
     audio.onended = null;
     audio.ontimeupdate = null;
     audio.pause();
     clearWord();
 
-    // Prefer a downloaded copy (offline #202): play the local blob and use the
-    // bundled word timings, touching no network. Else stream as before.
-    const local = await webAudioStore.localUrl(reciter.id, verse);
-    if (token !== tokenRef.current) {
-      if (local) URL.revokeObjectURL(local);
-      return;
-    }
+    // Prefer a downloaded copy (offline #202 — reused as-is for translation
+    // voices too, same AudioStore keyed by voice id) and touch no network.
     let src: string;
     let segments: Segment[] | null;
-    if (local) {
-      src = local;
-      segments = await bundledSegments(reciter.id, verse.sura, verse.aya);
+    if (source === "translation") {
+      // No word-level timing for translation audio — plain per-ayah playback.
+      const local = await webAudioStore.localUrl(voice!.id, verse);
+      if (token !== tokenRef.current) {
+        if (local) URL.revokeObjectURL(local);
+        return;
+      }
+      src = local ?? reciterAudioUrl(voice!, verse);
+      segments = null;
     } else {
-      const timing = await getTiming(reciter, key);
-      if (token !== tokenRef.current) return;
-      src = timing.url;
-      segments = timing.segments.length ? timing.segments : null;
+      const local = await webAudioStore.localUrl(reciter!.id, verse);
+      if (token !== tokenRef.current) {
+        if (local) URL.revokeObjectURL(local);
+        return;
+      }
+      if (local) {
+        src = local;
+        segments = await bundledSegments(reciter!.id, verse.sura, verse.aya);
+      } else {
+        const timing = await getTiming(reciter!, key);
+        if (token !== tokenRef.current) return;
+        src = timing.url;
+        segments = timing.segments.length ? timing.segments : null;
+      }
     }
 
     wordRef.current = { block: document.getElementById(key), segments, last: -1 };
     setAudioSrc(audio, src);
     audio.playbackRate = rateRef.current;
     audio.ontimeupdate = segments ? onTimeUpdate : null;
-    audio.onended = () => {
-      if (!advance) return stop();
-      const list = activeListRef.current;
-      const idx = list.findIndex((v) => v.sura === verse.sura && v.aya === verse.aya);
-      const next = idx >= 0 ? list[idx + 1] : undefined;
-      if (next) return void play(next, true);
-      // Reached the end of the active list.
+    const advanceOrEnd = () => {
+      const nextIdx = idx + 1;
+      if (nextIdx < queue.length) return void play(queue, nextIdx, atEnd);
+      if (atEnd === "stop") return stop();
+      // Reached the end of the queue.
       const rep = repeatRef.current;
       if (rep) {
         rep.remaining -= 1; // Infinity - 1 stays Infinity ⇒ loops until stopped
-        if (rep.remaining > 0 && list[0]) return void play(list[0], true);
+        if (rep.remaining > 0 && queue.length) return void play(queue, 0, atEnd);
         return stop();
       }
       // Whole-surah/juzʾ loop: repeat from the top.
-      if (loopRef.current && list[0]) return void play(list[0], true);
+      if (loopRef.current && queue.length) return void play(queue, 0, atEnd);
       stop();
     };
-    audio.onerror = () => stop();
+    audio.onended = advanceOrEnd;
+    // A missing translation-audio file skips gracefully to the next queue item
+    // (per #204) instead of killing playback; an Arabic-reciter error still
+    // stops outright, unchanged from before this feature.
+    audio.onerror = source === "translation" ? advanceOrEnd : () => stop();
     void audio.play().then(
       () => {
         setCurrent(key);
         setIsPlaying(true);
         highlightAyah(key);
+        // Fires for both sources (harmless repeat in interleaved mode) — in
+        // translation-only mode there is no "arabic" item to advance on.
         onAyah?.(verse);
       },
       () => stop(),
@@ -471,7 +550,9 @@ export function ReadingAudio({
       const one = node.closest<HTMLElement>("[data-play-one]");
       if (one) {
         event.preventDefault();
-        void play(parseKey(one.dataset.playOne!), false);
+        repeatRef.current = null;
+        const queue = buildPlayQueue([parseKey(one.dataset.playOne!)], playModeRef.current);
+        void play(queue, 0, "stop");
         return;
       }
       const from = node.closest<HTMLElement>("[data-play-key]");
@@ -484,7 +565,9 @@ export function ReadingAudio({
       document.removeEventListener("click", onClick);
       audioRef.current?.pause();
     };
-  }, [reciterId]);
+    // translationVoiceId is read directly (not via a ref) inside play(), same
+    // as reciterId — re-attach so the closure never plays a stale voice.
+  }, [reciterId, translationVoiceId]);
 
   if (reciters.length === 0) return null;
 
@@ -536,6 +619,51 @@ export function ReadingAudio({
       A–B
     </button>
   );
+  const playModeLabel: Record<TranslationPlayMode, string> = {
+    "arabic-only": "Translation audio off",
+    interleaved: "Arabic + translation audio",
+    "translation-only": "Translation audio only",
+  };
+  const translationModeButton =
+    translationVoices.length > 0 ? (
+      <button
+        type="button"
+        onClick={cyclePlayMode}
+        title={playModeLabel[playMode]}
+        aria-label={playModeLabel[playMode]}
+        style={{ ...ctrlStyle, color: playMode !== "arabic-only" ? N.gold : N.muted }}
+      >
+        <Icon name="globe" size={15} />
+      </button>
+    ) : null;
+  const translationVoicePicker =
+    playMode !== "arabic-only" && translationVoices.length > 0 ? (
+      translationVoices.length > 1 ? (
+        <select
+          aria-label="Translation-audio voice"
+          value={translationVoiceId}
+          onChange={(e) => {
+            setTranslationVoiceId(e.target.value);
+            writeTranslationVoice(e.target.value);
+            stop();
+          }}
+          style={{ ...selStyle, maxWidth: 180 }}
+        >
+          {translationVoices.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.name}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <span
+          className="noor-hide-sm"
+          style={{ fontSize: 12, color: N.muted, fontFamily: N.ui, whiteSpace: "nowrap" }}
+        >
+          {translationVoices[0]!.name}
+        </span>
+      )
+    ) : null;
   const allSaved = listSurahs.length > 0 && listSurahs.every((s) => savedSurahs.has(s));
   const downloadPct = download ? Math.round((download.done / Math.max(1, download.total)) * 100) : 0;
   const downloadButton = (
@@ -722,6 +850,8 @@ export function ReadingAudio({
           {speedButton}
           {rangeButton}
           {downloadButton}
+          {translationModeButton}
+          {translationVoicePicker}
           <button
             type="button"
             onClick={toggleLoop}
@@ -792,6 +922,8 @@ export function ReadingAudio({
         {speedButton}
         {rangeButton}
         {downloadButton}
+        {translationModeButton}
+        {translationVoicePicker}
         <span className="audio-status">
           {current ? `Playing ${current}` : "Tap ▶ to play one āyah, or its number to play on"}
         </span>
