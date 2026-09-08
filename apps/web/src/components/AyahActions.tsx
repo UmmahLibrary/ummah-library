@@ -43,12 +43,7 @@ function BarBtn({
         border: "none",
         cursor: "pointer",
         padding: 0,
-        // `muted`, not `faint`: this row sits on the *highlighted* ayah
-        // background while a panel is open, where faint measures 4.27:1 at
-        // 12.5px — just under WCAG AA. Muted clears it at 6.2:1 on the same
-        // ground. (Pre-existing; reachable from the Tafsir toggle too, and this
-        // change adds a third control to the same row.)
-        color: active ? N.gold : N.muted,
+        color: active ? N.gold : N.faint,
         fontFamily: N.ui,
         fontSize: 12.5,
         fontWeight: 600,
