@@ -67,6 +67,26 @@ const spec = {
         },
       },
     },
+    "/surahs/{number}/ayahs/{aya}/hadith": {
+      get: {
+        summary: "Hadith that verbatim quote an ayah (ADR 0042)",
+        description:
+          "Links are generated, not curated: a hadith is listed when its Arabic contains a contiguous run of at least six of the ayah's words. Each entry carries the shared span as evidence. Most ayahs have no links.",
+        parameters: [
+          {
+            name: "number",
+            in: "path",
+            required: true,
+            schema: { type: "integer", minimum: 1, maximum: 114 },
+          },
+          { name: "aya", in: "path", required: true, schema: { type: "integer", minimum: 1 } },
+        ],
+        responses: {
+          "200": { description: "Related hadith (possibly an empty list)" },
+          "404": { description: "Not found" },
+        },
+      },
+    },
     "/editions": {
       get: {
         summary: "List available translation editions",
@@ -163,7 +183,9 @@ const spec = {
     "/hadith/{collection}": {
       get: {
         summary: "Get a hadith collection, including its section index",
-        parameters: [{ name: "collection", in: "path", required: true, schema: { type: "string" } }],
+        parameters: [
+          { name: "collection", in: "path", required: true, schema: { type: "string" } },
+        ],
         responses: {
           "200": { description: "Hadith collection" },
           "404": { description: "Not found" },
@@ -304,7 +326,11 @@ const spec = {
             type: "object",
             properties: {
               unit: { type: "string", enum: ["juz", "hizb", "page", "surah", "ayah"] },
-              units: { type: "array", items: { type: "integer" }, description: "Ordered 1-based unit indices" },
+              units: {
+                type: "array",
+                items: { type: "integer" },
+                description: "Ordered 1-based unit indices",
+              },
             },
           },
           schedule: {

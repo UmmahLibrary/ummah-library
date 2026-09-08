@@ -29,7 +29,12 @@ import type {
   HadithPlugin,
   TranslationPlugin,
 } from "@ummahlibrary/core";
-import { hadithCollectionUrl, validatePlugin } from "@ummahlibrary/core";
+import {
+  MIN_QUOTE_WORDS,
+  buildVerseHadithLinks,
+  hadithCollectionUrl,
+  validatePlugin,
+} from "@ummahlibrary/core";
 
 const DATA_VERSION = "1.0.0";
 const TOTAL_SURAHS = 114;
@@ -280,7 +285,9 @@ async function ingestHadith(): Promise<number> {
           number: h.hadithnumber,
           text: h.text.trim(),
           ...(arabic ? { arabic } : {}),
-          grades: (h.grades ?? []).map((g) => (typeof g === "string" ? g : `${g.name}: ${g.grade}`)),
+          grades: (h.grades ?? []).map((g) =>
+            typeof g === "string" ? g : `${g.name}: ${g.grade}`,
+          ),
           reference: h.reference,
         };
       });
@@ -292,7 +299,9 @@ async function ingestHadith(): Promise<number> {
     const coverage = Math.round((withArabic / hadiths.length) * 100);
     console.log(`  ${plugin.id}: ${hadiths.length} hadith · ${coverage}% Arabic`);
     if (!arabicData) {
-      console.warn(`  ⚠ ${plugin.id}: Arabic edition unavailable (${arabicUrl}) — shipping English only`);
+      console.warn(
+        `  ⚠ ${plugin.id}: Arabic edition unavailable (${arabicUrl}) — shipping English only`,
+      );
     } else if (coverage < 80) {
       // A present-but-misaligned Arabic edition would silently mis-pair text.
       throw new Error(`Arabic coverage for ${plugin.id} unexpectedly low: ${coverage}%`);
@@ -508,7 +517,9 @@ async function ingestTimings(): Promise<number> {
   try {
     execFileSync("unzip", ["-o", "-q", zipPath, "-d", tmp], { stdio: "ignore" });
   } catch {
-    throw new Error("`unzip` is required to ingest timings — install it or extract the zip manually.");
+    throw new Error(
+      "`unzip` is required to ingest timings — install it or extract the zip manually.",
+    );
   }
 
   let totalEntries = 0;
@@ -521,7 +532,9 @@ async function ingestTimings(): Promise<number> {
       const segs = e.segments;
       if (
         !Array.isArray(segs) ||
-        segs.some((s) => !Array.isArray(s) || s.length !== 4 || s.some((n) => typeof n !== "number"))
+        segs.some(
+          (s) => !Array.isArray(s) || s.length !== 4 || s.some((n) => typeof n !== "number"),
+        )
       ) {
         skipped++;
         continue;
@@ -575,6 +588,74 @@ async function ingestTimings(): Promise<number> {
   return totalEntries;
 }
 
+/**
+ * Verse → hadith links by verbatim quotation (#200, ADR 0042).
+ *
+ * Unlike every other step here this one touches **no network**: it is a pure
+ * derivation over two datasets already on disk, so it can be re-run offline
+ * whenever the matcher or its threshold changes (`--links-only`). It therefore
+ * has to run *after* the Quran and hadith steps in a full ingest.
+ */
+async function ingestVerseHadithLinks(): Promise<number> {
+  console.log("• Verse↔hadith links (verbatim quotation, ADR 0042)");
+
+  const quranFile = join(OUT, "arabic-uthmani.json");
+  const hadithDir = join(OUT, "hadiths");
+  if (!existsSync(quranFile) || !existsSync(hadithDir)) {
+    throw new Error(
+      "verse-hadith links need arabic-uthmani.json and hadiths/ on disk — run a full ingest first",
+    );
+  }
+
+  const quran = JSON.parse(readFileSync(quranFile, "utf8")) as {
+    verses: { sura: number; aya: number; text: string }[];
+  };
+
+  const hadiths: { collectionId: string; number: number; arabic?: string }[] = [];
+  for (const file of readdirSync(hadithDir).sort()) {
+    if (!file.endsWith(".json")) continue;
+    const collection = JSON.parse(readFileSync(join(hadithDir, file), "utf8")) as {
+      collectionId: string;
+      hadiths: { number: number; arabic?: string }[];
+    };
+    for (const h of collection.hadiths) {
+      hadiths.push({ collectionId: collection.collectionId, number: h.number, arabic: h.arabic });
+    }
+  }
+
+  const withArabic = hadiths.filter((h) => h.arabic).length;
+  console.log(
+    `  scanning ${hadiths.length} hadith (${withArabic} with Arabic) × ${quran.verses.length} ayahs`,
+  );
+
+  const links = buildVerseHadithLinks(quran.verses, hadiths);
+  const versesLinked = Object.keys(links).length;
+  const total = Object.values(links).reduce((sum, l) => sum + l.length, 0);
+
+  // Coverage guard, mirroring the `hadiths.length < 40` throw above: a matcher
+  // regression (a broken normaliser, an empty Arabic field) shows up as a
+  // near-empty result, and a silently empty dataset would ship a feature that
+  // renders nothing on every ayah. The bound is deliberately far below the
+  // ~1,400 links the current corpus yields, so ordinary corpus churn won't trip
+  // it — it catches breakage, not drift.
+  if (versesLinked < 100 || total < 300) {
+    throw new Error(
+      `verse-hadith links look broken: ${versesLinked} verses / ${total} links (expected far more)`,
+    );
+  }
+
+  await writeJson("verse-hadith-links.json", {
+    version: DATA_VERSION,
+    source:
+      "Derived at build time from the bundled Tanzil Uthmani text and the ingested hadith Arabic editions (fawazahmed0/hadith-api). Links are verbatim quotations only — no third-party mapping is used.",
+    minWords: MIN_QUOTE_WORDS,
+    links,
+  });
+
+  console.log(`  ✓ ${total} links across ${versesLinked} ayahs`);
+  return total;
+}
+
 async function main(): Promise<void> {
   console.log("Ingesting Quran data → datasets/\n");
 
@@ -597,6 +678,14 @@ async function main(): Promise<void> {
   if (process.argv.includes("--hadith-only")) {
     const count = await ingestHadith();
     console.log(`\nIngested ${count} hadith across the collections.\n`);
+    return;
+  }
+
+  // Fast path: rebuild only the verse↔hadith links (ADR 0042). Needs no
+  // network — it derives from datasets already on disk.
+  if (process.argv.includes("--links-only")) {
+    const count = await ingestVerseHadithLinks();
+    console.log(`\nBuilt ${count} verse↔hadith links.\n`);
     return;
   }
 
@@ -776,8 +865,11 @@ async function main(): Promise<void> {
   // 7) Hadith collections — ingested from fawazahmed0/hadith-api (ADR 0022).
   const hadithCount = await ingestHadith();
 
+  // 8) Verse↔hadith links — derived from (6) and (7), so it must run last.
+  const linkCount = await ingestVerseHadithLinks();
+
   console.log(
-    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs (Uthmani), ${timingCount} reciter-ayah timings, ${translationPlugins.length} translations, ${adhkarCount} adhkar, ${names.length} names, ${hadithCount} hadith.`,
+    `\nDone. ${surahs.length} surahs, ${arabicVerses.length} ayahs (Uthmani), ${timingCount} reciter-ayah timings, ${translationPlugins.length} translations, ${adhkarCount} adhkar, ${names.length} names, ${hadithCount} hadith, ${linkCount} verse↔hadith links.`,
   );
 }
 
