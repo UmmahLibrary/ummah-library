@@ -11,10 +11,27 @@ import { DEFAULT_LOCALE, type Locale, localeDir } from "./config";
 import { readLocale, writeLocale } from "./locale-store";
 import { MESSAGES, type MessageKey } from "./messages";
 
+/** Values substituted into a message's `{placeholder}` slots. */
+export type MessageParams = Record<string, string | number>;
+
 interface I18nValue {
   locale: Locale;
   setLocale: (next: Locale) => void;
-  t: (key: MessageKey) => string;
+  t: (key: MessageKey, params?: MessageParams) => string;
+}
+
+/**
+ * Fill `{name}` slots from `params`. Interpolation rather than concatenation is
+ * what lets a translator move the pieces: "in 5 min" is `in {time}` in English
+ * but puts the time first in Urdu, and no amount of joining strings in JSX can
+ * express that. An unmatched slot is left verbatim so a missing param is visible
+ * in the UI rather than silently blank.
+ */
+function interpolate(message: string, params?: MessageParams): string {
+  if (!params) return message;
+  return message.replace(/\{(\w+)\}/g, (whole, name: string) =>
+    name in params ? String(params[name]) : whole,
+  );
 }
 
 const I18nContext = createContext<I18nValue | null>(null);
@@ -38,7 +55,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     writeLocale(next);
   };
 
-  const t = (key: MessageKey): string => MESSAGES[locale]?.[key] ?? MESSAGES.en[key] ?? key;
+  const t = (key: MessageKey, params?: MessageParams): string =>
+    interpolate(MESSAGES[locale]?.[key] ?? MESSAGES.en[key] ?? key, params);
 
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
 }
@@ -50,6 +68,6 @@ export function useI18n(): I18nValue {
 }
 
 /** Convenience hook for components that only need the lookup. */
-export function useT(): (key: MessageKey) => string {
+export function useT(): (key: MessageKey, params?: MessageParams) => string {
   return useI18n().t;
 }

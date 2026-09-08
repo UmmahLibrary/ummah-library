@@ -94,6 +94,14 @@ const themeScript = `(function(){try{
   d.dataset.theme=t;
   d.dataset.mode=light[t]?"light":"dark";
   d.dataset.readingMode=localStorage.getItem("ul.readingMode")||"translation";
+  /* Locale before first paint (#208, ADR 0040). Without this the page renders
+     LTR/English until I18nProvider's effect runs, so an RTL locale visibly flips
+     after hydration. The direction map is mirrored from i18n/config.ts — keep the
+     two in step when a locale is added; the LanguagePicker test guards it. */
+  var rtl={ur:1,ar:1,fa:1,ps:1,ur_PK:1};
+  var loc=localStorage.getItem("ul.locale")||"en";
+  d.lang=loc;
+  d.dir=rtl[loc]?"rtl":"ltr";
   /* First-run: flag before paint so the veil covers the app until onboarding mounts */
   if(!localStorage.getItem("ul.onboarded")) d.dataset.onboard="1";
   /* Noor: set CSS var font families after font vars are available */

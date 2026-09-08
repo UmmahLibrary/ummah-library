@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { type Coordinates, compassPoint, qiblaDirection } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
 import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
+import { useT } from "../i18n/I18nProvider";
 
 const cardStyle = {
   borderRadius: 18,
@@ -24,6 +25,7 @@ const cardStyle = {
  *  prompt when no location is set yet. Mirrors `ToolsPrayerCard`'s ready/CTA
  *  split so this card never shows a number that isn't actually computed. */
 export function ToolsQiblaCard() {
+  const t = useT();
   const [coords, setCoords] = useState<Coordinates | null>(null);
 
   useEffect(() => {
@@ -103,17 +105,22 @@ export function ToolsQiblaCard() {
       {bearing !== null ? (
         <>
           <div style={{ fontSize: 16, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
-            Qibla · {Math.round(bearing)}° {compassPoint(bearing)}
+            {t("tools.qiblaBearing", {
+              degrees: Math.round(bearing),
+              point: compassPoint(bearing),
+            })}
           </div>
           <div style={{ fontSize: 13, color: N.muted, marginTop: 3, fontFamily: N.ui }}>
-            Direction to the Kaʿbah
+            {t("tools.qiblaSub")}
           </div>
         </>
       ) : (
         <>
-          <div style={{ fontSize: 16, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>Qibla</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
+            {t("nav.qibla")}
+          </div>
           <div style={{ fontSize: 13, color: N.muted, marginTop: 3, fontFamily: N.ui }}>
-            Set your location to see the direction
+            {t("tools.qiblaNoLocation")}
           </div>
         </>
       )}
