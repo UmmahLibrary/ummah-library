@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MergeStrategy } from "@ummahlibrary/core";
 import { clearAllData, collectLocalData, exportBackup, importBackup } from "../lib/backup";
 import { N } from "@ummahlibrary/ui";
+import { useT } from "../i18n/I18nProvider";
 
 const lcard = { background: N.card, border: `1px solid ${N.border}`, borderRadius: 16 } as const;
 
@@ -26,6 +27,7 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
 }
 
 export function DataBackup() {
+  const t = useT();
   const [strategy, setStrategy] = useState<MergeStrategy>("replace");
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [itemCount, setItemCount] = useState<number | null>(null);
@@ -47,7 +49,7 @@ export function DataBackup() {
   }
 
   function onClear() {
-    if (!confirm("Erase all Ummah Library data on this device? This can’t be undone.")) return;
+    if (!confirm(t("backup.eraseConfirm"))) return;
     const n = clearAllData();
     setStatus({ ok: true, message: `Cleared ${n} items. Reload to start fresh.` });
   }
@@ -67,12 +69,19 @@ export function DataBackup() {
 
   return (
     <div>
-      <p style={{ fontSize: 14.5, color: N.muted, lineHeight: 1.65, margin: "0 0 20px", fontFamily: N.ui }}>
-        Everything you do here stays on this device — no account, no server. Export a backup file to
-        move your data to another device or keep it safe; import it to restore.
+      <p
+        style={{
+          fontSize: 14.5,
+          color: N.muted,
+          lineHeight: 1.65,
+          margin: "0 0 20px",
+          fontFamily: N.ui,
+        }}
+      >
+        {t("backup.intro")}
       </p>
 
-      <GroupLabel>Your data</GroupLabel>
+      <GroupLabel>{t("backup.yourData")}</GroupLabel>
       <div style={{ ...lcard, padding: 20, marginBottom: 22 }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button
@@ -93,7 +102,7 @@ export function DataBackup() {
               fontFamily: N.ui,
             }}
           >
-            ⬇ Export my data
+            {t("backup.export")}
           </button>
           <button
             type="button"
@@ -113,23 +122,45 @@ export function DataBackup() {
               fontFamily: N.ui,
             }}
           >
-            ⬆ Import a backup
+            {t("backup.import")}
           </button>
-          <input ref={fileInput} type="file" accept="application/json,.json" onChange={onFile} hidden />
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            onChange={onFile}
+            hidden
+          />
         </div>
       </div>
 
-      <GroupLabel>On import</GroupLabel>
+      <GroupLabel>{t("backup.onImport")}</GroupLabel>
       <div style={{ ...lcard, padding: 20, marginBottom: 22 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button type="button" style={pill(strategy === "replace")} onClick={() => setStrategy("replace")}>
-            Replace my data
+          <button
+            type="button"
+            style={pill(strategy === "replace")}
+            onClick={() => setStrategy("replace")}
+          >
+            {t("backup.replace")}
           </button>
-          <button type="button" style={pill(strategy === "keep-mine")} onClick={() => setStrategy("keep-mine")}>
-            Keep mine on conflict
+          <button
+            type="button"
+            style={pill(strategy === "keep-mine")}
+            onClick={() => setStrategy("keep-mine")}
+          >
+            {t("backup.keepMine")}
           </button>
         </div>
-        <p style={{ fontSize: 13, color: N.faint, lineHeight: 1.6, margin: "14px 0 0", fontFamily: N.ui }}>
+        <p
+          style={{
+            fontSize: 13,
+            color: N.faint,
+            lineHeight: 1.6,
+            margin: "14px 0 0",
+            fontFamily: N.ui,
+          }}
+        >
           {strategy === "replace"
             ? "The backup fully restores your data, overwriting what’s here."
             : "The backup only fills in things you don’t already have."}
@@ -149,9 +180,19 @@ export function DataBackup() {
         </p>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
         <span style={{ fontSize: 13, color: N.faint, fontFamily: N.ui }}>
-          {itemCount ?? "—"} item{itemCount === 1 ? "" : "s"} stored on this device.
+          {t(itemCount === 1 ? "backup.itemsStored.one" : "backup.itemsStored.other", {
+            count: itemCount ?? "—",
+          })}
         </span>
         <button
           type="button"
@@ -168,12 +209,20 @@ export function DataBackup() {
             fontFamily: N.ui,
           }}
         >
-          Erase all data
+          {t("backup.erase")}
         </button>
       </div>
 
-      <div style={{ textAlign: "center", fontSize: 12.5, color: N.faint, marginTop: 28, fontFamily: N.ui }}>
-        Ummah Library · local-first · Free &amp; open source
+      <div
+        style={{
+          textAlign: "center",
+          fontSize: 12.5,
+          color: N.faint,
+          marginTop: 28,
+          fontFamily: N.ui,
+        }}
+      >
+        {t("backup.footer")}
       </div>
     </div>
   );

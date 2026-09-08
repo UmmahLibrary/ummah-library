@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { I18nProvider } from "../i18n/I18nProvider";
 import userEvent from "@testing-library/user-event";
 import { DataBackup } from "./DataBackup";
 
 describe("DataBackup", () => {
   it("explains the merge strategy and switches copy when toggled", async () => {
-    render(<DataBackup />);
+    render(<DataBackup />, { wrapper: I18nProvider });
 
     // Defaults to "replace".
     expect(screen.getByText(/fully restores your data/)).toBeInTheDocument();
@@ -21,7 +22,7 @@ describe("DataBackup", () => {
     localStorage.setItem("ul.beta", "2");
     localStorage.setItem("other.key", "ignored"); // not ul.* — excluded from the count
 
-    render(<DataBackup />);
+    render(<DataBackup />, { wrapper: I18nProvider });
 
     // The count is read after mount to avoid a hydration mismatch.
     expect(await screen.findByText(/2 items stored on this device/)).toBeInTheDocument();

@@ -18,6 +18,16 @@ import ts from "typescript";
  *
  * Scope: it checks the files claimed to be done, not the ones that aren't. It is
  * a ratchet, not a coverage metric.
+ *
+ * Known blind spot: it sees JSX text and user-facing JSX attributes, so a string
+ * living in a **data array** — `const GROUPS = [{ label: "Dark" }]`, a theme
+ * description, an options list — passes even though a reader still sees English.
+ * That is not hypothetical: the theme picker's group labels and palette
+ * descriptions were missed exactly this way and had to be caught by eye. Widening
+ * the check to every string literal would flag ids, CSS values and test data, so
+ * the honest position is that this catches the common case and a human still
+ * reads the screen once. Anything found by eye should be added to a file's
+ * coverage here so it cannot regress.
  */
 
 /** Files whose user-visible strings have been extracted into `messages.ts`. */
@@ -28,6 +38,10 @@ const LOCALIZED = [
   "app/tools/page.tsx",
   "components/ToolsPrayerCard.tsx",
   "components/ToolsQiblaCard.tsx",
+  "components/ThemePicker.tsx",
+  "components/DataBackup.tsx",
+  "components/SyncSettings.tsx",
+  "components/LanguagePicker.tsx",
 ];
 
 /** Attributes that reach the user as prose and must therefore be translated. */
