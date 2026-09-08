@@ -42,7 +42,13 @@ function BarBtn({
         border: "none",
         cursor: "pointer",
         padding: 0,
-        color: active ? N.gold : N.faint,
+        // `muted`, not `faint`: while a panel is open this row sits on the
+        // *highlighted* ayah background, where faint measures 4.27:1 at 12.5px —
+        // under WCAG AA. Muted clears it at 6.2:1 on the same ground. The
+        // at-rest axe sweep could not see this because the row is only
+        // highlighted once a panel is toggled; `e2e/a11y.spec.ts` now scans that
+        // state too.
+        color: active ? N.gold : N.muted,
         fontFamily: N.ui,
         fontSize: 12.5,
         fontWeight: 600,
@@ -59,6 +65,10 @@ function MenuRow({ icon, label, onClick }: { icon: IconName; label: string; onCl
   return (
     <button
       type="button"
+      // The container is `role="menu"`, which ARIA requires to hold `menuitem`
+      // children — without this the menu is a critical `aria-required-children`
+      // violation and a screen reader announces a menu with nothing in it.
+      role="menuitem"
       onClick={onClick}
       style={{
         display: "flex",
@@ -129,7 +139,9 @@ export function AyahActions({
     const block = containerRef.current?.closest<HTMLElement>(".ayah");
     if (!block) return;
     block.classList.toggle("ayah-hifz", tracked);
-    return () => { block.classList.remove("ayah-hifz"); };
+    return () => {
+      block.classList.remove("ayah-hifz");
+    };
   }, [tracked]);
 
   function flash(message: string) {
@@ -165,7 +177,9 @@ export function AyahActions({
   function readAyahText(): { arabic: string; translations: string[] } {
     const block = document.getElementById(`${surah}:${aya}`);
     if (!block) return { arabic: "", translations: [] };
-    const arEl = block.querySelector<HTMLElement>(".ayah-ar")?.cloneNode(true) as HTMLElement | null;
+    const arEl = block
+      .querySelector<HTMLElement>(".ayah-ar")
+      ?.cloneNode(true) as HTMLElement | null;
     arEl?.querySelector(".ayah-marker")?.remove();
     const arabic = arEl?.textContent?.trim() ?? "";
     const translations = [...block.querySelectorAll<HTMLElement>(".ayah-tr")].map((node) => {
@@ -255,9 +269,19 @@ export function AyahActions({
           aria-expanded={saveOpen}
           onClick={openSave}
         />
-        <BarBtn icon="tafsir" label="Tafsir" active={tafsirOpen} onClick={() => setTafsirOpen((o) => !o)} />
+        <BarBtn
+          icon="tafsir"
+          label="Tafsir"
+          active={tafsirOpen}
+          onClick={() => setTafsirOpen((o) => !o)}
+        />
         <div style={{ position: "relative", display: "inline-flex" }}>
-          <BarBtn icon="more" label="More" active={moreOpen} onClick={() => setMoreOpen((o) => !o)} />
+          <BarBtn
+            icon="more"
+            label="More"
+            active={moreOpen}
+            onClick={() => setMoreOpen((o) => !o)}
+          />
           {moreOpen && (
             <>
               <div
@@ -326,7 +350,11 @@ export function AyahActions({
             )}
             {collections.map((c) => (
               <label key={c.id} className="ayah-save-col">
-                <input type="checkbox" checked={savedIds.has(c.id)} onChange={() => toggleCol(c.id)} />
+                <input
+                  type="checkbox"
+                  checked={savedIds.has(c.id)}
+                  onChange={() => toggleCol(c.id)}
+                />
                 <span>{c.name}</span>
               </label>
             ))}
@@ -341,7 +369,12 @@ export function AyahActions({
                 if (e.key === "Enter" && newName.trim()) addCollection();
               }}
             />
-            <button type="button" className="hifz-btn" disabled={!newName.trim()} onClick={addCollection}>
+            <button
+              type="button"
+              className="hifz-btn"
+              disabled={!newName.trim()}
+              onClick={addCollection}
+            >
               Add
             </button>
           </div>

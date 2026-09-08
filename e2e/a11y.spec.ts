@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 /**
@@ -53,36 +54,105 @@ const ROUTES = [
   "/blog",
 ];
 
+/** Scan the current page state and return one line per violation. */
+async function scan(page: Page): Promise<string[]> {
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  // Name the rule and the offending markup in the failure message — an
+  // assertion that only says "expected 0, got 3" costs a debugging round.
+  return violations.map(
+    (v) =>
+      `${v.id} [${v.impact}] ${v.nodes.length} node(s)\n` +
+      v.nodes.map((n) => `      ${n.html.replace(/\s+/g, " ").slice(0, 160)}`).join("\n"),
+  );
+}
+
+/** Settle a route: hydration finishes well after `load` on the heavy pages. */
+async function settle(page: Page): Promise<void> {
+  // Deliberately NOT `networkidle`: the reader routes never reach it. The audio
+  // dock prefetches, translations stream in per ayah, and word timings load
+  // lazily, so /surah, /juz and /tafsir keep a request in flight past any
+  // timeout. Wait for `load`, then give hydration a bounded settle.
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(2000);
+}
+
 test.describe("Accessibility (axe, WCAG 2.1 A/AA)", () => {
   for (const route of ROUTES) {
     test(`${route} has no WCAG A/AA violations`, async ({ page }) => {
       // A cold `next dev` compile of a heavy route under CI load can be slow.
       test.slow();
       await page.goto(route);
-
       // Client components hydrate after first paint and several of these routes
       // render their real content only then (trackers read localStorage, the
       // reader mounts its audio dock). Scanning before that measures a skeleton.
-      //
-      // Deliberately NOT `networkidle`: the reader routes never reach it. The
-      // audio dock prefetches, translations stream in per ayah, and word timings
-      // load lazily, so /surah, /juz and /tafsir keep a request in flight past
-      // any timeout. Wait for `load`, then give hydration a bounded settle.
-      await page.waitForLoadState("load");
-      await page.waitForTimeout(2000);
+      await settle(page);
 
-      const { violations } = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-        .analyze();
-
-      // Name the rule and the offending markup in the failure message — an
-      // assertion that only says "expected 0, got 3" costs a debugging round.
-      const summary = violations.map(
-        (v) =>
-          `${v.id} [${v.impact}] ${v.nodes.length} node(s)\n` +
-          v.nodes.map((n) => `      ${n.html.replace(/\s+/g, " ").slice(0, 160)}`).join("\n"),
-      );
+      const summary = await scan(page);
       expect(summary, `axe violations on ${route}:\n  ${summary.join("\n  ")}`).toEqual([]);
+    });
+  }
+});
+
+/**
+ * Panels, menus and sheets are closed when a page is at rest, so the sweep above
+ * never sees them — a real blind spot, not a theoretical one. Opening the ayah
+ * Tafsir panel puts the action row on the *highlighted* ayah background, where
+ * the faint token measured 4.27:1 at 12.5px: a WCAG AA failure that sat on every
+ * reader page and that the at-rest sweep reported as clean.
+ *
+ * So the toggled states get scanned too. The reader carries the densest cluster
+ * of them, which is why it is the page used here.
+ */
+test.describe("Accessibility — opened panels and menus", () => {
+  const TOGGLES: Array<{
+    name: string;
+    open: (page: Page) => Promise<void>;
+  }> = [
+    {
+      name: "Tafsir panel",
+      open: async (page) => {
+        await page
+          .getByRole("button", { name: /^Tafsir$/ })
+          .first()
+          .click();
+      },
+    },
+    {
+      name: "Save-to-collection panel",
+      open: async (page) => {
+        await page
+          .getByRole("button", { name: /^Save$/ })
+          .first()
+          .click();
+      },
+    },
+    {
+      name: "More menu",
+      open: async (page) => {
+        await page
+          .getByRole("button", { name: /^More$/ })
+          .first()
+          .click();
+      },
+    },
+  ];
+
+  for (const { name, open } of TOGGLES) {
+    test(`${name} has no WCAG A/AA violations when open`, async ({ page }) => {
+      test.slow();
+      await page.goto("/surah/2");
+      await settle(page);
+
+      await open(page);
+      // The panel's own content can load asynchronously (tafsir fetches).
+      await page.waitForTimeout(2500);
+
+      const summary = await scan(page);
+      expect(summary, `axe violations with the ${name} open:\n  ${summary.join("\n  ")}`).toEqual(
+        [],
+      );
     });
   }
 });

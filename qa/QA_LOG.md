@@ -956,3 +956,30 @@ white days in the window.
 labels). It is a floor, not a substitute for keyboard and screen-reader passes,
 and the June audit's `link-text`/`button-name` findings were partly heuristics
 axe does not reproduce.
+
+### Follow-up — the gate had a blind spot (2026-09-03, same day)
+
+Building the related-hadith panel (#200) surfaced a WCAG AA failure the axe gate
+had just declared clean: with **any ayah panel open**, the action row sits on the
+_highlighted_ ayah background (`#242017`), where `--noor-faint` measures
+**4.27:1** at 12.5px. Reproduced from the pre-existing Tafsir toggle, so it was
+never specific to the new feature — it sat on every reader page.
+
+The gate missed it because it scanned pages **at rest**. Panels, menus and sheets
+are closed then, so a whole class of state-dependent failures was invisible.
+
+`e2e/a11y.spec.ts` now scans toggled states as well (Tafsir panel, Save panel,
+More menu). That immediately found a second defect the at-rest sweep never saw:
+
+- **`aria-required-children` [critical]** — the ayah "More" menu is
+  `role="menu"`, which ARIA requires to contain `menuitem` children, but its rows
+  were plain buttons. A screen reader announced a menu with nothing in it.
+  Fixed with `role="menuitem"` on `MenuRow`.
+
+Both fixed; the action row moved from the faint to the muted token (6.2:1 on the
+same ground). **31/31 green** — 28 routes at rest plus 3 toggled states.
+
+Lesson worth keeping: an accessibility sweep that only measures the resting page
+overstates its own coverage. The two defects here were both reachable in one
+click from the reader, and the first had survived a Lighthouse audit _and_ the
+initial axe gate.
