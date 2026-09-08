@@ -61,7 +61,7 @@ export const appRouter = t.router({
     .query(({ input }) => hadithRepository.getSection(input.collection, input.section)),
 
   /**
-   * Hadith that verbatim quote a given ayah (#200, ADR 0041). Resolved from the
+   * Hadith that verbatim quote a given ayah (#200, ADR 0042). Resolved from the
    * bundled link dataset joined to the bundled hadith text — no network.
    */
   getRelatedHadith: t.procedure

@@ -175,7 +175,7 @@ export interface HadithRepository {
 }
 
 /**
- * Verse → hadith links (#200, ADR 0041). Links are **verbatim quotations**: a
+ * Verse → hadith links (#200, ADR 0042). Links are **verbatim quotations**: a
  * hadith appears under an ayah only when its Arabic contains a contiguous run of
  * that ayah's words. Generated at build time from the two corpora we already
  * ship, so a lookup needs no network and works offline.

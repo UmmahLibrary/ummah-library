@@ -55,7 +55,7 @@ export const hadithRepository: HadithRepository = new FileHadithRepository();
 
 /**
  * Verse→hadith links by verbatim quotation, from the generated dataset — see
- * ADR 0041. Holds references only; `relatedHadith` below joins them to the text
+ * ADR 0042. Holds references only; `relatedHadith` below joins them to the text
  * in `hadithRepository`.
  */
 export const verseHadithLinkRepository: VerseHadithLinkRepository =

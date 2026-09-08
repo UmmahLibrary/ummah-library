@@ -1,5 +1,5 @@
 /**
- * Verse↔hadith links by **verbatim quotation** (#200, ADR 0041).
+ * Verse↔hadith links by **verbatim quotation** (#200, ADR 0042).
  *
  * A hadith is linked to an ayah only when its Arabic text contains a contiguous
  * run of that ayah's own words. That is a *factual* claim about two texts we

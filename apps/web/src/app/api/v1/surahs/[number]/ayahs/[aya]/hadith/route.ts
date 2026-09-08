@@ -3,7 +3,7 @@ import { relatedHadith } from "@ummahlibrary/api";
 import { apiJson } from "../../../../../../../../lib/api-response";
 
 /**
- * Hadith that verbatim quote an ayah (#200, ADR 0041).
+ * Hadith that verbatim quote an ayah (#200, ADR 0042).
  *
  * Dynamic rather than prerendered: only 411 of 6,236 ayahs carry links, so
  * statically generating all 6,236 would spend most of the build writing empty

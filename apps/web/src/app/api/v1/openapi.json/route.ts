@@ -69,7 +69,7 @@ const spec = {
     },
     "/surahs/{number}/ayahs/{aya}/hadith": {
       get: {
-        summary: "Hadith that verbatim quote an ayah (ADR 0041)",
+        summary: "Hadith that verbatim quote an ayah (ADR 0042)",
         description:
           "Links are generated, not curated: a hadith is listed when its Arabic contains a contiguous run of at least six of the ayah's words. Each entry carries the shared span as evidence. Most ayahs have no links.",
         parameters: [

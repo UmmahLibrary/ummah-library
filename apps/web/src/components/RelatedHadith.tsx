@@ -48,7 +48,7 @@ const GRADE_COLOR: Record<HadithGrade, string> = {
 };
 
 /**
- * Hadith that quote this āyah (#200, ADR 0041), mirroring the Tafsir panel's
+ * Hadith that quote this āyah (#200, ADR 0042), mirroring the Tafsir panel's
  * toggle-and-panel shape.
  *
  * These links are **generated, not curated** — a hadith appears here because its

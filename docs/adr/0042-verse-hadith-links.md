@@ -1,4 +1,4 @@
-# ADR 0041 — Verse↔hadith links: a derived quotation index, not an ingested mapping
+# ADR 0042 — Verse↔hadith links: a derived quotation index, not an ingested mapping
 
 - **Status:** Accepted
 - **Date:** 2026-09-03

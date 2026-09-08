@@ -589,7 +589,7 @@ async function ingestTimings(): Promise<number> {
 }
 
 /**
- * Verse → hadith links by verbatim quotation (#200, ADR 0041).
+ * Verse → hadith links by verbatim quotation (#200, ADR 0042).
  *
  * Unlike every other step here this one touches **no network**: it is a pure
  * derivation over two datasets already on disk, so it can be re-run offline
@@ -597,7 +597,7 @@ async function ingestTimings(): Promise<number> {
  * has to run *after* the Quran and hadith steps in a full ingest.
  */
 async function ingestVerseHadithLinks(): Promise<number> {
-  console.log("• Verse↔hadith links (verbatim quotation, ADR 0041)");
+  console.log("• Verse↔hadith links (verbatim quotation, ADR 0042)");
 
   const quranFile = join(OUT, "arabic-uthmani.json");
   const hadithDir = join(OUT, "hadiths");
@@ -681,7 +681,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Fast path: rebuild only the verse↔hadith links (ADR 0041). Needs no
+  // Fast path: rebuild only the verse↔hadith links (ADR 0042). Needs no
   // network — it derives from datasets already on disk.
   if (process.argv.includes("--links-only")) {
     const count = await ingestVerseHadithLinks();

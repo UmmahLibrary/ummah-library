@@ -173,7 +173,7 @@ a hadith repeats at least six consecutive words of an ayah.
 
 - **Method:** verbatim quotation only, computed by `buildVerseHadithLinks` in
   `packages/core/src/verse-hadith.ts`. No topical or interpretive links are
-  produced. See **ADR 0041**.
+  produced. See **ADR 0042**.
 - **Licensing:** carries the licences of its two inputs (Tanzil for the Qurʾānic
   text, the hadith editions' own terms — see above); nothing new is redistributed.
 - **Regenerate:** `pnpm --filter @ummahlibrary/data ingest -- --links-only`
