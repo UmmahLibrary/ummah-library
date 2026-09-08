@@ -3,26 +3,35 @@ import Link from "next/link";
 import { N } from "@ummahlibrary/ui";
 import { ToolsPrayerCard } from "../../components/ToolsPrayerCard";
 import { ToolsQiblaCard } from "../../components/ToolsQiblaCard";
+import { useT } from "../../i18n/I18nProvider";
+import type { MessageKey } from "../../i18n/messages";
 
-const TOOLS = [
-  { key: "/prayer-times", label: "Prayer Times", glyph: "🕌", note: "Daily salah times" },
-  { key: "/ramadan", label: "Ramadan", glyph: "🌙", note: "Suḥūr & iftār times" },
-  { key: "/tracker", label: "Prayer Tracker", glyph: "📿", note: "Log & build streaks" },
-  { key: "/duas", label: "Duʿās", glyph: "🤲", note: "Fortress of the Muslim" },
-  { key: "/plans", label: "Reading Plans", glyph: "🗺", note: "Structured journeys" },
-  { key: "/qibla", label: "Qibla", glyph: "🧭", note: "Direction to Makkah" },
-  { key: "/mosques", label: "Nearby Mosques", glyph: "📍", note: "Find a place to pray" },
-  { key: "/hifz", label: "Hifz Review", glyph: "✦", note: "Spaced repetition" },
-  { key: "/calendar", label: "Hijri Calendar", glyph: "☾", note: "Islamic dates" },
-  { key: "/names", label: "99 Names", glyph: "﷽", note: "Al-Asmāʾ al-Ḥusnā" },
-  { key: "/tasbih", label: "Tasbih", glyph: "◍", note: "Dhikr counter" },
-  { key: "/adhkar", label: "Adhkār", glyph: "☼", note: "Morning · Evening" },
-  { key: "/zakat", label: "Zakat", glyph: "⊜", note: "2.5% calculator" },
-  { key: "/hadith", label: "Hadith", glyph: "📖", note: "Search the collections" },
-  { key: "/downloads", label: "Downloads", glyph: "⤓", note: "Offline reciter audio" },
+// Label and note resolve through i18n (#208); the glyph and href are content.
+const TOOLS: Array<{ key: string; labelKey: MessageKey; glyph: string; noteKey: MessageKey }> = [
+  {
+    key: "/prayer-times",
+    labelKey: "nav.prayerTimes",
+    glyph: "🕌",
+    noteKey: "tools.note.prayerTimes",
+  },
+  { key: "/ramadan", labelKey: "nav.ramadan", glyph: "🌙", noteKey: "tools.note.ramadan" },
+  { key: "/tracker", labelKey: "nav.tracker", glyph: "📿", noteKey: "tools.note.tracker" },
+  { key: "/duas", labelKey: "nav.duas", glyph: "🤲", noteKey: "tools.note.duas" },
+  { key: "/plans", labelKey: "nav.plans", glyph: "🗺", noteKey: "tools.note.plans" },
+  { key: "/qibla", labelKey: "nav.qibla", glyph: "🧭", noteKey: "tools.note.qibla" },
+  { key: "/mosques", labelKey: "nav.mosques", glyph: "📍", noteKey: "tools.note.mosques" },
+  { key: "/hifz", labelKey: "nav.hifz", glyph: "✦", noteKey: "tools.note.hifz" },
+  { key: "/calendar", labelKey: "nav.calendar", glyph: "☾", noteKey: "tools.note.calendar" },
+  { key: "/names", labelKey: "nav.names", glyph: "﷽", noteKey: "tools.note.names" },
+  { key: "/tasbih", labelKey: "nav.tasbih", glyph: "◍", noteKey: "tools.note.tasbih" },
+  { key: "/adhkar", labelKey: "nav.adhkar", glyph: "☼", noteKey: "tools.note.adhkar" },
+  { key: "/zakat", labelKey: "nav.zakat", glyph: "⊜", noteKey: "tools.note.zakat" },
+  { key: "/hadith", labelKey: "nav.hadith", glyph: "📖", noteKey: "tools.note.hadith" },
+  { key: "/downloads", labelKey: "nav.downloads", glyph: "⤓", noteKey: "tools.note.downloads" },
 ];
 
 export default function ToolsPage() {
+  const t = useT();
   return (
     <div
       className="noor-scroll"
@@ -45,10 +54,10 @@ export default function ToolsPage() {
             fontFamily: N.ui,
           }}
         >
-          Worship &amp; Tools
+          {t("tools.title")}
         </h1>
         <div style={{ fontSize: 14, color: N.muted, marginBottom: 24, fontFamily: N.ui }}>
-          Everything for your day, in one place.
+          {t("tools.subtitle")}
         </div>
 
         {/* Featured cards */}
@@ -69,7 +78,7 @@ export default function ToolsPage() {
 
         {/* All tools grid */}
         <div style={{ fontSize: 16, fontWeight: 700, margin: "10px 0 14px", fontFamily: N.ui }}>
-          All tools
+          {t("tools.all")}
         </div>
         <div
           style={{
@@ -78,10 +87,10 @@ export default function ToolsPage() {
             gap: 12,
           }}
         >
-          {TOOLS.map((t) => (
+          {TOOLS.map((tool) => (
             <Link
-              key={t.key}
-              href={t.key}
+              key={tool.key}
+              href={tool.key}
               style={{
                 padding: "18px 16px",
                 borderRadius: 14,
@@ -91,12 +100,12 @@ export default function ToolsPage() {
                 transition: "border-color .15s",
               }}
             >
-              <div style={{ fontSize: 24, marginBottom: 10 }}>{t.glyph}</div>
+              <div style={{ fontSize: 24, marginBottom: 10 }}>{tool.glyph}</div>
               <div style={{ fontSize: 14.5, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
-                {t.label}
+                {t(tool.labelKey)}
               </div>
               <div style={{ fontSize: 12.5, color: N.faint, marginTop: 2, fontFamily: N.ui }}>
-                {t.note}
+                {t(tool.noteKey)}
               </div>
             </Link>
           ))}

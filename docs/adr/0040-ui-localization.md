@@ -8,7 +8,7 @@
 
 Every UI string is hardcoded English inline in JSX, and `<html lang>` is fixed to
 `en`. Readers want the **interface** in their own language (Urdu, Arabic, …). This
-is separate from Quran/translation *content*, which already has its own edition
+is separate from Quran/translation _content_, which already has its own edition
 system — here we localize only the app's own chrome.
 
 ## Decision
@@ -39,7 +39,7 @@ remaining UI strings is incremental follow-up under #208 — each screen swaps i
 literals for `t()` keys with no further architecture change.
 
 The Urdu strings are a **first pass flagged for native review**; the deliverable
-here is the localization *infrastructure*, not authoritative translations, so this
+here is the localization _infrastructure_, not authoritative translations, so this
 carries `needs-scholar-review` for the language content.
 
 **Phase 4 (mobile + extension parity)** is also landed: each platform gets its
@@ -72,9 +72,57 @@ duplication mirrors how reciter/plugin manifests are already mirrored into
 
 - **Good:** the app can be localized incrementally; RTL is handled app-wide by one
   `dir` switch; completeness is compiler-enforced; the choice is device-local.
-- **Cost:** a brief first-paint in the default locale before the saved locale
-  applies (the provider reads `localStorage` after mount, like the theme did
-  before its inline script). An inline pre-hydration locale script is a later
-  refinement if the RTL flash matters.
+- ~~**Cost:** a brief first-paint in the default locale before the saved locale
+  applies… An inline pre-hydration locale script is a later refinement if the RTL
+  flash matters.~~ **Resolved 2026-09-03 — the script is in.** `layout.tsx` now
+  sets `<html lang>`/`<html dir>` from `ul.locale` in the same pre-paint inline
+  script the theme already used, so an RTL locale no longer flips after
+  hydration. The script cannot import `config.ts`, so it carries its own
+  direction map; `i18n/locale-script.test.ts` fails if that map and `LOCALES`
+  drift apart (same seam as the generated-theme-CSS drift test, ADR 0027).
+  Message _text_ still renders in the default locale until hydration — that part
+  is inherent to reading the choice from `localStorage` under SSR, and would need
+  a cookie to fix.
 - **Content vs. chrome:** deliberately does **not** touch Quran/translation text —
   those stay on their edition system.
+
+## Rollout progress (amended 2026-09-03)
+
+Phase 0–1 landed the infrastructure with a **starter slice** of ~52 keys. Taking
+stock: only **3 of 174** web components consumed `t()`, so a reader who switched
+to Urdu got an RTL layout wrapped around an almost entirely English app. Three
+decisions came out of continuing the sweep.
+
+**1. The sweep ratchets, enforced by a test.** The risk in a ~170-component sweep
+is not the work, it's drift behind it — a file gets extracted, then a later PR
+adds a hardcoded label and nobody notices until someone switches language.
+`i18n/localized-files.test.ts` holds the list of files whose strings have been
+extracted and parses each with the TypeScript compiler, failing on any JSX text
+node or user-facing attribute (`placeholder`, `title`, `aria-label`, `alt`) given
+a bare literal. Files not yet swept are simply absent, so it never blocks work on
+them. Deliberate exceptions (a `⌘K` glyph, a placeholder avatar initial) sit in an
+`ALLOWED` map **with a stated reason**, so each one is an argued decision rather
+than a silent gap.
+
+**2. `t()` interpolates.** The catalogue was key→string only, which is enough for
+labels and nothing else. Real strings carry values — "in 5 min", "Qibla · 118°
+SE" — and building those by concatenating JSX fragments bakes in English word
+order: Urdu puts the time before "میں", and no amount of joining strings can
+express that. `t(key, params)` fills `{name}` slots; an unmatched slot is left
+verbatim so a missing parameter is visible rather than silently blank.
+
+**3. Server components are out of scope for this mechanism.** `t()` is a client
+hook, so a page that exports `metadata` (e.g. `app/settings/page.tsx`) cannot use
+it. Localizing those needs a separate decision — a server-side locale source,
+which means a cookie, which is a change to the local-first no-server-state
+posture (ADR 0006) and deserves its own ADR. The sweep therefore covers **client
+components only**; server-rendered page chrome and `metadata` stay English for now.
+
+**Swept so far:** the app shell (`Sidebar`, `TabBar`, `TopBar`) and the Tools hub
+(`app/tools/page.tsx` plus its two featured cards). The shell is the highest-value
+slice because it renders on every route. The Gregorian date in `TopBar` was also
+pinned to `en-GB` regardless of interface language, and now formats in the active
+locale.
+
+Urdu strings remain a first pass flagged for native review, per the original
+decision.

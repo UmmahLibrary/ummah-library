@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { I18nProvider } from "../../i18n/I18nProvider";
 import userEvent from "@testing-library/user-event";
 
 // Capture router.push; usePathname stays on the Hub so focus doesn't navigate.
@@ -15,9 +16,11 @@ import { TopBar } from "./TopBar";
 describe("TopBar", () => {
   it("submitting the search navigates to the results page", async () => {
     render(
-      <SearchProvider>
-        <TopBar />
-      </SearchProvider>,
+      <I18nProvider>
+        <SearchProvider>
+          <TopBar />
+        </SearchProvider>
+      </I18nProvider>,
     );
 
     await userEvent.type(screen.getByPlaceholderText(/Search the Quran/), "mercy{Enter}");
@@ -27,9 +30,11 @@ describe("TopBar", () => {
 
   it("links to the blog", () => {
     render(
-      <SearchProvider>
-        <TopBar />
-      </SearchProvider>,
+      <I18nProvider>
+        <SearchProvider>
+          <TopBar />
+        </SearchProvider>
+      </I18nProvider>,
     );
 
     expect(screen.getByTitle("Read the blog")).toHaveAttribute("href", "/blog");

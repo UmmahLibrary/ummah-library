@@ -78,33 +78,41 @@ export function ProfileView() {
   useEffect(() => {
     const t = today();
     const hifzStreak = getStreak().count;
-    void Promise.all([readReadingState(), readCollections(), readPrayerLog(), readAcknowledged()]).then(
-      ([reading, collections, log, ack]) => {
-        const prayer = prayerStreak(log, t);
-        const next: Stats = {
+    void Promise.all([
+      readReadingState(),
+      readCollections(),
+      readPrayerLog(),
+      readAcknowledged(),
+    ]).then(([reading, collections, log, ack]) => {
+      const prayer = prayerStreak(log, t);
+      const next: Stats = {
+        hifzStreak,
+        memorized: allRecords().length,
+        surahsStarted: surahProgressMap(allRecords(), new Date()).size,
+        prayerStreak: prayer,
+        names: countLearned(),
+        saved: totalSavedAyahs(collections),
+        bestStreak: Math.max(
           hifzStreak,
-          memorized: allRecords().length,
-          surahsStarted: surahProgressMap(allRecords(), new Date()).size,
-          prayerStreak: prayer,
-          names: countLearned(),
-          saved: totalSavedAyahs(collections),
-          bestStreak: Math.max(hifzStreak, prayer, longestStreak(log), computeStreak(reading.activeDates, t)),
-        };
-        setS(next);
+          prayer,
+          longestStreak(log),
+          computeStreak(reading.activeDates, t),
+        ),
+      };
+      setS(next);
 
-        const bs = toBadgeStats(next);
-        const fresh = newlyUnlocked(bs, ack);
-        if (fresh.length > 0) {
-          const first = fresh[0];
-          setToast(
-            fresh.length === 1 && first
-              ? `🎉 Unlocked: ${first.name}`
-              : `🎉 ${fresh.length} new badges unlocked!`,
-          );
-          void acknowledge(unlockedIds(bs));
-        }
-      },
-    );
+      const bs = toBadgeStats(next);
+      const fresh = newlyUnlocked(bs, ack);
+      if (fresh.length > 0) {
+        const first = fresh[0];
+        setToast(
+          fresh.length === 1 && first
+            ? `🎉 Unlocked: ${first.name}`
+            : `🎉 ${fresh.length} new badges unlocked!`,
+        );
+        void acknowledge(unlockedIds(bs));
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -141,7 +149,10 @@ export function ProfileView() {
           overflow: "hidden",
         }}
       >
-        <div aria-hidden="true" style={{ position: "absolute", right: -34, bottom: -40, pointerEvents: "none" }}>
+        <div
+          aria-hidden="true"
+          style={{ position: "absolute", right: -34, bottom: -40, pointerEvents: "none" }}
+        >
           <Khatam size={150} color={N.gold} sw={1.1} opacity={0.08} />
         </div>
         <div
@@ -158,7 +169,15 @@ export function ProfileView() {
           <Khatam size={34} color={N.ink} sw={2} />
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.5, color: N.fg, fontFamily: N.ui }}>
+          <div
+            style={{
+              fontSize: 21,
+              fontWeight: 800,
+              letterSpacing: -0.5,
+              color: N.fg,
+              fontFamily: N.ui,
+            }}
+          >
             Your journey
           </div>
           <div style={{ fontSize: 13.5, color: N.muted, marginTop: 3, fontFamily: N.ui }}>
@@ -178,12 +197,27 @@ export function ProfileView() {
         {statCards.map(([v, l]) => (
           <div
             key={l}
-            style={{ background: N.card, border: `1px solid ${N.border}`, borderRadius: 14, padding: "16px 18px" }}
+            style={{
+              background: N.card,
+              border: `1px solid ${N.border}`,
+              borderRadius: 14,
+              padding: "16px 18px",
+            }}
           >
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5, color: N.gold, fontFamily: N.ui }}>
+            <div
+              style={{
+                fontSize: 24,
+                fontWeight: 800,
+                letterSpacing: -0.5,
+                color: N.gold,
+                fontFamily: N.ui,
+              }}
+            >
               {v}
             </div>
-            <div style={{ fontSize: 12.5, color: N.faint, marginTop: 4, fontFamily: N.ui }}>{l}</div>
+            <div style={{ fontSize: 12.5, color: N.faint, marginTop: 4, fontFamily: N.ui }}>
+              {l}
+            </div>
           </div>
         ))}
       </div>
@@ -223,10 +257,10 @@ export function ProfileView() {
                 flexDirection: "column",
                 alignItems: "center",
                 gap: 9,
-                opacity: unlocked ? 1 : 0.55,
               }}
             >
               <div
+                aria-hidden
                 style={{
                   width: 48,
                   height: 48,
@@ -236,18 +270,31 @@ export function ProfileView() {
                   fontSize: 22,
                   background: unlocked ? N.goldSoft : "transparent",
                   border: `1px solid ${unlocked ? N.gold : N.border}`,
+                  // Dim only the decorative glyph, never the card: a card-wide
+                  // opacity blends the label colours below WCAG-AA (the "Locked"
+                  // caption measured 2.32:1 against the card). Locked state still
+                  // reads from the glyph, the plain border and the caption itself.
+                  opacity: unlocked ? 1 : 0.55,
                 }}
               >
                 {badge.glyph}
               </div>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: N.fg, textAlign: "center", fontFamily: N.ui }}>
+              <div
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  color: N.fg,
+                  textAlign: "center",
+                  fontFamily: N.ui,
+                }}
+              >
                 {badge.name}
               </div>
               <div
                 style={{
                   fontSize: 10.5,
                   fontWeight: 600,
-                  color: unlocked ? N.gold : N.faint,
+                  color: unlocked ? N.gold : N.muted,
                   fontFamily: N.ui,
                 }}
               >

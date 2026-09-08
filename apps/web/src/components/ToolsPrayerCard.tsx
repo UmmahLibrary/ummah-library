@@ -10,6 +10,7 @@ import {
   nextPrayer,
 } from "@ummahlibrary/core";
 import { Icon, Khatam, N } from "@ummahlibrary/ui";
+import { useT } from "../i18n/I18nProvider";
 import { fmtPrayerTime } from "../lib/prayer-time-format";
 import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
@@ -37,6 +38,7 @@ const heroStyle = {
 /** The Tools "Next prayer" hero — the upcoming prayer + a mini grid of the day's
  *  obligatory times (from the saved location), or a prompt when none is set. */
 export function ToolsPrayerCard() {
+  const t = useT();
   const [ready, setReady] = useState(false);
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
   const [coords, setCoords] = useState<Coordinates | null>(null);
@@ -88,7 +90,7 @@ export function ToolsPrayerCard() {
           fontFamily: N.ui,
         }}
       >
-        Next prayer
+        {t("tools.nextPrayer")}
       </span>
       <span style={{ fontSize: 22 }}>🕌</span>
     </div>
@@ -130,8 +132,9 @@ export function ToolsPrayerCard() {
             </span>
           </div>
           <div style={{ fontSize: 13.5, color: N.muted, fontFamily: N.ui, marginBottom: 16 }}>
-            in {countdown(next.at, now)}
-            {place ? ` · ${place}` : ""}
+            {place
+              ? t("tools.inTimeAt", { time: countdown(next.at, now), place })
+              : t("tools.inTime", { time: countdown(next.at, now) })}
           </div>
           <div
             style={{
@@ -192,10 +195,10 @@ export function ToolsPrayerCard() {
               margin: "5px 0 3px",
             }}
           >
-            Prayer Times
+            {t("nav.prayerTimes")}
           </div>
           <div style={{ fontSize: 13.5, color: N.muted, fontFamily: N.ui, marginBottom: 16 }}>
-            Daily salah · your location
+            {t("tools.prayerCardSub")}
           </div>
           <div
             style={{
@@ -208,7 +211,7 @@ export function ToolsPrayerCard() {
               fontFamily: N.ui,
             }}
           >
-            <Icon name="arrowR" size={16} color={N.gold} /> View prayer times
+            <Icon name="arrowR" size={16} color={N.gold} /> {t("tools.viewPrayerTimes")}
           </div>
         </>
       )}

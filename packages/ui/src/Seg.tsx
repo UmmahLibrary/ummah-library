@@ -8,13 +8,18 @@ interface SegProps {
   value: string;
   onChange: (value: string) => void;
   size?: "sm" | "md";
+  /** Names the group for assistive tech (e.g. "Reading mode"). Without it the
+   *  control reads as a bare row of buttons with no indication of what it sets. */
+  ariaLabel?: string;
 }
 
-export function Seg({ options, value, onChange, size = "md" }: SegProps) {
+export function Seg({ options, value, onChange, size = "md", ariaLabel }: SegProps) {
   const pad = size === "sm" ? "6px 12px" : "8px 15px";
   const fs = size === "sm" ? 13 : 14;
   return (
     <div
+      role="group"
+      aria-label={ariaLabel}
       style={{
         display: "flex",
         borderRadius: 10,
@@ -30,6 +35,8 @@ export function Seg({ options, value, onChange, size = "md" }: SegProps) {
         return (
           <button
             key={v}
+            type="button"
+            aria-pressed={active}
             onClick={() => onChange(v)}
             style={{
               padding: pad,
