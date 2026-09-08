@@ -126,3 +126,26 @@ locale.
 
 Urdu strings remain a first pass flagged for native review, per the original
 decision.
+
+### Sweep notes (2026-09-03, settings slice)
+
+Two limits of the mechanism surfaced while extracting the Settings page and are
+worth recording rather than rediscovering.
+
+**Plural forms are hand-picked, not rule-driven.** `{count} item(s) stored on this
+device` ships as two keys (`.one` / `.other`) chosen in the component. That is
+correct for English and Urdu, which have two plural categories. It is _not_
+general: Arabic has six. A real plural-rule layer (`Intl.PluralRules`) is the fix
+when a locale needs it — deliberately not built for two locales that don't.
+
+**The ratchet cannot see strings in data arrays.** `localized-files.test.ts`
+inspects JSX text and user-facing attributes, so `const GROUPS = [{ label:
+"Dark" }]` passes while still rendering English. The theme picker's group labels
+and palette descriptions were missed exactly this way and caught by eye.
+Widening the check to every string literal would flag ids, CSS values and test
+fixtures, so the guard stays targeted and a human still reads the screen once —
+with anything found that way added to the file's coverage so it cannot regress.
+
+**Theme names stay untranslated.** `Obsidian`, `Ivory`, … are the Noor design
+system's proper names (ADR 0023), treated like a brand; their _descriptions_ are
+prose and are translated.

@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { I18nProvider } from "../i18n/I18nProvider";
 import userEvent from "@testing-library/user-event";
 import { ThemePicker } from "./ThemePicker";
 
@@ -10,7 +11,7 @@ describe("ThemePicker", () => {
   });
 
   it("lists all eight themes and marks the active one", () => {
-    render(<ThemePicker />);
+    render(<ThemePicker />, { wrapper: I18nProvider });
     for (const name of [
       "Obsidian",
       "Midnight",
@@ -30,7 +31,7 @@ describe("ThemePicker", () => {
   });
 
   it("applies and persists a chosen theme", async () => {
-    render(<ThemePicker />);
+    render(<ThemePicker />, { wrapper: I18nProvider });
     await userEvent.click(screen.getByRole("button", { name: /Ocean/ }));
 
     expect(document.documentElement.dataset.theme).toBe("ocean");

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { I18nProvider } from "../i18n/I18nProvider";
 import { SyncSettings } from "./SyncSettings";
 
 const syncIfEnabled = vi.fn(async () => ({ pushed: 5, pulled: 5, applied: 2 }));
@@ -32,19 +33,19 @@ async function enableViaUI(): Promise<string> {
 
 describe("SyncSettings", () => {
   it("shows the setup state by default", () => {
-    render(<SyncSettings />);
+    render(<SyncSettings />, { wrapper: I18nProvider });
     expect(screen.getByText("Set up sync")).toBeInTheDocument();
     expect(screen.getByText("Turn on sync")).toBeInTheDocument();
   });
 
   it("generate fills a recovery phrase", () => {
-    render(<SyncSettings />);
+    render(<SyncSettings />, { wrapper: I18nProvider });
     expect((screen.getByLabelText("Recovery phrase") as HTMLInputElement).value).toBe("");
     expect(generate().length).toBeGreaterThan(10);
   });
 
   it("turning on syncs, stores the secret, and shows the active state", async () => {
-    render(<SyncSettings />);
+    render(<SyncSettings />, { wrapper: I18nProvider });
     await enableViaUI();
     expect(syncIfEnabled).toHaveBeenCalled();
     expect(localStorage.getItem("ul.sync.enabled")).toBe("1");
@@ -54,14 +55,14 @@ describe("SyncSettings", () => {
   });
 
   it("reveals the stored phrase on demand", async () => {
-    render(<SyncSettings />);
+    render(<SyncSettings />, { wrapper: I18nProvider });
     const phrase = await enableViaUI();
     fireEvent.click(screen.getByText("Show phrase"));
     expect(screen.getByText(phrase)).toBeInTheDocument();
   });
 
   it("'Sync now' reports an up-to-date result", async () => {
-    render(<SyncSettings />);
+    render(<SyncSettings />, { wrapper: I18nProvider });
     await enableViaUI();
     syncIfEnabled.mockResolvedValueOnce({ pushed: 5, pulled: 5, applied: 0 });
     fireEvent.click(screen.getByText("Sync now"));
@@ -69,7 +70,7 @@ describe("SyncSettings", () => {
   });
 
   it("surfaces a server error without losing local data", async () => {
-    render(<SyncSettings />);
+    render(<SyncSettings />, { wrapper: I18nProvider });
     syncIfEnabled.mockRejectedValueOnce(new Error("boom"));
     await enableViaUI();
     expect(screen.getByText(/safe on this device/)).toBeInTheDocument();
@@ -79,7 +80,7 @@ describe("SyncSettings", () => {
   it("copies the revealed phrase to the clipboard", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.assign(navigator, { clipboard: { writeText } });
-    render(<SyncSettings />);
+    render(<SyncSettings />, { wrapper: I18nProvider });
     await enableViaUI();
     fireEvent.click(screen.getByText("Show phrase"));
     fireEvent.click(screen.getByText("Copy"));
@@ -88,7 +89,7 @@ describe("SyncSettings", () => {
 
   it("turning off forgets the secret and returns to setup", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<SyncSettings />);
+    render(<SyncSettings />, { wrapper: I18nProvider });
     await enableViaUI();
     fireEvent.click(screen.getByText("Turn off sync"));
     await waitFor(() => expect(screen.getByText("Set up sync")).toBeInTheDocument());

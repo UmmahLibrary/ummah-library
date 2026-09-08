@@ -6,6 +6,7 @@ import { N } from "@ummahlibrary/ui";
 import { generateRecoveryPhrase } from "../lib/sync/web-crypto-cipher";
 import { disableSync, enableSync, isSyncEnabled, readSyncSecret } from "../lib/sync/sync-settings";
 import { resetSyncRuntime, syncIfEnabled } from "../lib/sync/sync-runtime";
+import { useT } from "../i18n/I18nProvider";
 
 const lcard = {
   background: N.card,
@@ -91,6 +92,7 @@ const SERVER_DOWN = "Couldn’t reach the sync server — your data is safe on t
  * recovered. Replaces the `/sync-dev` developer surface.
  */
 export function SyncSettings() {
+  const t = useT();
   const [enabled, setEnabled] = useState(false);
   const [secret, setSecret] = useState<string | null>(null);
   const [phrase, setPhrase] = useState("");
@@ -136,7 +138,7 @@ export function SyncSettings() {
   }
 
   function turnOff() {
-    if (!confirm("Turn off sync and remove the recovery phrase from this device?")) return;
+    if (!confirm(t("sync.turnOffConfirm"))) return;
     disableSync();
     resetSyncRuntime();
     setEnabled(false);
@@ -160,14 +162,12 @@ export function SyncSettings() {
           fontFamily: N.ui,
         }}
       >
-        Keep your bookmarks, reading position and preferences in step across your devices —
-        end-to-end encrypted, with no account. Off by default; the app works fully offline without
-        it.
+        {t("sync.intro")}
       </p>
 
       {enabled ? (
         <>
-          <GroupLabel>Sync is on</GroupLabel>
+          <GroupLabel>{t("sync.on")}</GroupLabel>
           <div style={{ ...lcard, marginBottom: 18 }}>
             <p
               style={{
@@ -178,7 +178,7 @@ export function SyncSettings() {
                 fontFamily: N.ui,
               }}
             >
-              Your data syncs across every device that uses your recovery phrase.
+              {t("sync.onHint")}
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
               <button
@@ -193,7 +193,7 @@ export function SyncSettings() {
                 {reveal ? "Hide phrase" : "Show phrase"}
               </button>
               <button type="button" style={dangerBtn} onClick={turnOff}>
-                Turn off sync
+                {t("sync.turnOff")}
               </button>
             </div>
             {reveal && secret && (
@@ -221,7 +221,7 @@ export function SyncSettings() {
                   {secret}
                 </code>
                 <button type="button" style={secondaryBtn} onClick={copyPhrase}>
-                  Copy
+                  {t("sync.copy")}
                 </button>
               </div>
             )}
@@ -229,7 +229,7 @@ export function SyncSettings() {
         </>
       ) : (
         <>
-          <GroupLabel>Set up sync</GroupLabel>
+          <GroupLabel>{t("sync.setUp")}</GroupLabel>
           <div style={{ ...lcard, marginBottom: 18 }}>
             <p
               style={{
@@ -240,16 +240,15 @@ export function SyncSettings() {
                 fontFamily: N.ui,
               }}
             >
-              Generate a <b>recovery phrase</b> on your first device, then enter the same phrase on
-              each other device to link them. It’s the only key — pick it once and keep it.
+              {t("sync.setUpHint")}
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
               <input
                 value={phrase}
                 onChange={(e) => setPhrase(e.target.value)}
-                placeholder="Enter or generate a phrase"
+                placeholder={t("sync.phrasePlaceholder")}
                 spellCheck={false}
-                aria-label="Recovery phrase"
+                aria-label={t("sync.phraseLabel")}
                 style={inputStyle}
               />
               <button
@@ -257,7 +256,7 @@ export function SyncSettings() {
                 style={secondaryBtn}
                 onClick={() => setPhrase(generateRecoveryPhrase())}
               >
-                Generate
+                {t("sync.generate")}
               </button>
             </div>
             <button
@@ -287,9 +286,7 @@ export function SyncSettings() {
 
       <div style={{ ...lcard, padding: 16, background: "transparent" }}>
         <p style={{ fontSize: 13, color: N.faint, lineHeight: 1.6, margin: 0, fontFamily: N.ui }}>
-          ⚠ Your recovery phrase is the only key to your synced data. We can’t see it or recover it
-          — if you lose it, the data can’t be decrypted. Keep a copy somewhere safe (your exported
-          backup file is a good place).
+          {t("sync.warning")}
         </p>
       </div>
     </div>
