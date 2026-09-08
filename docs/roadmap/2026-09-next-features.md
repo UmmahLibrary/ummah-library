@@ -184,14 +184,22 @@ re-litigate the sourcing question.
 
 ### Ready, but behind the three above
 
-- **#204 translation audio (Urdu/English)** — genuinely near drop-in: everyayah
-  hosts per-ayah translation audio in the _same_ numbering, so it's the existing
-  reciter manifest shape with a different template and a non-Arabic `language`.
-  Pairs with the shipped #136 (speed/A–B) and #202 (offline download, same
-  per-ayah file model). Real work is the play-queue model (Arabic-only /
-  translation-only / interleaved) and per-set license verification. **Strong
-  candidate right after #200**, and disproportionately valuable to the same
-  Urdu audience as the i18n rollout.
+- ~~**#204 translation audio (Urdu/English)**~~ — **already built. Corrected
+  2026-09-08.** This entry originally called it a strong candidate to build next.
+  It isn't available work at all: **PR #254** has implemented it since
+  2026-08-11 — a `translation-audio` plugin kind, a pure `buildPlayQueue` for
+  Arabic-only / interleaved / translation-only, both everyayah voices verified
+  directly, and ADR 0041. It is marked "do not merge yet — for review/testing",
+  and its own note asks for a manual audible smoke test before merge. **That
+  smoke test, not new code, is what #204 needs.**
+
+  Recording the mistake, because it generalises: this survey read the _issue_
+  tracker and never listed the **open pull requests**. An issue stays open until
+  someone closes it, so "open issue" says nothing about whether the work exists
+  — three of the four PRs open right now are unmerged work against open issues.
+  A tracker sweep that skips the PR list will keep proposing work that is already
+  written.
+
 - **ADR 0039 mobile verification** — the ADR states the mobile offline-audio path
   is implemented but **never exercised on a device or simulator**. A manual
   airplane-mode pass is recommended before release. Cheap, and it's the last
@@ -231,14 +239,14 @@ re-litigate the sourcing question.
 
 ## 5. Recommended sequence
 
-| #   | Work                                                                                            | Why here                                                     | ADR?    |
-| --- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------- |
-| 0   | Tracker hygiene — tick #152/#38, close #202, re-scope #208, note #52 on #200                    | 10 min; stops repeated re-derivation                         | no      |
-| 1   | ~~**Web a11y**~~ — **done 2026-09-03**: 2 real defects fixed, `ariaLabel` added, axe gate 28/28 | Was a defect, not a feature; the gate is what keeps it fixed | no      |
-| 2   | **i18n rollout** (#208) + pre-hydration locale script                                           | Finishes an announced feature that's ~2% delivered           | no      |
-| 3   | **#200 related hadith**, route B                                                                | Newly unblocked; no new data, license or review              | **yes** |
-| 4   | **#204 translation audio**                                                                      | Near drop-in on an existing model; same audience as 2        | maybe   |
-| 5   | ADR 0039 mobile airplane-mode pass → close #202                                                 | Last step to closure                                         | no      |
+| #   | Work                                                                                                   | Why here                                                     | ADR?    |
+| --- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ------- |
+| 0   | Tracker hygiene — tick #152/#38, close #202, re-scope #208, note #52 on #200                           | 10 min; stops repeated re-derivation                         | no      |
+| 1   | ~~**Web a11y**~~ — **done 2026-09-03**: 2 real defects fixed, `ariaLabel` added, axe gate 28/28        | Was a defect, not a feature; the gate is what keeps it fixed | no      |
+| 2   | **i18n rollout** (#208) + pre-hydration locale script                                                  | Finishes an announced feature that's ~2% delivered           | no      |
+| 3   | **#200 related hadith**, route B                                                                       | Newly unblocked; no new data, license or review              | **yes** |
+| 4   | ~~**#204 translation audio**~~ — already built in PR #254; needs a manual audible smoke test, not code | Corrected 2026-09-08: this survey never read the open PRs    | n/a     |
+| 5   | ADR 0039 mobile airplane-mode pass → close #202                                                        | Last step to closure                                         | no      |
 
 Items 1 and 2 are deliberately ahead of every new feature. The product's breadth
 is already its strength; the weakest thing about it right now is that two of the
