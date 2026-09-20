@@ -11,7 +11,7 @@ import {
 import { N, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
 import { newId, readCollections, readNote, writeCollections, writeNote } from "../lib/collections";
-import { isTracked, removeCard, setCard } from "../lib/hifz-store";
+import { HIFZ_EVENT, isTracked, removeCard, setCard } from "../lib/hifz-store";
 import { TafsirCompare } from "./TafsirCompare";
 
 interface TafsirMeta {
@@ -121,8 +121,11 @@ export function AyahActions({
   const saved = savedIds.size > 0;
 
   useEffect(() => {
-    setTracked(isTracked({ sura: surah, aya }));
+    const refreshTracked = () => setTracked(isTracked({ sura: surah, aya }));
+    refreshTracked();
     void readCollections().then(setCollections);
+    window.addEventListener(HIFZ_EVENT, refreshTracked);
+    return () => window.removeEventListener(HIFZ_EVENT, refreshTracked);
   }, [surah, aya]);
 
   useEffect(() => {

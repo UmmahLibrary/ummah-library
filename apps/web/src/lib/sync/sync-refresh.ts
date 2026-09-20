@@ -42,10 +42,10 @@ export const REFRESH_EVENTS: Record<string, readonly string[]> = {
   "ul.hijriAdjust": ["ul.hijriAdjust"],
   // Theme — re-applied directly in refreshForKey (no event exists), so [] here.
   "ul.theme": [],
+  "ul.bookmarks": ["ul.bookmarks"],
+  "ul.hifz": ["ul.hifz"],
   // No live listener today → reflects on the next read/navigation:
-  "ul.bookmarks": [],
   "ul.ayahNotes": [],
-  "ul.hifz": [],
   "ul.asmaLearned": [],
   "ul.badges": [],
   "ul.lastRead": [],
