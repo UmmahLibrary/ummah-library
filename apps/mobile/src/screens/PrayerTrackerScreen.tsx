@@ -35,6 +35,7 @@ import { mobileHaidStore as haidStore } from "../haid-store";
 import { mobileFastingQadaStore as fastingQadaStore } from "../fasting-qada-store";
 import { KEYS, getString } from "../storage";
 import { localISODate } from "../utils";
+import { onSyncApplied } from "../lib/sync/sync-events";
 
 const STATUS_LABEL: Record<PrayerStatus, string> = {
   none: "Not yet",
@@ -57,14 +58,18 @@ export function PrayerTrackerScreen() {
   const today = localISODate(new Date());
 
   useEffect(() => {
-    void prayerStore.read().then(setLog);
-    void qadaStore.read().then(setQadaLog);
-    void haidStore.read().then(setHaid);
-    void fastingQadaStore.read().then(setFastingQada);
-    void getString(KEYS.hijriAdjust).then((raw) => {
-      const n = Number(raw);
-      if (Number.isFinite(n)) setHijriAdjust(n);
-    });
+    function load() {
+      void prayerStore.read().then(setLog);
+      void qadaStore.read().then(setQadaLog);
+      void haidStore.read().then(setHaid);
+      void fastingQadaStore.read().then(setFastingQada);
+      void getString(KEYS.hijriAdjust).then((raw) => {
+        const n = Number(raw);
+        if (Number.isFinite(n)) setHijriAdjust(n);
+      });
+    }
+    load();
+    return onSyncApplied(load);
   }, []);
 
   function adjustQadaFor(prayer: (typeof OBLIGATORY_PRAYERS)[number], delta: number) {

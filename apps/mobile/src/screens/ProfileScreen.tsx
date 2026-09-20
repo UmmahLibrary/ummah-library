@@ -19,6 +19,7 @@ import { surahProgressMap } from "../hifz";
 import { KEYS, getJSON, isObjectRecord } from "../storage";
 import { mobileAchievementsStore as achievementsStore } from "../achievements-store";
 import { localISODate } from "../utils";
+import { onSyncApplied } from "../lib/sync/sync-events";
 
 /**
  * "Your journey" — a progress dashboard derived entirely from the local-first
@@ -36,20 +37,24 @@ export function ProfileScreen() {
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    const today = localISODate(new Date());
-    void getJSON<Record<number, true>>(KEYS.asmaLearned, {}, isObjectRecord).then((m) =>
-      setNames(Object.keys(m).length),
-    );
-    void getJSON<PrayerTrackerLog>(KEYS.prayerLog, {}, isObjectRecord).then((log) =>
-      setPrayer({ streak: prayerStreak(log, today), best: longestStreak(log) }),
-    );
-    void Promise.all([
-      getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord),
-      getJSON<string[]>(KEYS.readingActive, [], Array.isArray),
-    ]).then(([log, active]) => {
-      const pages = Object.values(log).reduce((a, b) => a + b, 0);
-      setReading({ pages, streak: computeStreak(active, today) });
-    });
+    function load() {
+      const today = localISODate(new Date());
+      void getJSON<Record<number, true>>(KEYS.asmaLearned, {}, isObjectRecord).then((m) =>
+        setNames(Object.keys(m).length),
+      );
+      void getJSON<PrayerTrackerLog>(KEYS.prayerLog, {}, isObjectRecord).then((log) =>
+        setPrayer({ streak: prayerStreak(log, today), best: longestStreak(log) }),
+      );
+      void Promise.all([
+        getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord),
+        getJSON<string[]>(KEYS.readingActive, [], Array.isArray),
+      ]).then(([log, active]) => {
+        const pages = Object.values(log).reduce((a, b) => a + b, 0);
+        setReading({ pages, streak: computeStreak(active, today) });
+      });
+    }
+    load();
+    return onSyncApplied(load);
   }, []);
 
   const surahsStarted = surahProgressMap(allRecords(), new Date()).size;

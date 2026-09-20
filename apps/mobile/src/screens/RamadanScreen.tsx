@@ -17,6 +17,7 @@ import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
 import type { ToolsStackParamList } from "../navigation/types";
+import { onSyncApplied } from "../lib/sync/sync-events";
 
 type Props = NativeStackScreenProps<ToolsStackParamList, "Ramadan">;
 
@@ -64,44 +65,51 @@ export function RamadanScreen({ navigation }: Props) {
   }, []);
 
   useEffect(() => {
-    void getString(KEYS.hijriAdjust).then((raw) => {
-      const n = Number(raw);
-      if (Number.isFinite(n)) setHijriAdjust(Math.max(-2, Math.min(2, n)));
-    });
+    const loadAdjust = () =>
+      void getString(KEYS.hijriAdjust).then((raw) => {
+        const n = Number(raw);
+        if (Number.isFinite(n)) setHijriAdjust(Math.max(-2, Math.min(2, n)));
+      });
+    loadAdjust();
+    return onSyncApplied(loadAdjust);
   }, []);
 
   useEffect(() => {
-    void getJSON<Record<number, true>>(KEYS.ramadanFasts, {}, isObjectRecord).then(setFasts);
-    void getJSON<Record<string, Record<string, true>>>(KEYS.ramadanWorship, {}, isObjectRecord).then((m) =>
-      setWorship(m[today] ?? {}),
-    );
-    void getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord).then((log) =>
-      setPagesRead(
-        // YYYY-MM-DD keys sort lexicographically, so a plain string compare
-        // scopes the sum to Ramadan itself rather than the reader's lifetime log.
-        Object.entries(log).reduce((a, [date, n]) => (date >= ramadanStartStr ? a + n : a), 0),
-      ),
-    );
-    void (async () => {
-      const c = await getJSON<Coordinates | null>(KEYS.prayerCoords, null);
-      if (!c) return;
-      setHasCoords(true);
-      setCoords(c);
-      const method = (await getString(KEYS.prayerMethod)) ?? DEFAULT_CALCULATION_METHOD;
-      const madhab = ((await getString(KEYS.prayerMadhab)) as Madhab) || "shafi";
-      try {
-        const t = await api.getPrayerTimes({
-          lat: c.latitude,
-          lng: c.longitude,
-          date: today,
-          method,
-          madhab,
-        });
-        setTimings(t as PrayerTimings);
-      } catch {
-        /* leave timings null */
-      }
-    })();
+    function loadRamadanData() {
+      void getJSON<Record<number, true>>(KEYS.ramadanFasts, {}, isObjectRecord).then(setFasts);
+      void getJSON<Record<string, Record<string, true>>>(KEYS.ramadanWorship, {}, isObjectRecord).then((m) =>
+        setWorship(m[today] ?? {}),
+      );
+      void getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord).then((log) =>
+        setPagesRead(
+          // YYYY-MM-DD keys sort lexicographically, so a plain string compare
+          // scopes the sum to Ramadan itself rather than the reader's lifetime log.
+          Object.entries(log).reduce((a, [date, n]) => (date >= ramadanStartStr ? a + n : a), 0),
+        ),
+      );
+      void (async () => {
+        const c = await getJSON<Coordinates | null>(KEYS.prayerCoords, null);
+        if (!c) return;
+        setHasCoords(true);
+        setCoords(c);
+        const method = (await getString(KEYS.prayerMethod)) ?? DEFAULT_CALCULATION_METHOD;
+        const madhab = ((await getString(KEYS.prayerMadhab)) as Madhab) || "shafi";
+        try {
+          const t = await api.getPrayerTimes({
+            lat: c.latitude,
+            lng: c.longitude,
+            date: today,
+            method,
+            madhab,
+          });
+          setTimings(t as PrayerTimings);
+        } catch {
+          /* leave timings null */
+        }
+      })();
+    }
+    loadRamadanData();
+    return onSyncApplied(loadRamadanData);
   }, []);
 
   function toggleFast(day: number) {

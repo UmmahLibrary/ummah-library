@@ -7,8 +7,15 @@ import { api } from "../api";
 import { KEYS, getJSON, setJSON } from "../storage";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
+import { onSyncApplied } from "../lib/sync/sync-events";
 
 type Status = "idle" | "locating" | "loading" | "ready" | "denied" | "error";
+
+function sameCoords(a: Coordinates | null, b: Coordinates | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.latitude === b.latitude && a.longitude === b.longitude;
+}
 
 const RADIUS_OPTIONS = [
   { meters: 2000, label: "2 km" },
@@ -26,6 +33,10 @@ export function MosqueFinderScreen() {
   const [places, setPlaces] = useState<readonly Place[]>([]);
   const [radius, setRadius] = useState(5000);
   const reqId = useRef(0);
+  const coordsRef = useRef(coords);
+  const radiusRef = useRef(radius);
+  coordsRef.current = coords;
+  radiusRef.current = radius;
 
   const fetchNearby = useCallback(async (c: Coordinates, radiusMeters: number) => {
     const id = ++reqId.current;
@@ -50,6 +61,23 @@ export function MosqueFinderScreen() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchNearby]);
+
+  // `onSyncApplied` is a single whole-app signal (mobile has no per-key sync
+  // events like web), so this only refetches — hitting our own /nearby
+  // endpoint, backed by Overpass — when the location actually changed, not on
+  // every unrelated synced key (a hifz review, a prayer log entry, ...).
+  useEffect(
+    () =>
+      onSyncApplied(() => {
+        void getJSON<Coordinates | null>(KEYS.prayerCoords, null).then((saved) => {
+          if (saved && !sameCoords(saved, coordsRef.current)) {
+            setCoords(saved);
+            void fetchNearby(saved, radiusRef.current);
+          }
+        });
+      }),
+    [fetchNearby],
+  );
 
   async function locate() {
     setStatus("locating");

@@ -27,6 +27,7 @@ import { FONT } from "../fonts";
 import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
 import { expoNotifier } from "../notifier";
 import { type PrayerReminderPrefs, readPrayerReminderPrefs, setPrayerReminder } from "../prayer-reminders";
+import { onSyncApplied } from "../lib/sync/sync-events";
 
 type Status = "idle" | "locating" | "loading" | "ready" | "error" | "denied";
 
@@ -84,7 +85,7 @@ export function PrayerTimesScreen() {
     [],
   );
 
-  useEffect(() => {
+  const loadSettings = useCallback(() => {
     void Promise.all([
       getString(KEYS.prayerMethod),
       getString(KEYS.prayerMadhab),
@@ -105,8 +106,16 @@ export function PrayerTimesScreen() {
         void fetchTimings(savedCoords, m, mad, hlr);
       }
     });
-    void readPrayerReminderPrefs().then(setReminders);
   }, [fetchTimings]);
+
+  useEffect(() => {
+    loadSettings();
+    void readPrayerReminderPrefs().then(setReminders);
+  }, [loadSettings]);
+
+  // A synced settings change writes storage directly (bypassing changeMethod/
+  // changeMadhab/changeHighLat/locate) — re-read + refetch here too.
+  useEffect(() => onSyncApplied(loadSettings), [loadSettings]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
