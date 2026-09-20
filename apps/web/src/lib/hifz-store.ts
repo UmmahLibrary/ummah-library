@@ -9,6 +9,17 @@ export { cardStrength, surahProgressMap, weakestSurahs, type SurahProgress } fro
 
 const KEY = "ul.hifz";
 
+/** Fired whenever a card is added/removed, so open views can re-read live (e.g. a sync-applied change). */
+export const HIFZ_EVENT = "ul.hifz";
+
+function emit(): void {
+  try {
+    window.dispatchEvent(new CustomEvent(HIFZ_EVENT));
+  } catch {
+    /* non-browser */
+  }
+}
+
 type Store = Record<string, HifzCard>;
 const keyOf = (ref: VerseKey): string => `${ref.sura}:${ref.aya}`;
 const parseKey = (key: string): VerseKey => {
@@ -48,12 +59,14 @@ export function setCard(ref: VerseKey, card: HifzCard): void {
   const store = read();
   store[keyOf(ref)] = card;
   write(store);
+  emit();
 }
 
 export function removeCard(ref: VerseKey): void {
   const store = read();
   delete store[keyOf(ref)];
   write(store);
+  emit();
 }
 
 export function isTracked(ref: VerseKey): boolean {

@@ -5,6 +5,17 @@
  */
 import { webLibraryStore as store } from "./library-store";
 
+/** Fired whenever the bookmark list changes, so open views can re-read live (e.g. a sync-applied change). */
+export const BOOKMARKS_EVENT = "ul.bookmarks";
+
+function emit(): void {
+  try {
+    window.dispatchEvent(new CustomEvent(BOOKMARKS_EVENT));
+  } catch {
+    /* non-browser */
+  }
+}
+
 export function readBookmarks(): Promise<number[]> {
   return store.readBookmarks();
 }
@@ -16,5 +27,6 @@ export async function toggleBookmark(surah: number): Promise<number[]> {
     ? list.filter((n) => n !== surah)
     : [...list, surah].sort((a, b) => a - b);
   await store.writeBookmarks(next);
+  emit();
   return next;
 }

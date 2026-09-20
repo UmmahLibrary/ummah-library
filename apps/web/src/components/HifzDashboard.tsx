@@ -10,7 +10,7 @@ import {
   weakestSurahs,
 } from "@ummahlibrary/core";
 import { N, Khatam, Btn } from "@ummahlibrary/ui";
-import { allRecords, dueRecords, surahProgressMap, type SurahProgress } from "../lib/hifz-store";
+import { HIFZ_EVENT, allRecords, dueRecords, surahProgressMap, type SurahProgress } from "../lib/hifz-store";
 import { getStreak } from "../lib/hifz-streak";
 import { readReviewLog } from "../lib/hifz-review-log-store";
 
@@ -110,44 +110,49 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
   const [weak, setWeak] = useState<QueueItem[]>([]);
 
   useEffect(() => {
-    try {
-      const now = new Date();
-      const all = allRecords();
-      const due = dueRecords(now);
-      const streakData = getStreak();
-      const progressMap = surahProgressMap(all, now);
-      const surahByNum = new Map(surahs.map((s) => [s.number, s]));
-      const withMeta = (p: SurahProgress): QueueItem | null => {
-        const meta = surahByNum.get(p.surahNumber);
-        return meta
-          ? { ...p, name: meta.name, transliteration: meta.transliteration, ayahCount: meta.ayahCount }
-          : null;
-      };
+    function refresh() {
+      try {
+        const now = new Date();
+        const all = allRecords();
+        const due = dueRecords(now);
+        const streakData = getStreak();
+        const progressMap = surahProgressMap(all, now);
+        const surahByNum = new Map(surahs.map((s) => [s.number, s]));
+        const withMeta = (p: SurahProgress): QueueItem | null => {
+          const meta = surahByNum.get(p.surahNumber);
+          return meta
+            ? { ...p, name: meta.name, transliteration: meta.transliteration, ayahCount: meta.ayahCount }
+            : null;
+        };
 
-      setTotalTracked(all.length);
-      setDueCount(due.length);
-      setStreak(streakData.count);
+        setTotalTracked(all.length);
+        setDueCount(due.length);
+        setStreak(streakData.count);
 
-      const items = [...progressMap.values()]
-        .map(withMeta)
-        .filter((x): x is QueueItem => x !== null)
-        .sort((a, b) => b.dueCount - a.dueCount || a.surahNumber - b.surahNumber);
-      setQueue(items);
-
-      // Weakest surahs (lowest strength first) to guide focus.
-      setWeak(
-        weakestSurahs(progressMap.values(), 5)
+        const items = [...progressMap.values()]
           .map(withMeta)
-          .filter((x): x is QueueItem => x !== null),
-      );
+          .filter((x): x is QueueItem => x !== null)
+          .sort((a, b) => b.dueCount - a.dueCount || a.surahNumber - b.surahNumber);
+        setQueue(items);
 
-      // Review-activity heatmap + longest streak from the forward-looking log.
-      const log = readReviewLog();
-      setHeatmap(activityHeatmap(log, now));
-      setLongestStreak(hifzStreaks(log, now).longest);
-    } finally {
-      setReady(true);
+        // Weakest surahs (lowest strength first) to guide focus.
+        setWeak(
+          weakestSurahs(progressMap.values(), 5)
+            .map(withMeta)
+            .filter((x): x is QueueItem => x !== null),
+        );
+
+        // Review-activity heatmap + longest streak from the forward-looking log.
+        const log = readReviewLog();
+        setHeatmap(activityHeatmap(log, now));
+        setLongestStreak(hifzStreaks(log, now).longest);
+      } finally {
+        setReady(true);
+      }
     }
+    refresh();
+    window.addEventListener(HIFZ_EVENT, refresh);
+    return () => window.removeEventListener(HIFZ_EVENT, refresh);
   }, [surahs]);
 
   if (!ready) {

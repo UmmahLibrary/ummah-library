@@ -28,7 +28,20 @@ describe("refreshForKey", () => {
   });
 
   it("is a no-op (no throw) for a key with no live listener", () => {
-    expect(() => refreshForKey("ul.bookmarks")).not.toThrow();
+    expect(() => refreshForKey("ul.asmaLearned")).not.toThrow();
+  });
+
+  it("dispatches ul.bookmarks and ul.hifz (they gained live listeners)", () => {
+    const onBookmarks = vi.fn();
+    const onHifz = vi.fn();
+    window.addEventListener("ul.bookmarks", onBookmarks);
+    window.addEventListener("ul.hifz", onHifz);
+    refreshForKey("ul.bookmarks");
+    refreshForKey("ul.hifz");
+    expect(onBookmarks).toHaveBeenCalledOnce();
+    expect(onHifz).toHaveBeenCalledOnce();
+    window.removeEventListener("ul.bookmarks", onBookmarks);
+    window.removeEventListener("ul.hifz", onHifz);
   });
 
   it("carries the key's raw stored value as `detail` (ul.reciter/ul.tafsir need it, not just a bare signal)", () => {
