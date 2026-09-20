@@ -21,7 +21,7 @@ describe("MANAGED_KEYS", () => {
     expect(MANAGED_KEYS).not.toContain("ul.sync.node");
   });
 
-  it("manages the element-merged collection/set/log keys (v2, ADR 0034 Phase 1+2)", () => {
+  it("manages the element-merged collection/set/log keys (v2/v3, ADR 0034/0035)", () => {
     for (const key of [
       // Phase 1
       "ul.ayahNotes",
@@ -33,14 +33,15 @@ describe("MANAGED_KEYS", () => {
       "ul.readingLog",
       "ul.prayerLog",
       "ul.ramadanWorship",
+      // Phase 3 — the unbounded map, now that the dirty/bounded push lands
+      "ul.hifz",
     ]) {
       expect(MANAGED_KEYS).toContain(key);
     }
   });
 
-  it("still excludes counters and Phase-3 hifz", () => {
+  it("still excludes counters", () => {
     for (const key of [
-      "ul.hifz", // Phase 3 — gated on the incremental-pull cursor
       "ul.hifz.streak", // counter
       "ul.tasbih", // counter
       "ul.searchHistory", // weak identity, low value

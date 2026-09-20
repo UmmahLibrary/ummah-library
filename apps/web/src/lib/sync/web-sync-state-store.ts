@@ -18,7 +18,17 @@ import {
   unwrapElement,
   wrapElement,
 } from "@ummahlibrary/core";
-import { clockFor, metaKeys, readCursor, reconcileValues, setClock, writeCursor } from "./sync-meta";
+import {
+  clockOf,
+  dirtyOf,
+  loadMeta,
+  markPushedIn,
+  readCursor,
+  reconcileMeta,
+  saveMeta,
+  setClockIn,
+  writeCursor,
+} from "./sync-meta";
 import { getItem, removeItem, setItem } from "./storage";
 import { getNodeId } from "./sync-node";
 
@@ -62,14 +72,18 @@ export function createWebSyncStateStore(keys: readonly string[] = MANAGED_KEYS):
           values.set(explodeKey(key, id), wrapElement(key, id, v));
         }
       }
+      const meta = loadMeta();
       // An element that previously had meta but is gone locally → tombstone it.
-      for (const metaKey of metaKeys()) {
+      for (const metaKey of Object.keys(meta)) {
         const parsed = parseElementKey(metaKey);
         if (parsed && keySet.has(parsed.mapKey) && !values.has(metaKey)) values.set(metaKey, null);
       }
-      reconcileValues(values, new Date(), node);
+      const syntheticKeys = [...values.keys()];
+      if (reconcileMeta(meta, syntheticKeys, values, new Date(), node)) saveMeta(meta);
       const records: SyncRecord[] = [];
-      for (const [key, value] of values) records.push({ key, value, hlc: clockFor(key, node) });
+      for (const [key, value] of values) {
+        records.push({ key, value, hlc: clockOf(meta, key, node), dirty: dirtyOf(meta, key) });
+      }
       return records;
     },
     apply: async (key, value, hlc) => {
@@ -77,7 +91,9 @@ export function createWebSyncStateStore(keys: readonly string[] = MANAGED_KEYS):
       if (parsed === null) {
         // scalar key — whole-value as in v1
         putItem(key, value);
-        setClock(key, value, hlc);
+        const meta = loadMeta();
+        setClockIn(meta, key, value, hlc);
+        saveMeta(meta);
         announce(key);
         return;
       }
@@ -88,7 +104,9 @@ export function createWebSyncStateStore(keys: readonly string[] = MANAGED_KEYS):
       if (value === null) elements.delete(parsed.id);
       else elements.set(parsed.id, unwrapElement(value)?.v ?? value);
       putItem(parsed.mapKey, elements.size === 0 ? null : shape.rebuild(elements));
-      setClock(key, value, hlc);
+      const meta = loadMeta();
+      setClockIn(meta, key, value, hlc);
+      saveMeta(meta);
       announce(parsed.mapKey);
     },
     identify: (plaintext) => {
@@ -98,5 +116,10 @@ export function createWebSyncStateStore(keys: readonly string[] = MANAGED_KEYS):
     },
     getCursor: async () => readCursor(),
     setCursor: async (cursor) => writeCursor(cursor),
+    markPushed: async (pushedKeys) => {
+      const meta = loadMeta();
+      markPushedIn(meta, pushedKeys);
+      saveMeta(meta);
+    },
   };
 }

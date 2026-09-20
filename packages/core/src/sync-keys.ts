@@ -12,9 +12,10 @@
  *
  * Deliberately EXCLUDED, pending v2 element-level merge (two devices edit
  * different entries concurrently, which whole-value LWW would clobber):
- * `ul.collections`, `ul.ayahNotes`, `ul.hifz`(+`.streak`), the prayer/qada/haid/
- * ramadan logs, the reading-goal logs and active plan, the tasbih/adhkar counters,
- * `ul.asmaLearned`, `ul.badges`, and `ul.searchHistory`. Also excluded: the sync
+ * `ul.collections`, `ul.ayahNotes`, the prayer/qada/haid/ramadan logs, the
+ * reading-goal logs and active plan, the tasbih/adhkar counters (including
+ * `ul.hifz.streak` — a counter, not element-merged), `ul.asmaLearned`,
+ * `ul.badges`, and `ul.searchHistory`. Also excluded: the sync
  * sidecar itself (`ul.sync.*` — it must never sync), device-local flags
  * (`ul.onboarded`), and per-page scroll offsets. Notification preferences are held
  * back too, since scheduling is per-device.
@@ -56,7 +57,7 @@ export const MANAGED_KEYS: readonly string[] = [
   // Element-merged collection/set keys (v2, ADR 0034 — Phase 1, bounded cardinality).
   // Each syncs per element via `sync-shapes.ts`, so concurrent edits to different
   // entries don't clobber. The date-keyed logs (prayer/reading/ramadan worship) are
-  // Phase 2 and `ul.hifz` is Phase 3 (gated on the incremental-pull cursor).
+  // Phase 2.
   "ul.ayahNotes",
   "ul.collections",
   "ul.qada",
@@ -70,4 +71,9 @@ export const MANAGED_KEYS: readonly string[] = [
   "ul.readingLog",
   "ul.prayerLog",
   "ul.ramadanWorship",
+  // Phase 3 (ADR 0035) — the one unbounded map key (up to 6,236 elements). Safe now
+  // that the dirty/bounded push lands: a steady-state round only re-sends changed
+  // ayahs, and the first push pages under the server's entry cap. `ul.hifz.streak`
+  // (a counter) stays excluded above.
+  "ul.hifz",
 ];

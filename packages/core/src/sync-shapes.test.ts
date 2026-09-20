@@ -132,6 +132,6 @@ describe("registry invariants", () => {
     expect(isMapKey("ul.ayahNotes")).toBe(true);
     expect(isMapKey("ul.collections")).toBe(true);
     expect(shapeOf("ul.theme").kind).toBe("scalar");
-    expect(shapeOf("ul.hifz").kind).toBe("scalar"); // Phase 3 — not yet a map
+    expect(shapeOf("ul.hifz").kind).toBe("map"); // Phase 3 — element-merged per ayah
   });
 });

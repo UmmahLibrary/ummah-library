@@ -24,7 +24,9 @@ import {
 import { getItem, multiGet, removeItem, setItem } from "./storage";
 import {
   clockOf,
+  dirtyOf,
   loadMeta,
+  markPushedIn,
   readCursor,
   reconcileMeta,
   saveMeta,
@@ -72,7 +74,9 @@ export function createMobileSyncStateStore(
       const syntheticKeys = [...values.keys()];
       if (reconcileMeta(meta, syntheticKeys, values, new Date(), node)) await saveMeta(meta);
       const records: SyncRecord[] = [];
-      for (const [key, value] of values) records.push({ key, value, hlc: clockOf(meta, key, node) });
+      for (const [key, value] of values) {
+        records.push({ key, value, hlc: clockOf(meta, key, node), dirty: dirtyOf(meta, key) });
+      }
       return records;
     },
     apply: async (key, value, hlc) => {
@@ -106,5 +110,10 @@ export function createMobileSyncStateStore(
     },
     getCursor: () => readCursor(),
     setCursor: (cursor) => writeCursor(cursor),
+    markPushed: async (pushedKeys) => {
+      const meta = await loadMeta();
+      markPushedIn(meta, pushedKeys);
+      await saveMeta(meta);
+    },
   };
 }

@@ -52,6 +52,40 @@ describe("createWebSyncStateStore", () => {
     expect(await store.getCursor!()).toBe(42);
   });
 
+  describe("dirty / markPushed (ADR 0035 bounded push)", () => {
+    it("a never-pushed key with a value is dirty; markPushed clears it", async () => {
+      localStorage.setItem(KEY, "[1]");
+      const store = createWebSyncStateStore([KEY]);
+      const [before] = await store.all();
+      expect(before!.dirty).toBe(true);
+
+      await store.markPushed!([KEY]);
+      const [after] = await store.all();
+      expect(after!.dirty).toBe(false);
+    });
+
+    it("goes dirty again after a further local change, and a steady round stays clean", async () => {
+      localStorage.setItem(KEY, "[1]");
+      const store = createWebSyncStateStore([KEY]);
+      await store.markPushed!((await store.all()).map((r) => r.key));
+      expect((await store.all())[0]!.dirty).toBe(false);
+
+      localStorage.setItem(KEY, "[1,2]");
+      expect((await store.all())[0]!.dirty).toBe(true);
+
+      // re-reading without another local edit doesn't spuriously re-dirty it
+      expect((await store.all())[0]!.dirty).toBe(true);
+      await store.markPushed!([KEY]);
+      expect((await store.all())[0]!.dirty).toBe(false);
+    });
+
+    it("apply()ing a remote winner leaves the key clean (the server already has it)", async () => {
+      const store = createWebSyncStateStore([KEY]);
+      await store.apply(KEY, "[9]", { millis: 5, counter: 0, node: "peer" });
+      expect((await store.all())[0]!.dirty).toBe(false);
+    });
+  });
+
   describe("element-merge (v2) for a map key", () => {
     const NOTES = "ul.ayahNotes";
 
@@ -90,6 +124,30 @@ describe("createWebSyncStateStore", () => {
       const store = createWebSyncStateStore([NOTES]);
       await store.apply(explodeKey(NOTES, "1:1"), null, { millis: 9, counter: 0, node: "peer" });
       expect(JSON.parse(localStorage.getItem(NOTES)!)).toEqual({ "2:2": "b" });
+    });
+
+    it("ul.hifz (Phase 3, ADR 0035) element-merges per ayah like any other map key", async () => {
+      const HIFZ = "ul.hifz";
+      localStorage.setItem(HIFZ, JSON.stringify({ "1:1": { ease: 2.5, interval: 1, reps: 1 } }));
+      const store = createWebSyncStateStore([HIFZ]);
+      const records = await store.all();
+      expect(records).toHaveLength(1);
+      expect(records[0]!.key).toBe(explodeKey(HIFZ, "1:1"));
+      expect(records[0]!.dirty).toBe(true); // never pushed yet
+
+      await store.markPushed!([records[0]!.key]);
+      expect((await store.all())[0]!.dirty).toBe(false);
+
+      // a card first created on another device is discoverable and recomposes the map
+      await store.apply(
+        explodeKey(HIFZ, "2:255"),
+        JSON.stringify({ mk: HIFZ, k: "2:255", v: JSON.stringify({ ease: 2.6, interval: 6, reps: 2 }) }),
+        { millis: 9, counter: 0, node: "peer" },
+      );
+      expect(JSON.parse(localStorage.getItem(HIFZ)!)).toEqual({
+        "1:1": { ease: 2.5, interval: 1, reps: 1 },
+        "2:255": { ease: 2.6, interval: 6, reps: 2 },
+      });
     });
 
     it("identify() resolves an element born on another device from its payload", async () => {

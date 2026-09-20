@@ -63,6 +63,35 @@ describe("createMobileSyncStateStore", () => {
     expect(theme.value).toBeNull();
     expect(theme.hlc).toEqual(tombHlc);
   });
+
+  describe("dirty / markPushed (ADR 0035 bounded push)", () => {
+    it("a never-pushed key with a value is dirty; markPushed clears it", async () => {
+      mem.set("ul.lastRead", "18");
+      const store = createMobileSyncStateStore(KEYS);
+      const before = (await store.all()).find((r) => r.key === "ul.lastRead")!;
+      expect(before.dirty).toBe(true);
+
+      await store.markPushed!(["ul.lastRead"]);
+      const after = (await store.all()).find((r) => r.key === "ul.lastRead")!;
+      expect(after.dirty).toBe(false);
+    });
+
+    it("goes dirty again after a further local change", async () => {
+      mem.set("ul.lastRead", "18");
+      const store = createMobileSyncStateStore(KEYS);
+      await store.markPushed!((await store.all()).map((r) => r.key));
+      expect((await store.all()).find((r) => r.key === "ul.lastRead")!.dirty).toBe(false);
+
+      mem.set("ul.lastRead", "20");
+      expect((await store.all()).find((r) => r.key === "ul.lastRead")!.dirty).toBe(true);
+    });
+
+    it("apply()ing a remote winner leaves the key clean (the server already has it)", async () => {
+      const store = createMobileSyncStateStore(KEYS);
+      await store.apply("ul.theme", "midnight", { millis: 5, counter: 0, node: "peer" });
+      expect((await store.all()).find((r) => r.key === "ul.theme")!.dirty).toBe(false);
+    });
+  });
 });
 
 describe("createMobileSyncStateStore — element-merge (v2) for a map key", () => {

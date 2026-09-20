@@ -16,7 +16,16 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
   },
 }));
 
-import { clockOf, loadMeta, reconcileMeta, saveMeta, setClockIn, type Meta } from "./sync-meta";
+import {
+  clockOf,
+  dirtyOf,
+  loadMeta,
+  markPushedIn,
+  reconcileMeta,
+  saveMeta,
+  setClockIn,
+  type Meta,
+} from "./sync-meta";
 
 const NOW = new Date(1_700_000_000_000);
 beforeEach(() => mem.clear());
@@ -59,6 +68,13 @@ describe("reconcileMeta", () => {
     reconcileMeta(meta, ["ul.x"], new Map([["ul.x", "b"]]), NOW, "n1");
     expect(meta["ul.x"]!.hlc).toEqual({ millis: NOW.getTime(), counter: 1, node: "n1" });
   });
+
+  it("preserves pushedHash across a clock bump (a local edit doesn't un-push a prior push)", () => {
+    const meta: Meta = { "ul.x": { hlc: { millis: 1, counter: 0, node: "n1" }, hash: "a", pushedHash: "a" } };
+    reconcileMeta(meta, ["ul.x"], new Map([["ul.x", "b"]]), NOW, "n1");
+    expect(meta["ul.x"]!.pushedHash).toBe("a");
+    expect(meta["ul.x"]!.hash).not.toBe(meta["ul.x"]!.pushedHash);
+  });
 });
 
 describe("clockOf / setClockIn", () => {
@@ -69,11 +85,39 @@ describe("clockOf / setClockIn", () => {
     setClockIn(meta, "ul.x", "v", hlc);
     expect(clockOf(meta, "ul.x", "n1")).toEqual(hlc);
   });
+
+  it("also marks the key pushed (a remote-applied value is already convergent server-side)", () => {
+    const meta: Meta = {};
+    setClockIn(meta, "ul.x", "v", { millis: 5, counter: 0, node: "remote" });
+    expect(dirtyOf(meta, "ul.x")).toBe(false);
+  });
+});
+
+describe("dirtyOf / markPushedIn", () => {
+  it("is dirty when never pushed, and clean right after markPushedIn", () => {
+    const meta: Meta = {};
+    reconcileMeta(meta, ["ul.x"], new Map([["ul.x", "v"]]), NOW, "n1");
+    expect(dirtyOf(meta, "ul.x")).toBe(true);
+    markPushedIn(meta, ["ul.x"]);
+    expect(dirtyOf(meta, "ul.x")).toBe(false);
+  });
+
+  it("treats a key with no meta at all as dirty (safest default)", () => {
+    expect(dirtyOf({}, "ul.unknown")).toBe(true);
+  });
+
+  it("markPushedIn is a no-op for a key with no meta yet", () => {
+    const meta: Meta = {};
+    expect(() => markPushedIn(meta, ["ul.x"])).not.toThrow();
+    expect(meta["ul.x"]).toBeUndefined();
+  });
 });
 
 describe("loadMeta / saveMeta", () => {
-  it("round-trips a structural clock losslessly", async () => {
-    const meta: Meta = { "ul.x": { hlc: { millis: 5, counter: 2, node: "abc-123" }, hash: "h" } };
+  it("round-trips a structural clock and pushedHash losslessly", async () => {
+    const meta: Meta = {
+      "ul.x": { hlc: { millis: 5, counter: 2, node: "abc-123" }, hash: "h", pushedHash: "h" },
+    };
     await saveMeta(meta);
     expect(await loadMeta()).toEqual(meta);
   });

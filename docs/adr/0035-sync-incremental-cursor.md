@@ -68,11 +68,21 @@ than rejecting the whole batch) ship here too.
   in-process + Upstash, fails open); and a **provisioning runbook**
   (`docs/launch/sync-provisioning.md`). The in-process lock + limiter are unit-tested
   (incl. a two-push no-lost-update test).
-- **Deferred (the remaining Phase-3 completion, gated on Upstash):** the
-  **dirty/bounded push** (so a steady-state round uploads ~nothing and a large set
-  pages under the cap), which is the prerequisite for **enabling `ul.hifz`**;
-  **tombstone pruning**; and **graceful overflow**. These land once Upstash is
-  provisioned and the above can be verified end to end.
+- **Landed since (Upstash provisioned, 2026-09-20):** the **dirty/bounded push** —
+  each managed key's sidecar entry now carries a `pushedHash` beside its clock
+  (`dirtyOf`/`markPushedIn` in `sync-meta.ts`, web + mobile); a key is dirty only
+  when its value has changed since its last successful push, and a remote-applied
+  value is marked pushed immediately (it's already on the server). The engine's
+  existing paged-push loop (`sync-engine.ts`) now actually receives a filtered,
+  mostly-empty set on a steady-state round instead of the whole managed set every
+  time. **`ul.hifz` is enabled** (`sync-keys.ts`, `sync-shapes.ts` — `recordShape()`
+  per `"sura:aya" -> HifzCard`), so memorization progress now syncs across devices;
+  `ul.hifz.streak` (a counter) stays excluded as planned.
+- **Deferred:** **tombstone pruning** (a deleted element's meta entry is still
+  re-pushed every round) and **graceful overflow** (exceeding `MAX_ENTRIES` still
+  rejects the whole round rather than filtering/prioritizing). Lower urgency now
+  that steady-state rounds are small; revisit if `ul.hifz`'s tombstone count grows
+  noticeably for long-time users.
 
 ## Consequences
 
