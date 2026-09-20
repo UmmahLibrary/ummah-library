@@ -58,15 +58,24 @@ export const REFRESH_EVENTS: Record<string, readonly string[]> = {
   "ul.prayerCoords": [],
 };
 
-/** Apply the in-app effect of a synced key changing: re-apply the theme, or fire the feature re-read events. */
+/**
+ * Apply the in-app effect of a synced key changing: re-apply the theme, or fire
+ * the feature re-read events. The synced key's own raw stored value rides along
+ * as `detail` — some listeners (`ul.reciter`, `ul.tafsir`) were written for a
+ * same-tab toolbar dispatch that always carries the new value as `detail` and
+ * use it directly rather than re-reading storage; without it they silently no-op
+ * (`detail` is `undefined`, which fails their "is this a known id" guard). A
+ * listener that re-reads storage itself just ignores the extra field.
+ */
 export function refreshForKey(key: string): void {
   if (typeof window === "undefined") return;
   if (key === "ul.theme") {
     applyTheme(normalizeTheme(getItem("ul.theme")));
     return;
   }
+  const detail = getItem(key);
   for (const event of REFRESH_EVENTS[key] ?? []) {
-    window.dispatchEvent(new CustomEvent(event));
+    window.dispatchEvent(new CustomEvent(event, { detail }));
   }
 }
 
