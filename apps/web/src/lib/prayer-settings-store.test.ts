@@ -1,5 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { webPrayerSettingsStore as store } from "./prayer-settings-store";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  PRAYER_COORDS_EVENT,
+  PRAYER_SETTINGS_EVENT,
+  webPrayerSettingsStore as store,
+} from "./prayer-settings-store";
 
 beforeEach(() => localStorage.clear());
 afterEach(() => localStorage.clear());
@@ -46,5 +50,25 @@ describe("webPrayerSettingsStore", () => {
   it("falls back to defaults on a malformed coords value", async () => {
     localStorage.setItem("ul.prayerCoords", "{not json");
     expect((await store.read()).coords).toBeNull();
+  });
+
+  it("fires PRAYER_SETTINGS_EVENT on every write, and PRAYER_COORDS_EVENT additionally for coords", async () => {
+    const onSettings = vi.fn();
+    const onCoords = vi.fn();
+    window.addEventListener(PRAYER_SETTINGS_EVENT, onSettings);
+    window.addEventListener(PRAYER_COORDS_EVENT, onCoords);
+
+    await store.writeMethod("Egyptian");
+    await store.writeMadhab("hanafi");
+    await store.writeHighLatitudeRule("SeventhOfTheNight");
+    expect(onSettings).toHaveBeenCalledTimes(3);
+    expect(onCoords).not.toHaveBeenCalled();
+
+    await store.writeCoords({ latitude: 1, longitude: 2 });
+    expect(onSettings).toHaveBeenCalledTimes(4);
+    expect(onCoords).toHaveBeenCalledOnce();
+
+    window.removeEventListener(PRAYER_SETTINGS_EVENT, onSettings);
+    window.removeEventListener(PRAYER_COORDS_EVENT, onCoords);
   });
 });

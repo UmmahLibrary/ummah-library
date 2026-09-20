@@ -10,6 +10,13 @@ describe("REFRESH_EVENTS", () => {
   it("maps every managed key, so adding a key forces a refresh decision", () => {
     for (const key of MANAGED_KEYS) expect(Object.hasOwn(REFRESH_EVENTS, key)).toBe(true);
   });
+
+  it("every managed key now has at least one live listener (theme is the sole non-event special case)", () => {
+    for (const key of MANAGED_KEYS) {
+      if (key === "ul.theme") continue;
+      expect(REFRESH_EVENTS[key]!.length).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe("refreshForKey", () => {
@@ -27,8 +34,28 @@ describe("refreshForKey", () => {
     expect(document.documentElement.dataset.theme).toBe("emerald");
   });
 
-  it("is a no-op (no throw) for a key with no live listener", () => {
-    expect(() => refreshForKey("ul.prayerMethod")).not.toThrow();
+  it("is a no-op (no throw) for a key this build doesn't manage", () => {
+    expect(() => refreshForKey("ul.doesNotExist")).not.toThrow();
+  });
+
+  it("dispatches ul.prayerSettings for every prayer-settings key, and ul.prayerCoords additionally for coords", () => {
+    for (const key of ["ul.prayerMethod", "ul.prayerMadhab", "ul.prayerHighLat"]) {
+      const onSettings = vi.fn();
+      window.addEventListener("ul.prayerSettings", onSettings);
+      refreshForKey(key);
+      expect(onSettings).toHaveBeenCalledOnce();
+      window.removeEventListener("ul.prayerSettings", onSettings);
+    }
+
+    const onSettings = vi.fn();
+    const onCoords = vi.fn();
+    window.addEventListener("ul.prayerSettings", onSettings);
+    window.addEventListener("ul.prayerCoords", onCoords);
+    refreshForKey("ul.prayerCoords");
+    expect(onSettings).toHaveBeenCalledOnce();
+    expect(onCoords).toHaveBeenCalledOnce();
+    window.removeEventListener("ul.prayerSettings", onSettings);
+    window.removeEventListener("ul.prayerCoords", onCoords);
   });
 
   it("dispatches ul.bookmarks, ul.hifz, ul.asmaLearned, ul.lastRead, ul.scale, ul.loop, ul.readingMode and ul.badges (they gained live listeners)", () => {

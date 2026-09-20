@@ -28,7 +28,7 @@ import {
   setPrayerReminder,
 } from "../lib/prayer-reminders";
 import { fmtPrayerTime } from "../lib/prayer-time-format";
-import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
+import { PRAYER_SETTINGS_EVENT, webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { WebNotifier } from "../lib/web-notifier";
 
 type Status = "idle" | "locating" | "loading" | "ready" | "error" | "denied";
@@ -145,6 +145,24 @@ export function PrayerTimesView() {
       });
     void readPrayerReminderPrefs().then(setReminders);
     setPermission(getNotifier().permission());
+  }, [fetchTimings]);
+
+  // Kept separate: a synced settings change writes storage directly (bypassing
+  // changeMethod/changeMadhab/changeHighLat/locate), so re-read + refetch here
+  // too, without re-running the reminder/permission reads above.
+  useEffect(() => {
+    const onSettings = () =>
+      void webPrayerSettingsStore.read().then(({ coords: c, method: m, madhab: mad, highLatitudeRule: hlr }) => {
+        setMethod(m);
+        setMadhab(mad);
+        setHighLat(hlr);
+        if (c) {
+          setCoords(c);
+          void fetchTimings(c, m, mad, hlr);
+        }
+      });
+    window.addEventListener(PRAYER_SETTINGS_EVENT, onSettings);
+    return () => window.removeEventListener(PRAYER_SETTINGS_EVENT, onSettings);
   }, [fetchTimings]);
 
   // Tick the clock for the live countdown.

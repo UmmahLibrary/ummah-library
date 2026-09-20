@@ -12,7 +12,7 @@ import {
 import { Khatam, N } from "@ummahlibrary/ui";
 import { HomePrayerCard } from "./HomePrayerCard";
 import { fmtPrayerTime } from "../lib/prayer-time-format";
-import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
+import { PRAYER_SETTINGS_EVENT, webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
 import { readReadingState, today } from "../lib/reading-goals";
 
@@ -40,10 +40,15 @@ export function HomeHeroCards() {
     void readReadingState().then((s) =>
       setReading({ pages: s.pagesToday, goal: s.goal, streak: computeStreak(s.activeDates, today()) }),
     );
-    void webPrayerSettingsStore.read().then(({ coords: c }) => setCoords(c));
-    void webPrayerTimingsProvider.getTodaysTimings().then((t) => {
-      if (t) setTimings(t);
-    });
+    const loadSettings = () => {
+      void webPrayerSettingsStore.read().then(({ coords: c }) => setCoords(c));
+      void webPrayerTimingsProvider.getTodaysTimings().then((t) => {
+        if (t) setTimings(t);
+      });
+    };
+    loadSettings();
+    window.addEventListener(PRAYER_SETTINGS_EVENT, loadSettings);
+    return () => window.removeEventListener(PRAYER_SETTINGS_EVENT, loadSettings);
   }, []);
 
   useEffect(() => {
