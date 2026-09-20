@@ -1,3 +1,4 @@
+import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Stub the controller factory so we never run real PBKDF2 / network here.
@@ -25,14 +26,14 @@ describe("syncIfEnabled", () => {
   });
 
   it("runs a round when enabled and returns the outcome", async () => {
-    enableSync("phrase-a");
+    await enableSync("phrase-a");
     const outcome = await syncIfEnabled();
     expect(outcome).toEqual({ pushed: 3, pulled: 3, applied: 1 });
     expect(syncNow).toHaveBeenCalledOnce();
   });
 
   it("derives the cipher only once across repeated syncs (same secret)", async () => {
-    enableSync("phrase-a");
+    await enableSync("phrase-a");
     await syncIfEnabled();
     await syncIfEnabled();
     expect(create).toHaveBeenCalledTimes(1);
@@ -40,15 +41,15 @@ describe("syncIfEnabled", () => {
   });
 
   it("re-derives when the secret changes", async () => {
-    enableSync("phrase-a");
+    await enableSync("phrase-a");
     await syncIfEnabled();
-    enableSync("phrase-b");
+    await enableSync("phrase-b");
     await syncIfEnabled();
     expect(create).toHaveBeenCalledTimes(2);
   });
 
   it("coalesces concurrent calls into a single in-flight round", async () => {
-    enableSync("phrase-a");
+    await enableSync("phrase-a");
     let release!: (v: { pushed: number; pulled: number; applied: number }) => void;
     syncNow.mockImplementationOnce(() => new Promise((r) => (release = r)));
     const p1 = syncIfEnabled();
@@ -61,7 +62,7 @@ describe("syncIfEnabled", () => {
   });
 
   it("resetSyncRuntime clears the in-flight round so the next call starts fresh", async () => {
-    enableSync("phrase-a");
+    await enableSync("phrase-a");
     let release!: (v: { pushed: number; pulled: number; applied: number }) => void;
     syncNow.mockImplementationOnce(() => new Promise((r) => (release = r)));
     const p1 = syncIfEnabled();
