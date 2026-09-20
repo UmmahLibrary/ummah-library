@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SCALE_EVENT, readReciter, readScale, writeReadingMode, writeReciter, writeScale } from "./reader-prefs";
+import {
+  READING_MODE_EVENT,
+  SCALE_EVENT,
+  readReciter,
+  readScale,
+  writeReadingMode,
+  writeReciter,
+  writeScale,
+} from "./reader-prefs";
 
 beforeEach(() => localStorage.clear());
 afterEach(() => localStorage.clear());
@@ -29,5 +37,14 @@ describe("reader-prefs", () => {
     await writeScale(1.2);
     expect(onChange).toHaveBeenCalledOnce();
     window.removeEventListener(SCALE_EVENT, onChange);
+  });
+
+  it("fires READING_MODE_EVENT with the new mode as detail, so open readers can re-render live", async () => {
+    const onChange = vi.fn();
+    window.addEventListener(READING_MODE_EVENT, onChange);
+    await writeReadingMode("reading-tr");
+    expect(onChange).toHaveBeenCalledOnce();
+    expect((onChange.mock.calls[0]![0] as CustomEvent).detail).toBe("reading-tr");
+    window.removeEventListener(READING_MODE_EVENT, onChange);
   });
 });

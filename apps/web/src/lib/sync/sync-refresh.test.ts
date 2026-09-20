@@ -28,11 +28,20 @@ describe("refreshForKey", () => {
   });
 
   it("is a no-op (no throw) for a key with no live listener", () => {
-    expect(() => refreshForKey("ul.badges")).not.toThrow();
+    expect(() => refreshForKey("ul.prayerMethod")).not.toThrow();
   });
 
-  it("dispatches ul.bookmarks, ul.hifz, ul.asmaLearned, ul.lastRead, ul.scale and ul.loop (they gained live listeners)", () => {
-    for (const key of ["ul.bookmarks", "ul.hifz", "ul.asmaLearned", "ul.lastRead", "ul.scale", "ul.loop"]) {
+  it("dispatches ul.bookmarks, ul.hifz, ul.asmaLearned, ul.lastRead, ul.scale, ul.loop, ul.readingMode and ul.badges (they gained live listeners)", () => {
+    for (const key of [
+      "ul.bookmarks",
+      "ul.hifz",
+      "ul.asmaLearned",
+      "ul.lastRead",
+      "ul.scale",
+      "ul.loop",
+      "ul.readingMode",
+      "ul.badges",
+    ]) {
       const onChange = vi.fn();
       window.addEventListener(key, onChange);
       refreshForKey(key);

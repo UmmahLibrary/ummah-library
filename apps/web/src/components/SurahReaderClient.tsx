@@ -20,7 +20,7 @@ import { ReaderShortcuts } from "./ReaderShortcuts";
 import { ReadingTracker } from "./ReadingTracker";
 import { PlanReaderChip } from "./PlanReaderChip";
 import { recordMushafPage } from "../lib/reading-goals";
-import { writeReadingMode } from "../lib/reader-prefs";
+import { READING_MODE_EVENT, writeReadingMode } from "../lib/reader-prefs";
 import { writeLastRead } from "../lib/reader-prefs-store";
 
 type ReadingMode = "translation" | "reading" | "reading-tr";
@@ -204,6 +204,15 @@ export function SurahReaderClient({
     if (saved && SEG_TO_MODE[MODE_TO_SEG[saved] ?? ""] !== undefined) {
       setMode(saved);
     }
+
+    // A synced change writes storage directly (bypassing choose()); picking it
+    // up here feeds the "sync mode to the DOM + persist" effect below.
+    const onSynced = (e: Event) => {
+      const next = (e as CustomEvent<string>).detail as ReadingMode | undefined;
+      if (next && SEG_TO_MODE[MODE_TO_SEG[next] ?? ""] !== undefined) setMode(next);
+    };
+    window.addEventListener(READING_MODE_EVENT, onSynced);
+    return () => window.removeEventListener(READING_MODE_EVENT, onSynced);
   }, []);
 
   // Sync mode to the DOM (CSS-based switching) and persist it through the store.

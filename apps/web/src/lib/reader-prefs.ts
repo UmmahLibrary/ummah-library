@@ -31,6 +31,14 @@ export async function writeScale(scale: number): Promise<void> {
   }
 }
 
-export function writeReadingMode(mode: string): Promise<void> {
-  return store.writeReadingMode(mode);
+/** Fired whenever the reading mode changes, so open readers can re-render live (e.g. a sync-applied change). */
+export const READING_MODE_EVENT = "ul.readingMode";
+
+export async function writeReadingMode(mode: string): Promise<void> {
+  await store.writeReadingMode(mode);
+  try {
+    window.dispatchEvent(new CustomEvent(READING_MODE_EVENT, { detail: mode }));
+  } catch {
+    /* non-browser */
+  }
 }

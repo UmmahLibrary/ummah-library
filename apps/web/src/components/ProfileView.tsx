@@ -12,13 +12,25 @@ import {
   unlockedIds,
 } from "@ummahlibrary/core";
 import { N, Khatam } from "@ummahlibrary/ui";
-import { countLearned } from "../lib/asma-store";
-import { allRecords, surahProgressMap } from "../lib/hifz-store";
+import { ASMA_EVENT, countLearned } from "../lib/asma-store";
+import { HIFZ_EVENT, allRecords, surahProgressMap } from "../lib/hifz-store";
 import { getStreak } from "../lib/hifz-streak";
-import { readPrayerLog, today } from "../lib/prayer-tracker";
-import { readReadingState } from "../lib/reading-goals";
-import { readCollections } from "../lib/collections";
-import { acknowledge, readAcknowledged } from "../lib/achievements";
+import { PRAYER_TRACKER_EVENT, readPrayerLog, today } from "../lib/prayer-tracker";
+import { READING_EVENT, readReadingState } from "../lib/reading-goals";
+import { COLLECTIONS_EVENT, readCollections } from "../lib/collections";
+import { BADGES_EVENT, acknowledge, readAcknowledged } from "../lib/achievements";
+
+/** Underlying keys a badge/stat is derived from — re-run the stats+unlock pass
+ * when any of them change live (e.g. a sync-applied change to another device's
+ * hifz progress), not just on mount. */
+const STATS_REFRESH_EVENTS = [
+  HIFZ_EVENT,
+  ASMA_EVENT,
+  PRAYER_TRACKER_EVENT,
+  READING_EVENT,
+  COLLECTIONS_EVENT,
+  BADGES_EVENT,
+];
 
 interface Stats {
   hifzStreak: number;
@@ -76,35 +88,42 @@ export function ProfileView() {
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    const t = today();
-    const hifzStreak = getStreak().count;
-    void Promise.all([readReadingState(), readCollections(), readPrayerLog(), readAcknowledged()]).then(
-      ([reading, collections, log, ack]) => {
-        const prayer = prayerStreak(log, t);
-        const next: Stats = {
-          hifzStreak,
-          memorized: allRecords().length,
-          surahsStarted: surahProgressMap(allRecords(), new Date()).size,
-          prayerStreak: prayer,
-          names: countLearned(),
-          saved: totalSavedAyahs(collections),
-          bestStreak: Math.max(hifzStreak, prayer, longestStreak(log), computeStreak(reading.activeDates, t)),
-        };
-        setS(next);
+    function refresh() {
+      const t = today();
+      const hifzStreak = getStreak().count;
+      void Promise.all([readReadingState(), readCollections(), readPrayerLog(), readAcknowledged()]).then(
+        ([reading, collections, log, ack]) => {
+          const prayer = prayerStreak(log, t);
+          const next: Stats = {
+            hifzStreak,
+            memorized: allRecords().length,
+            surahsStarted: surahProgressMap(allRecords(), new Date()).size,
+            prayerStreak: prayer,
+            names: countLearned(),
+            saved: totalSavedAyahs(collections),
+            bestStreak: Math.max(hifzStreak, prayer, longestStreak(log), computeStreak(reading.activeDates, t)),
+          };
+          setS(next);
 
-        const bs = toBadgeStats(next);
-        const fresh = newlyUnlocked(bs, ack);
-        if (fresh.length > 0) {
-          const first = fresh[0];
-          setToast(
-            fresh.length === 1 && first
-              ? `🎉 Unlocked: ${first.name}`
-              : `🎉 ${fresh.length} new badges unlocked!`,
-          );
-          void acknowledge(unlockedIds(bs));
-        }
-      },
-    );
+          const bs = toBadgeStats(next);
+          const fresh = newlyUnlocked(bs, ack);
+          if (fresh.length > 0) {
+            const first = fresh[0];
+            setToast(
+              fresh.length === 1 && first
+                ? `🎉 Unlocked: ${first.name}`
+                : `🎉 ${fresh.length} new badges unlocked!`,
+            );
+            void acknowledge(unlockedIds(bs));
+          }
+        },
+      );
+    }
+    refresh();
+    for (const event of STATS_REFRESH_EVENTS) window.addEventListener(event, refresh);
+    return () => {
+      for (const event of STATS_REFRESH_EVENTS) window.removeEventListener(event, refresh);
+    };
   }, []);
 
   useEffect(() => {
