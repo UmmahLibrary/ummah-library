@@ -43,6 +43,11 @@ export interface SyncDeps {
  *
  * Backward-compatible: a store that implements neither `getCursor` nor `dirty`
  * pushes everything against cursor 0, i.e. the v2 whole-set behaviour.
+ *
+ * Graceful overflow (ADR 0035): the server may report some of what was pushed
+ * as `rejected` (malformed, oversized, or past its per-request cap) rather
+ * than failing the whole round for it. Those keys are excluded from
+ * `markPushed`, so they stay dirty and are simply retried next round.
  */
 export async function runSync(deps: SyncDeps): Promise<SyncOutcome> {
   const { cipher, backend, state } = deps;
@@ -51,7 +56,7 @@ export async function runSync(deps: SyncDeps): Promise<SyncOutcome> {
   const keyById = new Map<string, string>();
   const localById = new Map<string, SyncEntry>(); // every real local entry — drives merge
   const toPush: SyncEntry[] = []; // only the dirty ones — what we actually upload
-  const pushedKeys: string[] = [];
+  const pushedKeys: { id: string; key: string }[] = [];
   for (const r of records) {
     const id = await cipher.entryId(r.key);
     keyById.set(id, r.key); // map every managed key so incoming ids resolve…
@@ -66,7 +71,7 @@ export async function runSync(deps: SyncDeps): Promise<SyncOutcome> {
     localById.set(id, entry);
     if (r.dirty ?? true) {
       toPush.push(entry);
-      pushedKeys.push(r.key);
+      pushedKeys.push({ id, key: r.key });
     }
   }
 
@@ -96,6 +101,7 @@ export async function runSync(deps: SyncDeps): Promise<SyncOutcome> {
   let pulled = 0;
   let applied = 0;
   let offset = 0;
+  const rejectedIds = new Set<string>();
   // Push dirty entries in pages and pull the delta until everything is sent and the
   // server has no further pages. Always runs once (a caught-up device still pulls).
   for (;;) {
@@ -105,6 +111,7 @@ export async function runSync(deps: SyncDeps): Promise<SyncOutcome> {
     pushed += page.length;
     pulled += result.entries.length;
     if (result.cursor !== undefined) cursor = result.cursor;
+    for (const id of result.rejected ?? []) rejectedIds.add(id);
     const { incoming } = mergeEntries([...localById.values()], result.entries);
     for (const entry of incoming) {
       if (await apply(entry)) {
@@ -116,7 +123,11 @@ export async function runSync(deps: SyncDeps): Promise<SyncOutcome> {
   }
 
   await state.setCursor?.(cursor);
-  if (pushedKeys.length > 0) await state.markPushed?.(pushedKeys);
+  // Graceful overflow (ADR 0035): a rejected entry never reached the server, so it
+  // must stay dirty and retry next round — never mark it (or its owning key)
+  // clean just because the round otherwise completed.
+  const cleanKeys = pushedKeys.filter((p) => !rejectedIds.has(p.id)).map((p) => p.key);
+  if (cleanKeys.length > 0) await state.markPushed?.(cleanKeys);
 
   return { pushed, pulled, applied };
 }

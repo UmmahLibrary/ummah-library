@@ -78,11 +78,29 @@ than rejecting the whole batch) ship here too.
   time. **`ul.hifz` is enabled** (`sync-keys.ts`, `sync-shapes.ts` — `recordShape()`
   per `"sura:aya" -> HifzCard`), so memorization progress now syncs across devices;
   `ul.hifz.streak` (a counter) stays excluded as planned.
-- **Deferred:** **tombstone pruning** (a deleted element's meta entry is still
-  re-pushed every round) and **graceful overflow** (exceeding `MAX_ENTRIES` still
-  rejects the whole round rather than filtering/prioritizing). Lower urgency now
-  that steady-state rounds are small; revisit if `ul.hifz`'s tombstone count grows
-  noticeably for long-time users.
+- **Landed since (2026-09-20): graceful overflow.** The server (`handler.ts`)
+  sorts a push into what it can persist and what it can't, instead of failing
+  the whole batch for one bad or excess entry: a malformed/oversized entry with
+  a usable id, or one past the per-request `MAX_ENTRIES` cap, is reported back
+  by id in a new `rejected` field rather than triggering a blanket 400/413. An
+  entry with no usable id at all is silently dropped (unreachable from our own
+  client). The engine (`sync-engine.ts`) excludes reported ids from
+  `markPushed`, so a rejected entry simply stays dirty and retries next round —
+  it is never wrongly marked clean. Threaded through the web/mobile/extension
+  `HttpSyncBackend`s. The `MAX_ENTRIES` case is now rarely reachable in
+  practice (the dirty/bounded push already caps each request at 500, 4× under
+  the 2000 cap); the realistic case this closes is a single oversized element
+  (e.g. a long note) that would otherwise stall the rest of its page.
+- **Deferred: tombstone pruning** (a deleted element's meta entry is still
+  re-pushed once, until observed, then never removed). Lower urgency now that
+  the dirty push already eliminated the costly part (a tombstone is no longer
+  re-sent every round once synced) — what's left is slow server-storage growth
+  (a few hundred bytes each), fine at personal-account scale. The ADR 0034
+  "provably observed by every device" design needs the server to track a
+  per-device cursor, which the protocol doesn't do today (a client reports no
+  stable device id); a time-based heuristic is simpler but risks resurrecting
+  an item on a device that hasn't synced in longer than the retention window.
+  Revisit if `ul.hifz`'s tombstone count grows noticeably for long-time users.
 
 ## Consequences
 
