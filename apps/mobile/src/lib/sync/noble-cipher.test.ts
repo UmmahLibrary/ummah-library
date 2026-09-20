@@ -102,9 +102,9 @@ describe("recovery secret canonicalization", () => {
 });
 
 describe("generateRecoveryPhrase", () => {
-  it("emits five hyphen-separated groups of five from the safe alphabet", () => {
+  it("emits a 12-word BIP39 phrase", () => {
     const p = generateRecoveryPhrase();
-    expect(p).toMatch(/^[ABCDEFGHJKMNPQRSTVWXYZ23456789]{5}(-[ABCDEFGHJKMNPQRSTVWXYZ23456789]{5}){4}$/);
+    expect(p).toMatch(/^[a-z]+(?: [a-z]+){11}$/);
   });
 
   it("is effectively unique across calls", () => {
