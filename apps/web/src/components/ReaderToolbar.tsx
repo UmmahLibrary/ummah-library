@@ -6,7 +6,7 @@ import { N, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
 import { type EditionChoice, DEFAULT_EDITIONS, readEditions } from "../lib/editions";
 import { fetchCatalogue } from "../lib/catalogue";
-import { readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
+import { BOOKMARKS_EVENT, readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
 import { readReciter, readScale, writeReciter, writeScale } from "../lib/reader-prefs";
 import { readWordByWord, writeLastRead, writeWordByWord } from "../lib/reader-prefs-store";
 import { readTransliteration, writeTransliteration } from "../lib/transliteration";
@@ -91,6 +91,14 @@ export function ReaderToolbar({
     void readEditions().then((ids) => setSelected(new Set(ids)));
     void fetchCatalogue().then(setCatalogue);
   }, [surahNumber, reciters]);
+
+  // Kept separate: re-read only the bookmark flag when it changes elsewhere
+  // (another tab, or a synced device), without re-running every other read above.
+  useEffect(() => {
+    const onBookmarks = () => void readBookmarks().then((list) => setBookmarked(list.includes(surahNumber)));
+    window.addEventListener(BOOKMARKS_EVENT, onBookmarks);
+    return () => window.removeEventListener(BOOKMARKS_EVENT, onBookmarks);
+  }, [surahNumber]);
 
   function toggleWbw() {
     const next = !wbw;

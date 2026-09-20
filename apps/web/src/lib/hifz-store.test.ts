@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { HifzCard } from "@ummahlibrary/core";
 import {
+  HIFZ_EVENT,
   allRecords,
   cardStrength,
   dueRecords,
@@ -80,6 +81,16 @@ describe("hifz store", () => {
     expect(s1.trackedCount).toBe(1);
     expect(s1.dueCount).toBe(1);
     expect(s1.avgStrength).toBe(0);
+  });
+
+  it("fires HIFZ_EVENT on setCard/removeCard, so open views can re-read live (e.g. a synced change)", () => {
+    const ref = { sura: 3, aya: 5 };
+    const onChange = vi.fn();
+    window.addEventListener(HIFZ_EVENT, onChange);
+    setCard(ref, card("2030-01-01T00:00:00.000Z"));
+    removeCard(ref);
+    expect(onChange).toHaveBeenCalledTimes(2);
+    window.removeEventListener(HIFZ_EVENT, onChange);
   });
 
   it("treats a corrupt/peer-synced non-object ul.hifz as empty (never crashes a consumer)", () => {
