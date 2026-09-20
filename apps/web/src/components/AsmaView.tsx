@@ -3,15 +3,18 @@
 import { useEffect, useState } from "react";
 import type { DivineName } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
-import { readLearned, writeLearned } from "../lib/asma-store";
+import { ASMA_EVENT, readLearned, writeLearned } from "../lib/asma-store";
 
 export function AsmaView({ names }: { names: readonly DivineName[] }) {
   const [learned, setLearned] = useState<Record<number, true>>({});
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setLearned(readLearned());
+    const refresh = () => setLearned(readLearned());
+    refresh();
     setReady(true);
+    window.addEventListener(ASMA_EVENT, refresh);
+    return () => window.removeEventListener(ASMA_EVENT, refresh);
   }, []);
 
   function toggle(n: number) {

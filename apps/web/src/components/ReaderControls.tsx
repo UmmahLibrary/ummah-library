@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EditionManager } from "./EditionManager";
 import { BOOKMARKS_EVENT, readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
-import { readScale, writeScale } from "../lib/reader-prefs";
+import { SCALE_EVENT, readScale, writeScale } from "../lib/reader-prefs";
 import { writeLastRead } from "../lib/reader-prefs-store";
 
 const SCALE_MIN = 0.8;
@@ -28,13 +28,19 @@ export function ReaderControls({
     loadBookmarked();
     writeLastRead(surahNumber);
 
-    void readScale().then((s) => {
-      setScale(s);
-      document.documentElement.style.setProperty("--reading-scale", String(s));
-    });
+    const loadScale = () =>
+      void readScale().then((s) => {
+        setScale(s);
+        document.documentElement.style.setProperty("--reading-scale", String(s));
+      });
+    loadScale();
 
     window.addEventListener(BOOKMARKS_EVENT, loadBookmarked);
-    return () => window.removeEventListener(BOOKMARKS_EVENT, loadBookmarked);
+    window.addEventListener(SCALE_EVENT, loadScale);
+    return () => {
+      window.removeEventListener(BOOKMARKS_EVENT, loadBookmarked);
+      window.removeEventListener(SCALE_EVENT, loadScale);
+    };
   }, [surahNumber]);
 
   // Functional setState so rapid A-/A+ taps in the same tick each apply on

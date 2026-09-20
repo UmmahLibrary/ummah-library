@@ -7,7 +7,7 @@ import type { IconName } from "@ummahlibrary/ui";
 import { type EditionChoice, DEFAULT_EDITIONS, readEditions } from "../lib/editions";
 import { fetchCatalogue } from "../lib/catalogue";
 import { BOOKMARKS_EVENT, readBookmarks, toggleBookmark as toggleBm } from "../lib/bookmarks";
-import { readReciter, readScale, writeReciter, writeScale } from "../lib/reader-prefs";
+import { SCALE_EVENT, readReciter, readScale, writeReciter, writeScale } from "../lib/reader-prefs";
 import { readWordByWord, writeLastRead, writeWordByWord } from "../lib/reader-prefs-store";
 import { readTransliteration, writeTransliteration } from "../lib/transliteration";
 import { WORD_TRANSLIT_CLASS, readWordTranslit, writeWordTranslit } from "../lib/word-translit";
@@ -92,12 +92,22 @@ export function ReaderToolbar({
     void fetchCatalogue().then(setCatalogue);
   }, [surahNumber, reciters]);
 
-  // Kept separate: re-read only the bookmark flag when it changes elsewhere
-  // (another tab, or a synced device), without re-running every other read above.
+  // Kept separate: re-read only the bookmark/scale flags when they change
+  // elsewhere (another tab, or a synced device), without re-running every
+  // other read above.
   useEffect(() => {
     const onBookmarks = () => void readBookmarks().then((list) => setBookmarked(list.includes(surahNumber)));
+    const onScale = () =>
+      void readScale().then((s) => {
+        setScale(s);
+        document.documentElement.style.setProperty("--reading-scale", String(s));
+      });
     window.addEventListener(BOOKMARKS_EVENT, onBookmarks);
-    return () => window.removeEventListener(BOOKMARKS_EVENT, onBookmarks);
+    window.addEventListener(SCALE_EVENT, onScale);
+    return () => {
+      window.removeEventListener(BOOKMARKS_EVENT, onBookmarks);
+      window.removeEventListener(SCALE_EVENT, onScale);
+    };
   }, [surahNumber]);
 
   function toggleWbw() {
