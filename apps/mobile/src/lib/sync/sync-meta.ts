@@ -21,6 +21,11 @@ export interface MetaEntry {
   hlc: Hlc;
   /** Hash of the value at the last clock update — detects local changes. */
   hash: string;
+  /**
+   * Hash of the value as of the last successful push (ADR 0035 dirty push). Absent
+   * ⇒ never pushed. A key is dirty — needs sending — when this differs from `hash`.
+   */
+  pushedHash?: string;
 }
 export type Meta = Record<string, MetaEntry>;
 
@@ -28,6 +33,7 @@ export type Meta = Record<string, MetaEntry>;
 interface StoredMetaEntry {
   hlc: Hlc | string;
   hash: string;
+  pushedHash?: string;
 }
 
 /** A well-formed structural clock: non-negative integer millis/counter, non-empty node. */
@@ -63,7 +69,10 @@ export async function loadMeta(): Promise<Meta> {
     // a corrupt or peer-synced sidecar could carry {millis:"abc",node:42}, which
     // would poison hlcCompare/hlcTick if trusted on truthiness alone.
     const hlc = typeof entry.hlc === "string" ? parseHlc(entry.hlc) : entry.hlc;
-    if (isValidHlc(hlc) && typeof entry.hash === "string") meta[key] = { hlc, hash: entry.hash };
+    if (isValidHlc(hlc) && typeof entry.hash === "string") {
+      meta[key] = { hlc, hash: entry.hash };
+      if (typeof entry.pushedHash === "string") meta[key].pushedHash = entry.pushedHash;
+    }
   }
   return meta;
 }
@@ -127,7 +136,7 @@ export function reconcileMeta(
     if (prev && prev.hash === hash) continue;
     const base = prev ? prev.hlc : hlcInit(node);
     const ticked = hlcTick(base, now);
-    meta[key] = { hlc: { ...ticked, node }, hash };
+    meta[key] = { hlc: { ...ticked, node }, hash, pushedHash: prev?.pushedHash };
     changed = true;
   }
   return changed;
@@ -139,7 +148,35 @@ export function clockOf(meta: Meta, key: string, node: string): Hlc {
   return prev ? prev.hlc : hlcInit(node);
 }
 
-/** Record the clock and value-hash for a key after applying a remote winner (mutates `meta`). */
+/**
+ * Record the clock and value-hash for a key after applying a remote winner
+ * (mutates `meta`). Also marks it pushed: the value just arrived FROM the server,
+ * so it's already convergent there — not dirty (ADR 0035).
+ */
 export function setClockIn(meta: Meta, key: string, value: string | null, hlc: Hlc): void {
-  meta[key] = { hlc, hash: hashValue(value) };
+  const hash = hashValue(value);
+  meta[key] = { hlc, hash, pushedHash: hash };
+}
+
+/**
+ * Whether a key needs pushing this round (ADR 0035): its value has changed since
+ * the last successful push. A key with no meta yet (shouldn't happen for anything
+ * `reconcileMeta` has seen) is treated as dirty — safest default, never silently
+ * drops a write.
+ */
+export function dirtyOf(meta: Meta, key: string): boolean {
+  const entry = meta[key];
+  return entry === undefined || entry.pushedHash !== entry.hash;
+}
+
+/**
+ * Mark these keys as pushed — their current hash becomes the pushed baseline, so
+ * they're clean until the next local change (mutates `meta`). Called once after a
+ * sync round completes successfully.
+ */
+export function markPushedIn(meta: Meta, keys: readonly string[]): void {
+  for (const key of keys) {
+    const entry = meta[key];
+    if (entry) entry.pushedHash = entry.hash;
+  }
 }

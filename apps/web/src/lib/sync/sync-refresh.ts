@@ -45,6 +45,7 @@ export const REFRESH_EVENTS: Record<string, readonly string[]> = {
   // No live listener today → reflects on the next read/navigation:
   "ul.bookmarks": [],
   "ul.ayahNotes": [],
+  "ul.hifz": [],
   "ul.asmaLearned": [],
   "ul.badges": [],
   "ul.lastRead": [],

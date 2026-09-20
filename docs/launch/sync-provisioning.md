@@ -64,7 +64,9 @@ A serverless Redis with an **HTTP/REST** API. The app talks to it over REST with
 ## Operating notes
 
 - **Cost/limits:** one small Redis. Each account is a few KB (scalars + element
-  entries); `ul.hifz` (Phase 3) is the only large key and is gated until enabled.
+  entries) until `ul.hifz` (Phase 3, now enabled) is populated — up to 6,236
+  elements for a full memorizer, kept manageable by the dirty/bounded push (a
+  steady-state round only re-sends changed ayahs).
 - **Tombstones** accumulate until the Phase-3 pruning lands; the per-request
   `MAX_ENTRIES` cap is the backstop. Watch blob sizes if usage is heavy.
 - **Turning it off:** remove the `UPSTASH_*` vars and redeploy — back to `501`,
