@@ -6,6 +6,9 @@
  */
 import { webAchievementsStore as store } from "./achievements-store";
 
+/** Fired whenever the acknowledged set changes, so open views can re-read live (e.g. a sync-applied change). */
+export const BADGES_EVENT = "ul.badges";
+
 export function readAcknowledged(): Promise<string[]> {
   return store.read();
 }
@@ -13,4 +16,9 @@ export function readAcknowledged(): Promise<string[]> {
 /** Mark a set of badge ids as acknowledged (so they don't re-toast). */
 export async function acknowledge(ids: string[]): Promise<void> {
   await store.write(ids);
+  try {
+    window.dispatchEvent(new CustomEvent(BADGES_EVENT));
+  } catch {
+    /* non-browser */
+  }
 }

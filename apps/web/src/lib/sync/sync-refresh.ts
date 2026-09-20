@@ -51,9 +51,9 @@ export const REFRESH_EVENTS: Record<string, readonly string[]> = {
   "ul.lastRead": ["ul.lastRead"],
   "ul.scale": ["ul.scale"],
   "ul.loop": ["ul.loop"],
+  "ul.readingMode": ["ul.readingMode"],
+  "ul.badges": ["ul.badges"],
   // No live listener today → reflects on the next read/navigation:
-  "ul.badges": [],
-  "ul.readingMode": [],
   "ul.prayerMethod": [],
   "ul.prayerMadhab": [],
   "ul.prayerHighLat": [],
