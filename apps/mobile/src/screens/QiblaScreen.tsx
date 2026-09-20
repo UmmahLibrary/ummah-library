@@ -5,6 +5,7 @@ import { type Coordinates, compassPoint, qiblaDirection } from "@ummahlibrary/co
 import { KEYS, getJSON, setJSON } from "../storage";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
+import { onSyncApplied } from "../lib/sync/sync-events";
 
 type Status = "idle" | "locating" | "ready" | "denied" | "error";
 
@@ -24,11 +25,15 @@ export function QiblaScreen() {
 
   const dialRotation = useRef(new Animated.Value(0)).current;
 
-  // Restore shared location (same key as prayer times).
+  // Restore shared location (same key as prayer times), and pick up a synced
+  // location change live.
   useEffect(() => {
-    void getJSON<Coordinates | null>(KEYS.prayerCoords, null).then((saved) => {
-      if (saved) { setCoords(saved); setStatus("ready"); }
-    });
+    const loadCoords = () =>
+      void getJSON<Coordinates | null>(KEYS.prayerCoords, null).then((saved) => {
+        if (saved) { setCoords(saved); setStatus("ready"); }
+      });
+    loadCoords();
+    return onSyncApplied(loadCoords);
   }, []);
 
   // Live compass heading via the OS's own sensor fusion (accelerometer +

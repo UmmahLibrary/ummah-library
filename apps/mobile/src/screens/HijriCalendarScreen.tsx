@@ -16,6 +16,7 @@ import { weekdayOfGregorian } from "../utils";
 import { SunnahFastReminderToggle } from "../components/SunnahFastReminderToggle";
 import { expoNotifier } from "../notifier";
 import { readEventReminders, setEventReminder } from "../islamic-event-reminders";
+import { onSyncApplied } from "../lib/sync/sync-events";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 const ADJUST_OPTIONS = [-2, -1, 0, 1, 2] as const;
@@ -52,15 +53,19 @@ export function HijriCalendarScreen() {
   const [reminders, setReminders] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    void getString(KEYS.hijriAdjust).then((raw) => {
-      const n = raw === null ? 0 : parseInt(raw, 10);
-      const a = Number.isFinite(n) ? Math.max(-2, Math.min(2, n)) : 0;
-      const t = gregorianToHijri(todayGregorian(), a);
-      setAdjust(a);
-      setToday(t);
-      setView({ year: t.year, month: t.month });
-    });
+    const loadAdjust = () =>
+      void getString(KEYS.hijriAdjust).then((raw) => {
+        const n = raw === null ? 0 : parseInt(raw, 10);
+        const a = Number.isFinite(n) ? Math.max(-2, Math.min(2, n)) : 0;
+        const t = gregorianToHijri(todayGregorian(), a);
+        setAdjust(a);
+        setToday(t);
+        setView({ year: t.year, month: t.month });
+      });
+    loadAdjust();
     void readEventReminders().then(setReminders);
+    // Reminders are per-device (not synced) — only the adjustment re-reads on sync.
+    return onSyncApplied(loadAdjust);
   }, []);
 
   async function toggleReminder(eventId: string) {

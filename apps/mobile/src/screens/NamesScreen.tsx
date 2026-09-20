@@ -6,6 +6,7 @@ import { api } from "../api";
 import { KEYS, getJSON, isObjectRecord, setJSON } from "../storage";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
+import { onSyncApplied } from "../lib/sync/sync-events";
 
 export function NamesScreen() {
   const { colors } = useTheme();
@@ -33,8 +34,15 @@ export function NamesScreen() {
           setLoading(false);
         }
       });
+    // The name list is static; only the learned set needs a live re-read.
+    const unsubscribe = onSyncApplied(() => {
+      void getJSON<Record<number, true>>(KEYS.asmaLearned, {}, isObjectRecord).then((saved) => {
+        if (active) setLearned(saved);
+      });
+    });
     return () => {
       active = false;
+      unsubscribe();
     };
   }, []);
 

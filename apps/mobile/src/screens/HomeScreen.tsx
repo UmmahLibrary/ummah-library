@@ -24,6 +24,7 @@ import { readReadingState } from "../reading-goals";
 import { KEYS, getJSON, getString } from "../storage";
 import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
 import type { HomeStackParamList } from "../navigation/types";
+import { onSyncApplied } from "../lib/sync/sync-events";
 
 type Props = NativeStackScreenProps<HomeStackParamList, "Today">;
 
@@ -42,11 +43,15 @@ export function HomeScreen({ navigation }: Props) {
   useEffect(() => {
     let active = true;
     void api.listSurahs().then((s) => active && setSurahs(s)).catch(() => undefined);
-    void readReadingState().then((s) => {
-      if (active) setReadPct(Math.min(1, s.goal > 0 ? s.pagesToday / s.goal : 0));
-    });
+    const loadReadPct = () =>
+      void readReadingState().then((s) => {
+        if (active) setReadPct(Math.min(1, s.goal > 0 ? s.pagesToday / s.goal : 0));
+      });
+    loadReadPct();
+    const unsubscribe = onSyncApplied(loadReadPct);
     return () => {
       active = false;
+      unsubscribe();
     };
   }, []);
 
@@ -54,26 +59,30 @@ export function HomeScreen({ navigation }: Props) {
   // permission prompt here; that lives on the Prayer Times screen).
   useEffect(() => {
     let active = true;
-    void Promise.all([
-      getJSON<Coordinates | null>(KEYS.prayerCoords, null),
-      getString(KEYS.prayerMethod),
-      getString(KEYS.prayerMadhab),
-    ]).then(([c, method, madhab]) => {
-      if (!active || !c) return;
-      setCoords(c);
-      void api
-        .getPrayerTimes({
-          lat: c.latitude,
-          lng: c.longitude,
-          date: localISODate(new Date()),
-          method: method ?? DEFAULT_CALCULATION_METHOD,
-          madhab: (madhab as Madhab) || "shafi",
-        })
-        .then((t) => active && setTimings(t as PrayerTimings))
-        .catch(() => undefined);
-    });
+    const loadTimings = () =>
+      void Promise.all([
+        getJSON<Coordinates | null>(KEYS.prayerCoords, null),
+        getString(KEYS.prayerMethod),
+        getString(KEYS.prayerMadhab),
+      ]).then(([c, method, madhab]) => {
+        if (!active || !c) return;
+        setCoords(c);
+        void api
+          .getPrayerTimes({
+            lat: c.latitude,
+            lng: c.longitude,
+            date: localISODate(new Date()),
+            method: method ?? DEFAULT_CALCULATION_METHOD,
+            madhab: (madhab as Madhab) || "shafi",
+          })
+          .then((t) => active && setTimings(t as PrayerTimings))
+          .catch(() => undefined);
+      });
+    loadTimings();
+    const unsubscribe = onSyncApplied(loadTimings);
     return () => {
       active = false;
+      unsubscribe();
     };
   }, []);
 
