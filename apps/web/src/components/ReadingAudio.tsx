@@ -12,7 +12,7 @@ import {
 } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
 import { readReciter, writeReciter } from "../lib/reader-prefs";
-import { readLoop, readRate, writeLoop, writeRate } from "../lib/reader-prefs-store";
+import { LOOP_EVENT, readLoop, readRate, writeLoop, writeRate } from "../lib/reader-prefs-store";
 import { type Segment, bundledSegments } from "../lib/audio-timing";
 import { webAudioStore } from "../lib/audio-store";
 
@@ -211,8 +211,17 @@ export function ReadingAudio({
         stop();
       }
     };
+    const onLoop = () => {
+      const next = readLoop();
+      setLoop(next);
+      loopRef.current = next;
+    };
     window.addEventListener(RECITER_KEY, onReciter as EventListener);
-    return () => window.removeEventListener(RECITER_KEY, onReciter as EventListener);
+    window.addEventListener(LOOP_EVENT, onLoop);
+    return () => {
+      window.removeEventListener(RECITER_KEY, onReciter as EventListener);
+      window.removeEventListener(LOOP_EVENT, onLoop);
+    };
   }, [reciters]);
 
   function toggleLoop() {

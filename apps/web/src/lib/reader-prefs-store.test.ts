@@ -1,5 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  LAST_READ_EVENT,
+  LOOP_EVENT,
   readLastRead,
   readLastReadFull,
   readLoop,
@@ -74,5 +76,18 @@ describe("reader-prefs-store", () => {
     expect(readScroll("ul.scroll.2")).toBe(0);
     writeScroll("ul.scroll.2", 540);
     expect(readScroll("ul.scroll.2")).toBe(540);
+  });
+
+  it("fires LAST_READ_EVENT / LOOP_EVENT on write, so open views can re-read live (e.g. a synced change)", () => {
+    const onLastRead = vi.fn();
+    const onLoop = vi.fn();
+    window.addEventListener(LAST_READ_EVENT, onLastRead);
+    window.addEventListener(LOOP_EVENT, onLoop);
+    writeLastRead(36);
+    writeLoop(true);
+    expect(onLastRead).toHaveBeenCalledOnce();
+    expect(onLoop).toHaveBeenCalledOnce();
+    window.removeEventListener(LAST_READ_EVENT, onLastRead);
+    window.removeEventListener(LOOP_EVENT, onLoop);
   });
 });

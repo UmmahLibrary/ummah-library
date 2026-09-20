@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { readReciter, readScale, writeReadingMode, writeReciter, writeScale } from "./reader-prefs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { SCALE_EVENT, readReciter, readScale, writeReadingMode, writeReciter, writeScale } from "./reader-prefs";
 
 beforeEach(() => localStorage.clear());
 afterEach(() => localStorage.clear());
@@ -21,5 +21,13 @@ describe("reader-prefs", () => {
   it("persists the reading mode", async () => {
     await writeReadingMode("reading-tr");
     expect(localStorage.getItem("ul.readingMode")).toBe("reading-tr");
+  });
+
+  it("fires SCALE_EVENT on write, so open views can re-read live (e.g. a synced change)", async () => {
+    const onChange = vi.fn();
+    window.addEventListener(SCALE_EVENT, onChange);
+    await writeScale(1.2);
+    expect(onChange).toHaveBeenCalledOnce();
+    window.removeEventListener(SCALE_EVENT, onChange);
   });
 });

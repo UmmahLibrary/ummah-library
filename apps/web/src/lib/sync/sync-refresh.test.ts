@@ -28,20 +28,25 @@ describe("refreshForKey", () => {
   });
 
   it("is a no-op (no throw) for a key with no live listener", () => {
-    expect(() => refreshForKey("ul.asmaLearned")).not.toThrow();
+    expect(() => refreshForKey("ul.badges")).not.toThrow();
   });
 
-  it("dispatches ul.bookmarks and ul.hifz (they gained live listeners)", () => {
-    const onBookmarks = vi.fn();
-    const onHifz = vi.fn();
-    window.addEventListener("ul.bookmarks", onBookmarks);
-    window.addEventListener("ul.hifz", onHifz);
-    refreshForKey("ul.bookmarks");
-    refreshForKey("ul.hifz");
-    expect(onBookmarks).toHaveBeenCalledOnce();
-    expect(onHifz).toHaveBeenCalledOnce();
-    window.removeEventListener("ul.bookmarks", onBookmarks);
-    window.removeEventListener("ul.hifz", onHifz);
+  it("dispatches ul.bookmarks, ul.hifz, ul.asmaLearned, ul.lastRead, ul.scale and ul.loop (they gained live listeners)", () => {
+    for (const key of ["ul.bookmarks", "ul.hifz", "ul.asmaLearned", "ul.lastRead", "ul.scale", "ul.loop"]) {
+      const onChange = vi.fn();
+      window.addEventListener(key, onChange);
+      refreshForKey(key);
+      expect(onChange).toHaveBeenCalledOnce();
+      window.removeEventListener(key, onChange);
+    }
+  });
+
+  it("dispatches ul.collections for a synced ul.ayahNotes change (they share the collections view's event)", () => {
+    const onCollections = vi.fn();
+    window.addEventListener("ul.collections", onCollections);
+    refreshForKey("ul.ayahNotes");
+    expect(onCollections).toHaveBeenCalledOnce();
+    window.removeEventListener("ul.collections", onCollections);
   });
 
   it("carries the key's raw stored value as `detail` (ul.reciter/ul.tafsir need it, not just a bare signal)", () => {

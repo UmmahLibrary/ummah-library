@@ -44,14 +44,16 @@ export const REFRESH_EVENTS: Record<string, readonly string[]> = {
   "ul.theme": [],
   "ul.bookmarks": ["ul.bookmarks"],
   "ul.hifz": ["ul.hifz"],
+  // Notes share the collections view's own live event (CollectionsView listens
+  // to both) — a note change re-reads the same way a collection change does.
+  "ul.ayahNotes": ["ul.collections"],
+  "ul.asmaLearned": ["ul.asmaLearned"],
+  "ul.lastRead": ["ul.lastRead"],
+  "ul.scale": ["ul.scale"],
+  "ul.loop": ["ul.loop"],
   // No live listener today → reflects on the next read/navigation:
-  "ul.ayahNotes": [],
-  "ul.asmaLearned": [],
   "ul.badges": [],
-  "ul.lastRead": [],
-  "ul.scale": [],
   "ul.readingMode": [],
-  "ul.loop": [],
   "ul.prayerMethod": [],
   "ul.prayerMadhab": [],
   "ul.prayerHighLat": [],

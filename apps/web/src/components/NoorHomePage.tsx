@@ -5,7 +5,7 @@ import { JUZ_STARTS, TOTAL_JUZ, ayahKey, juzNumberOf } from "@ummahlibrary/core"
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import { HomeHeroCards } from "./HomeHeroCards";
 import { HomeVerseOfDay } from "./HomeVerseOfDay";
-import { readLastReadFull, type LastRead } from "../lib/reader-prefs-store";
+import { LAST_READ_EVENT, readLastReadFull, type LastRead } from "../lib/reader-prefs-store";
 import { useSearch } from "./shell/SearchContext";
 
 interface Surah {
@@ -331,8 +331,11 @@ function ContinueReadingCard({ surahs }: { surahs: Surah[] }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setLr(readLastReadFull());
+    const refresh = () => setLr(readLastReadFull());
+    refresh();
     setMounted(true);
+    window.addEventListener(LAST_READ_EVENT, refresh);
+    return () => window.removeEventListener(LAST_READ_EVENT, refresh);
   }, []);
 
   const byNumber = new Map(surahs.map((s) => [s.number, s]));
