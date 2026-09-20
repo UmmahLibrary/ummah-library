@@ -124,3 +124,19 @@ non-extractable WebCrypto key in IndexedDB — is a later option.) The Settings 
   true on web, mobile, and the extension alike); and the v2 refinements (element-level
   merge for set/map keys, atomic server merge under concurrent push, an incremental
   pull cursor).
+- **Landed since (2026-09-20): BIP39 recovery phrase.** §1's "BIP39 words are a
+  later polish" has shipped: `generateRecoveryPhrase` now emits a 12-word BIP39
+  English phrase (132 bits of entropy, no checksum word — this isn't a wallet,
+  and a wrong phrase already just derives a harmlessly different account) instead
+  of the original 25-character grouped alphanumeric code. The wordlist and the
+  bytes-to-words encoding are pure and now live once in `core`
+  (`recovery-phrase.ts`) instead of being duplicated per platform.
+  `canonicalizeRecoverySecret` (the one choke point every `createXCipher` derives
+  keys through) also moved to `core` and recognizes **both** formats — a real
+  12-word phrase canonicalizes by word, anything else falls back to the original
+  strip-and-uppercase rule — so accounts created under the old code keep deriving
+  the same key after the upgrade; nothing was migrated or invalidated.
+  **At-rest secret hardening** (§5's "later option": a non-extractable WebCrypto
+  key in IndexedDB instead of plaintext `localStorage`/`chrome.storage.local`/
+  `AsyncStorage`) remains deferred — it's independent of the phrase format and is
+  being scoped separately.

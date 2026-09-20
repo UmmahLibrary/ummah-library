@@ -58,9 +58,7 @@ describe("recovery secret helpers", () => {
     expect(canonicalizeRecoverySecret("ab-cd ef")).toBe("ABCDEF");
   });
 
-  it("generates five hyphen-separated groups of five from the safe alphabet", () => {
-    expect(generateRecoveryPhrase()).toMatch(
-      /^[ABCDEFGHJKMNPQRSTVWXYZ23456789]{5}(-[ABCDEFGHJKMNPQRSTVWXYZ23456789]{5}){4}$/,
-    );
+  it("generates a 12-word BIP39 phrase", () => {
+    expect(generateRecoveryPhrase()).toMatch(/^[a-z]+(?: [a-z]+){11}$/);
   });
 });
