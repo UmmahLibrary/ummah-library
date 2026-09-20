@@ -6,7 +6,7 @@ import { type Coordinates, type PrayerTimings, gregorianToHijri, hijriMonth } fr
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
 import { fmtPrayerTime } from "../lib/prayer-time-format";
-import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
+import { PRAYER_SETTINGS_EVENT, webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
 import { RAMADAN_EVENT, readFasts, readWorship, toggleFast, toggleWorship } from "../lib/ramadan";
 import { readReadingState } from "../lib/reading-goals";
@@ -77,6 +77,18 @@ export function RamadanView() {
     });
     return () => window.removeEventListener(RAMADAN_EVENT, sync);
   }, [today]);
+
+  // A synced prayer-settings change writes storage directly — re-read + refetch.
+  useEffect(() => {
+    const onSettings = () => {
+      void webPrayerSettingsStore.read().then(({ coords: c }) => setCoords(c));
+      void webPrayerTimingsProvider.getTodaysTimings().then((t) => {
+        if (t) setTimings(t);
+      });
+    };
+    window.addEventListener(PRAYER_SETTINGS_EVENT, onSettings);
+    return () => window.removeEventListener(PRAYER_SETTINGS_EVENT, onSettings);
+  }, []);
 
   useEffect(() => {
     setHijriAdjust(readHijriAdjust());

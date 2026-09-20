@@ -36,6 +36,23 @@ const METHOD_KEY = "ul.prayerMethod";
 const MADHAB_KEY = "ul.prayerMadhab";
 const HIGH_LAT_KEY = "ul.prayerHighLat";
 
+/** Fired whenever any prayer setting changes, so open views can re-derive timings/qibla live. */
+export const PRAYER_SETTINGS_EVENT = "ul.prayerSettings";
+/** Fired specifically on a location change — lets a network-backed consumer
+ *  (the mosque finder) refetch only when the thing it actually depends on
+ *  changes, not on every method/madhab tweak. */
+export const PRAYER_COORDS_EVENT = "ul.prayerCoords";
+
+function emit(...events: string[]): void {
+  for (const event of events) {
+    try {
+      window.dispatchEvent(new CustomEvent(event));
+    } catch {
+      /* non-browser */
+    }
+  }
+}
+
 export const webPrayerSettingsStore: PrayerSettingsStore = {
   read: async () => {
     let coords: Coordinates | null = null;
@@ -75,6 +92,7 @@ export const webPrayerSettingsStore: PrayerSettingsStore = {
     } catch {
       /* storage unavailable */
     }
+    emit(PRAYER_SETTINGS_EVENT, PRAYER_COORDS_EVENT);
   },
   writeMethod: async (method) => {
     try {
@@ -82,6 +100,7 @@ export const webPrayerSettingsStore: PrayerSettingsStore = {
     } catch {
       /* storage unavailable */
     }
+    emit(PRAYER_SETTINGS_EVENT);
   },
   writeMadhab: async (madhab) => {
     try {
@@ -89,6 +108,7 @@ export const webPrayerSettingsStore: PrayerSettingsStore = {
     } catch {
       /* storage unavailable */
     }
+    emit(PRAYER_SETTINGS_EVENT);
   },
   writeHighLatitudeRule: async (rule) => {
     try {
@@ -96,5 +116,6 @@ export const webPrayerSettingsStore: PrayerSettingsStore = {
     } catch {
       /* storage unavailable */
     }
+    emit(PRAYER_SETTINGS_EVENT);
   },
 };
