@@ -100,8 +100,10 @@ export function SyncSettings() {
 
   // Read localStorage only after mount to avoid a server/client hydration mismatch.
   useEffect(() => {
-    setEnabled(isSyncEnabled());
-    setSecret(readSyncSecret());
+    void (async () => {
+      setEnabled(await isSyncEnabled());
+      setSecret(await readSyncSecret());
+    })();
   }, []);
 
   async function turnOn() {
@@ -109,7 +111,7 @@ export function SyncSettings() {
     if (!s) return;
     setBusy(true);
     setStatus(null);
-    enableSync(s);
+    await enableSync(s);
     resetSyncRuntime();
     setEnabled(true);
     setSecret(s);

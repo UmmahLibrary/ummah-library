@@ -136,7 +136,16 @@ non-extractable WebCrypto key in IndexedDB — is a later option.) The Settings 
   12-word phrase canonicalizes by word, anything else falls back to the original
   strip-and-uppercase rule — so accounts created under the old code keep deriving
   the same key after the upgrade; nothing was migrated or invalidated.
-  **At-rest secret hardening** (§5's "later option": a non-extractable WebCrypto
-  key in IndexedDB instead of plaintext `localStorage`/`chrome.storage.local`/
-  `AsyncStorage`) remains deferred — it's independent of the phrase format and is
-  being scoped separately.
+- **Landed since (2026-09-20): at-rest secret hardening.** §5's "later option"
+  has shipped on all three platforms. **Mobile** moved the secret from plain
+  AsyncStorage into `expo-secure-store` (iOS Keychain / Android Keystore); a
+  pre-hardening install's plaintext copy is migrated in on first read, in
+  place. **Web and the extension** wrap the secret with a non-extractable
+  AES-256-GCM key generated once and kept in IndexedDB (`secret-vault-store.ts`,
+  duplicated per app like the ciphers) before it touches `localStorage` /
+  `chrome.storage.local`; a legacy plaintext value is unwrapped straight
+  through and opportunistically re-wrapped. None of this changes the trust
+  model: it protects against reading storage at rest without code execution
+  (devtools, a profile-sync tool, disk access) — it does **not** protect
+  against script already running in the origin, which could just call the
+  same wrap/unwrap functions. The device is still the trust boundary.
