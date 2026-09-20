@@ -64,11 +64,17 @@ export function createHttpSyncBackend(options: HttpSyncBackendOptions = {}): Syn
         body: JSON.stringify({ entries, cursor }),
       });
       if (!res.ok) throw new Error(`sync failed (${res.status})`);
-      const data = (await res.json()) as { entries?: unknown; cursor?: unknown; more?: unknown };
+      const data = (await res.json()) as {
+        entries?: unknown;
+        cursor?: unknown;
+        more?: unknown;
+        rejected?: unknown;
+      };
       return {
         entries: Array.isArray(data.entries) ? data.entries.filter(isValidEntry) : [],
         cursor: typeof data.cursor === "number" ? data.cursor : undefined,
         more: data.more === true,
+        rejected: Array.isArray(data.rejected) ? data.rejected.filter((id) => typeof id === "string") : undefined,
       };
     },
   };

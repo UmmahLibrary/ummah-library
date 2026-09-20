@@ -291,6 +291,9 @@ class CursorState implements SyncStateStore {
   get(key: string): string | null {
     return this.data.get(key)?.value ?? null;
   }
+  isDirty(key: string): boolean {
+    return this.dirty.has(key);
+  }
   async all() {
     return [...this.data.entries()].map(([key, v]) => ({
       key,
@@ -373,5 +376,49 @@ describe("runSync — incremental cursor (v3)", () => {
     const out = await runSync({ cipher, backend, state: a }); // a pulls the newer B
     expect(a.get("ul.x")).toBe("B");
     expect(out.applied).toBe(1);
+  });
+});
+
+// --- v3: graceful overflow (ADR 0035) ---
+
+describe("runSync — graceful overflow", () => {
+  it("does not mark a rejected key clean — it stays dirty and is pushed again next round", async () => {
+    const rejectedThisRound = new Set(["id:ul.y"]);
+    const backend: SyncBackend = {
+      exchange: async (_accountId, push) => ({
+        entries: [],
+        cursor: 1,
+        rejected: push.map((e) => e.id).filter((id) => rejectedThisRound.has(id)),
+      }),
+    };
+    const a = new CursorState();
+    a.set("ul.x", "ok", at(10));
+    a.set("ul.y", "too big", at(10));
+
+    const out = await runSync({ cipher, backend, state: a });
+
+    expect(out.pushed).toBe(2); // both were sent
+    expect(a.isDirty("ul.x")).toBe(false); // accepted → clean
+    expect(a.isDirty("ul.y")).toBe(true); // rejected → still dirty, will retry
+  });
+
+  it("a later round with the fix applied succeeds once the server stops rejecting it", async () => {
+    let reject = true;
+    const backend: SyncBackend = {
+      exchange: async (_accountId, push) => ({
+        entries: [],
+        cursor: 1,
+        rejected: reject ? push.map((e) => e.id) : [],
+      }),
+    };
+    const a = new CursorState();
+    a.set("ul.x", "too big", at(10));
+
+    await runSync({ cipher, backend, state: a });
+    expect(a.isDirty("ul.x")).toBe(true);
+
+    reject = false; // e.g. the reader trimmed the note under the size cap
+    await runSync({ cipher, backend, state: a });
+    expect(a.isDirty("ul.x")).toBe(false);
   });
 });

@@ -1,11 +1,13 @@
 /**
  * The `/api/sync` request logic (#25, ADR 0033/0035), separated from the Next route
  * shell so it unit-tests against an {@link SyncStore} fake. It authenticates the
- * Bearer `accountId`, validates the encrypted entries (size/shape caps guard the
- * unauthenticated, E2E-encrypted endpoint against abuse), merges the client's push
- * with the stored set via the pure core `mergeEntries`, and returns only the
- * **delta** past the client's `cursor` (ADR 0035), paged. The server never
- * decrypts anything.
+ * Bearer `accountId`, sorts the pushed entries into what it can persist and what
+ * it can't (size/shape caps guard the unauthenticated, E2E-encrypted endpoint
+ * against abuse — graceful overflow, ADR 0035: one bad/excess entry is reported
+ * back rather than failing the whole push), merges the accepted ones with the
+ * stored set via the pure core `mergeEntries`, and returns only the **delta**
+ * past the client's `cursor` (ADR 0035), paged. The server never decrypts
+ * anything.
  */
 import { type SyncEntry, hlcCompare, mergeEntries } from "@ummahlibrary/core";
 import type { Lock } from "./lock";
@@ -39,10 +41,17 @@ export function parseAccountId(authorization: string | null): string | null {
   return m ? m[1]! : null;
 }
 
+/** A usable entry id: the one thing that must be valid before an entry can even
+ *  be *named* back to the client as rejected — everything else about the shape
+ *  can be wrong and still get reported. */
+function isValidId(id: unknown): id is string {
+  return typeof id === "string" && id.length > 0 && id.length <= 128;
+}
+
 function isValidEntry(v: unknown): v is SyncEntry {
   if (typeof v !== "object" || v === null) return false;
   const e = v as Record<string, unknown>;
-  if (typeof e.id !== "string" || e.id.length === 0 || e.id.length > 128) return false;
+  if (!isValidId(e.id)) return false;
   if (typeof e.nonce !== "string" || e.nonce.length > MAX_NONCE) return false;
   if (e.ciphertext !== null && typeof e.ciphertext !== "string") return false;
   if (typeof e.ciphertext === "string" && e.ciphertext.length > MAX_CIPHERTEXT) return false;
@@ -55,6 +64,36 @@ function isValidEntry(v: unknown): v is SyncEntry {
     h.node.length >= 1 &&
     h.node.length <= MAX_NODE
   );
+}
+
+/**
+ * Graceful overflow (ADR 0035): filter the push down to entries the server can
+ * actually persist, rather than rejecting the whole batch for one bad or
+ * excess entry. Three outcomes per raw item:
+ *  - a usable id but otherwise malformed (oversized ciphertext, bad clock, …) →
+ *    reported in `rejected`, so the client's engine keeps it dirty and retries
+ *  - past the per-request `MAX_ENTRIES` cap → also reported in `rejected`, for
+ *    the same reason (it simply lands in a later round instead)
+ *  - no usable id at all → silently dropped; there's nothing to name back, and
+ *    this is only reachable from a non-compliant client (ours never sends one)
+ */
+function sortPush(raw: readonly unknown[]): { accepted: SyncEntry[]; rejected: string[] } {
+  const validById = new Map<string, SyncEntry>();
+  const invalidIds = new Set<string>();
+  for (const v of raw) {
+    const id = (v as { id?: unknown } | null)?.id;
+    if (!isValidId(id)) continue; // unnameable — drop silently
+    if (isValidEntry(v)) {
+      if (!validById.has(id)) validById.set(id, v);
+    } else {
+      invalidIds.add(id);
+    }
+  }
+  for (const id of validById.keys()) invalidIds.delete(id); // a valid occurrence wins over an invalid duplicate
+  const all = [...validById.values()];
+  const accepted = all.slice(0, MAX_ENTRIES);
+  const rejected = [...invalidIds, ...all.slice(MAX_ENTRIES).map((e) => e.id)];
+  return { accepted, rejected };
 }
 
 /** Re-read a stored entry's version, defaulting a missing/corrupt one to 0. */
@@ -82,10 +121,9 @@ export async function handleSync(
   if (!accountId) return { status: 401, body: { error: "missing or malformed account id" } };
 
   const body = input.body as { entries?: unknown; cursor?: unknown } | null;
-  const push = body?.entries;
-  if (!Array.isArray(push)) return { status: 400, body: { error: "entries must be an array" } };
-  if (push.length > MAX_ENTRIES) return { status: 413, body: { error: "too many entries" } };
-  if (!push.every(isValidEntry)) return { status: 400, body: { error: "malformed entry" } };
+  const rawPush = body?.entries;
+  if (!Array.isArray(rawPush)) return { status: 400, body: { error: "entries must be an array" } };
+  const { accepted: push, rejected } = sortPush(rawPush);
   const cursor = isClockInt(body?.cursor) ? (body!.cursor as number) : 0;
 
   // The atomic critical section: re-read, merge, version, persist, compute the delta.
@@ -123,7 +161,12 @@ export async function handleSync(
 
     return {
       status: 200,
-      body: { entries: page.map(({ v: _v, ...entry }) => entry), cursor: nextCursor, more },
+      body: {
+        entries: page.map(({ v: _v, ...entry }) => entry),
+        cursor: nextCursor,
+        more,
+        ...(rejected.length > 0 ? { rejected } : {}),
+      },
     };
   };
 

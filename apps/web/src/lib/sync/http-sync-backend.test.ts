@@ -78,4 +78,17 @@ describe("createHttpSyncBackend", () => {
     const backend = createHttpSyncBackend({ fetchImpl });
     expect((await backend.exchange("x", [])).entries).toEqual([good]); // only the well-formed entry survives
   });
+
+  it("passes through the server's rejected ids (ADR 0035 graceful overflow)", async () => {
+    const { fetchImpl } = stubFetch({ body: { entries: [], rejected: ["bad-id", 42, "other-bad-id"] } });
+    const backend = createHttpSyncBackend({ fetchImpl });
+    // a non-string entry in the array is dropped, same untrust-the-server discipline as entries
+    expect((await backend.exchange("x", [])).rejected).toEqual(["bad-id", "other-bad-id"]);
+  });
+
+  it("omits rejected when the server doesn't send one (the common case)", async () => {
+    const { fetchImpl } = stubFetch({ body: { entries: [] } });
+    const backend = createHttpSyncBackend({ fetchImpl });
+    expect((await backend.exchange("x", [])).rejected).toBeUndefined();
+  });
 });

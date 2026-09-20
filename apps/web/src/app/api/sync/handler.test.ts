@@ -40,18 +40,38 @@ describe("handleSync", () => {
     expect(r.status).toBe(400);
   });
 
-  it("rejects too many entries with 413", async () => {
+  it("accepts the first MAX_ENTRIES and reports the rest as rejected, rather than failing the whole push (ADR 0035 graceful overflow)", async () => {
+    const store = new InMemorySyncStore();
     const entries = Array.from({ length: 2001 }, (_, i) => entry(`id${i}`, 1));
-    const r = await handleSync({ authorization: auth, body: { entries } }, new InMemorySyncStore());
-    expect(r.status).toBe(413);
+    const r = await handleSync({ authorization: auth, body: { entries } }, store);
+    expect(r.status).toBe(200);
+    const rejected = (r.body as { rejected?: string[] }).rejected;
+    expect(rejected).toEqual(["id2000"]);
+    expect((await store.get(ACCT)).map((e) => e.id)).toHaveLength(2000);
   });
 
-  it("rejects a malformed entry with 400", async () => {
+  it("accepts the rest of the push and reports only the malformed entry as rejected", async () => {
+    const store = new InMemorySyncStore();
     const r = await handleSync(
-      { authorization: auth, body: { entries: [{ id: "x", nonce: "n" }] } },
-      new InMemorySyncStore(),
+      { authorization: auth, body: { entries: [{ id: "x", nonce: "n" }, entry("good", 1)] } },
+      store,
     );
-    expect(r.status).toBe(400);
+    expect(r.status).toBe(200);
+    expect((r.body as { rejected?: string[] }).rejected).toEqual(["x"]);
+    const stored = await store.get(ACCT);
+    expect(stored.some((e) => e.id === "good")).toBe(true);
+    expect(stored.some((e) => e.id === "x")).toBe(false);
+  });
+
+  it("silently drops an entry with no usable id (nothing to name back), without disturbing the rest", async () => {
+    const store = new InMemorySyncStore();
+    const r = await handleSync(
+      { authorization: auth, body: { entries: [{ nonce: "n" }, entry("good", 1)] } },
+      store,
+    );
+    expect(r.status).toBe(200);
+    expect((r.body as { rejected?: string[] }).rejected).toBeUndefined();
+    expect((await store.get(ACCT)).map((e) => e.id)).toEqual(["good"]);
   });
 
   it("converges + persists the merged set and returns the stored-only delta", async () => {
@@ -107,18 +127,20 @@ describe("handleSync", () => {
     expect(r.status).toBe(200);
   });
 
-  it("rejects a non-finite hlc.millis (1e400 → Infinity via JSON) with 400", async () => {
+  it("rejects (not stores) a non-finite hlc.millis (1e400 → Infinity via JSON)", async () => {
     // 1e400 parses to Infinity, which would win every last-writer-wins race
-    // forever — permanently poisoning a key. Must be rejected at the boundary.
+    // forever — permanently poisoning a key. Must never be persisted.
+    const store = new InMemorySyncStore();
     const body = JSON.parse(
       '{"entries":[{"id":"k","hlc":{"millis":1e400,"counter":0,"node":"n"},"ciphertext":"c","nonce":"iv"}]}',
     );
-    const r = await handleSync({ authorization: auth, body }, new InMemorySyncStore());
-    expect(r.status).toBe(400);
+    const r = await handleSync({ authorization: auth, body }, store);
+    expect(r.status).toBe(200);
+    expect((r.body as { rejected?: string[] }).rejected).toEqual(["k"]);
+    expect(await store.get(ACCT)).toEqual([]);
   });
 
-  it("rejects negative / fractional / over-MAX_SAFE / empty-node clocks with 400", async () => {
-    const store = new InMemorySyncStore();
+  it("rejects (not stores) negative / fractional / over-MAX_SAFE / empty-node clocks", async () => {
     const mk = (hlc: unknown) => ({ id: "k", hlc, ciphertext: "c", nonce: "iv" });
     const badClocks = [
       { millis: -1, counter: 0, node: "n" },
@@ -128,24 +150,34 @@ describe("handleSync", () => {
       { millis: 1, counter: 0, node: "" }, // empty node → un-round-trippable clock
     ];
     for (const hlc of badClocks) {
+      const store = new InMemorySyncStore();
       const r = await handleSync({ authorization: auth, body: { entries: [mk(hlc)] } }, store);
-      expect(r.status).toBe(400);
+      expect(r.status).toBe(200);
+      expect((r.body as { rejected?: string[] }).rejected).toEqual(["k"]);
+      expect(await store.get(ACCT)).toEqual([]);
     }
   });
 
-  it("rejects an oversized nonce or node (per-entry size cap) with 400", async () => {
+  it("rejects (not stores) an oversized nonce or node (per-entry size cap)", async () => {
     const big = "A".repeat(5000);
     const goodHlc = { millis: 1, counter: 0, node: "n" };
+    const store1 = new InMemorySyncStore();
     const r1 = await handleSync(
       { authorization: auth, body: { entries: [{ id: "k", hlc: goodHlc, ciphertext: "c", nonce: big }] } },
-      new InMemorySyncStore(),
+      store1,
     );
-    expect(r1.status).toBe(400);
+    expect(r1.status).toBe(200);
+    expect((r1.body as { rejected?: string[] }).rejected).toEqual(["k"]);
+    expect(await store1.get(ACCT)).toEqual([]);
+
+    const store2 = new InMemorySyncStore();
     const r2 = await handleSync(
       { authorization: auth, body: { entries: [{ id: "k", hlc: { ...goodHlc, node: big }, ciphertext: "c", nonce: "iv" }] } },
-      new InMemorySyncStore(),
+      store2,
     );
-    expect(r2.status).toBe(400);
+    expect(r2.status).toBe(200);
+    expect((r2.body as { rejected?: string[] }).rejected).toEqual(["k"]);
+    expect(await store2.get(ACCT)).toEqual([]);
   });
 
   it("re-validates the stored set so a previously-corrupt entry can't poison the merge", async () => {

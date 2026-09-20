@@ -72,4 +72,10 @@ describe("createHttpSyncBackend", () => {
       createHttpSyncBackend({ endpoint: "https://x/api/sync", fetchImpl }).exchange("a", []),
     ).rejects.toThrow(/501/);
   });
+
+  it("passes through the server's rejected ids (ADR 0035 graceful overflow)", async () => {
+    const fetchImpl = (async () => jsonResponse({ entries: [], rejected: ["bad-id", 1] })) as unknown as typeof fetch;
+    const out = await createHttpSyncBackend({ endpoint: "https://x/api/sync", fetchImpl }).exchange("a", []);
+    expect(out.rejected).toEqual(["bad-id"]);
+  });
 });
