@@ -30,6 +30,25 @@ describe("refreshForKey", () => {
   it("is a no-op (no throw) for a key with no live listener", () => {
     expect(() => refreshForKey("ul.bookmarks")).not.toThrow();
   });
+
+  it("carries the key's raw stored value as `detail` (ul.reciter/ul.tafsir need it, not just a bare signal)", () => {
+    localStorage.setItem("ul.reciter", "alafasy");
+    const onReciter = vi.fn();
+    window.addEventListener("ul.reciter", onReciter);
+    refreshForKey("ul.reciter");
+    expect(onReciter).toHaveBeenCalledOnce();
+    expect((onReciter.mock.calls[0]![0] as CustomEvent).detail).toBe("alafasy");
+    window.removeEventListener("ul.reciter", onReciter);
+  });
+
+  it("a bare-signal listener (re-reads storage itself) is unaffected by the extra detail", () => {
+    localStorage.setItem("ul.editions", '["eng-sahih"]');
+    const onEditions = vi.fn();
+    window.addEventListener("ul.editions", onEditions);
+    refreshForKey("ul.editions");
+    expect(onEditions).toHaveBeenCalledOnce();
+    window.removeEventListener("ul.editions", onEditions);
+  });
 });
 
 describe("wireSyncRefresh", () => {
