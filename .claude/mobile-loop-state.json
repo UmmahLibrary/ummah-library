@@ -1,26 +1,24 @@
 {
-  "iteration": 10,
+  "iteration": 11,
   "cycle": 1,
-  "perspectiveIndex": 11,
+  "perspectiveIndex": 12,
   "batch": "mobile-stabilization-02",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
     {
-      "iteration": 8,
-      "perspective": "B9 - Android hardware back-button handling",
-      "outcome": "clean by code review; honestly flagged no Android device/emulator available to test the real hardware back button"
-    },
-    {
       "iteration": 9,
-      "perspective": "B10 - Deep link (ummahlibrary://) handling, including malformed links",
-      "outcome": "BUG FOUND AND FIXED: setLastRead(n) fired before validation, letting a malformed deep link poison the persisted continue-reading surah. Fixed and live-verified both directions.",
-      "notableFinding": "PlanDetailScreen ignores route.params.id (single active-plan model); MushafPageScreen flashes 'Page NaN' in header title on malformed input, cosmetic only"
+      "perspective": "B10 - Deep link handling, including malformed links",
+      "outcome": "BUG FOUND AND FIXED: malformed deep link poisoned continue-reading storage"
     },
     {
       "iteration": 10,
       "perspective": "B11 - Cold start time and splash screen timing",
-      "outcome": "GAP FOUND AND FIXED: no expo-splash-screen orchestration meant the native splash could auto-hide before fonts/onboarding-check resolved, leaving a blank flash. Added expo-splash-screen + preventAutoHideAsync/hideAsync gated on AppGate's onboarded resolution. Typecheck/test/lint clean; native splash-hide timing itself unverifiable without a device build, stated honestly.",
-      "notableFinding": "Pre-existing, unrelated console error ('this.validatePath is not a function' + a 404) reproduces on both old and new code (confirmed via git stash) - flagged for a later error-console-hygiene pass, not investigated now."
+      "outcome": "GAP FOUND AND FIXED: added expo-splash-screen orchestration"
+    },
+    {
+      "iteration": 11,
+      "perspective": "B12 - App background/foreground transitions (timers, audio, in-flight requests)",
+      "outcome": "clean by strong code-level evidence: audio highlight resync, sync in-flight dedup guard, and reminder re-sync on foreground all already purpose-built for this; UI clock timers clean up correctly. Honestly noted no device available to watch it happen live."
     }
   ]
 }

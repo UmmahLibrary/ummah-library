@@ -498,3 +498,53 @@ hygiene rather than chasing it now.
 
 **Commit:** `feat(mobile): keep the splash screen up until fonts and the
 onboarding check are ready`.
+
+---
+
+## Iteration 11 — App background/foreground transitions (timers, audio, in-flight requests)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether backgrounding/foregrounding the app leaks timers,
+desyncs UI state, or races in-flight work — specifically relevant here
+since `app.json` declares `UIBackgroundModes: ["audio"]`, i.e. reciter audio
+is *meant* to keep playing while backgrounded, not pause.
+
+**Result: clean, and better-engineered for this than I expected.** Three
+independent, purpose-built mechanisms already cover this:
+- [`useSurahAudio.ts:163-168`](apps/mobile/src/audio/useSurahAudio.ts#L163) —
+  an `AppState` listener sets a `resyncRef` on returning to `"active"`,
+  specifically to force-repaint the word-highlight after backgrounding. The
+  comment explains the exact failure mode this fixes: React's `setActiveWord`
+  commits are throttled/suppressed while backgrounded, so without this the
+  highlight would sit stale (right value, nothing painted) until the audio
+  crossed into the next word. No pause-on-background logic anywhere, which
+  is correct given the declared background-audio capability.
+- [`sync-runtime.ts:1-12`](apps/mobile/src/lib/sync/sync-runtime.ts#L1) —
+  explicitly documents and guards against app-launch and the `AppState`
+  "active" trigger firing in the same tick and racing on the shared
+  `ul.sync.meta` sidecar; an in-flight round's promise is reused instead of
+  starting a second one.
+- [`notifier.ts:7-9`](apps/mobile/src/notifier.ts#L7) — reminders re-sync on
+  foreground specifically to roll a fired one-shot notification to the next
+  day.
+- The three UI "live clock" timers (`HomeScreen`, `PrayerTimesScreen`,
+  `RamadanScreen` — `setInterval(() => setNow(new Date()), …)`) all clean up
+  correctly on unmount via `return () => clearInterval(id)`. They don't need
+  explicit background handling: the OS suspends the JS runtime while
+  backgrounded, the interval simply doesn't fire, and because each tick sets
+  `now` to the actual current time (not an incremented counter), resuming
+  produces the correct value immediately — no drift or catch-up logic
+  needed.
+
+**Verification and its limits:** this is native app-lifecycle behavior
+(`AppState` transitions, OS suspension) that `react-native-web` only
+loosely approximates via document visibility, and this environment has no
+Android/iOS device to background for real. Calling this clean based on
+code review — three independent, already-documented mechanisms addressing
+exactly this class of problem is stronger evidence than most of this loop's
+"nothing custom exists to break" findings, but it's still not the same as
+watching it happen on a device. Not claiming otherwise.
+
+**Commit:** none (clean iteration; no code changes).
