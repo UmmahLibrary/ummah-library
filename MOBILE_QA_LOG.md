@@ -3858,3 +3858,71 @@ source changes either); this iteration was a targeted code-reading
 audit, not something with an observable browser-preview surface.
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 72 — Cycle 2, B33 revisited: Bundle/APK size audit, closing the `expo-system-ui` gap iteration 32 explicitly deferred
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 32](#iteration-32--bundleapk-size-audit-for-play-store)
+fixed R8 minify/shrink and, in passing, noticed `expo prebuild` warning
+`android: userInterfaceStyle: Install expo-system-ui in your project to
+enable this feature` — `app.json` declared `"userInterfaceStyle": "dark"`
+but the plugin needed to actually apply that at the native level was
+never installed, so the setting was silently dead. Iteration 32 logged
+it "for a future iteration" rather than chase it mid-size-audit; grepped
+the log since and confirmed no later iteration picked it up.
+
+**Found the declared value itself was also wrong, not just unenforced.**
+`theme.tsx`'s own `ThemeProvider` has always defaulted the *first-run*
+Noor theme from `Appearance.getColorScheme()` (light device → Ivory,
+otherwise → Obsidian) — i.e. the app's own long-established intent is to
+follow the OS's light/dark setting, not force dark. A hardcoded
+`"dark"` in `app.json` would, once actually enforced, have forced
+`AppCompatDelegate`'s native night-mode to dark unconditionally —
+mismatching a user on a light-mode Android device, and mismatching any
+of the four light-mode Noor themes (ivory/sepia/mint/rose) for anything
+drawn by native Android chrome (keyboard tint, some OEM system dialogs)
+outside this app's own themed views. Simply installing the plugin
+without correcting the value would have *introduced* a real regression,
+not fixed one.
+
+**Fix:** `npx expo install expo-system-ui` (resolved `~6.0.9` for this
+SDK 54 project, the same version-correctness care iteration 32 itself
+called out — a naive install can silently target the wrong native
+config keys), added it to `app.json`'s `plugins`, and changed
+`userInterfaceStyle` from `"dark"` to `"automatic"` — matching what the
+app's own runtime default logic already does, and what Android does
+today anyway in the plugin's absence (RN's `AppCompatDelegate` defaults
+to `MODE_NIGHT_FOLLOW_SYSTEM` unless overridden), so this closes the
+gap without changing today's actual on-device behavior.
+
+**Verified the fix reaches past the point iteration 32 checked, down to
+the actual mechanism.** Read `expo-system-ui`'s own config-plugin source
+(`node_modules/expo-system-ui/plugin/build/withAndroidUserInterfaceStyle.js`):
+it writes the config value into `strings.xml` as
+`expo_system_ui_user_interface_style`, which the native module reads at
+startup to call `AppCompatDelegate.setDefaultNightMode()`. Ran a real
+`expo prebuild --platform android --no-install` and confirmed both:
+(1) the previous `userInterfaceStyle` prebuild warning is gone, and
+(2) `android/app/src/main/res/values/strings.xml` now contains
+`<string name="expo_system_ui_user_interface_style"
+translatable="false">automatic</string>` — concrete proof the setting
+reaches the exact resource the native module reads, not just that the
+plugin is listed. Removed the freshly-generated, gitignored `android/`
+directory afterward (same as iteration 32's own cleanup). Native
+`AppCompatDelegate` behavior itself still can't be smoke-tested without
+a real device/EAS build, same honest limitation iteration 32 already
+stated for this whole perspective.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136. No browser-preview check — this is
+a native-Android-only config path with zero effect on the
+`react-native-web` preview target, so there is nothing for that preview
+to exercise (stated here rather than skipped silently).
+
+**Commit:** `apps/mobile/app.json`, `apps/mobile/package.json`,
+`pnpm-lock.yaml` (adds `expo-system-ui`).

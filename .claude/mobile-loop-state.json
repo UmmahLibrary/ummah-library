@@ -1,15 +1,10 @@
 {
-  "iteration": 71,
+  "iteration": 72,
   "cycle": 2,
-  "perspectiveIndex": 31,
+  "perspectiveIndex": 32,
   "batch": "mobile-stabilization-08",
-  "consecutiveCleanIterations": 2,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 68,
-      "perspective": "Cycle 2, B29 revisited - Noor theme switching consistency across all 8 palettes",
-      "outcome": "GAP FOUND AND FIXED: theme.tsx's ThemeContextValue exposed a dead, never-called toggle() that also didn't match web's remember-last-theme-per-mode behavior. Removed it."
-    },
     {
       "iteration": 69,
       "perspective": "Cycle 2, B30 revisited - asset/offline-audio loading fallback, finishing iteration 29's deferred follow-up",
@@ -23,7 +18,12 @@
     {
       "iteration": 71,
       "perspective": "Cycle 2, B32 revisited - error boundaries/crash resilience against malformed persisted data, audited by data surface",
-      "outcome": "CLEAN: audited every remaining JSON.parse call site (locale-store, tafsir-compare-store, backup.ts import path, offlineCache.ts, sync-meta.ts, mobile-sync-state-store.ts) not covered by stores-corrupt.test.ts. All already defended with try/catch + shape validation, including the highest-risk backup-import path."
+      "outcome": "CLEAN: audited every remaining JSON.parse call site not covered by stores-corrupt.test.ts. All already defended, including the highest-risk backup-import path."
+    },
+    {
+      "iteration": 72,
+      "perspective": "Cycle 2, B33 revisited - Bundle/APK size audit, closing the expo-system-ui gap iteration 32 deferred",
+      "outcome": "GAP FOUND AND FIXED: userInterfaceStyle was hardcoded 'dark' with no expo-system-ui plugin installed to enforce it (silently dead, per iteration 32's own prebuild warning). Installed expo-system-ui and corrected the value to 'automatic' (matching the app's own runtime default logic) - installing the plugin without fixing the value would have introduced a real regression. Verified via prebuild that strings.xml now carries the correct value."
     }
   ]
 }
