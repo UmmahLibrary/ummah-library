@@ -4124,3 +4124,71 @@ fasting section, upcoming fasts) with no console errors beyond the
 same pre-existing `validatePath` web-preview artifact.
 
 **Commit:** `apps/mobile/src/screens/HijriCalendarScreen.tsx`.
+
+---
+
+## Iteration 76 — Cycle 2, B37 revisited: copy/microcopy vs web, checking what's changed since iteration 37
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 37](#iteration-37--copymicrocopy-consistency-and-correctness-vs-web)
+compared Zakat/mosque-finder/prayer-times/Qibla copy against web (batch
+4). Three batches of fixes have added or touched mobile copy since —
+the centralized notification-permission alert (iteration 56), the
+per-collection accessibility label (iteration 66), and the download-
+failure message (iteration 69) — none of which existed when iteration
+37 ran, so "still consistent with web" was an open question, not a
+re-confirmed fact.
+
+**Notification-permission copy: platform-appropriate, and more internally
+consistent than web's own version.** Mobile's
+[`notification-permission-alert.ts`](apps/mobile/src/notification-permission-alert.ts)
+("Notifications are off" / "Enable notifications in Settings to get
+your ${reminderLabel}.") is one shared function wired into all five
+reminder toggles, so mobile's wording is identical across every one of
+them. Checked web's equivalent and found web is **not** as consistent
+with itself: `PlanReminderToggle.tsx` says "...enable them in site
+settings to get the nudge," `PrayerTimesView.tsx` says "...enable them
+to be reminded," and `AdhkarReminderToggle.tsx`/`SunnahFastReminderToggle.tsx`
+show **no denied-permission message at all**. The wording difference
+from mobile's phrasing is the expected platform adaptation (Settings
+app vs browser site settings) iteration 37 already established as
+correct, not drift — but web's own internal inconsistency is a
+separate, real thing, **out of scope to fix here** (apps/web QA is a
+different pass) but worth recording since it's the kind of gap that's
+easy to lose track of once it's this scattered.
+
+**The "Download failed — tap to retry" copy (iteration 69) has no web
+equivalent to compare against — traced why, and it's a real web bug,
+not a missing string.** `apps/web/src/components/ReadingAudio.tsx`'s
+`downloadAudio()` has the **identical** missing-`catch` shape iteration
+69 fixed on mobile's `downloadSurahs` — a bare
+`try { … } finally { setDownload(null); }` with no `catch`, so a failed
+download on web today silently reverts the button to "Download for
+offline listening" with zero explanation, the same unhandled-rejection
+class of bug, just never fixed on that side. Confirmed by reading the
+code directly rather than assuming from the missing string. **Not
+fixed** — `apps/web` is out of scope for this loop, and this isn't a
+shared `core`/`packages` module (mobile's `useSurahAudio.ts` and web's
+`ReadingAudio.tsx` are independent platform implementations of the same
+feature, not one shared file), so there's nothing to fix "once at the
+shared layer" per this loop's own rule 5. Flagging clearly for a future
+web QA pass to apply the same fix mobile already has.
+
+**Regression-checked the "āyahāt"/"āyāt" pluralization fix** iteration
+37 also re-verified — still clean; the only remaining occurrences of
+"āyahāt" anywhere in the repo are negative test assertions proving it
+*doesn't* render.
+
+**No mobile-side copy bug found — clean for this app, with two findings
+recorded for elsewhere.** No code change.
+
+**Verification:** targeted code-reading audit across
+`apps/mobile/src/notification-permission-alert.ts`,
+`apps/web/src/components/{PlanReminderToggle,PrayerTimesView,AdhkarReminderToggle,SunnahFastReminderToggle,ReadingAudio}.tsx`;
+no source changed, so the lint/typecheck/test gate wasn't re-run
+(nothing to regress; tree was green from iteration 75 immediately
+prior).
+
+**Commit:** none (clean iteration; only this log entry and state).

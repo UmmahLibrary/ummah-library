@@ -1,29 +1,29 @@
 {
-  "iteration": 75,
+  "iteration": 76,
   "cycle": 2,
-  "perspectiveIndex": 35,
+  "perspectiveIndex": 36,
   "batch": "mobile-stabilization-08",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 72,
-      "perspective": "Cycle 2, B33 revisited - Bundle/APK size audit, closing the expo-system-ui gap iteration 32 deferred",
-      "outcome": "GAP FOUND AND FIXED: userInterfaceStyle was hardcoded 'dark' with no expo-system-ui plugin installed to enforce it. Installed the plugin and corrected the value to 'automatic'."
-    },
     {
       "iteration": 73,
       "perspective": "Cycle 2, B34 revisited - EAS build config correctness, re-verified after two batches of new plugins",
-      "outcome": "CLEAN, re-verified: fresh expo prebuild confirms eas.json, the merged AndroidManifest permission set, and the ITSAppUsesNonExemptEncryption declaration all still hold unchanged."
+      "outcome": "CLEAN, re-verified: fresh expo prebuild confirms eas.json, permissions, and encryption declaration all still hold."
     },
     {
       "iteration": 74,
       "perspective": "Cycle 2, B35 revisited - Play Store data-safety/permissions-justification, resolving iteration 33's deferred storage permissions",
-      "outcome": "GAP FOUND AND FIXED: traced READ/WRITE_EXTERNAL_STORAGE to expo-file-system's unconditional manifest declaration. Confirmed genuinely unused via 3 independent checks and blocked both."
+      "outcome": "GAP FOUND AND FIXED: traced and blocked expo-file-system's unconditional, genuinely-unused READ/WRITE_EXTERNAL_STORAGE permissions."
     },
     {
       "iteration": 75,
       "perspective": "Cycle 2, B36 revisited - empty/loading states, the local-storage-only screens iteration 36's sweep didn't individually enumerate",
-      "outcome": "GAP FOUND AND FIXED: HijriCalendarScreen returned bare null during its brief local-read load gap instead of the themed blank placeholder PlanDetailScreen/ReadingGoalsScreen already establish as the pattern. Fixed to match. Other local-storage screens (Profile, PrayerTracker, Zakat, Tasbih) confirmed already correct."
+      "outcome": "GAP FOUND AND FIXED: HijriCalendarScreen returned bare null during its load gap instead of the themed placeholder pattern established elsewhere. Fixed to match."
+    },
+    {
+      "iteration": 76,
+      "perspective": "Cycle 2, B37 revisited - copy/microcopy vs web, checking what's changed since iteration 37",
+      "outcome": "CLEAN for mobile. Found web's own notification-permission copy is inconsistent across its own reminder toggles (out of scope, logged), and that web's download-failure path has the identical missing-catch bug iteration 69 just fixed on mobile (out of scope, logged for a future web pass)."
     }
   ]
 }
