@@ -3258,3 +3258,38 @@ No fix needed.
 **Verification:** read-only iteration; prior gate (136/136) holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 62 — B22 revisited: the deferred race is closed; extended the cursor-safety finding down to storage
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 22's central finding — the "backgrounded-push
+race" it deliberately deferred as too risky to fix without real
+multi-device timing to verify against — **is the exact bug iterations
+44/51/52 found and fixed this cycle**, using deterministic unit tests
+instead of live timing, closing the loop this iteration started.
+Confirmed the fix (`writeGen`/`ignoreStale`) actually covers the specific
+nuance iteration 22 described (a reload landing *between* two rapid taps,
+not just before/after a single one): since every local write bumps the
+counter regardless of how many taps happen, a reload dispatched before
+any of them is discarded correctly no matter how many writes land in
+between.
+
+**Extended the "killed mid-sync is safe" finding one layer down, to the
+actual storage.** Iteration 22 verified `sync-engine.ts` only advances
+the cursor *after* every entry in a round is durably applied. This pass
+checked the cursor's own persistence: `sync-meta.ts`'s `readCursor()`
+validates `Number.isInteger(n) && n >= 0`, falling back to `0` (start the
+next round from scratch — redundant, not lossy) for anything malformed. A
+kill mid-write to the cursor key itself degrades the same safe way the
+engine-level logic already does, not just at the round-coordination
+layer.
+
+**Confirmed no interaction with this cycle's write-back fixes**: `ul.zakat`
+(the iteration 60 fix) isn't in `MANAGED_KEYS` at all, so it has zero
+overlap with the sync engine — nothing to check there.
+
+**Verification:** read-only iteration; prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).
