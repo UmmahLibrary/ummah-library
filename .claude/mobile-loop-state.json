@@ -1,29 +1,29 @@
 {
-  "iteration": 15,
+  "iteration": 16,
   "cycle": 1,
-  "perspectiveIndex": 16,
+  "perspectiveIndex": 17,
   "batch": "mobile-stabilization-02",
   "consecutiveCleanIterations": 0,
   "history": [
     {
-      "iteration": 12,
-      "perspective": "B13 - Kill-and-restore state integrity",
-      "outcome": "clean, live-verified"
-    },
-    {
       "iteration": 13,
       "perspective": "B14 - Tablet/iPad layout",
-      "outcome": "functionally fine, no content-width cap - logged, not fixed"
+      "outcome": "functionally fine, design recommendation logged, not fixed"
     },
     {
       "iteration": 14,
       "perspective": "B15 - Safe-area/notch handling",
-      "outcome": "clean, consistent pattern confirmed across every stack"
+      "outcome": "clean, consistent pattern confirmed"
     },
     {
       "iteration": 15,
-      "perspective": "B16 - Keyboard-avoiding behavior on every text-input screen",
-      "outcome": "GAP FOUND AND FIXED: CollectionsScreen and PlansScreen had TextInputs that could land below the fold (rename input in a long list; custom-plan input at the bottom of a preset-plans list) with no KeyboardAvoidingView. Wrapped both matching ZakatScreen's already-established pattern. Functionally live-verified (typing/value updates work); actual keyboard-obscuring behavior itself not observable in a desktop browser."
+      "perspective": "B16 - Keyboard-avoiding behavior",
+      "outcome": "GAP FOUND AND FIXED: CollectionsScreen and PlansScreen wrapped in KeyboardAvoidingView"
+    },
+    {
+      "iteration": 16,
+      "perspective": "B17 - Android permission request flow (location, notifications)",
+      "outcome": "GAP FOUND AND FIXED: all 3 location screens (Qibla, MosqueFinder, PrayerTimes) had a denied-state 'Try again' button with no way to reach Settings on permanent denial. Added Linking.openSettings() shortcut to all three. Notification permission handling was already clean. Smaller related gap (silent toggle failure on reminder switches) logged, not fixed - different UI treatment needed."
     }
   ]
 }

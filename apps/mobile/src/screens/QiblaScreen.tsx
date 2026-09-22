@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from "../Type";
+import { ActivityIndicator, Animated, Linking, Pressable, StyleSheet, Text, View } from "../Type";
 import * as Location from "expo-location";
 import { type Coordinates, compassPoint, qiblaDirection } from "@ummahlibrary/core";
 import { KEYS, getJSON, setJSON } from "../storage";
@@ -30,7 +30,10 @@ export function QiblaScreen() {
   useEffect(() => {
     const loadCoords = () =>
       void getJSON<Coordinates | null>(KEYS.prayerCoords, null).then((saved) => {
-        if (saved) { setCoords(saved); setStatus("ready"); }
+        if (saved) {
+          setCoords(saved);
+          setStatus("ready");
+        }
       });
     loadCoords();
     return onSyncApplied(loadCoords);
@@ -73,7 +76,10 @@ export function QiblaScreen() {
   async function locate() {
     setStatus("locating");
     const { status: perm } = await Location.requestForegroundPermissionsAsync();
-    if (perm !== "granted") { setStatus("denied"); return; }
+    if (perm !== "granted") {
+      setStatus("denied");
+      return;
+    }
     try {
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
       const c: Coordinates = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
@@ -87,7 +93,10 @@ export function QiblaScreen() {
 
   const bearing = coords ? qiblaDirection(coords) : null;
   const aligned = heading !== null && bearing !== null && angularGap(bearing, heading) < 5;
-  const dialDeg = dialRotation.interpolate({ inputRange: [-360, 360], outputRange: ["-360deg", "360deg"] });
+  const dialDeg = dialRotation.interpolate({
+    inputRange: [-360, 360],
+    outputRange: ["-360deg", "360deg"],
+  });
 
   return (
     <View style={styles.screen}>
@@ -112,9 +121,14 @@ export function QiblaScreen() {
       {status === "denied" && (
         <View style={styles.cta}>
           <Text style={styles.ctaText}>Location permission was denied. Enable it in Settings.</Text>
-          <Pressable style={styles.chip} onPress={locate}>
-            <Text style={styles.chipText}>Try again</Text>
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <Pressable style={styles.chip} onPress={locate}>
+              <Text style={styles.chipText}>Try again</Text>
+            </Pressable>
+            <Pressable style={styles.chip} onPress={() => void Linking.openSettings()}>
+              <Text style={styles.chipText}>Open Settings</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -129,7 +143,11 @@ export function QiblaScreen() {
           <View style={styles.compassCard}>
             <View style={styles.dialOuter}>
               <Animated.View
-                style={[styles.dial, aligned && styles.dialAligned, { transform: [{ rotate: dialDeg }] }]}
+                style={[
+                  styles.dial,
+                  aligned && styles.dialAligned,
+                  { transform: [{ rotate: dialDeg }] },
+                ]}
               >
                 <Text style={[styles.cardinal, styles.cardinalN, styles.cardinalNorth]}>N</Text>
                 <Text style={[styles.cardinal, styles.cardinalE]}>E</Text>
@@ -166,7 +184,13 @@ export function QiblaScreen() {
 
 function makeStyles(c: Palette) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: c.bg, padding: 20, alignItems: "center", justifyContent: "center" },
+    screen: {
+      flex: 1,
+      backgroundColor: c.bg,
+      padding: 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     center: { alignItems: "center", gap: 10 },
     muted: { color: c.muted, fontSize: 14, textAlign: "center" },
     cta: {
@@ -224,11 +248,28 @@ function makeStyles(c: Palette) {
     cardinalS: { bottom: 10 },
     cardinalE: { right: 10 },
     cardinalW: { left: 10 },
-    needle: { position: "absolute", alignItems: "center", justifyContent: "flex-start", height: "100%" },
+    needle: {
+      position: "absolute",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      height: "100%",
+    },
     kaaba: { fontSize: 28, marginTop: 8 },
-    degValue: { color: c.accent, fontSize: 30, fontFamily: FONT.extrabold, letterSpacing: -1, marginTop: 6 },
+    degValue: {
+      color: c.accent,
+      fontSize: 30,
+      fontFamily: FONT.extrabold,
+      letterSpacing: -1,
+      marginTop: 6,
+    },
     degSub: { color: c.muted, fontSize: 13.5, textAlign: "center", maxWidth: 260 },
-    chip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: c.border },
+    chip: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
     chipText: { color: c.muted, fontSize: 13 },
   });
 }

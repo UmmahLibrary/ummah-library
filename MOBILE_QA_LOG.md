@@ -755,3 +755,64 @@ after the JSX wrap.
 
 **Commit:** `fix(mobile): wrap Collections and Plans screens in
 KeyboardAvoidingView`.
+
+---
+
+## Iteration 16 — Android permission request flow (location, notifications)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether every location/notification permission request has a
+clear rationale and a real path forward after denial, across
+`QiblaScreen`, `MosqueFinderScreen`, `PrayerTimesScreen` (location) and
+`notifier.ts` + its three reminder-toggle callers (notifications).
+
+**Notifications: clean.** `notifier.ts`'s `schedule()` explicitly checks
+`cachedPermission !== "granted"` before ever touching the OS scheduler —
+denied permission means reminders silently don't fire, never an error.
+`PlanReminderToggle`/`AdhkarReminderToggle`/`SunnahFastReminderToggle` all
+request permission on first toggle-on and — with an explicit comment
+explaining the choice — leave the switch off rather than show "on" for a
+reminder that will never fire. `app.json`'s `expo-location` plugin config
+already has a real rationale string
+(`"Allow Ummah Library to use your location to calculate prayer times and
+find the qibla direction."`) for the OS's own permission dialog.
+
+**Found and fixed a real, consistent gap on the 3 location screens.**
+`QiblaScreen`, `MosqueFinderScreen`, and `PrayerTimesScreen` each had the
+identical denied-state message — "Location permission was denied. Enable
+it in Settings." — with only a "Try again" button that just re-calls
+`requestForegroundPermissionsAsync()`. On a *permanent* denial (Android's
+"Don't ask again", or iOS after a first decline), the OS won't re-show the
+prompt — the button silently re-fails with no visible feedback, and the
+message tells the user to go to Settings without giving them any way to
+get there. `Linking.openSettings()` was never called anywhere in the app.
+
+**Fix:** added a second "Open Settings" button next to "Try again" in all
+three denied-state blocks, calling `Linking.openSettings()` — the standard
+cross-platform API for this exact situation. Kept "Try again" too, since
+it's still the faster path for a non-permanent denial.
+
+**Smaller, related gap logged but not fixed:** the notification-permission
+toggles (`PlanReminderToggle` etc.) give *zero* feedback when denied beyond
+the switch not flipping on — no message explaining why, unlike the location
+screens' full denied-state view. Lower severity (a secondary toggle buried
+in a settings-adjacent surface, not a primary screen's core flow) and would
+need a different UI treatment (inline text or a toast near a switch, not a
+full-screen state), so treating it as a separate, smaller follow-up rather
+than bundling it into this fix.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass; `pnpm lint` — 0 errors, same 13 pre-existing warnings.
+Live-verified via `preview_start({name: "mobile"})` that `QiblaScreen`
+still renders its normal initial state after the change. **Not verified
+live:** the actual denied-state render with both buttons — inducing a real
+permission denial isn't reliably scriptable against a desktop browser's
+geolocation prompt in this environment. The change itself is a small,
+purely additive JSX addition (one more `Pressable` in an existing row),
+already confirmed syntactically and structurally sound by typecheck, lint,
+and `prettier`.
+
+**Commit:** `fix(mobile): add an Open Settings shortcut when location
+permission is denied`.
