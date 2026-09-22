@@ -3026,3 +3026,41 @@ previous iteration.
 `apps/mobile/src/components/SunnahFastReminderToggle.tsx`,
 `apps/mobile/src/screens/HijriCalendarScreen.tsx`,
 `apps/mobile/src/screens/PrayerTimesScreen.tsx`.
+
+## Iteration 57 — B17 revisited: audio interruption handling confirmed uniform across both reader screens and both audio sources
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 17 found `useSurahAudio.ts`'s interruption
+handling (pausing the stall watchdog during a call/audio-focus loss
+instead of skipping ahead) to be unusually well-engineered, verified
+against `SurahReaderScreen` specifically. This pass checked two things
+that finding didn't explicitly rule out: does `JuzReaderScreen` (the
+other audio-playing screen) share the same protection, or does it have
+its own, separately-implemented audio logic that could have its own
+gaps? And does the interruption handling apply the same way to offline
+(downloaded) playback as it does to streaming — iteration 29 fixed a
+corrupted-download bug in the same audio subsystem since this perspective
+was last checked, so it's worth confirming that later work didn't
+introduce a divergent code path.
+
+**Both confirmed clean, by construction rather than by inspecting two
+separate implementations.** `JuzReaderScreen` and `SurahReaderScreen`
+both call the exact same `useSurahAudio(reciter)` hook — not a duplicated
+or screen-specific copy — so iteration 17's finding covers both screens
+automatically; there's only one interruption-handling implementation to
+have a bug in, and it's already been audited. For the offline-vs-
+streaming question: traced the source resolution directly —
+`const src = local ?? timing.url` picks between a downloaded file:// path
+and a remote https:// stream URL, but both feed into the same
+`ensurePlayer(src)` call and the same `playbackStatusUpdate` listener
+downstream. The interruption-handling code operates on player *status
+events*, not the source URL, so there's no branch point where offline
+playback could have ended up with weaker protection than streaming.
+
+No fix needed.
+
+**Verification:** read-only iteration; prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).
