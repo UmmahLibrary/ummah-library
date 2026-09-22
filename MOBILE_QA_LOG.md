@@ -3791,3 +3791,70 @@ regress) — confirmed the tree was already green from iteration 69's gate
 immediately prior.
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 71 — Cycle 2, B32 revisited: error boundaries / crash resilience against malformed persisted data, this time by data surface rather than by screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 31](#iteration-31--error-boundaries--crash-resilience-against-malformed-data)
+covered the *generic* half of this perspective — a render-time crash
+anywhere gets caught by a real error boundary instead of a permanently
+blank screen. It didn't specifically audit whether every place that
+*parses persisted data* is itself defended, which is the more targeted
+reading of "against malformed persisted data." `stores-corrupt.test.ts`
+(added mid-loop, cycle-4-era per its own header) already covers most
+`ul.*` key stores, but three surfaces sit outside that test file:
+`i18n/locale-store.ts`, `tafsir-compare-store.ts`, and the
+backup/import path (`backup.ts` + `backup-store.ts`) — the last one
+being the highest-risk surface in the whole app, since it's the one
+place a user can hand the app an arbitrary external file to parse.
+
+**Audited every remaining `JSON.parse` call site in `apps/mobile/src`
+(a `grep` beyond `stores-corrupt.test.ts`'s store list) plus the two
+un-tested stores above, one by one:**
+- `i18n/locale-store.ts` — no JSON at all; reads a raw string and
+  validates with `isLocale()` before trusting it. Safe by construction.
+- `tafsir-compare-store.ts` — routes through `storage.ts`'s generic
+  `getJSON(key, fallback, isValid)` with `isStringArray`, the same
+  hardened primitive `stores-corrupt.test.ts` already exercises for
+  every other store; just not wired into that specific integration
+  test. Safe, not independently re-tested (would be redundant with
+  `storage.test.ts`'s existing coverage of `getJSON` itself).
+- **`backup.ts`'s import path — the real test of this perspective**,
+  since it's the one place `JSON.parse` runs on a string the app didn't
+  write itself (a file picked via `expo-document-picker`, potentially
+  edited by hand or corrupted in transit). Traced the full chain:
+  `JSON.parse` wrapped in try/catch (`"That file isn't valid JSON."`);
+  the parsed envelope then goes through `@ummahlibrary/core`'s
+  `validateBackup()`, which checks `app`/`version` **and** that every
+  value in `.data` is actually a string (not just that `.data` is an
+  object) before `backup.ts` trusts the `as { data: Record<string,
+  string> }` cast — so the cast is backed by a real runtime check, not
+  just a type-level assumption. `backup-store.ts`'s `restore()` then
+  filters incoming keys through `isBackupKey` so a crafted payload
+  can't plant a non-`ul.*` key or the sync secret sidecar (already
+  covered by `backup-store.test.ts`). And even if a per-*value* payload
+  were somehow wrong-shaped-but-still-a-string past all of that, it
+  would land back on the same hardened `getJSON` read path every other
+  store already uses — defense in depth, not a single point of failure.
+- Also checked the two `JSON.parse` sites in `offlineCache.ts`
+  (manifest load, cached-response read) and the one each in
+  `lib/sync/mobile-sync-state-store.ts` and `lib/sync/sync-meta.ts`
+  (already the subject of iteration 62's cursor-safety deepening) —
+  all four already wrapped in try/catch with a safe fallback.
+
+**Clean — every JSON-parsing / persisted-data-reading call site in the
+mobile app now confirmed individually, not just inferred from the
+existence of `stores-corrupt.test.ts`.** No code change; this iteration
+is a completeness proof; the audit trail itself is the deliverable for
+matching later Play Store readiness diligence.
+
+**Verification:** no source changed, so the full gate wasn't re-run
+(the tree was still green from iteration 69, and iteration 70 made no
+source changes either); this iteration was a targeted code-reading
+audit, not something with an observable browser-preview surface.
+
+**Commit:** none (clean iteration; only this log entry and state).
