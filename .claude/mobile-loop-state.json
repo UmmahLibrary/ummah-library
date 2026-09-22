@@ -1,15 +1,10 @@
 {
-  "iteration": 64,
+  "iteration": 65,
   "cycle": 2,
-  "perspectiveIndex": 24,
+  "perspectiveIndex": 25,
   "batch": "mobile-stabilization-07",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 61,
-      "perspective": "Cycle 2, B21 - sync secret storage",
-      "outcome": "clean - ruled out a plausible-looking false positive."
-    },
     {
       "iteration": 62,
       "perspective": "Cycle 2, B22 - sync engine edge cases",
@@ -17,13 +12,18 @@
     },
     {
       "iteration": 63,
-      "perspective": "Cycle 2, B23 - RTL, checked the app's own RTL UI locale (Urdu)",
+      "perspective": "Cycle 2, B23 - RTL, the app's own RTL UI locale (Urdu)",
       "outcome": "GAP FOUND AND FIXED: localeDir() had zero call sites, fixed 2 Settings elements."
     },
     {
       "iteration": 64,
-      "perspective": "Cycle 2, B24 - font coverage, checked it directly against iteration 63's RTL fix",
-      "outcome": "GAP FOUND AND FIXED: sectionLabel hardcodes fontFamily: FONT.bold, which wins the style-array merge over Type.tsx's dynamic writingDirection-based font selection - the Urdu 'Language' section label was flipping direction correctly but rendering in the Latin font underneath. Fixed by overriding fontFamily to FONT.arBold alongside writingDirection when RTL. Live-verified via computed-style DOM inspection, both Urdu (now correct) and English (unregressed) states."
+      "perspective": "Cycle 2, B24 - font coverage vs iteration 63's RTL fix",
+      "outcome": "GAP FOUND AND FIXED: sectionLabel's hardcoded fontFamily overrode the dynamic RTL font selection."
+    },
+    {
+      "iteration": 65,
+      "perspective": "Cycle 2, B25 - text scaling, checked 2 more fixed-badge screens for the AyahBadge overflow class",
+      "outcome": "GAP FOUND AND FIXED: HijriCalendarScreen's month-grid cells visibly overlap at 2x scale (two stacked text lines, dayNum+gregLabel, neither capped) - confirmed via screenshot. Capped both with maxFontSizeMultiplier=1.3. RamadanScreen's fasting-grid cells checked with the same method and genuinely don't overflow (measured, not assumed) - a real negative result, smaller base font size leaves enough headroom."
     }
   ]
 }

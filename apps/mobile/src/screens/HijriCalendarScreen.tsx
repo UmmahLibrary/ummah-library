@@ -160,8 +160,18 @@ export function HijriCalendarScreen() {
           const isEvent = eventDays.has(cell.day);
           return (
             <View key={cell.day} style={[styles.cell, isToday && styles.cellToday]}>
-              <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>{cell.day}</Text>
-              <Text style={[styles.gregLabel, isToday && styles.gregLabelToday]}>{cell.gregLabel}</Text>
+              <Text
+                style={[styles.dayNum, isToday && styles.dayNumToday]}
+                maxFontSizeMultiplier={1.3}
+              >
+                {cell.day}
+              </Text>
+              <Text
+                style={[styles.gregLabel, isToday && styles.gregLabelToday]}
+                maxFontSizeMultiplier={1.3}
+              >
+                {cell.gregLabel}
+              </Text>
               {isEvent && !isToday && <View style={styles.eventDot} />}
             </View>
           );

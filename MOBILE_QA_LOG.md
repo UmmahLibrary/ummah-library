@@ -3406,3 +3406,54 @@ typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
 plus the live before/after font-family check above.
 
 **Commit:** `apps/mobile/src/screens/SettingsScreen.tsx`.
+
+## Iteration 65 — B25 revisited: two more fixed-size-badge-with-a-number screens, one real, one a genuine negative result
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 25 found and fixed `AyahBadge`'s overflow at 200%
+accessibility text scale, verified on `HomeScreen`/`SurahListScreen`
+only. This pass searched for the *same risk shape* elsewhere — a fixed
+or aspect-ratio-locked small container holding short numeric text — and
+found two more candidates: `RamadanScreen`'s 30-cell fasting-day grid
+(`fastCell`/`fastNum`) and `HijriCalendarScreen`'s 7-column month grid
+(`cell`/`dayNum`+`gregLabel`, two stacked text lines per cell).
+
+**RamadanScreen: genuinely clean — measured, not assumed.** Pattern-
+matching against `AyahBadge` suggested this would overflow too, so
+verified with the exact same DOM-based 2x-scale simulation iteration 25
+established, at a real phone width (375px, not the wider desktop preview
+default) this time. Precise measurement: a 2-digit day number's rendered
+box (29×33px at 2x scale) fits comfortably inside its 40×40 cell —
+`fastNum`'s smaller base size (11.5px vs whatever `AyahBadge` uses)
+leaves enough headroom that this specific cell never hits the wall
+`AyahBadge` did. Reporting this honestly as a real negative result from
+measurement, not skipping the check because the first hunch didn't pan
+out.
+
+**HijriCalendarScreen: real, and visually severe — confirmed by
+screenshot, not just inference.** The same 2x simulation on the month
+grid showed calendar rows **visibly overlapping and colliding** — day
+numbers from adjacent rows bleeding into each other, several genuinely
+unreadable. Root cause: two stacked `Text` lines (`dayNum` 13px +
+`gregLabel` 8px) both growing at once pushes a cell's *content* height
+past whatever *row* height the grid was actually built for, with nothing
+capping either line.
+
+**Fix:** `maxFontSizeMultiplier={1.3}` on both `dayNum` and `gregLabel`
+— same policy `AyahBadge` already established (numbers/secondary markers
+get capped, not frozen; the surrounding UI keeps scaling normally).
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136.
+Live-confirmed the normal (default-scale) calendar still renders cleanly
+with the new props — no regression. Same honest caveat iteration 25
+already documented applies to the fix itself: the DOM-scaling simulation
+sets raw CSS `font-size` directly, bypassing `maxFontSizeMultiplier`'s
+real mechanism (`PixelRatio.getFontScale()`) entirely — it's what *found*
+both results here (the real bug and the negative one), not something
+that can confirm the cap takes effect through the actual native
+mechanism. That still needs a real device.
+
+**Commit:** `apps/mobile/src/screens/HijriCalendarScreen.tsx`.
