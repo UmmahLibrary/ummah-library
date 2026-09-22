@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "../Type";
 import Constants from "expo-constants";
 import type { MergeStrategy, QuranScript } from "@ummahlibrary/core";
 import { noorThemes } from "@ummahlibrary/ui";
@@ -74,7 +84,10 @@ export function SettingsScreen() {
     // the restored values (e.g. theme, reciter) until the app restarts —
     // same caveat web's Data section states explicitly (DataBackup.tsx).
     if (res.message) {
-      setStatus({ ...res, message: res.ok ? `${res.message} Restart the app to see it fully applied.` : res.message });
+      setStatus({
+        ...res,
+        message: res.ok ? `${res.message} Restart the app to see it fully applied.` : res.message,
+      });
     }
   };
 
@@ -127,247 +140,256 @@ export function SettingsScreen() {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.sectionLabel}>Appearance</Text>
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Theme</Text>
-        <View style={styles.swatchRow}>
-          {THEMES.map((t) => {
-            const on = t.key === themeKey;
-            return (
-              <Pressable
-                key={t.key}
-                onPress={() => setTheme(t.key)}
-                style={[
-                  styles.swatch,
-                  { backgroundColor: noorThemes[t.key].bg, borderColor: on ? colors.accent : colors.border },
-                ]}
-                accessibilityLabel={t.label}
-              >
-                <View style={[styles.swatchDot, { backgroundColor: noorThemes[t.key].accent }]} />
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      <Text style={styles.sectionLabel}>{t("common.language")}</Text>
-      <View style={styles.card}>
-        <Text style={styles.pickSub}>{t("settings.languageHint")}</Text>
-        <View style={[styles.swatchRow, { marginTop: 13 }]}>
-          {LOCALES.map((l) => {
-            const on = l.code === locale;
-            return (
-              <Pressable
-                key={l.code}
-                onPress={() => setLocale(l.code)}
-                style={[styles.langPill, on && styles.langPillOn]}
-                accessibilityLabel={l.label}
-                accessibilityState={{ selected: on }}
-              >
-                <Text style={[styles.pillText, on && styles.pillTextOn]}>{l.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      <Text style={styles.sectionLabel}>Reading</Text>
-      <View style={styles.card}>
-        <View style={[styles.row, styles.rowLast]}>
-          <Text style={styles.rowLabel}>Font size</Text>
-          <View style={styles.scale}>
-            <Pressable
-              style={[styles.scaleBtn, scale <= MIN_SCALE && styles.disabled]}
-              disabled={scale <= MIN_SCALE}
-              onPress={() => setScale((prev) => prev - 0.1)}
-            >
-              <Text style={styles.scaleText}>A−</Text>
-            </Pressable>
-            <Text style={styles.scaleValue}>{Math.round(scale * 100)}%</Text>
-            <Pressable
-              style={[styles.scaleBtn, scale >= MAX_SCALE && styles.disabled]}
-              disabled={scale >= MAX_SCALE}
-              onPress={() => setScale((prev) => prev + 0.1)}
-            >
-              <Text style={styles.scaleText}>A+</Text>
-            </Pressable>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <Text style={styles.sectionLabel}>Appearance</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Theme</Text>
+          <View style={styles.swatchRow}>
+            {THEMES.map((t) => {
+              const on = t.key === themeKey;
+              return (
+                <Pressable
+                  key={t.key}
+                  onPress={() => setTheme(t.key)}
+                  style={[
+                    styles.swatch,
+                    {
+                      backgroundColor: noorThemes[t.key].bg,
+                      borderColor: on ? colors.accent : colors.border,
+                    },
+                  ]}
+                  accessibilityLabel={t.label}
+                >
+                  <View style={[styles.swatchDot, { backgroundColor: noorThemes[t.key].accent }]} />
+                </Pressable>
+              );
+            })}
           </View>
         </View>
-      </View>
 
-      <Text style={styles.sectionLabel}>Reciter</Text>
-      <View style={styles.card}>
-        {RECITERS.map((r, i) => {
-          const on = r.id === reciterId;
-          return (
-            <Pressable
-              key={r.id}
-              style={[styles.pickRow, i < RECITERS.length - 1 && styles.rowDivider]}
-              onPress={() => setReciterId(r.id)}
-            >
-              <View style={[styles.radio, on && styles.radioOn]}>
-                {on && <View style={styles.radioDot} />}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.pickText, on && styles.pickTextOn]}>{r.name}</Text>
-                <Text style={styles.pickSub}>{r.style}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+        <Text style={styles.sectionLabel}>{t("common.language")}</Text>
+        <View style={styles.card}>
+          <Text style={styles.pickSub}>{t("settings.languageHint")}</Text>
+          <View style={[styles.swatchRow, { marginTop: 13 }]}>
+            {LOCALES.map((l) => {
+              const on = l.code === locale;
+              return (
+                <Pressable
+                  key={l.code}
+                  onPress={() => setLocale(l.code)}
+                  style={[styles.langPill, on && styles.langPillOn]}
+                  accessibilityLabel={l.label}
+                  accessibilityState={{ selected: on }}
+                >
+                  <Text style={[styles.pillText, on && styles.pillTextOn]}>{l.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
-      <Text style={styles.sectionLabel}>Arabic script</Text>
-      <View style={styles.card}>
-        {SCRIPTS.map((s, i) => {
-          const on = s.id === script;
-          return (
-            <Pressable
-              key={s.id}
-              style={[styles.pickRow, i < SCRIPTS.length - 1 && styles.rowDivider]}
-              onPress={() => setScript(s.id)}
-            >
-              <View style={[styles.radio, on && styles.radioOn]}>
-                {on && <View style={styles.radioDot} />}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.pickText, on && styles.pickTextOn]}>{s.label}</Text>
-                <Text style={styles.pickSub}>{s.sub}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+        <Text style={styles.sectionLabel}>Reading</Text>
+        <View style={styles.card}>
+          <View style={[styles.row, styles.rowLast]}>
+            <Text style={styles.rowLabel}>Font size</Text>
+            <View style={styles.scale}>
+              <Pressable
+                style={[styles.scaleBtn, scale <= MIN_SCALE && styles.disabled]}
+                disabled={scale <= MIN_SCALE}
+                onPress={() => setScale((prev) => prev - 0.1)}
+              >
+                <Text style={styles.scaleText}>A−</Text>
+              </Pressable>
+              <Text style={styles.scaleValue}>{Math.round(scale * 100)}%</Text>
+              <Pressable
+                style={[styles.scaleBtn, scale >= MAX_SCALE && styles.disabled]}
+                disabled={scale >= MAX_SCALE}
+                onPress={() => setScale((prev) => prev + 0.1)}
+              >
+                <Text style={styles.scaleText}>A+</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
 
-      <Text style={styles.sectionLabel}>Tafsir edition</Text>
-      <View style={styles.card}>
-        {tafsirs.length === 0 ? (
-          <Text style={styles.muted}>Loading tafsir editions…</Text>
-        ) : (
-          tafsirs.map((t, i) => {
-            const on = t.id === tafsirId;
+        <Text style={styles.sectionLabel}>Reciter</Text>
+        <View style={styles.card}>
+          {RECITERS.map((r, i) => {
+            const on = r.id === reciterId;
             return (
               <Pressable
-                key={t.id}
-                style={[styles.pickRow, i < tafsirs.length - 1 && styles.rowDivider]}
-                onPress={() => setTafsirId(t.id)}
+                key={r.id}
+                style={[styles.pickRow, i < RECITERS.length - 1 && styles.rowDivider]}
+                onPress={() => setReciterId(r.id)}
               >
                 <View style={[styles.radio, on && styles.radioOn]}>
                   {on && <View style={styles.radioDot} />}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.pickText, on && styles.pickTextOn]}>{t.name}</Text>
-                  <Text style={styles.pickSub}>{t.author}</Text>
+                  <Text style={[styles.pickText, on && styles.pickTextOn]}>{r.name}</Text>
+                  <Text style={styles.pickSub}>{r.style}</Text>
                 </View>
-              </Pressable>
-            );
-          })
-        )}
-      </View>
-
-      <Text style={styles.sectionLabel}>Data</Text>
-      <View style={styles.card}>
-        <View style={[styles.row, styles.rowLast]}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowLabel}>Cached content</Text>
-            <Text style={styles.pickSub}>
-              Surahs, translations, tafsir, and hadith you've opened stay readable offline.
-            </Text>
-          </View>
-          <Text style={styles.value}>
-            {cacheStats === null
-              ? "…"
-              : cacheStats.entryCount === 0
-                ? "Empty"
-                : `${formatBytes(cacheStats.sizeBytes)} · ${cacheStats.entryCount}`}
-          </Text>
-        </View>
-        <Pressable
-          style={[styles.clearBtn, (!cacheStats || cacheStats.entryCount === 0) && styles.disabled]}
-          disabled={!cacheStats || cacheStats.entryCount === 0}
-          onPress={confirmClearCache}
-        >
-          <Text style={styles.clearBtnText}>Clear cached content</Text>
-        </Pressable>
-      </View>
-
-      <Text style={styles.dataDesc}>
-        Everything stays on this device — no account, no server. Export a backup to move your data
-        to another device or keep it safe; import it to restore.
-      </Text>
-      <View style={styles.card}>
-        <View style={styles.btnRow}>
-          <Pressable
-            style={[styles.primaryBtn, busy && styles.disabled]}
-            disabled={busy}
-            onPress={onExport}
-          >
-            <Text style={styles.primaryBtnText}>Export my data</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.secondaryBtn, busy && styles.disabled]}
-            disabled={busy}
-            onPress={onImport}
-          >
-            <Text style={styles.secondaryBtnText}>Import a backup</Text>
-          </Pressable>
-          {busy && <ActivityIndicator color={colors.accent} />}
-        </View>
-
-        <Text style={styles.onImportLabel}>On import</Text>
-        <View style={styles.pillRow}>
-          {(
-            [
-              { v: "replace", l: "Replace my data" },
-              { v: "keep-mine", l: "Keep mine on conflict" },
-            ] as const
-          ).map((o) => {
-            const on = strategy === o.v;
-            return (
-              <Pressable
-                key={o.v}
-                style={[styles.pill, on && styles.pillOn]}
-                onPress={() => setStrategy(o.v)}
-              >
-                <Text style={[styles.pillText, on && styles.pillTextOn]}>{o.l}</Text>
               </Pressable>
             );
           })}
         </View>
-        <Text style={styles.pillHint}>
-          {strategy === "replace"
-            ? "The backup fully restores your data, overwriting what’s here."
-            : "The backup only fills in things you don’t already have."}
-        </Text>
 
-        {status && (
-          <Text style={[styles.status, status.ok ? styles.statusOk : styles.statusErr]}>
-            {status.message}
-          </Text>
-        )}
+        <Text style={styles.sectionLabel}>Arabic script</Text>
+        <View style={styles.card}>
+          {SCRIPTS.map((s, i) => {
+            const on = s.id === script;
+            return (
+              <Pressable
+                key={s.id}
+                style={[styles.pickRow, i < SCRIPTS.length - 1 && styles.rowDivider]}
+                onPress={() => setScript(s.id)}
+              >
+                <View style={[styles.radio, on && styles.radioOn]}>
+                  {on && <View style={styles.radioDot} />}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pickText, on && styles.pickTextOn]}>{s.label}</Text>
+                  <Text style={styles.pickSub}>{s.sub}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
 
-        <View style={styles.dataFoot}>
-          <Text style={styles.countText}>
-            {count ?? "—"} item{count === 1 ? "" : "s"} on this device
-          </Text>
-          <Pressable onPress={onErase} hitSlop={8}>
-            <Text style={styles.eraseText}>Erase all</Text>
+        <Text style={styles.sectionLabel}>Tafsir edition</Text>
+        <View style={styles.card}>
+          {tafsirs.length === 0 ? (
+            <Text style={styles.muted}>Loading tafsir editions…</Text>
+          ) : (
+            tafsirs.map((t, i) => {
+              const on = t.id === tafsirId;
+              return (
+                <Pressable
+                  key={t.id}
+                  style={[styles.pickRow, i < tafsirs.length - 1 && styles.rowDivider]}
+                  onPress={() => setTafsirId(t.id)}
+                >
+                  <View style={[styles.radio, on && styles.radioOn]}>
+                    {on && <View style={styles.radioDot} />}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.pickText, on && styles.pickTextOn]}>{t.name}</Text>
+                    <Text style={styles.pickSub}>{t.author}</Text>
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
+        </View>
+
+        <Text style={styles.sectionLabel}>Data</Text>
+        <View style={styles.card}>
+          <View style={[styles.row, styles.rowLast]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>Cached content</Text>
+              <Text style={styles.pickSub}>
+                Surahs, translations, tafsir, and hadith you've opened stay readable offline.
+              </Text>
+            </View>
+            <Text style={styles.value}>
+              {cacheStats === null
+                ? "…"
+                : cacheStats.entryCount === 0
+                  ? "Empty"
+                  : `${formatBytes(cacheStats.sizeBytes)} · ${cacheStats.entryCount}`}
+            </Text>
+          </View>
+          <Pressable
+            style={[
+              styles.clearBtn,
+              (!cacheStats || cacheStats.entryCount === 0) && styles.disabled,
+            ]}
+            disabled={!cacheStats || cacheStats.entryCount === 0}
+            onPress={confirmClearCache}
+          >
+            <Text style={styles.clearBtnText}>Clear cached content</Text>
           </Pressable>
         </View>
-      </View>
 
-      <SyncSection />
+        <Text style={styles.dataDesc}>
+          Everything stays on this device — no account, no server. Export a backup to move your data
+          to another device or keep it safe; import it to restore.
+        </Text>
+        <View style={styles.card}>
+          <View style={styles.btnRow}>
+            <Pressable
+              style={[styles.primaryBtn, busy && styles.disabled]}
+              disabled={busy}
+              onPress={onExport}
+            >
+              <Text style={styles.primaryBtnText}>Export my data</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.secondaryBtn, busy && styles.disabled]}
+              disabled={busy}
+              onPress={onImport}
+            >
+              <Text style={styles.secondaryBtnText}>Import a backup</Text>
+            </Pressable>
+            {busy && <ActivityIndicator color={colors.accent} />}
+          </View>
 
-      <Text style={styles.sectionLabel}>About</Text>
-      <Text style={styles.muted}>
-        Arabic text: Tanzil (CC-BY 3.0). Translations, tafsir, and hadith via Ummah Library
-        datasets and their respective sources. Recitation by {RECITER.name}.
-      </Text>
-      <Text style={styles.version}>
-        Ummah Library · v{Constants.expoConfig?.version ?? "—"}
-      </Text>
-    </ScrollView>
+          <Text style={styles.onImportLabel}>On import</Text>
+          <View style={styles.pillRow}>
+            {(
+              [
+                { v: "replace", l: "Replace my data" },
+                { v: "keep-mine", l: "Keep mine on conflict" },
+              ] as const
+            ).map((o) => {
+              const on = strategy === o.v;
+              return (
+                <Pressable
+                  key={o.v}
+                  style={[styles.pill, on && styles.pillOn]}
+                  onPress={() => setStrategy(o.v)}
+                >
+                  <Text style={[styles.pillText, on && styles.pillTextOn]}>{o.l}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={styles.pillHint}>
+            {strategy === "replace"
+              ? "The backup fully restores your data, overwriting what’s here."
+              : "The backup only fills in things you don’t already have."}
+          </Text>
+
+          {status && (
+            <Text style={[styles.status, status.ok ? styles.statusOk : styles.statusErr]}>
+              {status.message}
+            </Text>
+          )}
+
+          <View style={styles.dataFoot}>
+            <Text style={styles.countText}>
+              {count ?? "—"} item{count === 1 ? "" : "s"} on this device
+            </Text>
+            <Pressable onPress={onErase} hitSlop={8}>
+              <Text style={styles.eraseText}>Erase all</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <SyncSection />
+
+        <Text style={styles.sectionLabel}>About</Text>
+        <Text style={styles.muted}>
+          Arabic text: Tanzil (CC-BY 3.0). Translations, tafsir, and hadith via Ummah Library
+          datasets and their respective sources. Recitation by {RECITER.name}.
+        </Text>
+        <Text style={styles.version}>Ummah Library · v{Constants.expoConfig?.version ?? "—"}</Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

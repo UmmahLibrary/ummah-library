@@ -2898,3 +2898,81 @@ unchanged.
 crash/recovery and normal-boot checks above.
 
 **Commit:** `apps/mobile/App.tsx`, `apps/mobile/src/ErrorBoundary.tsx`.
+
+## Iteration 55 — B15 revisited: two more keyboard-avoiding gaps, and a correction to iterations 8/48
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Correction to iterations 8 and 48: "zero `Modal` usage" was wrong,
+found while re-grepping `TextInput` sites for this pass.** Both searched
+for a direct `from "react-native"` import or a literal `"Modal }"`
+substring — neither matches how this app actually imports RN components:
+through [`Type.tsx`](apps/mobile/src/Type.tsx)'s `export * from
+"react-native"` wildcard, `import { Modal, ... } from "../Type"`. Two
+components genuinely use `Modal`:
+[`SaveToCollection.tsx`](apps/mobile/src/components/SaveToCollection.tsx)
+and
+[`TranslationManager.tsx`](apps/mobile/src/components/TranslationManager.tsx).
+Checked whether this actually matters for the back-button conclusion
+those iterations drew: it doesn't — both already pass `onRequestClose`
+(`SaveToCollection`: `() => setOpen(false)`; `TranslationManager`:
+`onClose`), which is what Android's hardware back needs to close a
+`Modal` at all. The underlying finding (back-button handling is fine)
+turns out to still hold, but the search that was supposed to prove it
+had a real blind spot — noting this here rather than letting a wrong
+"zero usage" claim stand uncorrected in two separate entries.
+
+**Checked those same two `Modal`s — plus `SyncSection`'s `TextInput`,
+also missed by iteration 15's original 5-screen list — for the keyboard-
+avoiding question this perspective is actually about.**
+
+- **`TranslationManager`**: search field sits at the very top of the
+  modal panel, above its `ScrollView` — same "search bar can't be
+  obscured" exemption iteration 15 already established for
+  `SearchScreen`/`SurahListScreen`. No fix needed.
+- **`SaveToCollection`**: found a real gap. Its "New collection…" input
+  sits near the *bottom* of a bottom-sheet modal
+  (`justifyContent: "flex-end"` — pinned to the screen's bottom edge,
+  where an opening keyboard would land directly on top of it), with zero
+  keyboard-avoiding treatment. This is the exact risk shape iteration 15
+  already fixed for `CollectionsScreen`/`PlansScreen`.
+- **`SyncSection`**: found a second real gap. It's a plain component
+  rendered inside `SettingsScreen`'s `ScrollView`, past the halfway point
+  of a 519-line screen (theme, language, reading, then sync, then data —
+  confirmed by reading the render order) — same shape, and
+  `SettingsScreen` itself had no `KeyboardAvoidingView` at all.
+
+**Fix:** wrapped `SaveToCollection`'s modal sheet, and `SettingsScreen`'s
+top-level `ScrollView`, in `KeyboardAvoidingView` — the identical,
+already-established `behavior={Platform.OS === "ios" ? "padding" :
+undefined}` pattern from every prior fix of this exact class.
+
+**Process note, caught before it did damage:** ran `pnpm format`
+(workspace-wide `prettier --write`) intending to format just these two
+edited files, and it reformatted **~285 files across the entire
+monorepo** — the shared prettier config apparently differs from what's
+currently checked in for a large swath of the repo, unrelated to this
+change. Caught it via `git status` before committing, reverted every file
+except the two actually touched (`git checkout -- <explicit file list>`,
+excluding the two intended ones), and re-verified the gate afterward.
+Noting this as a real trap for a mobile-scoped loop to watch for:
+`pnpm format`/`prettier --write` with no path argument formats
+everything, not just what changed.
+
+**Live verification:** typecheck/lint/tests all pass and the diffs were
+confirmed to be exactly the intended change (the large line count in
+`SettingsScreen.tsx`'s diff is the expected, unavoidable re-indentation
+cascade from wrapping the top-level returned JSX, not stray
+reformatting). Couldn't complete a click-through of the actual modal in
+the browser preview this session — the same stale-navigation-ref
+unreliability documented in iterations 44 and 52 recurred — so this
+one rests on strong static verification rather than an in-browser
+click-test; noting the gap honestly rather than claiming a check that
+didn't finish.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136.
+
+**Commit:** `apps/mobile/src/components/SaveToCollection.tsx`,
+`apps/mobile/src/screens/SettingsScreen.tsx`.

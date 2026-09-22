@@ -1,29 +1,29 @@
 {
-  "iteration": 54,
+  "iteration": 55,
   "cycle": 2,
-  "perspectiveIndex": 14,
+  "perspectiveIndex": 15,
   "batch": "mobile-stabilization-06",
   "consecutiveCleanIterations": 0,
   "history": [
     {
-      "iteration": 51,
-      "perspective": "Cycle 2, B12 - background/foreground transitions, found the PrayerTracker race elsewhere",
-      "outcome": "GAP FOUND AND FIXED (serious): LibraryContext.tsx had the same unguarded sync-reload race."
-    },
-    {
       "iteration": 52,
       "perspective": "Cycle 2, B12 continued - checked every remaining onSyncApplied consumer",
-      "outcome": "GAP FOUND AND FIXED: SettingsContext.tsx had the same race. Sweep closed."
+      "outcome": "GAP FOUND AND FIXED: SettingsContext.tsx race. Sweep closed."
     },
     {
       "iteration": 53,
       "perspective": "Cycle 2, B13 - kill-and-restore, re-verified through the new race-guard changes",
-      "outcome": "clean - confirmed no regression from iterations 51-52's changes."
+      "outcome": "clean - no regression."
     },
     {
       "iteration": 54,
-      "perspective": "Cycle 2, B14 - safe-area handling, checked the ErrorBoundary which didn't exist at the original check",
-      "outcome": "GAP FOUND AND FIXED: ErrorBoundary's fallback was mounted outside SafeAreaProvider entirely, structurally unable to get real inset values - the recovery UI could render under a notch or with its button under the home indicator. Reordered App.tsx (SafeAreaProvider now wraps ErrorBoundary) and switched the fallback to SafeAreaView. Live-verified via crash test."
+      "perspective": "Cycle 2, B14 - safe-area handling, checked the ErrorBoundary",
+      "outcome": "GAP FOUND AND FIXED: ErrorBoundary's fallback was outside SafeAreaProvider entirely. Reordered providers, switched to SafeAreaView."
+    },
+    {
+      "iteration": 55,
+      "perspective": "Cycle 2, B15 - keyboard-avoiding, checked components iteration 15 missed",
+      "outcome": "GAP FOUND AND FIXED: SaveToCollection's bottom-sheet input and SettingsScreen (via SyncSection) both lacked KeyboardAvoidingView. CORRECTED iterations 8/48: their 'zero Modal usage' claim was wrong (grep blind spot - this app imports Modal from ../Type, not react-native directly) though the back-button conclusion itself still holds since both Modals already have onRequestClose. Process note: accidentally ran pnpm format workspace-wide (reformatted ~285 unrelated files), caught via git status before committing, reverted everything except the 2 intended files."
     }
   ]
 }
