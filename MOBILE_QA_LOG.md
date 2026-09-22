@@ -236,3 +236,33 @@ skip re-reading stores the user is actively mutating.
 **Verification:** no code changed; nothing to re-run.
 
 **Commit:** none (clean iteration).
+
+---
+
+## Iteration 5 — Hifz review Arabic pluralization copy ("āyahāt" vs "āyāt")
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-01`
+
+**Checked:** [`WEB_QA_LIVE_BROWSER_REPORT.md`](WEB_QA_LIVE_BROWSER_REPORT.md)
+bug #5 — a completion message reading "āyahāt" (not a real word) instead of
+the correct plural "āyāt" — against mobile's Hifz screens.
+
+**Result: clean.** Both
+[`HifzReviewScreen.tsx:110`](apps/mobile/src/screens/HifzReviewScreen.tsx)
+and [`HifzDashboardScreen.tsx:134`](apps/mobile/src/screens/HifzDashboardScreen.tsx)
+already use the correct ternary (`count === 1 ? "āyah" : "āyāt"`). A
+repo-wide grep for the typo (`āyahāt`/`ayahat`) across `apps/mobile/src` and
+every `packages/*` turned up zero matches. Web's own copies of this string
+(`HifzDashboard.tsx:227`, `HifzReview.tsx:112`) are also already correct and
+now carry regression tests (`HifzDashboard.test.tsx`, `HifzReview.test.tsx`)
+explicitly asserting `āyahāt` never appears — so this looks fixed
+everywhere, just not yet reflected in that report.
+
+**No live browser check this iteration:** this is a static string literal
+with no dynamic/async path (unlike the timezone or race-condition
+perspectives), so a full source-level grep across both call sites plus the
+whole codebase is exhaustive verification on its own; spending a preview
+session on it wouldn't add confidence.
+
+**Commit:** none (clean iteration).
