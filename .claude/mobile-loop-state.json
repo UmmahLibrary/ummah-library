@@ -1,39 +1,41 @@
 {
-  "iteration": 5,
+  "iteration": 6,
   "cycle": 1,
-  "perspectiveIndex": 5,
+  "perspectiveIndex": 6,
   "batch": "mobile-stabilization-01",
-  "consecutiveCleanIterations": 4,
+  "consecutiveCleanIterations": 5,
   "history": [
     {
       "iteration": 1,
       "perspective": "A1 - Prayer-time timezone-of-location vs device-timezone bug",
-      "outcome": "clean (already fixed on mobile via fmtPrayerTime); removed unused fmtTime dead code as a footgun-prevention fix",
-      "notableFinding": "repo-wide duplicate React installs break apps/web and apps/extension build/test; out of scope, logged in MOBILE_QA_LOG.md"
+      "outcome": "clean (already fixed on mobile via fmtPrayerTime); removed unused fmtTime dead code as a footgun-prevention fix"
     },
     {
       "iteration": 2,
       "perspective": "A2 - Zakat currency-field sanitization + adjacent Reset/negative-amount bugs",
-      "outcome": "clean, verified live via mobile-web preview; all 3 related web bugs already prevented on mobile",
-      "notableFinding": "read_page tool reports placeholder as textbox name regardless of actual value - use screenshots as ground truth for input values, not read_page names"
+      "outcome": "clean, verified live via mobile-web preview; all 3 related web bugs already prevented on mobile"
     },
     {
       "iteration": 3,
       "perspective": "A3 - Tasbih per-phrase counter (mobile's opposite bug from web)",
-      "outcome": "clean, verified live; per-phrase progress correctly isolated via TasbihRecord.phrases map in core",
-      "notableFinding": "none new; confirmed Total-today-is-per-phrase-not-aggregate matches web's intentional design, not a bug"
+      "outcome": "clean, verified live; per-phrase progress correctly isolated via TasbihRecord.phrases map in core"
     },
     {
       "iteration": 4,
       "perspective": "A4 - Qada +/- stepper race condition under rapid taps",
       "outcome": "clean, verified live with 3 rapid taps producing 3 owed; safe functional-updater pattern used throughout",
-      "notableFinding": "onSyncApplied(load) re-reads qada/prayer/haid/fasting stores wholesale on every sync pull, which COULD clobber an in-flight optimistic tap if a remote sync lands mid-interaction - deferred to iteration 23 (sync edge cases), not the same mechanism as this iteration's target bug"
+      "notableFinding": "onSyncApplied(load) re-reads stores wholesale on every sync pull, a different narrower race - deferred to iteration 23"
     },
     {
       "iteration": 5,
-      "perspective": "A5 - Hifz review Arabic pluralization copy (āyahāt vs āyāt)",
-      "outcome": "clean, confirmed via repo-wide grep; both mobile call sites already use correct plural, no typo anywhere in codebase",
-      "notableFinding": "none"
+      "perspective": "A5 - Hifz review Arabic pluralization copy (ayahat vs ayat)",
+      "outcome": "clean, confirmed via repo-wide grep; both mobile call sites already use correct plural"
+    },
+    {
+      "iteration": 6,
+      "perspective": "A6 - Khatm 604/604 completion state",
+      "outcome": "clean - mobile already has a dedicated completion UI web still lacks; live-verified by forcing currentPage to 604 via localStorage + one tap",
+      "notableFinding": "web still has this bug unfixed per WEB_QA_LIVE_BROWSER_REPORT.md; out of scope to backport, noted only"
     }
   ]
 }

@@ -266,3 +266,39 @@ whole codebase is exhaustive verification on its own; spending a preview
 session on it wouldn't add confidence.
 
 **Commit:** none (clean iteration).
+
+---
+
+## Iteration 6 — Khatm 604/604 completion state
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-01`
+
+**Checked:** [`WEB_QA_LIVE_BROWSER_REPORT.md`](WEB_QA_LIVE_BROWSER_REPORT.md)
+bug #6 — on web, a khatm that reaches `currentPage === totalPages` (604/604)
+still renders as mid-progress ("30d left · 0/day", a "Resume p604" button
+looping back to the finished page), with no congratulations and no way to
+start a new khatm. Unlike bugs #1/#2/#5, the report notes this one is
+**still unfixed on web** as of that pass.
+
+**Result: mobile already has this, correctly, in a dedicated branch.**
+[`ReadingGoalsScreen.tsx:187-198`](apps/mobile/src/screens/ReadingGoalsScreen.tsx#L187)
+checks `khatma.currentPage >= khatma.totalPages` and renders "Alhamdulillah —
+khatm complete! 🎉" with a "−1" (undo) and a "Start a new khatm" button,
+instead of falling into the same resume-loop web has.
+
+**Live-verified** via `preview_start({name: "mobile"})`: started a 30-day
+khatm, used `localStorage.setItem('ul.khatma', …)` to jump straight to
+`currentPage: 603` (rather than tapping "+1" 603 times), confirmed the
+screen showed the expected pre-completion state ("Page 603/604 · 1/day",
+"Resume p604"), tapped "+1" once to cross the threshold, and got the
+completion card exactly as the source promises — no dead "0/day" state, no
+loop-back button.
+
+**Not backporting to web this iteration** — this loop's mandate is
+`apps/mobile`, and web already has its own tracked, unfixed bug for this
+with a known fix direction pointed at the Reading Plans page's existing
+completion pattern; out of scope here.
+
+**Commit:** none (clean iteration; storage was only manipulated in the
+disposable dev-server preview, not in any file in the repo).
