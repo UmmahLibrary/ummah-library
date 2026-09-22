@@ -2846,3 +2846,55 @@ No fix needed; the two recent changes don't interact badly.
 this iteration, prior gate (136/136) holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 54 — B14 revisited: the ErrorBoundary's own fallback has no safe-area awareness
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 14 confirmed every screen's safe-area handling is
+correct — 5 screens with custom headers manage their own insets, every
+other screen relies on native-stack's built-in handling. This pass asked
+about a component that didn't exist yet at the time: the `ErrorBoundary`
+(added iteration 31). Its fallback is raw `View`/`Text`/`Pressable` with
+hardcoded `padding: 28` — no safe-area awareness at all.
+
+**Found a real gap, structural not cosmetic.** `App.tsx` mounts
+`ErrorBoundary` **outside** `SafeAreaProvider`
+(`<ErrorBoundary><SafeAreaProvider>...`). When the boundary catches a
+crash anywhere in the tree, its fallback renders with **zero safe-area
+context available at all** — not just unstyled, but structurally cut off
+from ever getting real inset values, since `useSafeAreaInsets()`/
+`SafeAreaView` need to be inside the Provider to work. On a real device,
+the "Something went wrong" title could render under a notch/status bar,
+and the "Try again" button could sit under the home indicator/gesture
+bar — exactly when the user most needs to reliably tap it.
+
+**Fix, two parts:**
+1. **Reordered `App.tsx`** so `SafeAreaProvider` wraps `ErrorBoundary`,
+   not the other way around. Same reasoning as importing
+   `expo-splash-screen` into the boundary (iteration 50):
+   `react-native-safe-area-context` is a stable, widely-used third-party
+   layout primitive, not app logic that could itself be the thing
+   crashing, so it's safe to keep it outside the boundary's protection
+   scope, and doing so is what actually lets the fallback use it.
+2. **`ErrorBoundary.tsx`** now renders its container as `SafeAreaView`
+   (from `react-native-safe-area-context`, matching every other screen in
+   this app) instead of a plain `View` — usable directly in a class
+   component's `render()` without needing the `useSafeAreaInsets` hook,
+   which a class component can't call anyway.
+
+**Live-verified** via the browser preview, reusing the established crash-
+test method: forced a real crash, confirmed the fallback still renders
+correctly with the reordered providers and `SafeAreaView` in place (no
+new errors — specifically no "used outside a Provider" failure, which
+would have been the direct evidence a reordering mistake produces), then
+reverted the temporary throw and confirmed normal app boot still works
+unchanged.
+
+**Verification:** `pnpm lint` clean (after removing the now-unused
+`View` import), `pnpm --filter @ummahlibrary/mobile typecheck` clean,
+`pnpm --filter @ummahlibrary/mobile test` 136/136, plus the live
+crash/recovery and normal-boot checks above.
+
+**Commit:** `apps/mobile/App.tsx`, `apps/mobile/src/ErrorBoundary.tsx`.
