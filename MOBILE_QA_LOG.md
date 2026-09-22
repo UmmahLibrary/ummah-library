@@ -143,3 +143,48 @@ coverage audit" pass instead.
 and nothing here touched source.
 
 **Commit:** none (clean iteration).
+
+---
+
+## Iteration 3 — Tasbih per-phrase counter (mobile's "opposite bug" from web)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-01`
+
+**Checked:** whether switching the dhikr chip on
+[`TasbihScreen.tsx`](apps/mobile/src/screens/TasbihScreen.tsx) carries the
+running count over under the wrong phrase's label — the mobile-specific
+half of [`WEB_QA_REPORT.md`](WEB_QA_REPORT.md) bug #2.
+
+**Result: clean, already fixed at the shared `core` layer.**
+[`packages/core/src/tasbih.ts`](packages/core/src/tasbih.ts) stores
+`TasbihRecord.phrases: Record<phraseId, {total, target}>` — every phrase
+keeps its own entry, and `phraseId` (which chip is currently displayed) is
+tracked separately. Switching the chip
+(`persist({ ...state, phraseId: p.id })`) only changes which entry is
+*displayed*; it can't touch another phrase's total, because there's no
+shared/flat total left to collide on. The source comment on `TasbihRecord`
+names this exact failure mode as the reason for the shape. `mobileTasbihStore`
+([`tasbih-store.ts`](apps/mobile/src/tasbih-store.ts)) even migrates the old
+flat-total shape forward into the per-phrase one for anyone who had it
+persisted from before this fix.
+
+**Live-verified** via `preview_start({name: "mobile"})`: tapped SubḥānAllāh's
+dial to 3, switched to Alḥamdulillāh (correctly showed 0), switched back to
+SubḥānAllāh — **still showed 3**, not merged, not reset, not mislabeled.
+
+`packages/core/src/tasbih.test.ts` already covers this at the unit level
+(`tasbihPhraseProgress`: "switching away and back must not touch another
+phrase's entry").
+
+**Side note, not a finding:** mobile's "Total today" stat shows only the
+*currently selected* phrase's total, not a sum across all five dhikr. This
+looked potentially mislabeled at first glance, but web's
+`TasbihPageClient.tsx` does the exact same thing (`totalToday = view.total`,
+same label) — it's an intentional, already-shipped, cross-platform design
+choice, not a mobile-specific defect. Not logging it as a bug.
+
+**Verification:** no code changed; nothing to re-run beyond what iteration 1
+already confirmed green.
+
+**Commit:** none (clean iteration).
