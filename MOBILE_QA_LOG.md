@@ -1797,3 +1797,81 @@ justification" pass (perspective B35) rather than guessing here.
 `expo prebuild` manifest check above.
 
 **Commit:** `apps/mobile/app.json`.
+
+## Iteration 34 — Play Store data-safety/permissions-justification accuracy
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** whether an accurate Play Console Data Safety disclosure is
+even possible right now — what data the app actually collects, stores,
+and (critically) transmits off-device, cross-referenced against the
+codebase's actual behavior rather than assumed from ADR prose.
+
+**No privacy policy exists anywhere in this repo.** Play Console requires
+a hosted privacy policy URL for every app, unconditionally, and this app
+additionally requests location permissions (`ACCESS_FINE_LOCATION`/
+`ACCESS_COARSE_LOCATION` for Qibla/prayer times/mosque finder) which Play
+Store scrutinizes specifically in the Data Safety flow. **This blocks
+actual Play Store submission** — not a code bug, out of scope for this
+loop to write (a privacy policy is a legal document requiring the
+project owner's sign-off, and I'm not fabricating store-listing content
+per this loop's guardrails), but flagging it clearly now rather than
+letting it surface as a surprise at submission time.
+
+**Found and fixed a real, separate bug while verifying the data
+inventory: a misleading, stale doc-comment in the shared sync contract.**
+[`packages/core/src/sync-keys.ts`](packages/core/src/sync-keys.ts)'s
+comment block listed `ul.qada`/`ul.haid` (the qaḍāʾ and **ḥayḍ/menstrual
+cycle log**) as "deliberately EXCLUDED" from sync. Reading the actual
+`MANAGED_KEYS` array below the comment shows they're **not** excluded —
+they're both present, added under ADR 0034's Phase 1 element-merge work,
+and the comment was simply never updated afterward. This isn't cosmetic:
+anyone (developer or compliance reviewer) auditing "does sync ever touch
+menstrual-cycle data" to fill out a Data Safety form would read the
+comment, trust it, and answer **wrong**. Confirmed the actual behavior:
+when a user opts into cross-device sync (off by default, ADR 0033),
+`ul.haid` and `ul.qada` entries **do** get transmitted off-device as
+AES-256-GCM ciphertext to the sync backend — the server can't read them
+or even tell which key they belong to (entry ids are
+`HMAC(dataKey, keyName)`), but the data still **leaves the device**, which
+is what Google's Data Safety disclosure asks about, independent of
+encryption. Fixed the comment to state this accurately and added an
+explicit note for future auditors.
+
+**Data inventory for whoever fills out the real Data Safety form** (not
+committed as a store-listing artifact, just documented here since I
+verified it against the actual code rather than assumed it):
+- **Sync is opt-in and off by default.** An install that never enables it
+  transmits nothing anywhere except the existing prayer-times/mosque-search
+  API calls (location coordinates sent to compute times/find nearby
+  mosques — already covered by the existing `expo-location` permission
+  rationale string).
+- **If sync is enabled:** every `MANAGED_KEYS` entry
+  ([`sync-keys.ts`](packages/core/src/sync-keys.ts)) syncs as E2EE
+  ciphertext to the sync backend (Upstash Redis via `/api/sync`, per ADR
+  0033). This includes bookmarks, reading/reciter/theme preferences, last-read
+  position, prayer-calculation settings (and the **coordinates** used for
+  them), ayah notes, collections, `asmaLearned`, badges, reading log,
+  **prayer log, ramadan worship log, qaḍāʾ log, ḥayḍ log**, and hifz
+  progress. Google Play's Data Safety form has a dedicated, more heavily
+  scrutinized **Health and fitness → menstrual cycle** data-type category
+  distinct from general "app activity" — `ul.haid` syncing means that
+  category applies and needs its own accurate answer (collected: yes,
+  shared: no, encrypted in transit: yes, user can request deletion: yes —
+  the recovery-phrase teardown in `SyncSettings` deletes the account
+  server-side).
+- **No analytics, crash reporting, or ad SDKs anywhere** — confirmed by
+  reading `package.json`: no Sentry/Firebase/Amplitude/etc. This is a
+  genuinely strong, easy-to-state position for the Data Safety form's
+  "no data shared with third parties" sections.
+- **No identifiers, ever.** `accountId` (a bearer capability derived from
+  the recovery phrase, ADR 0033 §1) names a ciphertext blob, not a person
+  — there's no email, no login, no device ID sent anywhere.
+
+**Verification:** `pnpm lint` and `pnpm typecheck` clean full-workspace,
+`pnpm --filter @ummahlibrary/core test` 508/508 passing,
+`pnpm --filter @ummahlibrary/mobile test` 117/117 passing.
+
+**Commit:** `packages/core/src/sync-keys.ts` (comment fix only, no
+behavior change).

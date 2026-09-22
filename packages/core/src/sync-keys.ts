@@ -10,15 +10,21 @@
  * — single-value settings, preferences, the last-read position, and the
  * prayer/calendar configuration — so the most recent change on any device wins.
  *
- * Deliberately EXCLUDED, pending v2 element-level merge (two devices edit
- * different entries concurrently, which whole-value LWW would clobber):
- * `ul.collections`, `ul.ayahNotes`, the prayer/qada/haid/ramadan logs, the
- * reading-goal logs and active plan, the tasbih/adhkar counters (including
- * `ul.hifz.streak` — a counter, not element-merged), `ul.asmaLearned`,
- * `ul.badges`, and `ul.searchHistory`. Also excluded: the sync
+ * Deliberately EXCLUDED (still, even after the v2/Phase-1-3 element-merge
+ * keys below landed per ADR 0034/0035): the reading-goal logs and active
+ * plan, the tasbih/adhkar counters (including `ul.hifz.streak` — a counter,
+ * not element-merged), and `ul.searchHistory`. Also excluded: the sync
  * sidecar itself (`ul.sync.*` — it must never sync), device-local flags
  * (`ul.onboarded`), and per-page scroll offsets. Notification preferences are held
  * back too, since scheduling is per-device.
+ *
+ * NOTE for anyone auditing what sync actually transmits (e.g. for a Play
+ * Store Data Safety disclosure): `ul.qada` and `ul.haid` — the qaḍāʾ and
+ * ḥayḍ (menstrual cycle) logs — ARE in `MANAGED_KEYS` below and DO sync as
+ * E2EE ciphertext when a user opts in, same as everything else on this
+ * list. The server never sees plaintext or even which key an entry belongs
+ * to (ADR 0033), but the data still leaves the device, which is what a
+ * data-safety disclosure has to answer, encryption aside.
  *
  * `ul.bookmarks` is included as a v1 list: concurrent adds on two offline devices
  * can still lose one until element-merge lands — an accepted v1 limitation.
