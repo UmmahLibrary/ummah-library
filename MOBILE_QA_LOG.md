@@ -5083,3 +5083,72 @@ it, not new logic). Live verification as detailed above.
 
 **Commit:** `apps/mobile/src/theme.tsx`,
 `apps/mobile/src/screens/HijriCalendarScreen.tsx`.
+
+---
+
+## Iteration 91 — B12 continued: the RamadanScreen fix deferred last iteration, plus closing out the sweep
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-10`
+
+**Checked:** iteration 90 found and precisely characterized a third
+confirmed instance of the sync-reload-vs-local-write race in
+`RamadanScreen.tsx`'s `loadRamadanData`/`toggleFast`/`toggleWorship`,
+deliberately deferred to keep that iteration's commit scoped, and
+flagged `ProfileScreen.tsx` as the one remaining `onSyncApplied`
+consumer this multi-iteration sweep hadn't individually checked yet.
+This iteration picks up both.
+
+**Fixed the deferred `RamadanScreen` race**, same `writeGen`/
+`ignoreStale` pattern as every other instance this cycle: guarded
+`loadRamadanData`'s `setFasts`/`setWorship` (both driven by the synced
+`ul.ramadanFasts`/`ul.ramadanWorship` keys) against a stale reload
+landing after a fresher `toggleFast`/`toggleWorship` tap. `hijriAdjust`
+on this same screen needed no fix — it's loaded here but never
+locally written (the user changes it on `HijriCalendarScreen`, not
+here), so there's nothing on *this* screen for its own reload to race.
+`pagesRead`/`hasCoords`/`coords`/`timings` are likewise pure
+derivations with no local writer anywhere in the file.
+
+**`ProfileScreen.tsx` — confirmed clean for the pattern this sweep
+targets, with one separate, narrower question noted rather than
+chased.** Its `load()` (mount + `onSyncApplied`) sets `names`/
+`prayer`/`reading` from three read-only aggregations — nothing on this
+screen ever locally writes any of those three, so there's no local tap
+for a stale reload to clobber; genuinely the "pure read/refresh" shape
+iteration 52 already bucketed most `onSyncApplied` consumers into.
+Separately, a **different** effect on this screen (badge-unlock
+detection) does call `achievementsStore.write(...)` on `ul.badges`
+(also a synced key) — but this write isn't triggered by a user tap
+racing its own reload the way every fix this cycle addressed; it's
+whether *some other* consumer of `ul.badges` elsewhere in the app could
+race *this* write, a genuinely different and non-trivial question this
+iteration didn't chase down, noted honestly rather than either
+papering over it as "clean" or manufacturing an unverified fix.
+
+**This closes out the multi-iteration sweep of every `onSyncApplied`
+consumer for the sync-reload-vs-local-write race**, started in
+iterations 51–52 and continued across 82 (tasbih, ruled out by
+design), 90 (theme, Hijri calendar, Ramadan found), and this iteration
+(Ramadan fixed, Profile confirmed). Six real, live instances of the
+same bug found and fixed across this loop's lifetime
+(`PrayerTrackerScreen`, `LibraryContext`, `SettingsContext`,
+`theme.tsx`, `HijriCalendarScreen`, `RamadanScreen`), one correctly
+ruled out (`TasbihScreen`), and every remaining consumer individually
+confirmed rather than assumed from "most are read-only."
+
+**Live-verified the `RamadanScreen` fix**: `preview_start({name:
+"mobile"})`, tapped the "Suhūr" worship toggle twice via direct DOM
+interaction (round-tripping on→off), confirmed
+`localStorage.getItem('ul.ramadanWorship')` read
+`{"<today>":{"suhur":true}}` after the first tap and
+`{"<today>":{}}` after the second — the toggle mechanism works
+correctly with the new guard in place. No new console errors beyond
+the two already-documented, harmless artifacts.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 152/152 passing. Live verification as
+detailed above.
+
+**Commit:** `apps/mobile/src/screens/RamadanScreen.tsx`.
