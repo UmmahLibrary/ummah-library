@@ -1599,3 +1599,52 @@ from the grep:**
   it.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 31 — Error boundaries / crash resilience against malformed data
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** what happens when a screen throws during render — e.g. from
+malformed data that slipped past a store's read-time validation (ADR 0028's
+guards run at read time; they don't guarantee every downstream consumer
+handles every shape correctly), a null a screen didn't expect, or any other
+uncaught render error.
+
+**Found and fixed a real gap: zero error boundary coverage anywhere in the
+app.** Grepped the whole tree — no `getDerivedStateFromError`,
+`componentDidCatch`, or third-party boundary library anywhere in
+`apps/mobile` (and nothing to mirror from `apps/web` either, which has the
+same gap but is out of scope here). An uncaught render error in *any*
+screen or provider — including ones several layers deep in the provider
+stack — unmounts the whole tree, leaving a **permanently blank screen**
+with no recovery path short of a manual force-quit and relaunch.
+
+**Fix:** added [`ErrorBoundary.tsx`](apps/mobile/src/ErrorBoundary.tsx), a
+class component last-resort crash barrier with a fallback UI ("Something
+went wrong" + a "Try again" button that resets the boundary's state) and
+wired it into [`App.tsx`](apps/mobile/App.tsx) around the whole provider
+tree (`SafeAreaProvider` and everything inside it). Deliberately built with
+raw `react-native` primitives and hardcoded colors instead of this app's
+own `Type`/theme layer — whatever crashed could in principle be inside
+that layer, so the fallback stays independent of everything it exists to
+catch failures in.
+
+**Live-verified in the browser preview** (react-native-web faithfully
+reproduces React error-boundary behavior — it's a pure React/JS mechanism,
+not a native-only one, unlike most perspectives checked in this cycle).
+Temporarily added an unconditional `throw` as the first line of
+`HomeScreen`'s render to force a real crash, reloaded, and confirmed the
+fallback rendered ("Something went wrong" / "Try again") instead of a
+blank screen. Tapped "Try again" and confirmed the boundary resets and
+re-renders cleanly (it re-throws immediately since the injected throw was
+unconditional, so the same fallback correctly reappears rather than
+anything crashing the boundary itself). Reverted the temporary throw
+before running the test/lint gate — it was never committed.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean,
+`pnpm --filter @ummahlibrary/mobile test` 117/117 passing, `pnpm lint`
+clean (13 pre-existing warnings, 0 errors, none from this change), plus
+the live browser-preview crash/recover check above.
+
+**Commit:** `apps/mobile/src/ErrorBoundary.tsx` (new), `apps/mobile/App.tsx`.

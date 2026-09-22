@@ -1,15 +1,10 @@
 {
-  "iteration": 30,
+  "iteration": 31,
   "cycle": 1,
-  "perspectiveIndex": 31,
+  "perspectiveIndex": 32,
   "batch": "mobile-stabilization-04",
-  "consecutiveCleanIterations": 1,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 27,
-      "perspective": "B28 - Touch target sizing (44dp)",
-      "outcome": "GAPS FOUND AND FIXED"
-    },
     {
       "iteration": 28,
       "perspective": "B29 - Noor theme switching consistency",
@@ -24,6 +19,11 @@
       "iteration": 30,
       "perspective": "B31 - Navigation stack edge cases (deep stacks, tab switch mid-flow, duplicate pushes)",
       "outcome": "clean - zero navigation.push() usage anywhere (all navigate(), the duplicate-safe default), combined with iteration 8's no-custom-stack-manipulation finding. Live-verified: rapid triple-tap didn't duplicate-push, tab switch mid-flow correctly preserved and restored reader state."
+    },
+    {
+      "iteration": 31,
+      "perspective": "B32 - Error boundaries / crash resilience against malformed data",
+      "outcome": "GAP FOUND AND FIXED: zero error boundary coverage anywhere in the app - added ErrorBoundary.tsx wired around the whole provider tree in App.tsx. Live-verified via browser preview: forced a real render crash, confirmed fallback UI renders instead of a blank screen, confirmed reset button doesn't crash the boundary itself."
     }
   ]
 }
