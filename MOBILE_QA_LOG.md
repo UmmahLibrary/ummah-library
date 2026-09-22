@@ -5152,3 +5152,47 @@ the two already-documented, harmless artifacts.
 detailed above.
 
 **Commit:** `apps/mobile/src/screens/RamadanScreen.tsx`.
+
+---
+
+## Iteration 92 — B13, cycle 3: kill-and-restore, re-run against the three new guards added this cycle
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-10`
+
+**Checked:** [iteration 12](#iteration-12--kill-and-restore-state-integrity)
+established the structural corruption protection (`getJSON`'s try/catch
++ shape-validator, ADR-0028-enforced); [iteration 53](#iteration-53--b13-revisited-kill-and-restore-re-verified-through-the-race-guard-changes-just-made)
+asked whether the `writeGen`/`ignoreStale` guards iterations 51–52 had
+just added to `LibraryContext`/`SettingsContext` could interfere with
+that fallback behavior, reasoned through why they couldn't (`writeGen`
+starts at `0` on a fresh mount, so the guard is a structural no-op for
+a cold start), and confirmed it live. Iterations 90–91, earlier this
+same cycle, added three more of these guards — `theme.tsx`,
+`HijriCalendarScreen`, `RamadanScreen` — none of which iteration 53
+could have checked, since they didn't exist yet. Re-ran the identical
+question and method against them rather than assuming the earlier
+reasoning still applied without re-confirming.
+
+**Confirmed live — same clean result.** Wrote a corrupted value into
+every field the three new guards touch: `ul.theme` (an unrecognized
+string, `"not-a-real-theme"`), `ul.hijriAdjust` (a non-numeric string,
+`"abc"`), `ul.ramadanFasts` (truncated JSON, `'{"1":tru'`), and
+`ul.ramadanWorship` (wrong-shape, `"42"`). Cold-reloaded: Home rendered
+fully and normally (including "Continue reading," confirming the
+reload doesn't cascade into anything else breaking), then navigated to
+`HijriCalendarScreen` — "Date adjustment (0 days)," correctly clamped
+to the default rather than `NaN` — and `RamadanScreen` — "0/30 Fasts
+kept" and "0/4 Today's worship," both cleanly empty rather than
+crashed or stuck. No new console errors beyond the same six
+already-documented, harmless artifacts (`validatePath` ×4,
+`Linking.openSettings` ×2).
+
+No fix needed; the pattern holds for every guard added so far this
+cycle, not just the two iteration 53 originally checked.
+
+**Verification:** live corrupted-storage check above (`ul.theme`,
+`ul.hijriAdjust`, `ul.ramadanFasts`, `ul.ramadanWorship`); no code
+changed this iteration, prior gate (152/152) holds.
+
+**Commit:** none (clean iteration; only this log entry and state).

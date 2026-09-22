@@ -1,29 +1,29 @@
 {
-  "iteration": 91,
+  "iteration": 92,
   "cycle": 3,
-  "perspectiveIndex": 12,
+  "perspectiveIndex": 13,
   "batch": "mobile-stabilization-10",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 88,
-      "perspective": "B10, cycle 3 - deep links, chasing down the plans/:id question iteration 9 deferred",
-      "outcome": "OUT OF SCOPE, precisely characterized: plans/:id ignores the id on mobile, a real feature-parity gap vs web. Logged for a product decision."
-    },
     {
       "iteration": 89,
       "perspective": "B11, cycle 3 - cold start/splash, a rejected-promise hypothesis ruled out, a splash/theme mismatch found",
-      "outcome": "HYPOTHESIS RULED OUT + OUT OF SCOPE finding: splash color has no light-mode variant. Needs an asset this loop can't generate. Logged precisely."
+      "outcome": "HYPOTHESIS RULED OUT + OUT OF SCOPE finding: splash color has no light-mode variant. Needs an asset this loop can't generate."
     },
     {
       "iteration": 90,
       "perspective": "B12, cycle 3 - the sync-reload race found again in theme.tsx and HijriCalendarScreen, a third confirmed in RamadanScreen and deferred",
-      "outcome": "GAP FOUND AND FIXED x2: theme.tsx and HijriCalendarScreen. Third instance (RamadanScreen) confirmed and deferred with full detail."
+      "outcome": "GAP FOUND AND FIXED x2: theme.tsx and HijriCalendarScreen. Third instance (RamadanScreen) confirmed and deferred."
     },
     {
       "iteration": 91,
       "perspective": "B12 continued - the RamadanScreen fix, plus closing out the full onSyncApplied sweep",
-      "outcome": "GAP FOUND AND FIXED: RamadanScreen's loadRamadanData/toggleFast/toggleWorship, live-verified round-trip. ProfileScreen confirmed clean for the pattern (pure read/refresh), with one separate, narrower, unchased question noted (achievementsStore.write racing some other ul.badges consumer). CLOSES the multi-iteration onSyncApplied sweep: 6 real instances found/fixed across this loop's lifetime, 1 correctly ruled out by design."
+      "outcome": "GAP FOUND AND FIXED: RamadanScreen's loadRamadanData/toggleFast/toggleWorship. ProfileScreen confirmed clean. CLOSES the multi-iteration onSyncApplied sweep: 6 real instances found/fixed total."
+    },
+    {
+      "iteration": 92,
+      "perspective": "B13, cycle 3 - kill-and-restore, re-run against the three new writeGen guards added this cycle",
+      "outcome": "CLEAN, re-verified live: wrote corrupted values into every field the theme.tsx/HijriCalendarScreen/RamadanScreen guards touch, cold-reloaded, all three screens rendered fully with clean fallback defaults, no new console errors."
     }
   ]
 }
