@@ -2555,3 +2555,43 @@ typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
 plus the live corrupted-storage self-heal check above.
 
 **Commit:** `apps/mobile/src/screens/ZakatScreen.tsx`.
+
+## Iteration 48 — B9 revisited: back-button handling re-checked after 40 iterations of changes, plus the ErrorBoundary interaction
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-05`
+
+**Checked:** re-ran iteration 8's exhaustive grep (`BackHandler`,
+`Modal`, `presentation:`, `beforeRemove`/`preventRemove`) across the
+whole `apps/mobile/src` tree as it stands now, after ~40 iterations of
+changes since — including this loop's own `ErrorBoundary` addition — to
+confirm the "zero custom back-handling" invariant iteration 8 found still
+holds and wasn't quietly broken by later work. Still zero matches.
+
+**New angle this pass:** does the `ErrorBoundary` (added iteration 31, a
+component this perspective's original check predates) interact correctly
+with navigation state? Since it wraps the entire tree including
+`NavigationContainer`, catching a crash unmounts the whole navigation
+stack; tapping "Try again" remounts everything fresh, which means the
+user lands back at the app's initial route (Home) rather than wherever
+they were when the crash happened — navigation position is **not**
+preserved across a recovery. Concluded this is the correct, deliberate
+tradeoff for a last-resort crash barrier, not a bug: resetting to a known
+-good state avoids "Try again" immediately re-rendering whatever crashing
+state caused the problem in the first place, which could just loop.
+
+**One plausible, native-only-unverifiable observation, not acted on:**
+while the fallback UI is showing, there's no `NavigationContainer`
+mounted at all (the crash was caught above it), so Android's hardware
+back button has nothing registered to intercept it — it would likely fall
+through to the OS default (background/exit the app) rather than doing
+nothing or dismissing the fallback. Can't verify either way in this
+environment (no Android emulator; `react-native-web` has no `BackHandler`
+equivalent — the same honest limitation iteration 8 already documented).
+Not fixing speculatively: this is an edge case of an edge case (only
+reachable after an actual uncaught crash), and "back exits a crashed app"
+isn't obviously wrong behavior anyway.
+
+**Verification:** read-only iteration; prior gate holds.
+
+**Commit:** none (clean iteration; no code changes).

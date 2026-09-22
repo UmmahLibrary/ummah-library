@@ -1,29 +1,29 @@
 {
-  "iteration": 47,
+  "iteration": 48,
   "cycle": 2,
-  "perspectiveIndex": 7,
+  "perspectiveIndex": 8,
   "batch": "mobile-stabilization-05",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 44,
-      "perspective": "Cycle 2, A4 - closed the sync-reload race deferred in iteration 22",
-      "outcome": "GAP FOUND AND FIXED: added a generation-counter guard (ignoreStale) to PrayerTrackerScreen's sync reload."
-    },
     {
       "iteration": 45,
       "perspective": "Cycle 2, A5 - Hifz pluralization, checked beyond the one string",
-      "outcome": "clean - re-confirmed both ternaries correct, checked adjacent counted-noun strings too."
+      "outcome": "clean - re-confirmed both ternaries correct."
     },
     {
       "iteration": 46,
       "perspective": "Cycle 2, A6 - khatm completion undo/reset paths deepened",
-      "outcome": "clean - overshoot-safe, no unrelated-field wipe, already race-safe, undo works correctly."
+      "outcome": "clean - overshoot-safe, no unrelated-field wipe, already race-safe."
     },
     {
       "iteration": 47,
       "perspective": "Cycle 2, A7/A8 - Zakat reset scope and negative-amount defense in depth",
-      "outcome": "GAP FOUND AND FIXED: confirmed calculateZakat/sumValues already defend the math against negative values reaching storage via any path, but the load-time hydration only self-healed currency, not the decimal fields (display-layer gap, not a calculation bug). Extended the self-heal to gold/silver price, liabilities, and every asset value. Live-verified with a corrupted-storage scenario: every field healed to exactly what typing the same text would produce."
+      "outcome": "GAP FOUND AND FIXED: extended the currency-only load-time self-heal to every decimal field. Confirmed core's calculateZakat/sumValues already defend the actual math regardless."
+    },
+    {
+      "iteration": 48,
+      "perspective": "Cycle 2, B9 - back-button handling re-checked, ErrorBoundary interaction",
+      "outcome": "clean - re-confirmed zero custom back-handling still holds after 40 more iterations of changes. Checked the ErrorBoundary's interaction with navigation state: Try-again resets to Home rather than preserving position, concluded this is the correct deliberate tradeoff for a last-resort barrier. One unverifiable-without-a-device observation noted (hardware back while the fallback shows), not acted on."
     }
   ]
 }
