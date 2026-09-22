@@ -1,15 +1,10 @@
 {
-  "iteration": 65,
+  "iteration": 66,
   "cycle": 2,
-  "perspectiveIndex": 25,
+  "perspectiveIndex": 26,
   "batch": "mobile-stabilization-07",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 62,
-      "perspective": "Cycle 2, B22 - sync engine edge cases",
-      "outcome": "clean - confirmed the deferred race from iteration 22 is fully closed."
-    },
     {
       "iteration": 63,
       "perspective": "Cycle 2, B23 - RTL, the app's own RTL UI locale (Urdu)",
@@ -22,8 +17,13 @@
     },
     {
       "iteration": 65,
-      "perspective": "Cycle 2, B25 - text scaling, checked 2 more fixed-badge screens for the AyahBadge overflow class",
-      "outcome": "GAP FOUND AND FIXED: HijriCalendarScreen's month-grid cells visibly overlap at 2x scale (two stacked text lines, dayNum+gregLabel, neither capped) - confirmed via screenshot. Capped both with maxFontSizeMultiplier=1.3. RamadanScreen's fasting-grid cells checked with the same method and genuinely don't overflow (measured, not assumed) - a real negative result, smaller base font size leaves enough headroom."
+      "perspective": "Cycle 2, B25 - text scaling, 2 more fixed-badge screens",
+      "outcome": "GAP FOUND AND FIXED: HijriCalendarScreen's month-grid overlap. RamadanScreen checked and genuinely clean (measured, not assumed)."
+    },
+    {
+      "iteration": 66,
+      "perspective": "Cycle 2, B26 - screen-reader labels, checked SaveToCollection which postdates iteration 26",
+      "outcome": "GAP FOUND AND FIXED: a checkbox-styled collection row used a bare Unicode glyph with no accessibilityRole/State. Added checkbox role, checked state, and a name+count label. Live-verified via the actual accessibility tree: checkbox \"My Favorites, 1 saved\". Noted (not fixed, needs a focused pass): TranslationManager and the reminder-toggle components may have the same class of gap (Switch with sibling text, no wrapping label) - scope uncertain across 4 components, logged for a dedicated future iteration."
     }
   ]
 }

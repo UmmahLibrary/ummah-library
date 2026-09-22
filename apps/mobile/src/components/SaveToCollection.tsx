@@ -88,7 +88,14 @@ export function SaveToCollection({
                   collections.map((c) => {
                     const on = isInCollection(c, ref);
                     return (
-                      <Pressable key={c.id} style={styles.row} onPress={() => toggle(c.id)}>
+                      <Pressable
+                        key={c.id}
+                        style={styles.row}
+                        onPress={() => toggle(c.id)}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: on }}
+                        accessibilityLabel={`${c.name}, ${c.ayahs.length} saved`}
+                      >
                         <Text style={[styles.check, on && styles.checkOn]}>{on ? "☑" : "☐"}</Text>
                         <Text style={styles.rowName}>{c.name}</Text>
                         <Text style={styles.rowCount}>{c.ayahs.length}</Text>

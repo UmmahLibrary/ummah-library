@@ -3457,3 +3457,58 @@ that can confirm the cap takes effect through the actual native
 mechanism. That still needs a real device.
 
 **Commit:** `apps/mobile/src/screens/HijriCalendarScreen.tsx`.
+
+## Iteration 66 — B26 revisited: a checkbox-shaped row with no checkbox semantics, in code that postdates the original sweep
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 26's icon-only-button sweep covered every screen
+and component that existed at the time. This pass focused on
+[`SaveToCollection.tsx`](apps/mobile/src/components/SaveToCollection.tsx)
+specifically — a component this loop has directly edited twice since
+(iterations 27's touch-target fix, iteration 55's keyboard-avoiding
+fix) without ever re-checking its accessibility semantics against
+iteration 26's own standard.
+
+**Found a real gap of a different shape than iteration 26 checked: not a
+missing label on an icon button, but missing *role and state* on a
+checkbox-styled row.** The per-collection row in the "Save to
+collection" modal renders a bare Unicode glyph (`"☑"`/`"☐"`) as its only
+indication of membership, inside a `Pressable` with no
+`accessibilityRole` and no `accessibilityState` — functionally a
+checkbox with none of a checkbox's screen-reader semantics. A screen
+reader would read the raw glyph's platform-dependent character name
+(if anything meaningful at all) rather than a clear "checked"/"unchecked"
+announcement.
+
+**Fix:** added `accessibilityRole="checkbox"`,
+`accessibilityState={{ checked: on }}`, and an explicit
+`accessibilityLabel` combining the collection name and item count
+(``"${c.name}, ${c.ayahs.length} saved"``) — matching iteration 26's own
+established convention of including relevant context, not just a bare
+label.
+
+**Checked for the same glyph pattern elsewhere** (`grep '☑|☐'`
+app-wide) — this was the only occurrence, unlike iteration 26's `"✕"`
+sweep which found three. Also noticed, but **not fixing speculatively**:
+`TranslationManager.tsx`'s multi-select list pairs a `Switch` with
+sibling descriptive text rather than a wrapping accessible label —
+plausibly the same underlying gap (a screen reader focusing the `Switch`
+directly might get no name context), but confirming that needs checking
+across several structurally-similar toggle components
+(`PlanReminderToggle`, `AdhkarReminderToggle`,
+`SunnahFastReminderToggle`, `TranslationManager`) rather than one
+narrow fix — logging as a real observation for a focused future pass
+rather than guessing at scope here.
+
+**Live-verified through the actual accessibility tree**, matching
+iteration 26's own gold-standard method: created a real collection in
+the browser preview, then read the tree —
+`checkbox "My Favorites, 1 saved"`. Exact role, exact state-aware label.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
+plus the live accessibility-tree check above.
+
+**Commit:** `apps/mobile/src/components/SaveToCollection.tsx`.
