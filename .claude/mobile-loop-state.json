@@ -1,15 +1,10 @@
 {
-  "iteration": 19,
+  "iteration": 20,
   "cycle": 1,
-  "perspectiveIndex": 20,
+  "perspectiveIndex": 21,
   "batch": "mobile-stabilization-02",
-  "consecutiveCleanIterations": 3,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 16,
-      "perspective": "B17 - Android permission request flow",
-      "outcome": "GAP FOUND AND FIXED"
-    },
     {
       "iteration": 17,
       "perspective": "B18 - Audio playback interruption",
@@ -18,12 +13,17 @@
     {
       "iteration": 18,
       "perspective": "B19 - Offline/airplane-mode behavior",
-      "outcome": "clean, live-verified with a true fetch-override offline simulation"
+      "outcome": "clean, live-verified"
     },
     {
       "iteration": 19,
-      "perspective": "B20 - Notification scheduling correctness (DST, timezone, reboot, exact-alarm)",
-      "outcome": "Reboot survival clean (library's own manifest). DST/timezone reasonably mitigated via foreground re-sync, one narrow industry-wide-hard residual edge case not worth chasing. Real finding: no SCHEDULE_EXACT_ALARM/USE_EXACT_ALARM declared, so reminders fall back to inexact delivery on Android 13+ (library degrades gracefully, no crash) - documented as a Play-Store-policy-sensitive product decision, deliberately NOT added unilaterally since it's a restricted permission requiring Play Console justification."
+      "perspective": "B20 - Notification scheduling correctness",
+      "outcome": "reboot/DST clean, exact-alarm trade-off documented (Play Store policy sensitive, not fixed)"
+    },
+    {
+      "iteration": 20,
+      "perspective": "B21 - AsyncStorage/SQLite migration safety and corrupted-store recovery",
+      "outcome": "GAP FOUND AND FIXED: theme.tsx's legacy dark/light migration never wrote the migrated value back to storage (unlike tasbih-store, sync-settings, sync-meta's migrations, which all do). Fixed to persist on migration, matching the established pattern. Live-verified via localStorage injection + reload."
     }
   ]
 }

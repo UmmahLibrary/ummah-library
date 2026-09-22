@@ -978,3 +978,63 @@ requires.
 
 **Commit:** none (clean iteration; the exact-alarm trade-off is a
 documented decision point, not a code change).
+
+---
+
+## Iteration 20 — AsyncStorage/SQLite migration safety and corrupted-store recovery
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** every stored-value-shape migration in the mobile app (distinct
+from [iteration 12](#iteration-12--kill-and-restore-state-integrity)'s
+corrupt-JSON recovery — this is about *old-version-to-new-version* shape
+upgrades). No direct `expo-sqlite` usage exists in `apps/mobile` (SQLite
+usage in the codebase is `packages/adapters`' `SqliteHifzRepository`, a
+different, server-side concern per `ARCHITECTURE.md`) — mobile persistence
+is entirely `AsyncStorage`-backed.
+
+**Found four migrations, three already correct, one fixed to match them.**
+- `tasbih-store.ts` (the per-phrase-progress shape, see
+  [iteration 3](#iteration-3--tasbih-per-phrase-counter-mobiles-opposite-bug-from-web)) —
+  reads the old flat shape, migrates, and `await setJSON(...)`s it back.
+  Tested.
+- `sync-settings.ts`'s `readSyncSecret()` — migrates a pre-hardening
+  plaintext `AsyncStorage` secret into the secure Keychain/Keystore store,
+  then removes the plaintext copy, with a doc comment explicitly promising
+  "an app update never looks like sync silently turned off." Tested
+  (`sync-settings.test.ts`: "migrates a pre-hardening plaintext secret...").
+- `sync-meta.ts`'s `loadMeta()` — migrates the legacy `"millis:counter:node"`
+  string HLC clock format to the structural `{millis, counter, node}` shape.
+  Tested (`sync-meta.test.ts`: "migrates the legacy... string clock").
+- **`theme.tsx`'s `loadTheme()` — migrated the legacy `"dark"`/`"light"`
+  theme keys to the new named-theme keys (`"obsidian"`/`"ivory"`) correctly
+  in memory, every launch, but never wrote the migrated value back to
+  storage** (`setThemeKey(key)` with no matching `setString(KEYS.theme,
+  key)`, unlike every other migration above). Functionally harmless on its
+  own — the map-on-read is deterministic and reapplied every launch, so the
+  displayed theme was always correct — but it meant the legacy value would
+  persist in storage (and whatever a sync round pushes to another device)
+  forever, and the `LEGACY` compatibility table could never be safely
+  removed from the codebase.
+
+**Fix:** [`theme.tsx`](apps/mobile/src/theme.tsx) now calls `setString`
+once, only on an actual legacy-value hit, to persist the migrated key —
+matching the write-back pattern every other migration in this codebase
+already uses.
+
+**Live-verified** via `preview_start({name: "mobile"})`: wrote
+`localStorage.setItem('ul.theme', 'dark')` (simulating a pre-migration
+install), reloaded — before the fix, `ul.theme` stayed `"dark"` after
+launch (correct theme rendered, but storage never updated); after the fix,
+it reads `"obsidian"` post-launch, confirmed by re-checking after the
+reload completed.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass (no test added for this specific change — `theme.tsx`
+is UI-context code outside this repo's store/`.test.ts` convention,
+consistent with earlier iterations' findings on what does and doesn't get
+unit-tested here); `pnpm lint` — 0 errors, same 13 pre-existing warnings.
+
+**Commit:** `fix(mobile): persist the migrated theme key instead of
+re-mapping it every launch`.
