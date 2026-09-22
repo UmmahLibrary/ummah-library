@@ -1,29 +1,29 @@
 {
-  "iteration": 37,
+  "iteration": 38,
   "cycle": 1,
-  "perspectiveIndex": 37,
+  "perspectiveIndex": 38,
   "batch": "mobile-stabilization-04",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
     {
-      "iteration": 34,
-      "perspective": "B35 - Play Store data-safety accuracy",
-      "outcome": "Contained two mistakes corrected in iteration 35."
-    },
-    {
       "iteration": 35,
-      "perspective": "B35 continued",
+      "perspective": "B35 continued - privacy policy fix",
       "outcome": "GAP FOUND AND FIXED: privacy.ts stale relative to shipped sync feature."
     },
     {
       "iteration": 36,
-      "perspective": "B36 - Empty and loading states on every screen",
-      "outcome": "clean - thoroughly traced every data-fetching screen, all have proper loading/error/empty handling."
+      "perspective": "B36 - Empty and loading states",
+      "outcome": "clean - thoroughly traced every data-fetching screen."
     },
     {
       "iteration": 37,
-      "perspective": "B37 - Copy/microcopy consistency and correctness vs web",
-      "outcome": "GAP FOUND AND FIXED: MosqueFinderScreen error message missing web's trailing 'and retry'. Confirmed location-permission and Zakat copy match well with correct platform adaptation. Logged (not fixed, capability not copy gap): mobile has no distinct offline-detection status like web's navigator.onLine-based one."
+      "perspective": "B37 - Copy/microcopy consistency vs web",
+      "outcome": "GAP FOUND AND FIXED: MosqueFinderScreen error message wording synced with web."
+    },
+    {
+      "iteration": 38,
+      "perspective": "B38 - Push notification content correctness",
+      "outcome": "clean - all 5 reminder types share content from core/reminders.ts and reading-plans.ts, already have direct content-assertion test coverage, no truncation risk (plan names are bundled and short, not user-authored)."
     }
   ]
 }

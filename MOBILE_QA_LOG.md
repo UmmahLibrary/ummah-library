@@ -2044,3 +2044,49 @@ for a future iteration if it's judged worth the dependency.
 typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 117/117.
 
 **Commit:** `apps/mobile/src/screens/MosqueFinderScreen.tsx`.
+
+## Iteration 38 — Push notification content correctness
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** the actual title/body text of every reminder type (prayer,
+adhkar, reading plan, Sunnah fast, Islamic event) for correctness,
+consistency, and truncation risk.
+
+**Clean.** All five reminder families build their content in one shared,
+platform-neutral module —
+[`packages/core/src/reminders.ts`](packages/core/src/reminders.ts) (plus
+[`planReminderContent`](packages/core/src/reading-plans.ts) for the plan
+reminder's progress-aware copy) — so web and mobile schedule byte-identical
+notification text; there's no mobile-only copy to drift from web's.
+
+- **Prayer:** `${PRAYER_LABELS[prayer]} — time to pray`, correct label per
+  prayer.
+- **Adhkar:** `Time for ${morning|evening} adhkar` with the matching
+  emoji, correctly keyed per occasion.
+- **Reading plan:** three distinct, well-designed states (today's portion
+  done, behind schedule, still due) with correct singular/plural handling
+  via `unitWord()` (checked the switch: `page`/`sūrah`/`ayah` pluralize in
+  English correctly; `juzʾ`/`ḥizb` are invariant transliterations, which
+  is linguistically correct — they don't take an English "-s").
+- **Sunnah fast / Islamic event:** both include the specific fast/event
+  name, not a generic placeholder.
+- **Truncation risk:** checked every bundled plan template's `name` (the
+  only unbounded-length input feeding a title) — all six are short
+  (≤20 chars; plans aren't user-authored per AGENTS.md, so there's no
+  arbitrary-length user input here at all).
+
+All four non-plan reminder types already have direct content assertions
+in [`reminders.test.ts`](packages/core/src/reminders.test.ts) (exact
+title/body string checks, not just scheduling-logic checks), and the plan
+reminder's three states are covered in
+[`reading-plans.test.ts`](packages/core/src/reading-plans.test.ts) — this
+perspective already had real regression protection before this iteration,
+not just correct-by-luck code.
+
+No fix needed.
+
+**Verification:** read-only iteration, no code changed; prior gate holds.
+
+**Commit:** none (clean iteration; no code changes).
