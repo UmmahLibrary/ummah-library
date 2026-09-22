@@ -1,8 +1,15 @@
 {
-  "iteration": 0,
+  "iteration": 1,
   "cycle": 1,
-  "perspectiveIndex": 0,
+  "perspectiveIndex": 1,
   "batch": "mobile-stabilization-01",
   "consecutiveCleanIterations": 0,
-  "history": []
+  "history": [
+    {
+      "iteration": 1,
+      "perspective": "A1 - Prayer-time timezone-of-location vs device-timezone bug",
+      "outcome": "clean (already fixed on mobile via fmtPrayerTime); removed unused fmtTime dead code as a footgun-prevention fix",
+      "notableFinding": "repo-wide duplicate React installs break apps/web and apps/extension build/test; out of scope, logged in MOBILE_QA_LOG.md"
+    }
+  ]
 }
