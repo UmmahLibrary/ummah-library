@@ -1,29 +1,29 @@
 {
-  "iteration": 24,
+  "iteration": 25,
   "cycle": 1,
-  "perspectiveIndex": 25,
+  "perspectiveIndex": 26,
   "batch": "mobile-stabilization-03",
   "consecutiveCleanIterations": 0,
   "history": [
     {
-      "iteration": 21,
-      "perspective": "B22 - Secure storage of sync recovery secret",
-      "outcome": "clean, parity confirmed"
-    },
-    {
       "iteration": 22,
       "perspective": "B23 - Sync engine mobile edge cases",
-      "outcome": "clean by design; iteration 4 race closed out"
+      "outcome": "clean by design"
     },
     {
       "iteration": 23,
       "perspective": "B24 - RTL/Arabic rendering correctness",
-      "outcome": "clean, thoroughly live-verified"
+      "outcome": "clean, live-verified"
     },
     {
       "iteration": 24,
-      "perspective": "B25 - Font loading fallback and flash-of-unstyled-text",
-      "outcome": "SEVERE GAP FOUND AND FIXED: no FOUT risk (single comprehensive fontMap), but useFonts' error was silently discarded, meaning any single bad font asset would freeze the app on the splash screen forever with no fallback (compounds with iteration 10's splash fix). Now proceeds past the gate on a font error instead of hanging. Live-verified the normal path has no regression; the error path itself not forceable to test live without corrupting a real asset."
+      "perspective": "B25 - Font loading fallback",
+      "outcome": "SEVERE GAP FOUND AND FIXED: font-load error could freeze the app forever"
+    },
+    {
+      "iteration": 25,
+      "perspective": "B26 - Large accessibility text scaling (up to 200%) without layout breakage",
+      "outcome": "GAP FOUND AND FIXED: AyahBadge (surah/ayah number badge used on 4 screens) overflows its fixed 40x40 container at 2x scale. Found via a real DOM-level text-scaling simulation in the live preview (not just code reading), confirmed on Home and SurahList. Capped with maxFontSizeMultiplier=1.3. Fix mechanism itself (RN's PixelRatio-based scaling) not directly verifiable in this environment since the test method bypasses it - noted honestly."
     }
   ]
 }

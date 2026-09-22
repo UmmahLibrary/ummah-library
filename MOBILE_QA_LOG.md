@@ -1256,3 +1256,62 @@ fix than the risk warrants.
 
 **Commit:** `fix(mobile): don't let a failed font load freeze the app on
 the splash screen forever`.
+
+---
+
+## Iteration 25 — Large accessibility text scaling (Android font scale up to 200%) without layout breakage
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** whether the app's layout survives the OS's large-text
+accessibility setting, and whether text scaling is disabled anywhere (the
+more common, worse mistake).
+
+**Baseline is good:** no screen sets `allowFontScaling={false}` anywhere —
+confirmed by grep across `apps/mobile/src`. Every screen respects the
+user's OS text-scale setting by default, which is the right starting
+point; the risk with this perspective is layout breakage *because* scaling
+is respected, not text being frozen.
+
+**Found and fixed real breakage, with a genuine live simulation, not just
+code reading.** This environment has no way to change a real OS
+accessibility font-scale setting, but I could still get a real visual
+signal: injected a script into the running RN-web preview that scales
+every rendered leaf text node's *computed* font-size (via
+`!important`, since react-native-web's atomic CSS beats a plain inline
+style) by 2x — the same 200% Android supports — and screenshotted the
+result on `HomeScreen` and `SurahListScreen`. **The Noon `AyahBadge`
+component** (`apps/mobile/src/components/AyahBadge.tsx` — the gold khatam-
+star badge showing a surah/āyah number, used on `HomeScreen`,
+`SurahListScreen`, `HifzDashboardScreen`, and `AyahView`) **visibly
+overflows its fixed 40×40 container at 2x scale** — the number spills
+outside the star outline, confirmed on both the Home "Continue reading"
+card's surah badge and the surah-list row badges (65–69 tested).
+Everything else observed (card text, translation lines, tab bar labels)
+reflowed acceptably — wrapping to extra lines or growing card height
+rather than clipping — which is the correct, expected behavior for
+non-fixed-size containers.
+
+**Fix:** capped `AyahBadge`'s number specifically with
+`maxFontSizeMultiplier={1.3}` — the number still grows somewhat with the
+user's accessibility setting (unlike disabling scaling outright, which
+would be a worse regression), just not far enough to break its
+40×40 decorative badge. The badge's number is a secondary ordinal marker;
+the surah's actual name/text next to it is unaffected and continues to
+scale fully.
+
+**Verification, and an honest caveat on the test method:** `pnpm --filter
+@ummahlibrary/mobile typecheck` clean (confirms `maxFontSizeMultiplier` is
+a recognized `Text` prop); `test` 116/116 pass; `pnpm lint` — 0 errors,
+same 13 pre-existing warnings. Confirmed no regression at normal scale via
+`preview_start({name: "mobile"})`. **What the DOM-scaling simulation
+can't verify**: `maxFontSizeMultiplier` is an RN-native concept keyed off
+`PixelRatio.getFontScale()`, which my test method bypasses entirely (it
+sets raw CSS `font-size` on every node, including the capped one) — so I
+could use it to *find* the bug, but not to confirm the *fix* takes effect
+through the real mechanism. That needs a real device (or Android's font-
+scale accessibility setting via an emulator), which isn't available here.
+
+**Commit:** `fix(mobile): cap AyahBadge's number so it doesn't overflow at
+large accessibility text scale`.
