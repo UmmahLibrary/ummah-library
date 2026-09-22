@@ -4879,3 +4879,64 @@ to press an actual hardware back button — same honest limitation
 iterations 8 and 48 already stated, not newly resolved here.
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 88 — B10, cycle 3: deep links, finally chasing down the `plans/:id` question iteration 9 explicitly deferred
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 9](#iteration-9--deep-link-ummahlibrary-handling-including-malformed-links)
+found and fixed a real malformed-link bug (`SurahReaderScreen`
+poisoning `lastRead` from an out-of-range surah); [iteration 49](#iteration-49--b10-revisited-deep-link-handling-closing-the-cosmetic-gap-left-open)
+re-confirmed no new param-taking routes were added and closed a
+cosmetic title-flash gap. Both passes noted, without investigating,
+that `PlanDetailScreen` never reads `route.params.id` at all — iteration
+9 called it "a design question, not a bug" and moved on. Re-confirmed
+`App.tsx`'s `linking` config still has exactly the same four
+param-taking routes as before (no new ones added in batches 6–9), then
+finally chased down that deferred question properly.
+
+**It's a real cross-platform feature-parity gap, not just an
+unexplored design nuance — confirmed by reading web's actual
+implementation, not guessed at.** `apps/web/src/app/plans/[id]/page.tsx`
+routes to `PlanDetailView`, which computes
+`isActive = !!plan && plan.template.id === templateId` — the `:id`
+genuinely selects **which catalogue template** to show: if it matches
+the active plan, the live progress view renders; if it doesn't (or
+nothing's active), a **template preview with a "Start this plan"
+button** renders instead (warning first if it would replace an
+existing plan). Mobile's `PlanDetailScreen` does none of this — it
+ignores `:id` entirely and always shows `readActivePlan()`'s result
+(the live plan, or "No active plan." if none). A `plans/hifz-in-a-year`
+link that would correctly preview-and-offer-to-start that template on
+web either shows an unrelated active plan or a bare "No active plan."
+on mobile, with zero indication of what the link actually pointed to.
+
+**Confirmed mobile has the underlying capability, just not wired to
+this route.** `PlansScreen.tsx` (mobile's plan-list screen, not
+`PlanDetailScreen`) already maps `PLAN_TEMPLATES` to tappable rows that
+call `startPlan(pl.id)` — the catalogue-browsing/starting feature
+exists, mobile's information architecture just splits what web does in
+one screen (`PlanDetailView`, template-aware) across two
+(`PlansScreen` for browsing/starting, `PlanDetailScreen` for progress
+only), and the deep link only ever reaches the second one.
+
+**Not building this — logging it as out of scope, per this loop's own
+guardrail against feature work.** Closing this properly means a real
+product/UX decision this loop shouldn't make unilaterally: redirect
+`plans/:id` to `PlansScreen` with the template highlighted, give
+`PlanDetailScreen` the same template-awareness `PlanDetailView` has, or
+something else entirely. Flagging it precisely — with the exact file
+and the exact web behavior to match, unlike iteration 9's vaguer
+note — so whoever picks this up doesn't have to re-derive the
+comparison from scratch.
+
+**Verification:** targeted code-reading audit
+(`apps/mobile/App.tsx`, `PlanDetailScreen.tsx`, `PlansScreen.tsx`,
+`apps/web/src/app/plans/[id]/page.tsx`, `PlanDetailView.tsx`); no
+source changed, so the lint/typecheck/test gate wasn't re-run (nothing
+to regress; tree was green from iteration 87 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).

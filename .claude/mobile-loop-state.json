@@ -1,15 +1,10 @@
 {
-  "iteration": 87,
+  "iteration": 88,
   "cycle": 3,
-  "perspectiveIndex": 8,
+  "perspectiveIndex": 9,
   "batch": "mobile-stabilization-09",
-  "consecutiveCleanIterations": 1,
+  "consecutiveCleanIterations": 2,
   "history": [
-    {
-      "iteration": 84,
-      "perspective": "A5, cycle 3 - pluralization copy, widened from the two Hifz screens to the whole app",
-      "outcome": "CLEAN app-wide (13 sites) + one minor styling inconsistency logged, not fixed (shared core, affects web too)."
-    },
     {
       "iteration": 85,
       "perspective": "A6, cycle 3 - khatm completion, checked for a sync-comment bug and found one",
@@ -18,12 +13,17 @@
     {
       "iteration": 86,
       "perspective": "A7/A8, cycle 3 - Zakat, a real cross-field race found in setAsset",
-      "outcome": "GAP FOUND AND FIXED: setAsset built its patch from a stale closure instead of prev. Fixed and live-reproduced the exact race via synchronous dispatchEvent calls."
+      "outcome": "GAP FOUND AND FIXED: setAsset built its patch from a stale closure instead of prev. Fixed and live-reproduced the exact race."
     },
     {
       "iteration": 87,
       "perspective": "B9, cycle 3 - back-button handling re-verified after batches 6-9, plus a pseudo-modal check",
-      "outcome": "CLEAN: zero-custom-back-handling invariant re-confirmed, both known Modal usages still have onRequestClose. New check: searched for a fake-modal overlay pattern that would bypass Android back-button interception entirely - none found."
+      "outcome": "CLEAN: zero-custom-back-handling invariant re-confirmed. New check: pseudo-modal overlay pattern search, none found."
+    },
+    {
+      "iteration": 88,
+      "perspective": "B10, cycle 3 - deep links, chasing down the plans/:id question iteration 9 deferred",
+      "outcome": "OUT OF SCOPE, precisely characterized: confirmed via web's PlanDetailView that plans/:id genuinely selects a catalogue template on web (preview+start), but mobile's PlanDetailScreen ignores :id entirely, always showing the active plan. Mobile has the underlying feature (PlansScreen's template browsing) just not wired to this route. Real feature-parity gap requiring a product decision, logged precisely rather than built."
     }
   ]
 }
