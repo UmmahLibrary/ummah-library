@@ -105,7 +105,19 @@ export function ZakatScreen() {
   }
 
   function setAsset(id: string, value: string) {
-    update({ assets: { ...state.assets, [id]: value } });
+    // Deliberately not update({ assets: { ...state.assets, [id]: value } }):
+    // that reads the outer `state.assets` snapshot at call time, so two
+    // different asset fields edited within the same tick (before a re-render
+    // lands) would each patch from the same stale `assets` object and the
+    // second field's update would wholesale-overwrite the first field's
+    // value back to its old one. Deriving from `prev` inside the updater —
+    // the same pattern the qada/tasbih/khatm steppers already use — keeps
+    // each edit correctly layered on the other's output.
+    setState((prev) => {
+      const next = { ...prev, assets: { ...prev.assets, [id]: value } };
+      void setJSON(KEYS.zakat, next);
+      return next;
+    });
   }
 
   // "Reset amounts" clears what it says — the entered wealth figures — and

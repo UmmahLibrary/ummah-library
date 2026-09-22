@@ -4750,3 +4750,78 @@ fix in shared `core` with zero behavior change, same as iteration
 
 **Commit:** `packages/core/src/sync-keys.ts` (comment fix only, no
 behavior change).
+
+---
+
+## Iteration 86 — A7/A8, cycle 3: Zakat, a real cross-field race found in the one place iterations 2/7/47 hadn't looked
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 2](#iteration-2--zakat-currency-field-sanitization-and-adjacent-resetnegative-amount-bugs)
+confirmed "Reset amounts" and negative-amount typing are both safe;
+[iteration 47](#iteration-47--a7a8-revisited-zakat-reset-scope-and-negative-amount-defense-in-depth)
+confirmed `reset()`'s exact field scope, `calculateZakat`'s
+defense-in-depth against a negative value reaching storage some other
+way, and fixed a display self-heal gap (later itself corrected for a
+missing write-back in iteration 60). None of those passes specifically
+checked `ZakatScreen.tsx`'s own state-update pattern for the rapid-
+tap/same-tick race class this loop has repeatedly found and fixed
+elsewhere (qada, tasbih, khatm) — a natural next question given how
+many of this screen's own neighbors in this cycle already needed that
+exact fix.
+
+**Found and fixed a real one, in the one call site that's structurally
+different from the rest.** Every `ZakatScreen.tsx` field except the
+per-asset ones (`currency`, `goldPricePerGram`, `silverPricePerGram`,
+`nisabBasis`, `liabilities`) calls the shared `update(patch)` helper
+with a patch touching only that one field — safe, since `update`
+already merges via `setState(prev => ({...prev, ...patch}))`. But
+`setAsset(id, value)` — the handler behind **every** asset category
+input (cash, gold, silver, investments, business, receivables) —
+built its patch as `{ assets: { ...state.assets, [id]: value } }`,
+reading `state.assets` from the **outer closure**, not from `prev`
+inside the updater. Two different asset fields edited within the same
+tick (before React re-renders) each capture the *same* stale
+`state.assets` snapshot; the second field's patch wholesale-replaces
+`assets` with its own snapshot-plus-edit, silently discarding whatever
+the first field's edit had just written. The other fields never hit
+this because their patches don't reference sibling state at all — only
+the multi-field `assets` object was exposed to it.
+
+**Fix:** gave `setAsset` its own `setState` call deriving from
+`prev.assets` instead of routing through `update()`'s external-snapshot
+patch — the same functional-derive-from-`prev` pattern already used
+correctly by the qada/tasbih/khatm steppers this loop fixed or
+confirmed safe earlier this cycle.
+
+**Live-reproduced the exact race, not just reasoned through it.** Real
+same-tick concurrent edits from a human aren't reproducible through UI
+automation (each `computer` click is its own event-loop turn), so used
+`javascript_tool` to fire two native `input` events on two different
+empty asset fields **synchronously, in one script execution** — the
+precise race window the bug depended on — via the native
+`HTMLInputElement.value` setter + `dispatchEvent`, the standard
+technique for driving a React-controlled input from outside React.
+Read back both the DOM values (`"111"`/`"222"`, both preserved) and the
+actual persisted `ul.zakat` storage entry
+(`assets: {"cash":"500","gold":"111","silver":"222",…}`) — confirming
+the fix holds at both the render and the storage layer, not just in
+the DOM's optimistic display.
+
+**No unit test added** — same reasoning iteration 45 already gave for
+this exact class of UI-state-timing logic: this codebase has no
+component-rendering test harness, and the live, exact-race
+reproduction above is a stronger verification for this specific bug
+than a unit test extracting the logic into an artificially-testable
+shape would be.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 152/152 passing (unchanged — no new test,
+by design, see above). Live browser-preview reproduction and fix
+confirmation as detailed above; no new console errors beyond the two
+already-documented, harmless web-preview artifacts (`validatePath`,
+`Linking.openSettings`).
+
+**Commit:** `apps/mobile/src/screens/ZakatScreen.tsx`.

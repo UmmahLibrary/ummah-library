@@ -1,15 +1,10 @@
 {
-  "iteration": 85,
+  "iteration": 86,
   "cycle": 3,
-  "perspectiveIndex": 5,
+  "perspectiveIndex": 6,
   "batch": "mobile-stabilization-09",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 82,
-      "perspective": "A3, cycle 3 - tasbih counter, sync-race hypothesis ruled out, migration-test gap closed",
-      "outcome": "HYPOTHESIS RULED OUT + GAP FOUND AND FIXED: legacy-record migration had zero test coverage. Added tasbih-store.test.ts."
-    },
     {
       "iteration": 83,
       "perspective": "A4, cycle 3 - qada stepper, the zero-floor/rapid-decrement edge checked for the first time",
@@ -23,7 +18,12 @@
     {
       "iteration": 85,
       "perspective": "A6, cycle 3 - khatm completion, checked for a sync-comment bug and found one",
-      "outcome": "GAP FOUND AND FIXED: sync-keys.ts's exclusion comment said 'reading-goal logs and active plan' excluded, easily misread as ul.readingLog/ul.readingActive (which ARE synced) - the actually-excluded keys (ul.readingGoal/readingPages/khatma/readingPlan) were never named explicitly. Same bug class as iterations 34/35's qada/haid fix. Rewrote with explicit key names."
+      "outcome": "GAP FOUND AND FIXED: sync-keys.ts's exclusion comment named the wrong pair of keys. Same bug class as iterations 34/35's qada/haid fix. Rewrote with explicit key names."
+    },
+    {
+      "iteration": 86,
+      "perspective": "A7/A8, cycle 3 - Zakat, a real cross-field race found in setAsset",
+      "outcome": "GAP FOUND AND FIXED: setAsset built its patch from the outer state.assets closure instead of prev.assets, so two different asset fields edited in the same tick could silently clobber each other. Fixed to derive from prev, matching the pattern already used for qada/tasbih/khatm. Live-reproduced the exact race via synchronous dispatchEvent calls and confirmed the fix at both DOM and storage layers."
     }
   ]
 }
