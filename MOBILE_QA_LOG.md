@@ -86,3 +86,60 @@ side effect of an unrelated mobile bug-hunt. The mobile-scoped gate (lint +
 typecheck + mobile's own test suite) is green and that's what this commit is
 held to; the full-workspace `pnpm build`/`pnpm test` will stay red until
 someone addresses the React duplication directly.
+
+---
+
+## Iteration 2 — Zakat currency-field sanitization (and adjacent Reset/negative-amount bugs)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-01`
+
+**Checked:** [`ZakatScreen.tsx`](apps/mobile/src/screens/ZakatScreen.tsx) against
+all three related web bugs
+([`WEB_QA_REPORT.md`](WEB_QA_REPORT.md) #1,
+[`WEB_QA_LIVE_BROWSER_REPORT.md`](WEB_QA_LIVE_BROWSER_REPORT.md) #3–#4):
+currency field digit-corruption, "Reset amounts" wiping gold/silver prices,
+and negative asset amounts being silently accepted.
+
+**Result: clean on all three, confirmed by both code read and live
+interaction** via `preview_start({name: "mobile"})` (the RN-web build) in the
+Browser pane:
+
+- `sanitizeCurrency` strips digits from the currency field on every
+  keystroke, plus a self-heal migration for values saved before the
+  sanitizer existed, plus a defensive re-sanitize in `money()` for values
+  that could arrive via sync from another device. Typed `85` into Currency
+  live — field stayed empty (falls back to `$`), confirmed via screenshot.
+- `sanitizeDecimal` strips everything but digits and a single `.`, which
+  also strips `-` — negative amounts can't be entered at all, not just
+  "ignored after the fact." Typed `-75.5.2abc` into a price field live — it
+  rendered as `75.52`.
+- `reset()` only touches `assets`/`liabilities` by design (explicit comment
+  in the source). Verified live: set Gold-per-gram to `75` and Cash to
+  `500`, tapped "Reset amounts" — Cash went back to `0`, Gold-per-gram
+  **stayed `75`**.
+
+**Process note (not an app bug):** my first pass through this test flagged
+Reset as wiping the gold price — a false positive caused by this session's
+`read_page` accessibility-tree reader, which reports a text input's
+**placeholder** as its `name` regardless of whether it currently holds a
+value, so an input with real content still showed `placeholder="e.g. 75"` in
+the tree. Re-verified with actual screenshots (ground truth for input
+values, not `read_page`'s textbox name) and the price was intact. Noting
+this so future iterations trust screenshots over `read_page` names when
+checking live text-input values.
+
+**No test added:** `apps/mobile/vitest.config.ts` scopes tests to
+`src/**/*.test.ts` only ("Node env (pure logic)") — there's no
+React-Testing-Library-for-RN setup in this repo, so screen components aren't
+unit-tested here by convention. `sanitizeCurrency`/`sanitizeDecimal`/`reset`
+are correct today; extracting them out of `ZakatScreen.tsx` into a testable
+module purely to add coverage, with no bug driving it, would be scope creep
+for this iteration. Flagging as a candidate for the iteration-40 "test
+coverage audit" pass instead.
+
+**Verification:** no code changed this iteration; `pnpm --filter
+@ummahlibrary/mobile test`/`typecheck` were already green from iteration 1
+and nothing here touched source.
+
+**Commit:** none (clean iteration).

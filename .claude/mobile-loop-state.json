@@ -1,15 +1,21 @@
 {
-  "iteration": 1,
+  "iteration": 2,
   "cycle": 1,
-  "perspectiveIndex": 1,
+  "perspectiveIndex": 2,
   "batch": "mobile-stabilization-01",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
     {
       "iteration": 1,
       "perspective": "A1 - Prayer-time timezone-of-location vs device-timezone bug",
       "outcome": "clean (already fixed on mobile via fmtPrayerTime); removed unused fmtTime dead code as a footgun-prevention fix",
       "notableFinding": "repo-wide duplicate React installs break apps/web and apps/extension build/test; out of scope, logged in MOBILE_QA_LOG.md"
+    },
+    {
+      "iteration": 2,
+      "perspective": "A2 - Zakat currency-field sanitization + adjacent Reset/negative-amount bugs",
+      "outcome": "clean, verified live via mobile-web preview; all 3 related web bugs already prevented on mobile",
+      "notableFinding": "read_page tool reports placeholder as textbox name regardless of actual value - use screenshots as ground truth for input values, not read_page names"
     }
   ]
 }
