@@ -4,6 +4,7 @@ import { Icon, type Palette } from "@ummahlibrary/ui";
 import { useTheme } from "../theme";
 import { FONT } from "../fonts";
 import { expoNotifier } from "../notifier";
+import { notifyNotificationPermissionDenied } from "../notification-permission-alert";
 import { mobilePrayerSettingsStore } from "../prayer-settings-store";
 import { readAdhkarReminderOn, setAdhkarReminderOn } from "../adhkar-reminders";
 
@@ -31,7 +32,10 @@ export function AdhkarReminderToggle() {
     // switch off rather than showing "on" for a reminder that will never fire.
     if (next && expoNotifier.permission() !== "granted") {
       await expoNotifier.requestPermission();
-      if (expoNotifier.permission() !== "granted") return;
+      if (expoNotifier.permission() !== "granted") {
+        notifyNotificationPermissionDenied("adhkar reminder");
+        return;
+      }
     }
     setOn(next);
     await setAdhkarReminderOn(next);

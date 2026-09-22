@@ -15,6 +15,7 @@ import { useTheme, type Palette } from "../theme";
 import { weekdayOfGregorian } from "../utils";
 import { SunnahFastReminderToggle } from "../components/SunnahFastReminderToggle";
 import { expoNotifier } from "../notifier";
+import { notifyNotificationPermissionDenied } from "../notification-permission-alert";
 import { readEventReminders, setEventReminder } from "../islamic-event-reminders";
 import { onSyncApplied } from "../lib/sync/sync-events";
 
@@ -74,7 +75,10 @@ export function HijriCalendarScreen() {
     // reminder off rather than showing "on" for one that will never fire.
     if (on && expoNotifier.permission() !== "granted") {
       await expoNotifier.requestPermission();
-      if (expoNotifier.permission() !== "granted") return;
+      if (expoNotifier.permission() !== "granted") {
+        notifyNotificationPermissionDenied("event reminder");
+        return;
+      }
     }
     setReminders(await setEventReminder(eventId, on));
   }

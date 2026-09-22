@@ -2976,3 +2976,53 @@ typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136.
 
 **Commit:** `apps/mobile/src/components/SaveToCollection.tsx`,
 `apps/mobile/src/screens/SettingsScreen.tsx`.
+
+## Iteration 56 — B16 revisited: closing the notification-permission feedback gap logged in iteration 16
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 16 found and fixed the location-permission gap
+(added "Open Settings"), and explicitly logged a smaller, related gap as
+a deliberate follow-up rather than bundling it in: notification-permission
+denial gives *zero* feedback beyond a switch silently not flipping on.
+This pass closed that follow-up.
+
+**Scope was bigger than the original note implied — same silent-failure
+shape at 5 call sites, not the "one smaller gap" it read as.** Grepped
+every `expoNotifier.permission()` check app-wide:
+`PlanReminderToggle`, `AdhkarReminderToggle`, `SunnahFastReminderToggle`,
+and per-toggle handlers in `HijriCalendarScreen` and `PrayerTimesScreen`
+all have the identical `if (... !== "granted") return;` — permission
+denied, switch snaps back off, nothing explains why or what to do about
+it.
+
+**Fix:** added
+[`notification-permission-alert.ts`](apps/mobile/src/notification-permission-alert.ts)
+— a small shared `Alert.alert` with an "Open Settings" action
+(`Linking.openSettings()`, same mechanism iteration 16 already
+established for the location screens), parameterized by a short reminder
+label so each of the 5 call sites keeps its own accurate copy ("daily
+reading reminder", "adhkar reminder", "Sunnah fast reminder", "event
+reminder", `` `${PRAYER_LABELS[name]} reminder` `` for the per-prayer
+case) instead of one generic message. Kept this out of `notifier.ts`
+deliberately — that file is a clean `Notifier` port adapter with no UI
+concerns, and mixing in `Alert`/`Linking` would cross that layering on
+purpose for no real gain.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136.
+Live-verified the app still boots normally with the new imports across
+all 5 touched files — no new console errors. **Not verified live:** the
+actual Alert dialog itself, for the same reason iteration 16 couldn't —
+inducing a real permission denial isn't reliably scriptable against a
+desktop browser. Confirmed `git status` shows only the intended files
+before committing, after the accidental workspace-wide format in the
+previous iteration.
+
+**Commit:** `apps/mobile/src/notification-permission-alert.ts` (new),
+`apps/mobile/src/components/PlanReminderToggle.tsx`,
+`apps/mobile/src/components/AdhkarReminderToggle.tsx`,
+`apps/mobile/src/components/SunnahFastReminderToggle.tsx`,
+`apps/mobile/src/screens/HijriCalendarScreen.tsx`,
+`apps/mobile/src/screens/PrayerTimesScreen.tsx`.

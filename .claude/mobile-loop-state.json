@@ -1,15 +1,10 @@
 {
-  "iteration": 55,
+  "iteration": 56,
   "cycle": 2,
-  "perspectiveIndex": 15,
+  "perspectiveIndex": 16,
   "batch": "mobile-stabilization-06",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 52,
-      "perspective": "Cycle 2, B12 continued - checked every remaining onSyncApplied consumer",
-      "outcome": "GAP FOUND AND FIXED: SettingsContext.tsx race. Sweep closed."
-    },
     {
       "iteration": 53,
       "perspective": "Cycle 2, B13 - kill-and-restore, re-verified through the new race-guard changes",
@@ -18,12 +13,17 @@
     {
       "iteration": 54,
       "perspective": "Cycle 2, B14 - safe-area handling, checked the ErrorBoundary",
-      "outcome": "GAP FOUND AND FIXED: ErrorBoundary's fallback was outside SafeAreaProvider entirely. Reordered providers, switched to SafeAreaView."
+      "outcome": "GAP FOUND AND FIXED: ErrorBoundary's fallback was outside SafeAreaProvider entirely."
     },
     {
       "iteration": 55,
       "perspective": "Cycle 2, B15 - keyboard-avoiding, checked components iteration 15 missed",
-      "outcome": "GAP FOUND AND FIXED: SaveToCollection's bottom-sheet input and SettingsScreen (via SyncSection) both lacked KeyboardAvoidingView. CORRECTED iterations 8/48: their 'zero Modal usage' claim was wrong (grep blind spot - this app imports Modal from ../Type, not react-native directly) though the back-button conclusion itself still holds since both Modals already have onRequestClose. Process note: accidentally ran pnpm format workspace-wide (reformatted ~285 unrelated files), caught via git status before committing, reverted everything except the 2 intended files."
+      "outcome": "GAP FOUND AND FIXED: SaveToCollection and SettingsScreen. Also corrected a wrong Modal-usage claim in iterations 8/48."
+    },
+    {
+      "iteration": 56,
+      "perspective": "Cycle 2, B16 - closed the notification-permission feedback gap deferred in iteration 16",
+      "outcome": "GAP FOUND AND FIXED: all 5 notification-permission check sites (3 toggle components + 2 screens) silently failed with zero feedback on denial - wider than the single-item follow-up iteration 16 logged. Added a shared notification-permission-alert.ts with Open Settings action, wired into all 5, each with its own accurate reminder-type label."
     }
   ]
 }
