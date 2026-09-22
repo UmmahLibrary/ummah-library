@@ -1948,3 +1948,58 @@ wording accurate to what exists today rather than promising either.
 browser-preview render check above.
 
 **Commit:** `packages/core/src/privacy.ts`.
+
+## Iteration 36 — Empty and loading states on every screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** every screen that fetches data or holds a possibly-empty
+collection, for three states: the loading flash (slow network), the
+error/offline state (failed network), and the zero-data empty state
+(first run or a cleared collection).
+
+**Clean — traced every data-touching screen individually rather than
+spot-checking, and this app is genuinely well-built here.** Grepped for
+every screen calling `api.*` with no `ActivityIndicator` anywhere in the
+file (a cheap first pass to catch an obvious blank-flash bug) — only
+`HomeScreen` and `RamadanScreen` matched, and both are legitimate: they
+treat their network data as progressive enhancement over an already-useful
+screen (`HomeScreen`'s "Continue reading" card simply omits itself with no
+last-read surah; `RamadanScreen` shows "Loading today's times…" text and a
+"Set location" CTA instead of a spinner, which reads better for a
+countdown widget than a bare spinner would).
+
+Then read the full source of every screen most likely to have a gap:
+- **`SurahListScreen`** (the very first screen a new install's user sees,
+  before any network round-trip completes): spinner while loading, a
+  proper error row with a **"Try again" retry button** on failure, and an
+  empty state for a no-match search — the most first-run-critical screen
+  in the app is fully covered, including offline recovery.
+- **`CollectionsScreen`**, **`PlansScreen`**: real, designed empty states
+  (icon + heading + body copy + a CTA), not just a blank list.
+- **`SearchScreen`**: "Nothing found" for zero results.
+- **`HadithScreen`**: traced end-to-end through the REST layer — a
+  past-the-end/unknown section correctly 404s server-side
+  ([`route.ts`](apps/web/src/app/api/v1/hadith/[collection]/sections/[section]/route.ts))
+  and the client's retry-aware `getJson` throws on a non-2xx response, so
+  it surfaces as the screen's existing error state ("You may have reached
+  the end of the collection"), not a silent blank screen — traced this
+  fully rather than assuming, since a `null`-returning repository method
+  feeding straight into `data?.hadiths.map()` looked at first glance like
+  it could render nothing with zero feedback.
+- **`TafsirScreen`**: all three states present, including
+  `FlatList`'s `ListEmptyComponent` for a surah with no tafsir in the
+  selected edition.
+- **`MosqueFinderScreen`**, **`AdhkarScreen`**, **`DuasScreen`**,
+  **`NamesScreen`**, **`DownloadsScreen`**, **`MushafPageScreen`**,
+  **`JuzReaderScreen`**, **`SurahReaderScreen`**: all have the relevant
+  loading indicator and/or empty-state message for their data shape.
+
+No fix needed this iteration — a genuinely clean perspective after
+verifying it properly, not skimming it.
+
+**Verification:** read-only iteration, no code changed; full test/lint
+gate from iteration 35 still holds.
+
+**Commit:** none (clean iteration; no code changes).

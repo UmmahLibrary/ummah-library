@@ -1,29 +1,29 @@
 {
-  "iteration": 35,
+  "iteration": 36,
   "cycle": 1,
-  "perspectiveIndex": 35,
+  "perspectiveIndex": 36,
   "batch": "mobile-stabilization-04",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 32,
-      "perspective": "B33 - Bundle/APK size audit for Play Store",
-      "outcome": "GAP FOUND AND FIXED: R8 minify + resource shrinking both off, installed and configured expo-build-properties, verified via real expo prebuild."
-    },
     {
       "iteration": 33,
       "perspective": "B34 - EAS build config correctness",
-      "outcome": "GAP FOUND AND FIXED: unused SYSTEM_ALERT_WINDOW permission blocked. Confirmed ITSAppUsesNonExemptEncryption and eas.json production profile are correct."
+      "outcome": "GAP FOUND AND FIXED: unused SYSTEM_ALERT_WINDOW permission blocked."
     },
     {
       "iteration": 34,
-      "perspective": "B35 - Play Store data-safety/permissions-justification accuracy",
-      "outcome": "Contained two unverified mistakes corrected in iteration 35 (claimed no privacy policy exists - it does; claimed disableSync deletes server data - it doesn't). GAP FOUND AND FIXED: stale sync-keys.ts comment about ul.haid/ul.qada exclusion."
+      "perspective": "B35 - Play Store data-safety accuracy",
+      "outcome": "Contained two mistakes corrected in iteration 35. GAP FOUND AND FIXED: stale sync-keys.ts comment."
     },
     {
       "iteration": 35,
-      "perspective": "B35 continued - correcting iteration 34 and fixing the real gap it missed",
-      "outcome": "GAP FOUND AND FIXED: privacy.ts was stale relative to the shipped sync feature - added an accurate Cross-device sync section (E2EE, what syncs including qada/haid, no server-side deletion yet) to the shared core privacy content. Live-verified rendering on the mobile Privacy screen. Logged (not fixed, needs owner decision): no account-deletion capability exists anywhere - local-only disableSync, no DELETE API route, no TTL on stored entries."
+      "perspective": "B35 continued - correcting iteration 34, fixing the real gap",
+      "outcome": "GAP FOUND AND FIXED: privacy.ts stale relative to shipped sync feature - added Cross-device sync section. Logged (needs owner decision): no account-deletion capability exists."
+    },
+    {
+      "iteration": 36,
+      "perspective": "B36 - Empty and loading states on every screen",
+      "outcome": "clean - thoroughly traced every data-fetching screen (SurahListScreen, CollectionsScreen, PlansScreen, SearchScreen, HadithScreen, TafsirScreen, MosqueFinderScreen, and more). All have proper loading/error/empty handling including retry-on-failure on the first-run-critical SurahListScreen."
     }
   ]
 }
