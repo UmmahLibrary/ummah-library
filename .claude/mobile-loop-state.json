@@ -1,15 +1,10 @@
 {
-  "iteration": 48,
+  "iteration": 49,
   "cycle": 2,
-  "perspectiveIndex": 8,
+  "perspectiveIndex": 9,
   "batch": "mobile-stabilization-05",
-  "consecutiveCleanIterations": 1,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 45,
-      "perspective": "Cycle 2, A5 - Hifz pluralization, checked beyond the one string",
-      "outcome": "clean - re-confirmed both ternaries correct."
-    },
     {
       "iteration": 46,
       "perspective": "Cycle 2, A6 - khatm completion undo/reset paths deepened",
@@ -18,12 +13,17 @@
     {
       "iteration": 47,
       "perspective": "Cycle 2, A7/A8 - Zakat reset scope and negative-amount defense in depth",
-      "outcome": "GAP FOUND AND FIXED: extended the currency-only load-time self-heal to every decimal field. Confirmed core's calculateZakat/sumValues already defend the actual math regardless."
+      "outcome": "GAP FOUND AND FIXED: extended the currency-only load-time self-heal to every decimal field."
     },
     {
       "iteration": 48,
       "perspective": "Cycle 2, B9 - back-button handling re-checked, ErrorBoundary interaction",
-      "outcome": "clean - re-confirmed zero custom back-handling still holds after 40 more iterations of changes. Checked the ErrorBoundary's interaction with navigation state: Try-again resets to Home rather than preserving position, concluded this is the correct deliberate tradeoff for a last-resort barrier. One unverifiable-without-a-device observation noted (hardware back while the fallback shows), not acted on."
+      "outcome": "clean - re-confirmed invariant still holds, checked ErrorBoundary's navigation-reset behavior is deliberate."
+    },
+    {
+      "iteration": 49,
+      "perspective": "Cycle 2, B10 - deep-link handling, closing the cosmetic gap left open",
+      "outcome": "GAP FOUND AND FIXED: fixed the 'Page NaN' title-bar flash on a malformed /page/xyz link that iteration 9 had explicitly deferred as cosmetic - one-line fix, live-verified both the malformed and valid paths in the browser preview."
     }
   ]
 }

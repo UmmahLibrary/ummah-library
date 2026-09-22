@@ -2595,3 +2595,35 @@ isn't obviously wrong behavior anyway.
 **Verification:** read-only iteration; prior gate holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 49 — B10 revisited: deep-link handling, closing the cosmetic gap left open
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-05`
+
+**Checked:** re-confirmed no new param-taking deep-link routes were added
+to `App.tsx`'s `linking` config in the ~40 iterations since (still just
+`surah/:surah`, `juz/:juz`, `page/:page`, `plans/:id`) — the original
+exhaustive per-screen audit still covers everything reachable. Then
+revisited the one thing iteration 9 explicitly left as "cosmetic, not
+worth fixing": `MushafPageScreen`'s title bar flashing "Page NaN" for a
+malformed `/page/xyz` link, set by a `useLayoutEffect` one step ahead of
+the param-validity check.
+
+**Fixed it anyway** — later iterations in this cycle have consistently
+closed small, safe, same-shaped gaps once re-examined (the mosque-finder
+retry button, the wording sync), and this one is a one-line, zero-risk
+change: `navigation.setOptions({ title: isValidPageNumber(n) ? \`Page
+${n}\` : "Page" })`.
+
+**Live-verified both paths** in the browser preview: `/page/xyz` now
+shows a clean "Page" tab title (was "Page NaN") while the body correctly
+still shows "Couldn't load page NaN." (the diagnostic detail belongs in
+the error body, not the chrome); `/page/5` still shows "Page 5" — no
+regression to the valid path.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
+plus the live before/after title check above.
+
+**Commit:** `apps/mobile/src/screens/MushafPageScreen.tsx`.
