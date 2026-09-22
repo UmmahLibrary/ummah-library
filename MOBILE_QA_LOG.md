@@ -325,3 +325,46 @@ logged; advancing straight to catalogue group B (native platform
 correctness) next. No code or test changes.
 
 **Commit:** none (no work performed; cross-reference only).
+
+---
+
+## Iteration 8 — Android hardware back-button handling on every screen/modal
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-01`
+
+**Checked:** whether any screen overrides or could break the hardware
+back-button's default "pop the stack" behavior.
+
+**Result: clean by code review, with an honest verification gap.**
+`apps/mobile/src` has **zero** custom back-button handling anywhere: no
+`BackHandler` import, no `Modal` usage (not even re-exported from
+[`Type.tsx`](apps/mobile/src/Type.tsx), the app's central RN-primitive
+barrel), no `beforeRemove`/navigation-blocking listeners, and no
+`presentation: "modal"` routes in any of the five stacks under
+[`navigation/`](apps/mobile/src/navigation/). Every screen is a plain
+native-stack push. That means hardware back is handled entirely by
+`@react-navigation/native-stack`'s own default behavior — there is no
+app-specific logic here that could have introduced a back-button bug, only
+the library's own (extremely well-established) default.
+
+**Genuine limitation, not glossed over:** this environment has no Android
+emulator or device, so I could not press an actual hardware back button.
+`react-native-web`'s `BackHandler` doesn't exist on web, so there is no
+in-browser equivalent to fire. I tried the browser's own Back navigation as
+a rough proxy (Tools → Zakat, then `navigate("back")`) and it jumped
+straight to Home instead of popping one level to the Tools list — but this
+is almost certainly a `react-navigation` web-linking/browser-history
+artifact (tab switches likely `replace` rather than `push` a history entry;
+`App.tsx`'s `linking` config governs URL↔screen mapping for the web/deep-link
+target, a completely different code path from the native `BackHandler`
+integration used on-device). Logging this as a curiosity, not a finding: it
+says nothing about the real hardware back button, and this loop's mandate
+is the Play Store (Android/iOS) target, not a web build — chasing a browser
+`history` quirk here would be solving a problem nobody asked for.
+
+**Not fixing anything.** No app-code changes to make when there's no
+app-specific logic to find fault with; noting the verification gap
+transparently instead of claiming coverage this environment can't provide.
+
+**Commit:** none (clean iteration; no reproducible app-level issue).

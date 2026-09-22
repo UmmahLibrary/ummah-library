@@ -1,9 +1,9 @@
 {
-  "iteration": 7,
+  "iteration": 8,
   "cycle": 1,
-  "perspectiveIndex": 8,
+  "perspectiveIndex": 9,
   "batch": "mobile-stabilization-01",
-  "consecutiveCleanIterations": 6,
+  "consecutiveCleanIterations": 7,
   "history": [
     {
       "iteration": 1,
@@ -41,6 +41,12 @@
       "iteration": 7,
       "perspective": "A7/A8 - Zakat reset-wipes-prices / negative amounts (cross-reference)",
       "outcome": "already fully covered live in iteration 2; logged cross-reference instead of re-testing, advancing to catalogue group B"
+    },
+    {
+      "iteration": 8,
+      "perspective": "B9 - Android hardware back-button handling on every screen/modal",
+      "outcome": "clean by code review (zero custom BackHandler/Modal/beforeRemove logic anywhere); honestly flagged that real hardware-back testing needs an Android device/emulator this environment doesn't have",
+      "notableFinding": "browser-back-as-proxy jumped 2 levels in the RN-web preview, likely a tab-switch history-replace artifact unrelated to native BackHandler - not investigated further, out of scope (Play Store target is native, not web)"
     }
   ]
 }
