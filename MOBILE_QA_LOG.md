@@ -1097,3 +1097,67 @@ future iteration re-flags it as a mystery.
 
 **Commit:** none (clean iteration; no code changes — both findings are
 confirmations, not bugs).
+
+---
+
+## Iteration 22 — Sync engine mobile edge cases (killed mid-sync, incremental cursor, conflict merges, and the deferred backgrounded-push race)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** the four sync edge cases named in the catalogue, including
+closing out the race [deferred from iteration 4](#iteration-4--qada-stepper-race-condition-under-rapid-taps)
+(`onSyncApplied(load)` re-reading stores wholesale could clobber an
+in-flight optimistic local tap).
+
+**Killed mid-sync: clean, safe by design.**
+[`sync-engine.ts:79-125`](packages/core/src/sync-engine.ts#L79) only
+advances the persisted cursor (`state.setCursor?.(cursor)`) **once, after**
+the full push/pull exchange loop completes — every page's entries are
+applied and durably persisted (`state.apply(...)`, awaited) *inside* the
+loop, strictly before the cursor that would let a future round skip past
+them. Kill the app mid-round and the next launch's round starts from the
+same old cursor and safely re-pulls/re-applies whatever didn't get a
+chance to advance the cursor — redundant work, not data loss, since
+`state.apply` is LWW/clock-keyed and re-applying an already-applied entry
+at the same HLC is a no-op. This is the textbook-correct way to make an
+interruptible sync protocol interruption-safe.
+
+**Incremental cursor and conflict merges: clean, already thoroughly
+tested.** `mobile-sync-state-store.test.ts` explicitly covers "persists and
+reports the incremental-pull cursor (ADR 0035)" and the dirty/markPushed
+bounded-push bookkeeping; `sync-runtime.test.ts` covers round coalescing
+("coalesces concurrent calls into a single in-flight round") and recovery
+from a stuck state ("resetSyncRuntime breaks coalescing so 'turn on' isn't
+stuck on a stale OFF round"); `sync-e2e.test.ts`'s two-device round-trip
+exercises the actual conflict-merge path end to end.
+
+**The deferred backgrounded-push race: real, narrow, and — after
+deeper analysis — deliberately left as a documented recommendation rather
+than a speculative fix.** 9 screens subscribe to `onSyncApplied`; of
+those, `PrayerTrackerScreen` is the clearest one with both local optimistic
+mutations (qada/prayer-log/ḥayḍ taps, all otherwise race-safe per
+[iteration 4](#iteration-4--qada-stepper-race-condition-under-rapid-taps))
+*and* a wholesale `load()` reload triggered by the same event. The exact
+failure mode: `qadaStore.read().then(setQadaLog)` is a plain (non-merging)
+assignment; if that read resolves between two rapid local taps — i.e. a
+remote sync round completes at almost the same instant as an in-progress
+local interaction — the second tap's functional updater would derive its
+`next` from the just-reloaded (and possibly stale-relative-to-the-first-tap)
+value instead of the true latest local state.
+
+Not fixing this speculatively: reproducing the actual race needs real
+multi-device sync timing (a remote push landing within milliseconds of a
+local tap), which this environment can't simulate reliably enough to
+verify a fix actually closes the window without introducing a *different*
+regression in genuinely complex async coordination code. Recommending a
+concrete direction instead of guessing: track a short-lived
+"just-wrote-locally" flag per store (e.g. skip/defer a sync-triggered
+reload for a store with a write inside the last ~500ms, or merge the
+freshly-read value against current state instead of overwriting outright).
+This is a UI-layer refinement on top of an already-correct core sync
+protocol, not a data-integrity bug — worth doing, not urgent enough to ship
+unverified.
+
+**Commit:** none (clean iteration; the backgrounded-push race is a
+documented recommendation, not a code change).

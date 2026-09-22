@@ -1,15 +1,10 @@
 {
-  "iteration": 21,
+  "iteration": 22,
   "cycle": 1,
-  "perspectiveIndex": 22,
+  "perspectiveIndex": 23,
   "batch": "mobile-stabilization-03",
-  "consecutiveCleanIterations": 1,
+  "consecutiveCleanIterations": 2,
   "history": [
-    {
-      "iteration": 18,
-      "perspective": "B19 - Offline/airplane-mode behavior",
-      "outcome": "clean, live-verified"
-    },
     {
       "iteration": 19,
       "perspective": "B20 - Notification scheduling correctness",
@@ -22,8 +17,13 @@
     },
     {
       "iteration": 21,
-      "perspective": "B22 - Secure storage of the sync recovery secret (parity with web)",
-      "outcome": "clean - the hardening commit (#275) already covered both platforms together, not a mobile-lagging gap. BONUS: finally traced the recurring 'validatePath is not a function' console error (flagged unexplained since iteration 10) to expo-file-system's File/Directory constructors calling a method the web stub doesn't implement - confirmed zero functional impact, web-preview-only artifact, not worth fixing."
+      "perspective": "B22 - Secure storage of sync recovery secret (parity with web)",
+      "outcome": "clean - already had full parity (same commit hardened both). Bonus: closed the validatePath console mystery."
+    },
+    {
+      "iteration": 22,
+      "perspective": "B23 - Sync engine mobile edge cases (killed mid-sync, cursor, conflict merges, deferred backgrounded-push race)",
+      "outcome": "Killed-mid-sync clean by design (cursor only advances after full round, per-entry apply already durable). Cursor + conflict merges already thoroughly tested. Closed out iteration 4's deferred onSyncApplied race with deep analysis - real but narrow, documented as a concrete recommendation (track just-wrote-locally flag) rather than a speculative untestable fix."
     }
   ]
 }
