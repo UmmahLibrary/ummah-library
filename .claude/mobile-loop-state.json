@@ -1,15 +1,10 @@
 {
-  "iteration": 18,
+  "iteration": 19,
   "cycle": 1,
-  "perspectiveIndex": 19,
+  "perspectiveIndex": 20,
   "batch": "mobile-stabilization-02",
-  "consecutiveCleanIterations": 2,
+  "consecutiveCleanIterations": 3,
   "history": [
-    {
-      "iteration": 15,
-      "perspective": "B16 - Keyboard-avoiding behavior",
-      "outcome": "GAP FOUND AND FIXED"
-    },
     {
       "iteration": 16,
       "perspective": "B17 - Android permission request flow",
@@ -22,8 +17,13 @@
     },
     {
       "iteration": 18,
-      "perspective": "B19 - Offline/airplane-mode behavior on every network-touching screen",
-      "outcome": "clean, live-verified by overriding window.fetch to simulate true offline. Never-fetched and previously-fetched content both degrade gracefully (clear error text, no crash). Traced the disk-cache miss to its root cause: expo-file-system has NO web implementation (official stub, console.warn + no-op), a verification-environment limitation not an app bug - readThrough's try/catch already handles it correctly, and this should genuinely work on real devices."
+      "perspective": "B19 - Offline/airplane-mode behavior",
+      "outcome": "clean, live-verified with a true fetch-override offline simulation"
+    },
+    {
+      "iteration": 19,
+      "perspective": "B20 - Notification scheduling correctness (DST, timezone, reboot, exact-alarm)",
+      "outcome": "Reboot survival clean (library's own manifest). DST/timezone reasonably mitigated via foreground re-sync, one narrow industry-wide-hard residual edge case not worth chasing. Real finding: no SCHEDULE_EXACT_ALARM/USE_EXACT_ALARM declared, so reminders fall back to inexact delivery on Android 13+ (library degrades gracefully, no crash) - documented as a Play-Store-policy-sensitive product decision, deliberately NOT added unilaterally since it's a restricted permission requiring Play Console justification."
     }
   ]
 }

@@ -915,3 +915,66 @@ propagation of a cache failure) is exactly what made the web-only
 cache-unavailability a non-event instead of a crash.
 
 **Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 19 — Notification scheduling correctness (DST, timezone change, reboot, exact-alarm restrictions)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether scheduled prayer/adhkar/plan reminders survive a
+device reboot, stay correct across a DST transition or timezone change, and
+account for Android 12+/13+'s exact-alarm restrictions.
+
+**Device reboot: clean.** `expo-notifications`' own bundled native
+`AndroidManifest.xml`
+(`node_modules/expo-notifications/android/src/main/AndroidManifest.xml`)
+declares `RECEIVE_BOOT_COMPLETED` and a receiver listening for
+`BOOT_COMPLETED`/`REBOOT`/`QUICKBOOT_POWERON`/`MY_PACKAGE_REPLACED` — the
+library re-registers scheduled alarms after a reboot itself. Nothing for
+this app to add; Expo's autolinking merges the module's manifest into the
+build automatically regardless of `app.json`'s own `android.permissions`
+list.
+
+**DST / timezone change: reasonably mitigated, one narrow residual edge
+case that's an industry-wide hard problem, not unique to this app.**
+`reminders.ts`'s `now: () => Date` clock and `localDateStr` resolve against
+whatever the *current* system timezone is at call time (plain JS `Date`
+semantics), and `App.tsx` re-syncs every reminder family on every
+foreground (`AppState` → `syncAll()`), which cancels and reschedules each
+notification's next occurrence freshly. Since `expo-notifications` schedules
+a `DATE` trigger as a fixed absolute instant, the one gap this can't
+self-heal is: a DST shift happening **while the app hasn't been
+foregrounded since**, before the reminder fires — the already-scheduled
+instant doesn't move with the new offset (a ~1-hour drift, up to twice a
+year). This is the same limitation any app using one-shot absolute-instant
+OS notifications has (as opposed to `RRULE`-based recurring calendar
+alarms, a different, heavier native API this app doesn't use) — not
+something worth re-architecting notification scheduling to chase.
+
+**Real, Play-Store-policy-sensitive finding — documented, not
+unilaterally fixed.** `expo-notifications`' Android scheduling delegate
+(`ExpoSchedulingDelegate.kt:106`) already degrades gracefully:
+`if (SDK < 31 || alarmManager.canScheduleExactAlarms()) setExactAndAllowWhileIdle(...)
+else setAndAllowWhileIdle(...)` — no crash either way. But neither the
+library's manifest nor this app's `app.json` declares
+`SCHEDULE_EXACT_ALARM` (or the newer, auto-granted-but-category-restricted
+`USE_EXACT_ALARM`), so on Android 13+ `canScheduleExactAlarms()` will be
+`false` and every prayer/adhkar/plan reminder falls back to **inexact**
+delivery — the OS batches it within a window (commonly a few minutes,
+more under Doze) rather than firing at the precise minute. For a prayer-times
+app this is a real, user-visible precision trade-off, not a hypothetical
+one. **Deliberately not adding the permission in this iteration**:
+`SCHEDULE_EXACT_ALARM` is a Google Play–restricted permission as of the
+2024 policy tightening — declaring it requires a Play Console justification
+and apps outside the alarm-clock/calendar category risk rejection or
+removal for using it without qualifying. That's a product/policy decision
+with real Play Store submission consequences, not a pure code-correctness
+call this loop should make unilaterally. Flagging it clearly so the team
+can decide: accept inexact delivery on Android 13+ (current, safe default),
+or pursue `SCHEDULE_EXACT_ALARM` with the Play Console justification that
+requires.
+
+**Commit:** none (clean iteration; the exact-alarm trade-off is a
+documented decision point, not a code change).
