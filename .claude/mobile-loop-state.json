@@ -1,15 +1,10 @@
 {
-  "iteration": 20,
+  "iteration": 21,
   "cycle": 1,
-  "perspectiveIndex": 21,
+  "perspectiveIndex": 22,
   "batch": "mobile-stabilization-03",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 17,
-      "perspective": "B18 - Audio playback interruption",
-      "outcome": "clean, exceptionally well-engineered already"
-    },
     {
       "iteration": 18,
       "perspective": "B19 - Offline/airplane-mode behavior",
@@ -18,12 +13,17 @@
     {
       "iteration": 19,
       "perspective": "B20 - Notification scheduling correctness",
-      "outcome": "reboot/DST clean, exact-alarm trade-off documented (Play Store policy sensitive, not fixed)"
+      "outcome": "reboot/DST clean, exact-alarm trade-off documented"
     },
     {
       "iteration": 20,
-      "perspective": "B21 - AsyncStorage/SQLite migration safety and corrupted-store recovery",
-      "outcome": "GAP FOUND AND FIXED: theme.tsx's legacy dark/light migration never wrote the migrated value back to storage (unlike tasbih-store, sync-settings, sync-meta's migrations, which all do). Fixed to persist on migration, matching the established pattern. Live-verified via localStorage injection + reload."
+      "perspective": "B21 - AsyncStorage/SQLite migration safety",
+      "outcome": "GAP FOUND AND FIXED: theme migration write-back"
+    },
+    {
+      "iteration": 21,
+      "perspective": "B22 - Secure storage of the sync recovery secret (parity with web)",
+      "outcome": "clean - the hardening commit (#275) already covered both platforms together, not a mobile-lagging gap. BONUS: finally traced the recurring 'validatePath is not a function' console error (flagged unexplained since iteration 10) to expo-file-system's File/Directory constructors calling a method the web stub doesn't implement - confirmed zero functional impact, web-preview-only artifact, not worth fixing."
     }
   ]
 }

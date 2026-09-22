@@ -1038,3 +1038,62 @@ unit-tested here); `pnpm lint` — 0 errors, same 13 pre-existing warnings.
 
 **Commit:** `fix(mobile): persist the migrated theme key instead of
 re-mapping it every launch`.
+
+---
+
+## Iteration 21 — Secure storage of the sync recovery secret (parity with web's hardening)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** whether mobile's recovery secret is stored at rest the same
+way web's was hardened to (per the recent `feat(sync): harden the recovery
+secret at rest (#275)` commit already on `main`).
+
+**Result: clean — this was never a mobile-lagging-behind-web gap in the
+first place.** `git show --stat 8da793c` (the hardening commit itself)
+covers **both** platforms in one PR: *"Mobile: moves it from plain
+AsyncStorage into expo-secure-store (iOS Keychain / Android Keystore). A
+pre-hardening install's plaintext copy is migrated in, in place, on first
+read. Web + extension: wraps it with a non-extractable AES-256-GCM key...
+before it touches localStorage."* — the platform-appropriate primitive for
+each (mobile gets real OS-level secure storage; web doesn't have that, so
+it gets a non-extractable wrapping key instead). Confirmed in
+[`sync-settings.ts`](apps/mobile/src/lib/sync/sync-settings.ts) (already
+reviewed in [iteration 20](#iteration-20--asyncstoragesqlite-migration-safety-and-corrupted-store-recovery)
+for its migration logic): `enableSync()` writes a **new** secret straight
+to `expo-secure-store`, never touching plaintext `AsyncStorage`; `readSyncSecret()`
+migrates a pre-hardening plaintext copy in on first read; `disableSync()`
+clears both the secure entry and any leftover legacy plaintext copy
+defensively. `expo-secure-store` is correctly listed in `app.json`'s
+`plugins`.
+
+**Bonus: closed out iteration 10's unexplained pre-existing console
+error.** While checking whether `expo-secure-store` has a web
+implementation (it does, but a real no-op one — its own `.web.ts` is a bare
+`export default {}`, so `SecureStore.getItemAsync`/`setItemAsync` correctly
+*throw* on web, which `sync-settings.ts`'s try/catch already anticipates
+with an explicit "SecureStore unavailable" comment), I checked its sibling
+stub, `expo-file-system`, for the same pattern — and found the exact source
+of the `TypeError: this.validatePath is not a function` error that's
+appeared in every single preview session this entire loop
+(first noted, unexplained, in [iteration 10](#iteration-10--cold-start-time-and-splash-screen-timing)).
+`expo-file-system/src/FileSystem.ts`'s `File`/`Directory` constructors both
+call `this.validatePath()` right after `super()`
+(`node_modules/expo-file-system/src/FileSystem.ts:84,170`) — but the web
+platform's `ExpoFileSystem.FileSystemFile`/`FileSystemDirectory` (confirmed
+in [iteration 18](#iteration-18--offlineairplane-mode-behavior-on-every-network-touching-screen))
+are bare stub classes with no prototype methods at all, so the method
+doesn't exist. `offlineCache.ts`'s `cacheDir()`/`ensureDir()` construct a
+`Directory` on essentially every API call, which is why this fires
+constantly. **Confirmed this is purely a web-preview artifact with zero
+functional impact** (the app has worked correctly through every offline,
+corruption, and migration test in this entire loop despite it) **and not
+worth fixing** — silencing it would mean either skipping the offline-cache
+layer on web (defeating the point of using this preview as a QA tool) or
+patching around a third-party stub, for a console line nobody using the
+real Android/iOS app will ever see. Recording the root cause here so no
+future iteration re-flags it as a mystery.
+
+**Commit:** none (clean iteration; no code changes — both findings are
+confirmations, not bugs).
