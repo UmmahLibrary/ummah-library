@@ -1,15 +1,10 @@
 {
-  "iteration": 86,
+  "iteration": 87,
   "cycle": 3,
-  "perspectiveIndex": 6,
+  "perspectiveIndex": 8,
   "batch": "mobile-stabilization-09",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 83,
-      "perspective": "A4, cycle 3 - qada stepper, the zero-floor/rapid-decrement edge checked for the first time",
-      "outcome": "CLEAN: confirmed the zero-floor is defended at 3 independent layers, already covered by qada.test.ts."
-    },
     {
       "iteration": 84,
       "perspective": "A5, cycle 3 - pluralization copy, widened from the two Hifz screens to the whole app",
@@ -18,12 +13,17 @@
     {
       "iteration": 85,
       "perspective": "A6, cycle 3 - khatm completion, checked for a sync-comment bug and found one",
-      "outcome": "GAP FOUND AND FIXED: sync-keys.ts's exclusion comment named the wrong pair of keys. Same bug class as iterations 34/35's qada/haid fix. Rewrote with explicit key names."
+      "outcome": "GAP FOUND AND FIXED: sync-keys.ts's exclusion comment named the wrong pair of keys. Rewrote with explicit key names."
     },
     {
       "iteration": 86,
       "perspective": "A7/A8, cycle 3 - Zakat, a real cross-field race found in setAsset",
-      "outcome": "GAP FOUND AND FIXED: setAsset built its patch from the outer state.assets closure instead of prev.assets, so two different asset fields edited in the same tick could silently clobber each other. Fixed to derive from prev, matching the pattern already used for qada/tasbih/khatm. Live-reproduced the exact race via synchronous dispatchEvent calls and confirmed the fix at both DOM and storage layers."
+      "outcome": "GAP FOUND AND FIXED: setAsset built its patch from a stale closure instead of prev. Fixed and live-reproduced the exact race via synchronous dispatchEvent calls."
+    },
+    {
+      "iteration": 87,
+      "perspective": "B9, cycle 3 - back-button handling re-verified after batches 6-9, plus a pseudo-modal check",
+      "outcome": "CLEAN: zero-custom-back-handling invariant re-confirmed, both known Modal usages still have onRequestClose. New check: searched for a fake-modal overlay pattern that would bypass Android back-button interception entirely - none found."
     }
   ]
 }

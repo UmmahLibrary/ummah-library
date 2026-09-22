@@ -4825,3 +4825,57 @@ already-documented, harmless web-preview artifacts (`validatePath`,
 `Linking.openSettings`).
 
 **Commit:** `apps/mobile/src/screens/ZakatScreen.tsx`.
+
+---
+
+## Iteration 87 — B9, cycle 3: back-button handling re-verified after batches 6–9, plus a pseudo-modal check neither prior pass ran
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 8](#iteration-8--android-hardware-back-button-handling-on-every-screenmodal)
+found zero app-specific back-handling anywhere (no `BackHandler`,
+`Modal`, `presentation:`, or navigation-blocking listener), with the
+honest caveat that no Android emulator exists in this environment to
+actually press the button. [Iteration 48](#iteration-48--b9-revisited-back-button-handling-re-checked-after-40-iterations-of-changes-plus-the-errorboundary-interaction)
+re-confirmed the same invariant after ~40 iterations and checked the
+`ErrorBoundary` interaction. A separate iteration, 55, later found
+iteration 8's specific "zero `Modal` usage" sub-claim had been wrong
+all along (a wildcard re-export in `Type.tsx` meant the app does use
+`Modal`, twice, both already correctly wired with `onRequestClose`).
+This pass re-ran the full invariant grep fresh against everything
+batches 6–9 added, and added a check neither prior pass ran.
+
+**The "zero custom back-handling" invariant still holds — re-grepped,
+not assumed.** `BackHandler`, `presentation:`, `beforeRemove`, and
+`preventRemove` all still return zero matches across
+`apps/mobile/src`. The two `Modal` usages iteration 55 found
+(`SaveToCollection.tsx`, `TranslationManager.tsx`) are still the only
+two, and both still have `onRequestClose` wired — no regression since.
+
+**New this pass: searched for a "fake modal" — a full-screen overlay
+that** ***looks*** **like a modal but isn't a real `<Modal>` component,
+which would mean the hardware back button falls straight through to
+the underlying screen instead of dismissing it.** Neither prior pass
+checked for this specific gap between the *real* `Modal` component
+(which Android's back button correctly intercepts via
+`onRequestClose`) and a plain absolutely-positioned `View` styled to
+look like one (which the back button doesn't know about at all).
+Grepped for backdrop/overlay/`zIndex`/`elevation` patterns outside the
+two known `Modal` files — the one match (`SurahReaderScreen.tsx`'s
+`elevation: 6`) turned out to be a small floating pill/chip
+(`borderRadius: 999`, card padding), not a full-screen overlay. No
+pseudo-modal pattern exists anywhere in the app.
+
+**Clean — the invariant holds, and a genuinely new angle came up
+empty rather than untested.** No code change.
+
+**Verification:** targeted grep audit across `apps/mobile/src`
+(`BackHandler`/`Modal`/`presentation:`/`beforeRemove`/`preventRemove`/
+overlay-style patterns); no source changed, so the lint/typecheck/test
+gate wasn't re-run (nothing to regress; tree was green from iteration
+86 immediately prior). Still no Android emulator in this environment
+to press an actual hardware back button — same honest limitation
+iterations 8 and 48 already stated, not newly resolved here.
+
+**Commit:** none (clean iteration; only this log entry and state).
