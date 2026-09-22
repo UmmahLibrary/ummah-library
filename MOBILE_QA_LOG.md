@@ -3636,3 +3636,94 @@ console errors either time. Confirms the theme system itself is intact
 after removing the dead code.
 
 **Commit:** `apps/mobile/src/theme.tsx`.
+
+---
+
+## Iteration 69 — Cycle 2, B30 revisited: asset/offline-audio loading fallback, and the "validatePath" error finally traced to a real bug
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 29's own explicitly-deferred follow-up: "`useSurahAudio.ts`'s
+bulk-download IIFE has no `.catch()`, so any download failure produces an
+unhandled promise rejection with zero user-facing error message" —
+exactly the kind of thing cycle 2 exists to go back and finish.
+
+**Found and fixed three unhandled-rejection / stuck-state bugs in
+`apps/mobile/src/audio/useSurahAudio.ts`, one of them live-reproduced with
+a genuinely broken UI, not just a theoretical gap:**
+
+1. **`downloadSurahs`** — confirmed the iteration-29 finding: its IIFE's
+   `try { … } finally { … }` had no `catch`, so a failed download (the
+   underlying `audio-store.ts` `save()` already cleans up its partial file
+   and re-throws, per iteration 29's fix) became an unhandled rejection and
+   left the button silently back at "Download for offline listening" with
+   no indication anything had gone wrong. Added a `catch` that sets a new
+   `downloadError` flag, threaded it through `SurahAudio` and into
+   `DownloadButton.tsx`, which now shows "Download failed — tap to retry"
+   (tapping again just calls `downloadSurahs` fresh, which already works).
+
+2. **`refreshSaved`** — a *second*, higher-reach instance of the same
+   pattern: `mobileAudioStore.savedSurahs().then(...)` with no `.catch()`,
+   called unconditionally on **every mount** of every surah/juzʾ reader
+   screen (not just when the user taps download). Added
+   `.catch(() => [])`, mirroring `savedSurahs()`'s own "no audio dir yet"
+   empty-array convention, so a storage read failure just means "nothing
+   shows downloaded" instead of an unhandled rejection on every navigation.
+
+3. **`startSession` (and `playWord`) — the real find.** Investigating why
+   #2 fires so often led to reproducing the exact
+   `TypeError: this.validatePath is not a function` error that
+   [iteration 21](#iteration-21--secure-storage-of-the-sync-recovery-secret-parity-with-webs-hardening)
+   already root-caused (expo-file-system's `File`/`Directory` constructors
+   call `this.validatePath()`, which the web stub doesn't implement) and
+   judged "purely a web-preview artifact with zero functional impact,
+   not worth fixing" — a conclusion iteration 21 reached by auditing
+   `offlineCache.ts`'s call sites specifically. **That conclusion doesn't
+   hold for `audio-store.ts`'s call sites, which iteration 21 didn't
+   audit.** Live-reproduced: tapping "Play āyah" called
+   `mobileAudioStore.localUrl()` inside `startSession`'s async IIFE, which
+   has no top-level error handling at all — the throw became an unhandled
+   rejection **and** left `buffering`/`playingKey` stuck exactly as set
+   at the top of `startSession`, so the reader's audio dock showed
+   "Loading…" forever with no recovery short of restarting the app.
+   Screenshotted the stuck state before fixing it, then confirmed the fix:
+   same tap now recovers cleanly to idle with zero console errors.
+   Wrapped the whole IIFE body in `try/catch`, resetting `playingKey`/
+   `buffering`/`activeWord` on failure. Applied the identical fix to
+   `playWord`'s IIFE (same missing-catch shape around the same
+   `mobileAudioStore.localUrl()` call; not independently reproduced as a
+   stuck state since that path never sets `buffering`, but the unhandled
+   rejection is the same bug).
+
+**Corrected record, not a contradiction:** iteration 21's technical
+root-cause diagnosis (the `validatePath` stub gap) was and remains
+correct, and its judgment about `offlineCache.ts` specifically was
+reasonable — but "harmless in the one place I checked" had been read by
+later iterations (65, 67, 68) as "harmless everywhere," which is exactly
+how a real bug keeps hiding in plain sight in a shared error string. On
+a real Android/iOS device this specific `validatePath` throw can't
+happen (expo-file-system is fully implemented there) — but the missing
+try/catch itself is platform-independent: any real on-device storage
+failure (permission revoked, disk full, corrupted state) would have hit
+the same stuck-forever "Loading…" screen. Fixed the structural gap, not
+just the web-preview symptom.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136 (no new test added — mocking
+`useSurahAudio`'s `expo-audio`/`AppState`/native-timer surface for a
+proper regression test is a much larger lift than this fix; flagging
+dedicated hook coverage for the test-coverage-audit perspective, #40,
+same as iteration 68's note on `theme.tsx`). Live-verified via
+`preview_start({name: "mobile"})` on `/surah/2`: reproduced the stuck
+"Loading…" state pre-fix, confirmed post-fix the same tap sequence
+produces zero `validatePath`/unhandled-rejection console errors and the
+player returns to idle; separately verified `DownloadButton` still
+renders its normal label and the new "Download failed — tap to retry"
+wording is reachable (the web preview's `expo-file-system` stub makes
+every download attempt fail, which is exactly what exercised the new
+`downloadError` path end to end).
+
+**Commit:** `apps/mobile/src/audio/useSurahAudio.ts`,
+`apps/mobile/src/components/DownloadButton.tsx`.

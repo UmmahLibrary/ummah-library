@@ -1,15 +1,10 @@
 {
-  "iteration": 68,
+  "iteration": 69,
   "cycle": 2,
-  "perspectiveIndex": 28,
+  "perspectiveIndex": 29,
   "batch": "mobile-stabilization-07",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 65,
-      "perspective": "Cycle 2, B25 - text scaling, 2 more fixed-badge screens",
-      "outcome": "GAP FOUND AND FIXED: HijriCalendarScreen's month-grid overlap. RamadanScreen genuinely clean."
-    },
     {
       "iteration": 66,
       "perspective": "Cycle 2, B26 - screen-reader labels, SaveToCollection checkbox row",
@@ -23,7 +18,12 @@
     {
       "iteration": 68,
       "perspective": "Cycle 2, B29 revisited - Noor theme switching consistency across all 8 palettes",
-      "outcome": "GAP FOUND AND FIXED: theme.tsx's ThemeContextValue exposed a dead, never-called toggle() that also didn't match web's remember-last-theme-per-mode behavior. Removed it. Confirmed all 33 screens + components consume useTheme() correctly. Live-verified Midnight/Ivory switches. Logged: mobile lacks web's header quick-toggle (product decision, out of scope); zero test coverage of theme.tsx (flagged for #40)."
+      "outcome": "GAP FOUND AND FIXED: theme.tsx's ThemeContextValue exposed a dead, never-called toggle() that also didn't match web's remember-last-theme-per-mode behavior. Removed it."
+    },
+    {
+      "iteration": 69,
+      "perspective": "Cycle 2, B30 revisited - asset/offline-audio loading fallback, finishing iteration 29's deferred follow-up",
+      "outcome": "GAP FOUND AND FIXED (high-impact): useSurahAudio.ts had 3 unhandled-rejection/stuck-state bugs (downloadSurahs, refreshSaved, startSession+playWord). Live-reproduced and fixed a genuine stuck 'Loading...' forever bug in startSession, root-caused via the validatePath error iteration 21 had dismissed as universally harmless - it wasn't, for audio-store.ts's call sites. Added downloadError UI feedback to DownloadButton."
     }
   ]
 }
