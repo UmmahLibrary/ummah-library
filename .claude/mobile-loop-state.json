@@ -1,24 +1,29 @@
 {
-  "iteration": 11,
+  "iteration": 12,
   "cycle": 1,
-  "perspectiveIndex": 12,
+  "perspectiveIndex": 13,
   "batch": "mobile-stabilization-02",
-  "consecutiveCleanIterations": 1,
+  "consecutiveCleanIterations": 2,
   "history": [
     {
       "iteration": 9,
       "perspective": "B10 - Deep link handling, including malformed links",
-      "outcome": "BUG FOUND AND FIXED: malformed deep link poisoned continue-reading storage"
+      "outcome": "BUG FOUND AND FIXED"
     },
     {
       "iteration": 10,
       "perspective": "B11 - Cold start time and splash screen timing",
-      "outcome": "GAP FOUND AND FIXED: added expo-splash-screen orchestration"
+      "outcome": "GAP FOUND AND FIXED"
     },
     {
       "iteration": 11,
-      "perspective": "B12 - App background/foreground transitions (timers, audio, in-flight requests)",
-      "outcome": "clean by strong code-level evidence: audio highlight resync, sync in-flight dedup guard, and reminder re-sync on foreground all already purpose-built for this; UI clock timers clean up correctly. Honestly noted no device available to watch it happen live."
+      "perspective": "B12 - App background/foreground transitions",
+      "outcome": "clean by strong code-level evidence"
+    },
+    {
+      "iteration": 12,
+      "perspective": "B13 - Kill-and-restore state integrity",
+      "outcome": "clean, strong existing coverage (getJSON/setJSON try-catch + shape validation, ADR 0028 structural enforcement, stores-corrupt.test.ts). Live-verified by writing truncated JSON directly into localStorage and cold-reloading - no crash, clean fallback everywhere."
     }
   ]
 }

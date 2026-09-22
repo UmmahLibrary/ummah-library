@@ -548,3 +548,49 @@ exactly this class of problem is stronger evidence than most of this loop's
 watching it happen on a device. Not claiming otherwise.
 
 **Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 12 — Kill-and-restore state integrity
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether the app survives having its process killed mid-write —
+i.e., whether persisted state can end up as truncated/partial JSON, and
+whether every consumer tolerates that instead of crashing on restart.
+
+**Result: clean, with unusually strong existing coverage.**
+[`storage.ts`](apps/mobile/src/storage.ts)'s `getJSON` wraps every read
+(including `JSON.parse`) in try/catch and falls back to the caller's default
+on any failure, plus an optional shape-validator (`isValid`) to reject
+valid-but-wrong-shaped JSON (e.g. a synced peer payload, or `42` where an
+object was expected) — the exact class of corruption a mid-write kill would
+produce. `setJSON` similarly swallows write failures. Because
+[ADR 0028](docs/adr/0028-persistence-enforcement.md) lint-enforces that
+*nothing* touches `AsyncStorage` directly outside these wrappers, this
+protection is structural, not something an individual screen could bypass.
+[`stores-corrupt.test.ts`](apps/mobile/src/stores-corrupt.test.ts) already
+unit-tests exactly this for essentially every store in the app (library,
+plans, settings, qada, prayer tracker, ḥayḍ, fasting-qaḍāʾ, achievements,
+reading goals, tasbih, reminders, prayer settings) — truncated/wrong-shape
+values all fall back to safe defaults, never a crash.
+
+**Live-verified beyond the unit tests** via `preview_start({name: "mobile"})`:
+wrote genuinely truncated JSON (`'{"fajr":2,"dhu'`, `'{"template":'`), a
+wrong-shape value (`'42'` for `ul.prayerLog`), and an empty string
+(`ul.bookmarks`) directly into `localStorage`, then did a cold reload — Home
+rendered normally (including "Continue reading" from the still-valid
+`ul.lastRead`), no console errors beyond the already-flagged pre-existing
+`validatePath` one, and Prayer Tracker (which reads the two deliberately
+corrupted keys) rendered its normal empty state instead of crashing.
+
+**Not independently verifiable here:** whether `AsyncStorage`'s underlying
+native write (SQLite-backed on both platforms in current versions) is
+itself atomic per key — that's third-party library behavior, not this
+app's code, and not something a device-less environment can confirm either
+way. Given every consumer already tolerates a corrupted read regardless,
+it's not load-bearing for this app's resilience even if a native write
+were ever non-atomic.
+
+**Commit:** none (clean iteration; no code changes).
