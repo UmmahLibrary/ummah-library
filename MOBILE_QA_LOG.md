@@ -4239,3 +4239,83 @@ test gate wasn't re-run (nothing to regress; tree was green from
 iteration 76 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 78 — Cycle 2, B39 revisited: mosque finder, closing the live-verification gap iteration 39 explicitly left open
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 39](#iteration-39--mosque-finder-live-location-accuracy-and-permission-denied-fallback)
+explicitly noted it couldn't live-verify its own "Search again" fix in
+the browser preview ("stale navigation refs... made reaching the screen
+unreliable this session") and stated that honestly instead of claiming
+an untested screenshot. Went back to actually reach the screen this
+time, using `javascript_tool` to mock `navigator.geolocation` and
+`fetch` (overriding any Overpass-domain request to return an empty
+result set) rather than relying on the real, unavailable browser
+geolocation permission.
+
+**The Overpass mock didn't get exercised — the app's `expo-location`
+permission check runs first and blocks on the real (denied) browser
+permission before ever reaching the mocked fetch,** so the "no mosques
+found" / "Search again" branch iteration 39 fixed still isn't reachable
+in this preview environment without also being able to grant a real
+browser geolocation permission, which isn't controllable from page-
+context JS. Recording this honestly rather than claiming the original
+gap is closed — it isn't, for the same structural reason iteration 39
+already gave.
+
+**Reaching the "denied" branch instead surfaced a different, real, and
+reproducible bug: `Linking.openSettings()` throws instead of being
+caught.** Tapping "Open Settings" produced an **uncaught** (not just
+"uncaught in promise") `TypeError: Linking.openSettings is not a
+function`. Traced it to `react-native-web`'s `Linking` shim
+(`node_modules/react-native-web/dist/exports/Linking/index.js`), which
+has no `openSettings` export at all — only real `react-native`'s native
+implementation does. Found the same unguarded `void Linking.openSettings()`
+shape at **four** call sites: this screen, `PrayerTimesScreen.tsx`,
+`QiblaScreen.tsx`, and `notification-permission-alert.ts` (iteration
+56's shared permission-denial alert).
+
+**Fixed all four to `.catch(() => {})`**, matching this codebase's
+established pattern for every other native-module call that returns a
+promise (`SplashScreen.preventAutoHideAsync()`, `setAudioModeAsync()`,
+etc.) — real `Linking.openSettings()` does return a `Promise<void>` on
+Android/iOS (confirmed in `react-native/Libraries/Linking/Linking.js`),
+and while a rejection there is rare (no Activity available to handle
+the Settings intent), it's the same class of defensive gap iteration 69
+fixed for `useSurahAudio.ts`.
+
+**Honest limitation, stated rather than hidden: this fix does NOT
+resolve the reproduced web-preview crash.** `Linking.openSettings` is
+`undefined` on `react-native-web`, so calling it **throws synchronously**
+before the returned value's `.catch()` is ever reached — no amount of
+promise handling in the calling code can catch a TypeError from calling
+`undefined()`. Live-verified this directly: after the fix, tapping
+"Open Settings" still logs the identical uncaught TypeError. What the
+fix *did* confirm, live: the screen's own state survives the exception
+completely intact — "Try again" was tapped immediately after and worked
+normally, so this is a self-contained, non-fatal event-handler
+exception, not something that leaves the screen stuck or crashes the
+app. Given real Android/iOS always implements `Linking.openSettings`
+(confirmed in the RN source above), this is the same class of finding
+as iteration 21's `validatePath` — a genuine gap in the web preview's
+own third-party shim, with zero impact on the real native app, not
+something to route around in this app's own source. Recording the root
+cause here so, per iteration 21's own reasoning, no future iteration
+re-flags it as a mystery.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136. Live-verified via
+`preview_start({name: "mobile"})`: reached `PrayerTimesScreen`'s
+"denied" state, tapped "Open Settings" (confirmed the still-present,
+now-explained web-only TypeError), then tapped "Try again" and
+confirmed the screen responded normally — no stuck or broken state.
+
+**Commit:** `apps/mobile/src/screens/MosqueFinderScreen.tsx`,
+`apps/mobile/src/screens/PrayerTimesScreen.tsx`,
+`apps/mobile/src/screens/QiblaScreen.tsx`,
+`apps/mobile/src/notification-permission-alert.ts`.

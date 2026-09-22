@@ -11,6 +11,6 @@ import { Alert, Linking } from "react-native";
 export function notifyNotificationPermissionDenied(reminderLabel: string): void {
   Alert.alert("Notifications are off", `Enable notifications in Settings to get your ${reminderLabel}.`, [
     { text: "Not now", style: "cancel" },
-    { text: "Open Settings", onPress: () => void Linking.openSettings() },
+    { text: "Open Settings", onPress: () => void Linking.openSettings().catch(() => {}) },
   ]);
 }

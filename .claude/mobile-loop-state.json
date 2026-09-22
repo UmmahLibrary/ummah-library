@@ -1,15 +1,10 @@
 {
-  "iteration": 77,
+  "iteration": 78,
   "cycle": 2,
-  "perspectiveIndex": 37,
+  "perspectiveIndex": 38,
   "batch": "mobile-stabilization-08",
-  "consecutiveCleanIterations": 2,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 74,
-      "perspective": "Cycle 2, B35 revisited - Play Store data-safety/permissions-justification, resolving iteration 33's deferred storage permissions",
-      "outcome": "GAP FOUND AND FIXED: traced and blocked expo-file-system's unconditional, genuinely-unused READ/WRITE_EXTERNAL_STORAGE permissions."
-    },
     {
       "iteration": 75,
       "perspective": "Cycle 2, B36 revisited - empty/loading states, the local-storage-only screens iteration 36's sweep didn't individually enumerate",
@@ -18,12 +13,17 @@
     {
       "iteration": 76,
       "perspective": "Cycle 2, B37 revisited - copy/microcopy vs web, checking what's changed since iteration 37",
-      "outcome": "CLEAN for mobile. Found web's own notification-permission copy is inconsistent across its own reminder toggles, and web's download-failure path has the identical missing-catch bug iteration 69 fixed on mobile (both out of scope, logged for a future web pass)."
+      "outcome": "CLEAN for mobile. Found two web-side gaps (out of scope, logged): inconsistent notification-permission copy, and the identical missing-catch download bug iteration 69 fixed on mobile."
     },
     {
       "iteration": 77,
       "perspective": "Cycle 2, B38 revisited - push notification content correctness, re-verified plus the delivery hop iteration 38 didn't check",
-      "outcome": "CLEAN, re-verified: all 5 reminder families and their content unchanged since iteration 38, byte-identical with web. New check: traced content through to the actual scheduleNotificationAsync call, confirmed untransformed pass-through."
+      "outcome": "CLEAN, re-verified: all 5 reminder families and content unchanged since iteration 38. New check: traced content through to scheduleNotificationAsync, confirmed untransformed pass-through."
+    },
+    {
+      "iteration": 78,
+      "perspective": "Cycle 2, B39 revisited - mosque finder, closing (partially) the live-verification gap iteration 39 explicitly left open",
+      "outcome": "GAP FOUND AND FIXED (with an honest limitation): the original 'no mosques found' branch is still unreachable in preview (expo-location's real permission check blocks before a mocked fetch would matter). But reaching the 'denied' branch surfaced a real bug: Linking.openSettings() has no react-native-web implementation, throws synchronously at 4 call sites. Added .catch() to all 4 (correct for native's rare promise-rejection case) but documented clearly that .catch() cannot catch a synchronous throw - the web-preview crash itself is an iteration-21-class harmless shim gap, zero impact on real native."
     }
   ]
 }
