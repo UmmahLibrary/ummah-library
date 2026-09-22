@@ -1,9 +1,9 @@
 {
-  "iteration": 6,
+  "iteration": 7,
   "cycle": 1,
-  "perspectiveIndex": 6,
+  "perspectiveIndex": 8,
   "batch": "mobile-stabilization-01",
-  "consecutiveCleanIterations": 5,
+  "consecutiveCleanIterations": 6,
   "history": [
     {
       "iteration": 1,
@@ -12,7 +12,7 @@
     },
     {
       "iteration": 2,
-      "perspective": "A2 - Zakat currency-field sanitization + adjacent Reset/negative-amount bugs",
+      "perspective": "A2 - Zakat currency-field sanitization + adjacent Reset/negative-amount bugs (covers A7, A8 too)",
       "outcome": "clean, verified live via mobile-web preview; all 3 related web bugs already prevented on mobile"
     },
     {
@@ -36,6 +36,11 @@
       "perspective": "A6 - Khatm 604/604 completion state",
       "outcome": "clean - mobile already has a dedicated completion UI web still lacks; live-verified by forcing currentPage to 604 via localStorage + one tap",
       "notableFinding": "web still has this bug unfixed per WEB_QA_LIVE_BROWSER_REPORT.md; out of scope to backport, noted only"
+    },
+    {
+      "iteration": 7,
+      "perspective": "A7/A8 - Zakat reset-wipes-prices / negative amounts (cross-reference)",
+      "outcome": "already fully covered live in iteration 2; logged cross-reference instead of re-testing, advancing to catalogue group B"
     }
   ]
 }

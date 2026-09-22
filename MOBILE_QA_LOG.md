@@ -302,3 +302,26 @@ completion pattern; out of scope here.
 
 **Commit:** none (clean iteration; storage was only manipulated in the
 disposable dev-server preview, not in any file in the repo).
+
+---
+
+## Iteration 7 — catalogue items 7–8: Zakat "Reset" wiping prices / negative amounts (cross-reference)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-01`
+
+Catalogue perspectives A7 ("Zakat 'reset amounts' wiping unrelated fields")
+and A8 ("negative Zakat asset amounts silently ignored") are the same two
+web bugs already fully investigated and live-verified in
+**[Iteration 2](#iteration-2--zakat-currency-field-sanitization-and-adjacent-resetnegative-amount-bugs)**
+above, while checking the adjacent currency-sanitization perspective in the
+same screen. Re-running the identical repro (tap `+1` on Gold-per-gram,
+enter Cash, tap Reset, confirm price held; type a leading `-` into an
+amount field, confirm it's stripped) would just reproduce that same
+evidence a second time.
+
+Not spending a full iteration re-testing what's already confirmed and
+logged; advancing straight to catalogue group B (native platform
+correctness) next. No code or test changes.
+
+**Commit:** none (no work performed; cross-reference only).
