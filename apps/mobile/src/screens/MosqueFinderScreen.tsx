@@ -184,9 +184,14 @@ export function MosqueFinderScreen() {
           )}
 
           {status === "ready" && places.length === 0 && (
-            <Text style={styles.muted}>
-              No mosques found within {radiusLabel}. Try a wider radius.
-            </Text>
+            <View style={styles.center}>
+              <Text style={styles.muted}>
+                No mosques found within {radiusLabel}. Try a wider radius, or search again.
+              </Text>
+              <Pressable style={styles.chip} onPress={() => fetchNearby(coords, radius)}>
+                <Text style={styles.chipText}>Search again</Text>
+              </Pressable>
+            </View>
           )}
 
           {status === "ready" && places.length > 0 && (

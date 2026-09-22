@@ -1,15 +1,10 @@
 {
-  "iteration": 38,
+  "iteration": 39,
   "cycle": 1,
-  "perspectiveIndex": 38,
+  "perspectiveIndex": 39,
   "batch": "mobile-stabilization-04",
-  "consecutiveCleanIterations": 1,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 35,
-      "perspective": "B35 continued - privacy policy fix",
-      "outcome": "GAP FOUND AND FIXED: privacy.ts stale relative to shipped sync feature."
-    },
     {
       "iteration": 36,
       "perspective": "B36 - Empty and loading states",
@@ -23,7 +18,12 @@
     {
       "iteration": 38,
       "perspective": "B38 - Push notification content correctness",
-      "outcome": "clean - all 5 reminder types share content from core/reminders.ts and reading-plans.ts, already have direct content-assertion test coverage, no truncation risk (plan names are bundled and short, not user-authored)."
+      "outcome": "clean - all 5 reminder types share content-building code in core with direct test coverage."
+    },
+    {
+      "iteration": 39,
+      "perspective": "B39 - Mosque finder live-location accuracy and permission-denied fallback",
+      "outcome": "Distance math and permission-denied recovery confirmed solid. Found a deliberate, tested tradeoff (OverpassPlacesProvider degrades a non-OK/rate-limited response to empty results, indistinguishable from genuinely zero mosques) - logged for the owner's judgment rather than reversed, since it's an intentional tested choice not an oversight, and the same shape exists in hadith.ts/translation-catalog.ts too. GAP FOUND AND FIXED separately: the zero-results branch had no retry button unlike every other terminal state on the screen - added one (purely additive, doesn't touch the policy question)."
     }
   ]
 }

@@ -2090,3 +2090,72 @@ No fix needed.
 **Verification:** read-only iteration, no code changed; prior gate holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 39 — Mosque finder live-location accuracy and permission-denied fallback
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** the distance/sorting math, location-permission-denied
+recovery flow, and how a backend/network failure is actually represented
+to the user (does "no results" always mean "genuinely no results"?).
+
+**Distance math and permission fallback are solid.**
+`distanceKm`/`sortByDistance` use a correct, tested Haversine
+implementation shared with web (11 existing tests). `Location.Accuracy.Low`
+is used consistently across `MosqueFinderScreen`, `PrayerTimesScreen`, and
+`QiblaScreen` — a deliberate, uniform tradeoff (network-location accuracy
+is entirely adequate at km-scale radii; no reason to burn battery/prompt
+for GPS precision here). The permission-denied state already has both
+"Try again" and "Open Settings" — correctly anticipates Android's silent
+re-denial after "Don't ask again" (a repeat `requestForegroundPermissionsAsync()`
+call there returns denied with no dialog at all, so a settings deep-link
+is the only real recovery path — already present).
+
+**Found a real accuracy concern, deliberately not code-fixed — it's a
+tested, intentional tradeoff, not an oversight.** Traced the request path
+end to end:
+[`OverpassPlacesProvider.nearbyMosques`](packages/adapters/src/places.ts)
+has `if (!res.ok) return [];` — a non-OK Overpass response (rate-limited,
+timeout, 5xx) is indistinguishable from a genuine "no mosques here."
+Confirmed via [`places.test.ts`](packages/adapters/src/places.test.ts)
+line 107 — `"degrades to [] on a non-OK response rather than throwing"`,
+fixtured explicitly with `{ error: "rate limited" }` — this was a
+**deliberate, tested design choice**, not a bug slipping through. The
+same shape exists in
+[`hadith.ts`](packages/adapters/src/hadith.ts)`.getSection` (`if
+(!response.ok) return null`, surfacing as "you may have reached the end
+of the collection" even on a transient CDN blip) and
+[`translation-catalog.ts`](packages/adapters/src/translation-catalog.ts).
+Not reversing this pattern — I don't have the operational context that
+motivated it (Overpass's public instance is known to rate-limit
+aggressively under load; the original author may have deliberately traded
+"never show a scary error for a routine Overpass hiccup" against "a false
+'no mosques' is occasionally misleading"), and the loop's own guardrails
+are to fix bugs, not override a tested, intentional decision without that
+context. Flagging for the project owner to weigh: for mosque-finder
+specifically, a false "no mosques within 20km" is a stronger claim than
+"no tafsir available," since a Muslim relying on it to find the nearest
+place to pray could plausibly stop looking on wrong information.
+
+**Fix made in the one place this doesn't require touching that policy:**
+the "No mosques found" branch had **no retry affordance at all** — unlike
+every other terminal state on this screen (`denied`, `error` both have a
+"Try again" chip). Added a "Search again" button there too. This doesn't
+resolve the ambiguity above, but it does mean a user who suspects the
+result might be wrong (or who just wants to double-check) now has a
+one-tap way to re-query, whether the original result was a real empty set
+or a transient Overpass hiccup — strictly additive, no change to the
+degrade-to-empty policy itself.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 117/117.
+Live-verification of the specific empty-results branch wasn't practical
+in the browser preview (it requires either a genuinely mosque-free
+coordinate or mocking Overpass's live response, and stale navigation refs
+in the RN-web preview made reaching the screen unreliable this session) —
+noting the gap honestly rather than claiming a screenshot check that
+didn't happen. The change itself mirrors the file's own existing,
+already-verified `denied`/`error` retry-chip pattern exactly.
+
+**Commit:** `apps/mobile/src/screens/MosqueFinderScreen.tsx`.
