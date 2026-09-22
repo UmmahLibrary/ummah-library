@@ -1161,3 +1161,39 @@ unverified.
 
 **Commit:** none (clean iteration; the backgrounded-push race is a
 documented recommendation, not a code change).
+
+---
+
+## Iteration 23 — RTL/Arabic rendering correctness (Indopak script, word-level highlighting, mixed-direction layout)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** Arabic text direction, the IndoPak script variant, word-by-word
+transliteration alignment, and mixed RTL/LTR layout (Arabic word row above
+an English translation line) — live, not just by code reading.
+
+**Result: clean, thoroughly live-verified.** Via
+`preview_start({name: "mobile"})`: switched **Settings → Arabic Script**
+from Uthmani to **IndoPak**, then opened Al-Kahf in both reading modes:
+
+- **Verse-by-verse view, word-by-word on:** IndoPak glyphs render correctly
+  (visually distinct from Uthmani, as expected), the verse reads
+  right-to-left with correct word order, and tapping a word triggers
+  tap-to-hear audio. The transliteration row beneath each āyah is
+  **RTL-ordered to match** — e.g. for āyah 1, the transliteration reads
+  (left→right) "…walam yaj'al lahu 'iwaja" with "**al-ḥamdu**" (the first
+  word) rightmost, directly under the rightmost (first) Arabic word,
+  exactly mirroring the Arabic line above it word-for-word rather than
+  reading in a fixed LTR order that would misalign under RTL text.
+- **Continuous "Reading" (Mushaf-style) view:** paragraph-flow RTL text
+  renders correctly across multiple āyāt with ayah-end ornament markers
+  correctly inline, no reversed flow, no overlap.
+- **Mixed-direction layout:** the RTL Arabic + transliteration block sits
+  above an LTR English translation line with no direction bleed or bidi
+  glitches in either script mode.
+
+No code changes — this perspective checked out clean on live inspection
+across both reading modes and both scripts.
+
+**Commit:** none (clean iteration; no code changes).
