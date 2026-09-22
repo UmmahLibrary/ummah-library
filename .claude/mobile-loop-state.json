@@ -1,29 +1,29 @@
 {
-  "iteration": 50,
+  "iteration": 51,
   "cycle": 2,
-  "perspectiveIndex": 10,
+  "perspectiveIndex": 11,
   "batch": "mobile-stabilization-06",
   "consecutiveCleanIterations": 0,
   "history": [
     {
-      "iteration": 47,
-      "perspective": "Cycle 2, A7/A8 - Zakat reset scope and negative-amount defense in depth",
-      "outcome": "GAP FOUND AND FIXED: extended the currency-only load-time self-heal to every decimal field."
-    },
-    {
       "iteration": 48,
       "perspective": "Cycle 2, B9 - back-button handling re-checked, ErrorBoundary interaction",
-      "outcome": "clean - re-confirmed invariant still holds, checked ErrorBoundary's navigation-reset behavior is deliberate."
+      "outcome": "clean - re-confirmed invariant still holds."
     },
     {
       "iteration": 49,
       "perspective": "Cycle 2, B10 - deep-link handling, closing the cosmetic gap left open",
-      "outcome": "GAP FOUND AND FIXED: fixed the 'Page NaN' title-bar flash on a malformed deep link."
+      "outcome": "GAP FOUND AND FIXED: fixed the 'Page NaN' title-bar flash."
     },
     {
       "iteration": 50,
       "perspective": "Cycle 2, B11 - splash screen timing, ErrorBoundary interaction",
-      "outcome": "GAP FOUND AND FIXED (serious): a crash before AppGate mounts never called hideAsync(), leaving the native splash covering the ErrorBoundary's recovery UI forever. Added hideAsync() to ErrorBoundary.componentDidCatch, guaranteed regardless of where the crash happened. Live-verified the mechanism still works via iteration 31's crash-test method. Batch 5 complete."
+      "outcome": "GAP FOUND AND FIXED (serious): crash before AppGate mounts never hid the splash screen, hiding the ErrorBoundary's recovery UI forever. Batch 5 complete, PR #281 opened."
+    },
+    {
+      "iteration": 51,
+      "perspective": "Cycle 2, B12 - background/foreground transitions, found the PrayerTracker race elsewhere",
+      "outcome": "GAP FOUND AND FIXED (serious): LibraryContext.tsx - the app's global, entire-lifetime state provider covering bookmarks/hifz/streak/collections/notes/lastRead - had the exact same unguarded sync-reload-vs-local-write race as PrayerTrackerScreen (iteration 44), but at much higher stakes (hifz progress, notes, collections could be silently reverted). Applied the same writeGen/ignoreStale pattern across all 8 writers and 7 reloaded state pieces. NOTE: SettingsContext.tsx also consumes onSyncApplied and hasn't been checked for the same pattern yet - next iteration."
     }
   ]
 }

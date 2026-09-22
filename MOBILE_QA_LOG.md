@@ -2714,3 +2714,56 @@ Ten iterations, six with real fixes:
   hiding the recovery UI it exists to show.
 
 Full detail for each is above, under its own `## Iteration N` heading.
+
+## Iteration 51 — B12 revisited: the exact race fixed in PrayerTracker was also live in LibraryContext, app-wide
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 11 confirmed app background/foreground handling
+was clean via three purpose-built mechanisms, with an honest note that it
+couldn't be tested on a real device. This pass took a different angle:
+having just fixed a sync-reload-vs-local-write race in `PrayerTrackerScreen`
+(iteration 44), and confirmed here that `AppState` foregrounding and a
+sync round both funnel through the same `onSyncApplied` signal
+(`App.tsx`'s foreground listener → `syncIfEnabled()` →
+`emitSyncApplied()`), the natural question was: does any *other*
+`onSyncApplied` consumer have local writes that could race the exact same
+way?
+
+**Found the same bug, at much higher stakes.**
+[`LibraryContext.tsx`](apps/mobile/src/state/LibraryContext.tsx) — a
+provider mounted for the app's **entire lifetime**, wrapping every screen
+— has a `load()` that unconditionally overwrites 7 pieces of state
+(`bookmarks`, `lastRead`, `hifz`, `streak`, `reviewLog`, `collections`,
+`notes`) on every `onSyncApplied` event, and **8 separate writer
+functions** (`toggleBookmark`, `setLastRead`, `setHifzCard`,
+`removeHifzCard`, `touchStreak`, `recordReview`, `updateCollections`,
+`setNote`) that could each race it exactly the way `PrayerTrackerScreen`
+did — a reload's read starting before a tap's write lands, resolving
+after, silently reverting it. Unlike the prayer tracker (a single
+screen), this is the app's most heavily-used shared state: **hifz review
+progress, a bookmark toggle, a saved note, or a new collection could all
+be silently reverted** by an ill-timed sync or foreground event — a
+correctness bug in the app's core memorization-tracking feature, not a
+cosmetic one.
+
+**Fix:** applied the identical `writeGen`/`ignoreStale` pattern from
+iteration 44 — a generation counter bumped by all 8 writers, with
+`load()`'s 7 reads each discarding their result if a newer local write
+landed since they were dispatched. No new abstraction needed: `ignoreStale`
+(added to [`utils.ts`](apps/mobile/src/utils.ts) in iteration 44) is
+already generic and directly reusable here.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136 (the
+mechanism itself is already covered by iteration 44's 3 deterministic
+`ignoreStale` tests — this iteration is a new *consumer* of an
+already-tested guard, not new logic needing its own test). Live-verified
+the normal, non-racing paths still work in the browser preview:
+navigating to a surah correctly wrote `ul.lastRead`, and triggering a
+collection save correctly persisted to `ul.collections` — no new console
+errors, only pre-existing unrelated noise already documented earlier in
+this log.
+
+**Commit:** `apps/mobile/src/state/LibraryContext.tsx`.

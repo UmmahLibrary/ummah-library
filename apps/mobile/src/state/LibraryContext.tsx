@@ -10,6 +10,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -23,6 +24,7 @@ import {
   logReview,
 } from "@ummahlibrary/core";
 import { KEYS, getJSON, isObjectRecord, setJSON } from "../storage";
+import { ignoreStale } from "../utils";
 import { mobileLibraryStore as library } from "./library-store";
 import { onSyncApplied } from "../lib/sync/sync-events";
 import { EMPTY_STREAK, advanceStreak, type StreakData } from "../hifz";
@@ -84,7 +86,18 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [ready, setReady] = useState(false);
 
+  // A generation counter guarding every writer below against `load()`
+  // clobbering a fresher local write with a stale reload — the same race
+  // (and fix) as `PrayerTrackerScreen`'s `writeGen`: `load()` re-runs on
+  // every `onSyncApplied` event (a sync round *or* the app returning to
+  // foreground, both wired through the same signal), and this context is
+  // mounted for the app's entire lifetime, so the window for a reload to
+  // race a tap here is real, not theoretical.
+  const writeGen = useRef(0);
+
   const load = useCallback(async () => {
+    const gen = writeGen.current;
+    const currentGen = () => writeGen.current;
     const [bm, lr, hz, st, log, cols, nts] = await Promise.all([
       library.readBookmarks(),
       getJSON<{ surah: number } | null>(KEYS.lastRead, null, isObjectRecord),
@@ -101,13 +114,13 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       library.readCollections(),
       library.readNotes(),
     ]);
-    setBookmarks(bm);
-    setLastReadState(lr?.surah ?? null);
-    setHifz(hz);
-    setStreak(st);
-    setReviewLog(log);
-    setCollections(cols);
-    setNotes(nts);
+    ignoreStale(currentGen, gen, setBookmarks)(bm);
+    ignoreStale(currentGen, gen, setLastReadState)(lr?.surah ?? null);
+    ignoreStale(currentGen, gen, setHifz)(hz);
+    ignoreStale(currentGen, gen, setStreak)(st);
+    ignoreStale(currentGen, gen, setReviewLog)(log);
+    ignoreStale(currentGen, gen, setCollections)(cols);
+    ignoreStale(currentGen, gen, setNotes)(nts);
     setReady(true);
   }, []);
 
@@ -118,11 +131,13 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, [load]);
 
   const updateCollections = useCallback((next: Collection[]) => {
+    writeGen.current++;
     setCollections(next);
     void library.writeCollections(next);
   }, []);
 
   const setNote = useCallback((ref: VerseKey, text: string) => {
+    writeGen.current++;
     setNotes((prev) => {
       const key = `${ref.sura}:${ref.aya}`;
       const next = { ...prev };
@@ -134,6 +149,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const touchStreak = useCallback(() => {
+    writeGen.current++;
     setStreak((prev) => {
       const next = advanceStreak(prev, new Date());
       if (next !== prev) void setJSON(KEYS.hifzStreak, next);
@@ -142,6 +158,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const recordReview = useCallback(() => {
+    writeGen.current++;
     setReviewLog((prev) => {
       const next = logReview(prev, new Date());
       void setJSON(KEYS.hifzReviewLog, next);
@@ -150,6 +167,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleBookmark = useCallback((surah: number) => {
+    writeGen.current++;
     setBookmarks((prev) => {
       const next = prev.includes(surah) ? prev.filter((n) => n !== surah) : [...prev, surah];
       void library.writeBookmarks(next);
@@ -158,11 +176,13 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setLastRead = useCallback((surah: number) => {
+    writeGen.current++;
     setLastReadState(surah);
     void setJSON(KEYS.lastRead, { surah });
   }, []);
 
   const setHifzCard = useCallback((ref: VerseKey, card: HifzCard) => {
+    writeGen.current++;
     setHifz((prev) => {
       const next = { ...prev, [keyOf(ref)]: card };
       void setJSON(KEYS.hifz, next);
@@ -171,6 +191,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeHifzCard = useCallback((ref: VerseKey) => {
+    writeGen.current++;
     setHifz((prev) => {
       const next = { ...prev };
       delete next[keyOf(ref)];
