@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import {
   OBLIGATORY_PRAYERS,
@@ -34,7 +34,7 @@ import { mobileQadaStore as qadaStore } from "../qada-store";
 import { mobileHaidStore as haidStore } from "../haid-store";
 import { mobileFastingQadaStore as fastingQadaStore } from "../fasting-qada-store";
 import { KEYS, getString } from "../storage";
-import { localISODate } from "../utils";
+import { ignoreStale, localISODate } from "../utils";
 import { onSyncApplied } from "../lib/sync/sync-events";
 
 const STATUS_LABEL: Record<PrayerStatus, string> = {
@@ -57,12 +57,23 @@ export function PrayerTrackerScreen() {
   const [hijriAdjust, setHijriAdjust] = useState(0);
   const today = localISODate(new Date());
 
+  // A generation counter guarding against a sync-triggered reload landing
+  // between two rapid local taps: `load()` fires on every remote sync
+  // completion (`onSyncApplied`), and its reads race the in-flight write a
+  // local tap just kicked off. Each local adjustment bumps this; each
+  // in-flight `load()` read captures the generation it started at and
+  // discards its result if a newer local write has since landed, instead
+  // of clobbering fresher local state with a stale reload.
+  const writeGen = useRef(0);
+
   useEffect(() => {
     function load() {
-      void prayerStore.read().then(setLog);
-      void qadaStore.read().then(setQadaLog);
-      void haidStore.read().then(setHaid);
-      void fastingQadaStore.read().then(setFastingQada);
+      const gen = writeGen.current;
+      const currentGen = () => writeGen.current;
+      void prayerStore.read().then(ignoreStale(currentGen, gen, setLog));
+      void qadaStore.read().then(ignoreStale(currentGen, gen, setQadaLog));
+      void haidStore.read().then(ignoreStale(currentGen, gen, setHaid));
+      void fastingQadaStore.read().then(ignoreStale(currentGen, gen, setFastingQada));
       void getString(KEYS.hijriAdjust).then((raw) => {
         const n = Number(raw);
         if (Number.isFinite(n)) setHijriAdjust(n);
@@ -73,6 +84,7 @@ export function PrayerTrackerScreen() {
   }, []);
 
   function adjustQadaFor(prayer: (typeof OBLIGATORY_PRAYERS)[number], delta: number) {
+    writeGen.current++;
     setQadaLog((prev) => {
       const next = adjustQada(prev, prayer, delta);
       void qadaStore.write(next);
@@ -81,6 +93,7 @@ export function PrayerTrackerScreen() {
   }
 
   function toggleHaid() {
+    writeGen.current++;
     setHaid((prev) => {
       const next = togglePauseToday(prev, today);
       void haidStore.write(next);
@@ -89,6 +102,7 @@ export function PrayerTrackerScreen() {
   }
 
   function adjustFasting(delta: number, owed: number) {
+    writeGen.current++;
     setFastingQada((prev) => {
       const next = adjustFastingMadeUp(prev, delta, owed);
       void fastingQadaStore.write(next);
@@ -97,6 +111,7 @@ export function PrayerTrackerScreen() {
   }
 
   function cycleDate(date: string, prayer: (typeof OBLIGATORY_PRAYERS)[number]) {
+    writeGen.current++;
     setLog((prev) => {
       const next = setPrayerStatus(prev, date, prayer, nextPrayerStatus(statusFor(prev[date], prayer)));
       void prayerStore.write(next);

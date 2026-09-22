@@ -2372,3 +2372,65 @@ No fix needed — this was already exemplary, not merely adequate.
 **Verification:** read-only iteration; prior gate holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 44 — A4 revisited: closing the sync-reload race deferred in iteration 22
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-05`
+
+**Checked:** iteration 4 confirmed the qaḍāʾ stepper itself can't lose a
+rapid tap; iteration 22 (sync edge cases) then found and deliberately
+**deferred** a related race — `PrayerTrackerScreen`'s `load()`, triggered
+on every `onSyncApplied` event, does a plain `store.read().then(setState)`
+for four stores (qada/prayer log/ḥayḍ/fasting), racing an in-flight local
+write. If a sync event's reload resolves *after* a local tap has already
+updated state but the read itself started *before* that tap, the reload
+silently reverts the tap. Iteration 22 didn't fix it because verifying a
+fix seemed to need real multi-device sync timing this environment can't
+reliably simulate.
+
+**Revisited that call and found it was overcautious — the race is pure
+async sequencing, reproducible deterministically without any real
+network or multi-device timing at all.** The failure mode only depends on
+the *order two promises resolve in*, which a unit test can control
+precisely by driving the sequencing directly — no live sync required.
+
+**Fix:** added a generation-counter guard. Every local write
+(`adjustQadaFor`, `toggleHaid`, `adjustFasting`, `cycleDate`) bumps a
+`writeGen` ref; `load()`'s four reads each capture the generation they
+were dispatched at and discard their result if a newer local write has
+landed by the time they resolve, instead of overwriting fresher state
+with a stale reload. Extracted the guard itself as a small, pure,
+directly-testable helper —
+[`ignoreStale`](apps/mobile/src/utils.ts) — rather than leaving it
+inline, matching this codebase's existing convention of pulling
+reusable pure logic into `utils.ts` (this project has no
+component-rendering test infrastructure at all, so a pure extraction was
+the only way to get real, precise coverage of the exact mechanism without
+introducing a new, precedent-setting test harness for one fix).
+
+**Added three tests** to
+[`utils.test.ts`](apps/mobile/src/utils.test.ts): the normal case
+(no race, value applies), the exact race iteration 22 described (a local
+write lands between an async call's dispatch and resolution — the stale
+result is discarded), and confirmation that a *later* reload dispatched
+after the write still applies normally (the guard doesn't get stuck
+rejecting everything after one write).
+
+**Verification:** `pnpm lint` clean (after fixing one `prefer-const`
+catch on a first draft), `pnpm --filter @ummahlibrary/mobile typecheck`
+clean, `pnpm --filter @ummahlibrary/mobile test` — 136/136 passing (133
+prior + 3 new), including the precise race scenario. Attempted a live
+click-through of `PrayerTrackerScreen` in the browser preview to sanity-
+check the common (non-racing) tap/reload paths still behave normally;
+the preview session's navigation state was unreliable this run (stale
+element references, one stale-bundle false alarm from tab reuse resolved
+by a hard reload) and I couldn't complete it cleanly within reasonable
+effort — noting this honestly rather than claiming a click-through that
+didn't actually finish. The deterministic unit tests are the real
+verification for this fix; they exercise the exact mechanism precisely,
+which a live click couldn't do anyway (reproducing millisecond-scale
+promise-ordering by hand isn't practical either way).
+
+**Commit:** `apps/mobile/src/screens/PrayerTrackerScreen.tsx`,
+`apps/mobile/src/utils.ts`, `apps/mobile/src/utils.test.ts`.

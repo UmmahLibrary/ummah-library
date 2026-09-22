@@ -3,6 +3,7 @@ import {
   adhkarToday,
   fmtCountdown,
   fmtPrayerTime,
+  ignoreStale,
   localISODate,
   weekdayOfGregorian,
 } from "./utils";
@@ -111,5 +112,39 @@ describe("weekdayOfGregorian", () => {
   it("is consistent across DST boundaries", () => {
     // Uses UTC internally, so it never drifts at clock-change midnight
     expect(weekdayOfGregorian(2025, 3, 30)).toBe(0); // 30 Mar 2025 is Sunday (EU DST start)
+  });
+});
+
+describe("ignoreStale", () => {
+  it("applies the value when no write landed since dispatch", () => {
+    const gen = 0;
+    const seen: number[] = [];
+    const wrapped = ignoreStale(() => gen, gen, (v: number) => seen.push(v));
+    wrapped(5);
+    expect(seen).toEqual([5]);
+  });
+
+  it("discards the value when a newer write landed before it resolved", () => {
+    // Simulates the exact race: a reload is dispatched (captures gen=0),
+    // a local write lands before the reload resolves (bumps gen to 1),
+    // then the reload's now-stale result arrives.
+    let gen = 0;
+    const dispatchGen = gen; // captured when the async read was dispatched
+    const seen: number[] = [];
+    const wrapped = ignoreStale(() => gen, dispatchGen, (v: number) => seen.push(v));
+
+    gen++; // a local write happens before the reload resolves
+    wrapped(999); // the reload's stale result arrives
+
+    expect(seen).toEqual([]); // discarded, not applied — the local write wins
+  });
+
+  it("a second reload dispatched after the write still applies normally", () => {
+    let gen = 0;
+    const seen: number[] = [];
+    gen++; // local write
+    const wrapped = ignoreStale(() => gen, gen, (v: number) => seen.push(v)); // fresh reload, current gen
+    wrapped(42);
+    expect(seen).toEqual([42]);
   });
 });
