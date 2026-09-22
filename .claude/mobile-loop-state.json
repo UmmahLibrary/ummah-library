@@ -1,15 +1,10 @@
 {
-  "iteration": 29,
+  "iteration": 30,
   "cycle": 1,
-  "perspectiveIndex": 30,
+  "perspectiveIndex": 31,
   "batch": "mobile-stabilization-03",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 26,
-      "perspective": "B27 - Screen-reader labels and focus order",
-      "outcome": "GAPS FOUND AND FIXED"
-    },
     {
       "iteration": 27,
       "perspective": "B28 - Touch target sizing (44dp)",
@@ -18,12 +13,17 @@
     {
       "iteration": 28,
       "perspective": "B29 - Noor theme switching consistency",
-      "outcome": "GAP FOUND AND FIXED: WCAG contrast failure on CTA buttons"
+      "outcome": "GAP FOUND AND FIXED: WCAG contrast failure"
     },
     {
       "iteration": 29,
-      "perspective": "B30 - Asset loading fallback (icons, interrupted offline audio downloads)",
-      "outcome": "GAP FOUND AND FIXED: an interrupted audio download leaves a truncated file at the final path (expo-file-system streams directly to destination, no temp+rename, and this version's File API has no move method at all). has()/localUrl() only check existence not validity, so a corrupt file looked permanently 'downloaded'. Fixed by cleaning up dest on a caught failure; added a regression test distinct from the existing clean-failure test. Honest residual gap noted: can't catch a hard process kill, and a pre-existing corrupt file (from before this fix, or from that uncatchable case) would still be silently trusted - documented as a known limitation, not over-engineered around."
+      "perspective": "B30 - Asset loading fallback (interrupted audio downloads)",
+      "outcome": "GAP FOUND AND FIXED: corrupt-file cleanup on interrupted download"
+    },
+    {
+      "iteration": 30,
+      "perspective": "B31 - Navigation stack edge cases (deep stacks, tab switch mid-flow, duplicate pushes)",
+      "outcome": "clean - zero navigation.push() usage anywhere (all navigate(), the duplicate-safe default), combined with iteration 8's no-custom-stack-manipulation finding. Live-verified: rapid triple-tap didn't duplicate-push, tab switch mid-flow correctly preserved and restored reader state."
     }
   ]
 }

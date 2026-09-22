@@ -1560,3 +1560,42 @@ pre-existing warnings.
 
 **Commit:** `fix(mobile): clean up a partially-downloaded audio file
 instead of leaving it looking saved`.
+
+---
+
+## Iteration 30 — Navigation stack edge cases (deep back stacks, tab switch mid-flow, duplicate pushes)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** whether rapid double/triple-tapping a navigation link
+duplicates a screen on the stack, whether switching tabs mid-flow loses a
+nested stack's position, and (structurally) whether deep back stacks have
+anything app-specific that could break them.
+
+**Clean, on strong structural evidence plus direct live testing.**
+`grep -rn "navigation.push(\|nav.push("` across all of `apps/mobile/src`
+returns nothing — every navigation call uses `navigate()`, not `push()`,
+which is the duplicate-safe default in React Navigation (navigating to a
+route already in the stack focuses the existing instance rather than
+stacking a second one). Combined with [iteration 8](#iteration-8--android-hardware-back-button-handling-on-every-screenmodal)'s
+finding that nothing in this codebase does any custom stack manipulation,
+there's no app-specific mechanism that could produce a duplicate push or
+corrupt a deep stack — the library's own well-established default handles
+all three named scenarios.
+
+**Live-verified via `preview_start({name: "mobile"})`, not just inferred
+from the grep:**
+- **Duplicate pushes:** triple-clicked the same surah row on `SurahList`
+  with no delay between clicks — landed on that surah once, and a single
+  tap on the back arrow returned directly to `SurahList` (not to another
+  instance of the same surah, which is what a duplicate push would have
+  produced).
+- **Tab switch mid-flow:** opened `Al-Baqara` in the Read tab, switched to
+  the Tools tab, switched back to Read — landed exactly back on
+  `Al-Baqara`'s reader, in the same reading mode ("Reading" view, word
+  transliteration still on) it was left in, confirming React Navigation's
+  per-tab state preservation works correctly here with nothing overriding
+  it.
+
+**Commit:** none (clean iteration; no code changes).
