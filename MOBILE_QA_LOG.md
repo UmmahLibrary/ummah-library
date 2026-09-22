@@ -4940,3 +4940,68 @@ source changed, so the lint/typecheck/test gate wasn't re-run (nothing
 to regress; tree was green from iteration 87 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 89 — B11, cycle 3: cold start/splash, a rejected-promise hypothesis ruled out and a real splash/theme mismatch found
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 10](#iteration-10--cold-start-time-and-splash-screen-timing)
+added the `preventAutoHideAsync`/`hideAsync` fix in the first place;
+[iteration 50](#iteration-50--b11-revisited-the-errorboundary-can-leave-the-splash-screen-stuck-forever-closes-out-batch-5)
+found and fixed the specific gap where a crash *above* `AppGate` in the
+provider tree left the splash stuck forever, since `hideAsync()` only
+lived in `AppGate`'s own effect. Neither checked the **other** way
+`onboarded` could stay `null` forever without a render-phase crash: a
+rejected `getString()` promise, which `ErrorBoundary` can't catch
+either (it only catches render-phase errors, not a promise rejection
+inside a `useEffect`).
+
+**Hypothesis ruled out by reading the actual implementation, not
+assumed safe.** `storage.ts`'s `getString()` already wraps
+`AsyncStorage.getItem` in try/catch and returns `null` on any failure
+— it can never reject. `AppGate`'s
+`getString(KEYS.onboarded).then((v) => setOnboarded(v === "1"))` is
+therefore provably safe: the promise it awaits always resolves, so
+`onboarded` can never get stuck at `null` from this path. Combined
+with iteration 50's crash-path fix and the existing `fontError`
+fallback in `App()`, every startup gate this screen depends on is now
+confirmed to always eventually resolve one way or another.
+
+**Found and precisely characterized a real, separate gap — not the
+"stuck forever" class, but a cosmetic cold-start mismatch that's
+existed since iteration 10's very first fix, not introduced by any
+later change.** `app.json`'s `splash.backgroundColor` is a single
+static `#0b0f0e` (Obsidian's dark background) with no light-mode
+variant, but `theme.tsx` has always defaulted the first-run Noor theme
+from `Appearance.getColorScheme()` — a device in light mode boots
+straight into the light Ivory theme. Native splash is dark on every
+device regardless; a light-mode user's cold start is native dark
+splash → (briefly) whatever paints before the theme resolves → light
+Ivory content, a color flash in the opposite direction from the blank-
+flash iteration 10 originally fixed.
+
+**Confirmed this is actually fixable, not just a limitation, but needs
+an asset this loop can't create.** Read
+`node_modules/expo-splash-screen/plugin/build/withSplashScreen.js`
+directly: this installed version's config plugin *does* support a
+per-theme `dark: { image, backgroundColor }` override — but only when
+`app.json`'s `expo-splash-screen` plugin entry uses the new props-object
+form; this app still has it as a bare string (`"expo-splash-screen"`,
+no config), which falls back to the legacy single-splash path with no
+dark-mode branch at all. Closing this for real needs a light-colored
+splash asset (an actual image file) this loop has no business
+generating for a shipping app icon/splash — logged precisely, with the
+exact plugin capability and config shape needed, rather than left as a
+vague "maybe fixable someday" note.
+
+**Verification:** targeted code-reading audit (`storage.ts`,
+`App.tsx`, `theme.tsx`, `app.json`,
+`node_modules/expo-splash-screen/plugin/build/withSplashScreen.js`);
+no source changed, so the lint/typecheck/test gate wasn't re-run
+(nothing to regress; tree was green from iteration 88 immediately
+prior).
+
+**Commit:** none (clean iteration; only this log entry and state).

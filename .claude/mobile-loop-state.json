@@ -1,15 +1,10 @@
 {
-  "iteration": 88,
+  "iteration": 89,
   "cycle": 3,
-  "perspectiveIndex": 9,
+  "perspectiveIndex": 10,
   "batch": "mobile-stabilization-09",
-  "consecutiveCleanIterations": 2,
+  "consecutiveCleanIterations": 3,
   "history": [
-    {
-      "iteration": 85,
-      "perspective": "A6, cycle 3 - khatm completion, checked for a sync-comment bug and found one",
-      "outcome": "GAP FOUND AND FIXED: sync-keys.ts's exclusion comment named the wrong pair of keys. Rewrote with explicit key names."
-    },
     {
       "iteration": 86,
       "perspective": "A7/A8, cycle 3 - Zakat, a real cross-field race found in setAsset",
@@ -23,7 +18,12 @@
     {
       "iteration": 88,
       "perspective": "B10, cycle 3 - deep links, chasing down the plans/:id question iteration 9 deferred",
-      "outcome": "OUT OF SCOPE, precisely characterized: confirmed via web's PlanDetailView that plans/:id genuinely selects a catalogue template on web (preview+start), but mobile's PlanDetailScreen ignores :id entirely, always showing the active plan. Mobile has the underlying feature (PlansScreen's template browsing) just not wired to this route. Real feature-parity gap requiring a product decision, logged precisely rather than built."
+      "outcome": "OUT OF SCOPE, precisely characterized: plans/:id ignores the id on mobile, a real feature-parity gap vs web's template preview/start flow. Logged for a product decision."
+    },
+    {
+      "iteration": 89,
+      "perspective": "B11, cycle 3 - cold start/splash, a rejected-promise hypothesis ruled out, a splash/theme mismatch found",
+      "outcome": "HYPOTHESIS RULED OUT (getString can never reject, proven from source) + OUT OF SCOPE finding: splash.backgroundColor is static dark with no light-mode variant despite theme.tsx defaulting to light Ivory on light-mode devices. Confirmed the installed expo-splash-screen version supports a dark: variant but app.json doesn't use the props-object form needed, and fixing needs a light splash asset this loop can't generate. Logged precisely."
     }
   ]
 }
