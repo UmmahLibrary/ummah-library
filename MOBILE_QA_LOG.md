@@ -433,3 +433,68 @@ before (none new, none on the changed lines' logic).
 
 **Commit:** `fix(mobile): don't persist an out-of-range surah from a
 malformed deep link`.
+
+---
+
+## Iteration 10 — Cold start time and splash screen timing
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-01`
+
+**Checked:** what the user sees between the OS launching the app and the
+first real screen rendering.
+
+**Found and fixed a real gap:** `App.tsx` has two sequential async startup
+gates that each render `null` (nothing) while pending — `useFonts(fontMap)`
+in `App()`, then a `getString(KEYS.onboarded)` read in `AppGate()`. Neither
+`expo-splash-screen` nor any call to `preventAutoHideAsync`/`hideAsync`
+existed anywhere in the app (not even installed as a dependency), so Expo's
+default behavior applies: the native splash auto-hides as soon as the first
+JS frame paints, which for this app is well before either gate resolves.
+Net effect: native splash → **blank screen** for however long fonts +
+the storage read take → onboarding or home screen. A blank flash between
+splash and content is exactly the kind of thing App Store/Play Store
+reviewers and users alike read as "janky."
+
+**Fix:**
+- `pnpm --filter @ummahlibrary/mobile add expo-splash-screen` (via
+  `npx expo install`, so it resolved the SDK-54-matched version, `~31.0.13`)
+  and added it to `app.json`'s `plugins` array alongside the app's other
+  native-config packages.
+- [`App.tsx`](apps/mobile/App.tsx): `SplashScreen.preventAutoHideAsync()` at
+  module scope (swallowed with `.catch(() => {})`, matching this codebase's
+  existing convention for platform APIs that might not exist — see web's
+  `qada.ts` `emit()`), and `AppGate` now calls `SplashScreen.hideAsync()` in
+  a `useEffect` once `onboarded !== null`. `AppGate` only ever mounts after
+  `fontsLoaded` is already true (it's gated behind that in `App()`), so
+  hiding on the onboarding-resolved signal correctly covers both async
+  gates without lifting state or restructuring the component tree.
+- Deliberately left the existing root-level `"splash"` image/color config in
+  `app.json` untouched — this change only controls *when* the already-
+  configured native splash hides, not what it looks like, so there was no
+  reason to touch or risk that part.
+
+**Verification, and its limits, stated plainly:** `pnpm --filter
+@ummahlibrary/mobile typecheck` and `test` (116/116) pass; `pnpm lint` — 0
+errors, same 13 pre-existing warnings. Confirmed the RN-web preview still
+boots and renders normally with the change
+(`preview_start({name: "mobile"})`). **What I could not verify:** actual
+native splash-hide timing on a real device — `expo-splash-screen` has no
+meaningful web behavior (there's no native splash to control there), so
+this environment can't observe the fix doing its job. The implementation
+follows Expo's own documented `preventAutoHideAsync`/`hideAsync` pattern
+exactly; confirming it visually needs an Android/iOS build, which isn't
+available here.
+
+**Unrelated, pre-existing console error noticed while verifying, not
+investigated:** both before and after this change, the web preview logs
+`TypeError: this.validatePath is not a function` plus a 404 resource load
+failure on every cold load (confirmed identical on the pre-change code via
+`git stash`). Something (likely an Expo web shim for a native-only module —
+not `expo-splash-screen`, since it reproduces without that package too)
+probes a path that 404s on web. Doesn't visibly break anything tested so
+far; flagging for whichever later iteration covers general error-console
+hygiene rather than chasing it now.
+
+**Commit:** `feat(mobile): keep the splash screen up until fonts and the
+onboarding check are ready`.

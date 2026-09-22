@@ -1,20 +1,10 @@
 {
-  "iteration": 9,
+  "iteration": 10,
   "cycle": 1,
-  "perspectiveIndex": 10,
+  "perspectiveIndex": 11,
   "batch": "mobile-stabilization-01",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 6,
-      "perspective": "A6 - Khatm 604/604 completion state",
-      "outcome": "clean - mobile already has a dedicated completion UI web still lacks"
-    },
-    {
-      "iteration": 7,
-      "perspective": "A7/A8 - Zakat reset-wipes-prices / negative amounts (cross-reference)",
-      "outcome": "already covered in iteration 2"
-    },
     {
       "iteration": 8,
       "perspective": "B9 - Android hardware back-button handling",
@@ -23,8 +13,14 @@
     {
       "iteration": 9,
       "perspective": "B10 - Deep link (ummahlibrary://) handling, including malformed links",
-      "outcome": "BUG FOUND AND FIXED: setLastRead(n) fired before validation in SurahReaderScreen, letting a malformed deep link (e.g. surah/9999) poison the persisted continue-reading surah. Fixed by gating it with the same validity check used two lines below. Live-verified both the fix and the regression case.",
-      "notableFinding": "PlanDetailScreen ignores route.params.id entirely (single active-plan model per ADR 0025) - deep links to a specific non-active plan don't target it; may be intentional, not investigated further. MushafPageScreen briefly shows 'Page NaN' in header title on malformed input - cosmetic only, not fixed."
+      "outcome": "BUG FOUND AND FIXED: setLastRead(n) fired before validation, letting a malformed deep link poison the persisted continue-reading surah. Fixed and live-verified both directions.",
+      "notableFinding": "PlanDetailScreen ignores route.params.id (single active-plan model); MushafPageScreen flashes 'Page NaN' in header title on malformed input, cosmetic only"
+    },
+    {
+      "iteration": 10,
+      "perspective": "B11 - Cold start time and splash screen timing",
+      "outcome": "GAP FOUND AND FIXED: no expo-splash-screen orchestration meant the native splash could auto-hide before fonts/onboarding-check resolved, leaving a blank flash. Added expo-splash-screen + preventAutoHideAsync/hideAsync gated on AppGate's onboarded resolution. Typecheck/test/lint clean; native splash-hide timing itself unverifiable without a device build, stated honestly.",
+      "notableFinding": "Pre-existing, unrelated console error ('this.validatePath is not a function' + a 404) reproduces on both old and new code (confirmed via git stash) - flagged for a later error-console-hygiene pass, not investigated now."
     }
   ]
 }

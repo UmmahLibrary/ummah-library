@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AppState, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   DarkTheme,
@@ -31,6 +32,12 @@ import { emitSyncApplied } from "./src/lib/sync/sync-events";
 import type { RootStackParamList } from "./src/navigation/types";
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
+
+// Keep the native splash up past the first JS frame — otherwise Expo
+// auto-hides it as soon as something paints, which for this app is a blank
+// screen (fonts + the onboarding-seen check below are both still pending
+// async work at that point). AppGate calls hideAsync() once both resolve.
+void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /** URL routes for the web build and OS deep links (ummahlibrary://). */
 const linking: LinkingOptions<RootStackParamList> = {
@@ -133,6 +140,11 @@ function AppGate() {
   useEffect(() => {
     void getString(KEYS.onboarded).then((v) => setOnboarded(v === "1"));
   }, []);
+  // AppGate only mounts once fonts are already loaded (see App() below), so
+  // resolving here is also the signal that every startup gate is clear.
+  useEffect(() => {
+    if (onboarded !== null) void SplashScreen.hideAsync().catch(() => {});
+  }, [onboarded]);
   if (onboarded === null) return null;
   if (!onboarded) {
     return (
