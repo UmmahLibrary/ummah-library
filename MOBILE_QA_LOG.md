@@ -188,3 +188,51 @@ choice, not a mobile-specific defect. Not logging it as a bug.
 already confirmed green.
 
 **Commit:** none (clean iteration).
+
+---
+
+## Iteration 4 — Qada +/− stepper race condition under rapid taps
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-01`
+
+**Checked:** whether tapping a qaḍāʾ stepper rapidly loses counts, the way
+[`WEB_QA_LIVE_BROWSER_REPORT.md`](WEB_QA_LIVE_BROWSER_REPORT.md) bug #2
+found on web (3 quick clicks → "1 owed" instead of "3").
+
+**Result: clean, not reproducible, confirmed by both code and live rapid
+taps.** [`PrayerTrackerScreen.tsx`](apps/mobile/src/screens/PrayerTrackerScreen.tsx)'s
+`adjustQadaFor`/`adjustFasting` both use the safe pattern the web bug report
+itself recommended: `setQadaLog((prev) => { const next = adjustQada(prev, …);
+void qadaStore.write(next); return next; })` — the next value is always
+derived from React's own `prev`, never from a fresh `store.read()`, so
+taps landing faster than an AsyncStorage round-trip can't race each other.
+`mobileQadaStore`/`mobileFastingQadaStore` are plain read/write adapters
+with no intermediate async wrapper to race through (web's actual bug was in
+a since-removed `adjustQadaCount` in `apps/web/src/lib/qada.ts` — that file
+now carries a doc comment explaining exactly why it was rewritten to this
+same prev-based pattern, so the web side looks already fixed too, just not
+yet reflected in that report).
+
+**Live-verified** via `preview_start({name: "mobile"})`: 3 rapid clicks on
+the Fajr "+" on `/tools/prayer-tracker` → **3 owed**, not 1.
+
+**Adjacent finding, deferred to iteration 23 (sync edge cases), not acted on
+now:** `PrayerTrackerScreen` also calls `load()` — a full
+`qadaStore.read().then(setQadaLog)` (and the same for the prayer log, ḥayḍ,
+and fasting-qaḍāʾ stores) — every time `onSyncApplied` fires
+([`sync-events.ts`](apps/mobile/src/lib/sync/sync-events.ts)), i.e. whenever
+a remote sync pull lands. Unlike a local tap, that's a genuine stale-read
+risk: if a sync pull resolves *between* two rapid local taps, `setQadaLog`
+gets called with whatever was in storage at read time, and a later tap's
+functional updater would then derive `next` from that (possibly stale)
+value instead of the most recent optimistic one — a real, if narrow,
+lost-tap window, but only when sync is on and a remote change lands
+mid-interaction, which is a different mechanism than the web bug this
+iteration targeted. Not fixing speculatively; flagged here so the sync-focused
+iteration investigates whether `load()` should merge rather than clobber, or
+skip re-reading stores the user is actively mutating.
+
+**Verification:** no code changed; nothing to re-run.
+
+**Commit:** none (clean iteration).

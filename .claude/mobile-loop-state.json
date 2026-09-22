@@ -1,9 +1,9 @@
 {
-  "iteration": 3,
+  "iteration": 4,
   "cycle": 1,
-  "perspectiveIndex": 3,
+  "perspectiveIndex": 4,
   "batch": "mobile-stabilization-01",
-  "consecutiveCleanIterations": 2,
+  "consecutiveCleanIterations": 3,
   "history": [
     {
       "iteration": 1,
@@ -22,6 +22,12 @@
       "perspective": "A3 - Tasbih per-phrase counter (mobile's opposite bug from web)",
       "outcome": "clean, verified live; per-phrase progress correctly isolated via TasbihRecord.phrases map in core",
       "notableFinding": "none new; confirmed Total-today-is-per-phrase-not-aggregate matches web's intentional design, not a bug"
+    },
+    {
+      "iteration": 4,
+      "perspective": "A4 - Qada +/- stepper race condition under rapid taps",
+      "outcome": "clean, verified live with 3 rapid taps producing 3 owed; safe functional-updater pattern used throughout",
+      "notableFinding": "onSyncApplied(load) re-reads qada/prayer/haid/fasting stores wholesale on every sync pull, which COULD clobber an in-flight optimistic tap if a remote sync lands mid-interaction - deferred to iteration 23 (sync edge cases), not the same mechanism as this iteration's target bug"
     }
   ]
 }
