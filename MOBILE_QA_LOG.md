@@ -2296,3 +2296,43 @@ typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` — 133/133
 passing (131 prior + 2 new).
 
 **Commit:** `apps/mobile/src/utils.test.ts`.
+
+## Iteration 42 — A2 revisited: extending Zakat's sanitization check app-wide
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-05`
+
+**Checked:** iteration 2 confirmed Zakat's own fields are sanitized
+correctly; the catalogue item also asks to "extend the same class of
+check to every other numeric input" app-wide, which iteration 2 didn't
+do. This pass did that sweep.
+
+**Exhaustive result: Zakat's four fields are the *only* free-text numeric
+inputs in the entire mobile app.** Grepped every `TextInput` in
+`apps/mobile/src/screens` and `components` (8 files) — every other
+free-text field is non-numeric (search queries, collection/note names, a
+recovery phrase). Every other numeric *value* in the app (qada counts,
+tasbih, prayer tracker, reading-goal pages) is entered via steppers or
+toggles, never free text — a design choice that structurally avoids this
+whole bug class rather than needing a sanitizer to catch it after the
+fact. This wasn't obviously true going in; confirming it required
+actually finding and reading every `TextInput` site, not assuming.
+
+**Investigated a plausible-sounding concern, then ruled it out with
+evidence rather than assuming either way.** `sanitizeDecimal` only keeps
+`[0-9.]`, silently dropping a comma — a real problem in a comma-decimal
+locale (many European/Middle Eastern locales use "," not "." for
+decimals), which would silently turn "75,5" into "755", a wrong Zakat
+figure. Checked: (1) mobile's implementation is byte-identical to web's
+`sanitizeAmount` — not a mobile-specific gap, so there's no web fix to
+mirror; (2) more importantly, all four fields use
+`keyboardType="decimal-pad"`, and both iOS's and Android's native
+decimal-pad keyboards only offer digits and "." regardless of device
+locale — a user literally cannot type a comma through this app's own UI
+on mobile. The theoretical concern doesn't apply here; no fix needed, and
+none manufactured.
+
+**Verification:** read-only iteration (no code changed beyond
+confirming); prior gate (133/133 mobile tests) holds.
+
+**Commit:** none (clean iteration; no code changes).
