@@ -2159,3 +2159,82 @@ didn't happen. The change itself mirrors the file's own existing,
 already-verified `denied`/`error` retry-chip pattern exactly.
 
 **Commit:** `apps/mobile/src/screens/MosqueFinderScreen.tsx`.
+
+## Iteration 40 — Test coverage audit (closes out batch 4)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** which `apps/mobile/src` modules have no matching `.test.ts`
+file, then judged each one on whether that's a real gap or just a
+correctly-thin file whose logic is actually tested elsewhere.
+
+**Most "untested" files are false positives, verified rather than
+assumed.** A dozen store files (`qada-store.ts`, `haid-store.ts`,
+`tasbih-store.ts`, `plan-store.ts`, etc.) have no dedicated test file, but
+each is a 3-line `read`/`write` pass-through to the shared `getJSON`/
+`setJSON` primitives (ADR 0024 port pattern — persistence only, the real
+logic lives in `@ummahlibrary/core`), and
+[`stores-corrupt.test.ts`](apps/mobile/src/stores-corrupt.test.ts)
+already exercises every one of them for the corrupt-value path. A
+dedicated test per store would just re-test `getJSON` under a different
+key name — no real coverage gained.
+
+**Found and fixed the actual gap: the shared primitive underneath every
+one of those stores had zero direct test file.**
+[`storage.ts`](apps/mobile/src/storage.ts) — `getJSON`/`setJSON`/
+`getString`/`setString` plus four validator predicates
+(`isObjectRecord`/`isFiniteNumber`/`isStringArray`/`isBoolean`) used
+throughout the app to guard every read — had never been tested directly.
+`stores-corrupt.test.ts` only exercises the "wrong shape" branch through
+each store's specific key; it never covers **malformed JSON**
+(`JSON.parse` throwing), **a throwing `AsyncStorage.setItem`** (device
+storage full — `setJSON`/`setString` are supposed to swallow this
+silently rather than crash a caller, per the `try/catch` in the source,
+but nothing asserted that), or the validator predicates' own edge cases
+(`NaN`/`Infinity` for `isFiniteNumber`, a mixed-type array for
+`isStringArray`, `null`/array for `isObjectRecord`).
+
+**Added** [`storage.test.ts`](apps/mobile/src/storage.test.ts) (14 new
+tests, same in-memory `AsyncStorage` mock pattern as
+`stores-corrupt.test.ts`): `getJSON`'s three fallback paths (missing key,
+malformed JSON, validator rejection) plus its two success paths,
+`setJSON`/`setString` actually swallowing a write failure (asserted, not
+assumed), `getString`/`setString` round-tripping, and every validator's
+accept/reject boundary.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` — 131/131
+passing (117 prior + 14 new).
+
+**Commit:** `apps/mobile/src/storage.test.ts` (new).
+
+---
+
+## Batch 4 summary (iterations 31–40, branch `mobile-stabilization-04`)
+
+Ten iterations, seven with real fixes, three clean-but-thoroughly-verified:
+
+- **31:** added the app's first-ever error boundary — a render crash
+  anywhere used to blank the whole app with no recovery.
+- **32:** Android release builds had R8 minification and resource
+  shrinking both off; enabled via `expo-build-properties`.
+- **33:** stripped an unused, Play-Store-scrutinized `SYSTEM_ALERT_WINDOW`
+  permission from the release manifest.
+- **34–35:** a genuine correction loop — iteration 34's claims about the
+  privacy policy were wrong (caught and fixed in 35), and along the way
+  found the privacy policy itself was stale relative to the shipped sync
+  feature (fixed) and that there's no server-side sync-data deletion
+  capability anywhere (logged for the owner, not built — architectural).
+- **36:** empty/loading states audited clean across every data-fetching
+  screen.
+- **37:** synced one wording drift between mobile and web.
+- **38:** push notification content audited clean (shared, tested code).
+- **39:** mosque-finder distance math and permission fallback confirmed
+  solid; found (and deliberately did not reverse) a tested tradeoff where
+  a degraded Overpass response reads as "no mosques found," and added a
+  retry affordance either way.
+- **40:** closed a real test-coverage gap in the shared storage primitive
+  every store in the app depends on.
+
+Full detail for each is above, under its own `## Iteration N` heading.
