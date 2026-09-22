@@ -252,7 +252,7 @@ export function SearchScreen({ navigation }: Props) {
           autoCorrect={false}
         />
         {query.length > 0 && (
-          <Pressable onPress={() => run("")} hitSlop={8}>
+          <Pressable onPress={() => run("")} hitSlop={8} accessibilityLabel="Clear search">
             <Text style={styles.clear}>✕</Text>
           </Pressable>
         )}

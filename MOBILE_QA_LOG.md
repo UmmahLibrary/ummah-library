@@ -1315,3 +1315,55 @@ scale accessibility setting via an emulator), which isn't available here.
 
 **Commit:** `fix(mobile): cap AyahBadge's number so it doesn't overflow at
 large accessibility text scale`.
+
+---
+
+## Iteration 26 — Screen-reader labels and focus order on every screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** every icon-only interactive element across every screen and
+component for a missing `accessibilityLabel` — the pattern that leaves a
+button meaningless (or silently unannounced) to TalkBack/VoiceOver.
+Delegated the sweep to a research agent covering all 30 screens + 12
+components, since exhaustively reading every `Pressable` by hand doesn't
+scale well to a file count this size; verified its findings directly rather
+than trusting the summary blind.
+
+**Result: the codebase is already largely accessible — only 3 genuine
+gaps found, all fixed and live-verified through the real accessibility
+tree.**
+
+- **`PrayerTimesScreen.tsx`** — the per-prayer reminder bell (×5,
+  Fajr/Dhuhr/Asr/Maghrib/Isha) had `accessibilityRole="switch"` and
+  `accessibilityState` but no `accessibilityLabel`, so TalkBack would
+  announce just "bell, switch, on/off" with no indication of *which*
+  prayer. The near-identical toggle in `HijriCalendarScreen.tsx` already
+  had the correct pattern — this one just hadn't been brought in line.
+  Fixed to match:
+  `` `${reminders[name] ? "Turn off" : "Turn on"} reminder for ${PRAYER_LABELS[name]}` ``.
+- **`TranslationManager.tsx`** and **`SearchScreen.tsx`** — both use a
+  bare `"✕"` `Text` glyph (not the `Icon` component, so technically outside
+  the agent's original search scope, but the same underlying gap) as the
+  sole content of a `Pressable` — the modal-close button and the search-
+  clear button. Added `accessibilityLabel="Close"` and `accessibilityLabel="Clear search"`
+  respectively. Checked for more of the same bare-glyph pattern
+  (`grep '>✕<'`) — one more hit in `CollectionsScreen.tsx`, already
+  correctly labelled (`` `Remove ${key}` ``), so not a gap.
+
+**Live-verified through the actual accessibility tree**, not just visually,
+via `preview_start({name: "mobile"})` and `read_page`: after injecting
+`ul.prayerCoords` directly into storage to reach the live prayer list
+(this sandbox can't grant a real geolocation permission), the tree now
+reports `switch "Turn on reminder for Fajr"`,
+`switch "Turn on reminder for Dhuhr"`, etc. for all five prayers;
+`generic "Clear search"` appears on `SearchScreen` once a query is typed;
+`generic "Close"` appears on the Translations modal. This is the strongest
+verification available short of a real screen reader — the accessibility
+tree is exactly what TalkBack/VoiceOver read from.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass; `pnpm lint` — 0 errors, same 13 pre-existing warnings.
+
+**Commit:** `fix(mobile): add missing accessibilityLabels to 3 icon/glyph-only buttons`.
