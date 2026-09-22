@@ -3926,3 +3926,65 @@ to exercise (stated here rather than skipped silently).
 
 **Commit:** `apps/mobile/app.json`, `apps/mobile/package.json`,
 `pnpm-lock.yaml` (adds `expo-system-ui`).
+
+---
+
+## Iteration 73 — Cycle 2, B34 revisited: EAS build config correctness, re-verified after two batches of new plugins
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** whether [iteration 33](#iteration-33--eas-build-config-correctness)'s
+three findings (`eas.json`'s production profile, the
+`ITSAppUsesNonExemptEncryption` declaration, and the blocked-permission
+fix for `SYSTEM_ALERT_WINDOW`) still hold — genuinely worth re-checking
+rather than assumed, since `expo-build-properties` (iteration 32) and
+`expo-system-ui` (iteration 72, immediately prior) were both added to
+`app.json`'s `plugins` afterward, and either could in principle have
+pulled in its own permissions or altered the merged manifest.
+
+**`eas.json` unchanged and still correct:** `production.android.buildType:
+"app-bundle"`, `autoIncrement: true`, `preview` profile building an
+internal-distribution APK — identical to iteration 33's reading, no
+drift.
+
+**Re-ran the actual verification iteration 33 used, not just re-read its
+conclusion.** A fresh `expo prebuild --platform android --no-install`
+now completes with **zero warnings at all** (confirming iteration 72's
+`expo-system-ui` fix closed that warning for good, not just for one
+run) and the merged `AndroidManifest.xml`'s permission list is
+byte-for-byte the same set iteration 33 found:
+`ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION`, `INTERNET`,
+`MODIFY_AUDIO_SETTINGS`, `POST_NOTIFICATIONS`, `READ_EXTERNAL_STORAGE`,
+`VIBRATE`, `WRITE_EXTERNAL_STORAGE`, plus `RECORD_AUDIO` and
+`SYSTEM_ALERT_WINDOW` both still correctly marked
+`tools:node="remove"`. Neither `expo-build-properties` nor
+`expo-system-ui` introduced anything new — both are build-time/resource
+config only, no runtime permissions of their own, confirmed rather than
+assumed.
+
+**Re-confirmed the encryption-export declaration against today's actual
+crypto imports**, not the ones recorded in the log two batches ago:
+`noble-cipher.ts` still imports exactly the same five primitives
+(AES-GCM, HKDF, HMAC, PBKDF2, SHA-256) iteration 33 checked — no new
+crypto surface was added by the sync-hardening work in iterations 61–62
+or elsewhere this cycle. `ITSAppUsesNonExemptEncryption: false` remains
+accurate.
+
+**Deliberately left alone (in scope for the next perspective, not this
+one):** the `READ_EXTERNAL_STORAGE`/`WRITE_EXTERNAL_STORAGE` permissions
+iteration 33 explicitly deferred to "a future 'permissions
+justification' pass (perspective B35)" — that's literally next
+iteration's perspective in the catalogue; picking it up here would just
+be working ahead rather than deepening *this* one.
+
+**Clean — re-verification holds, no regressions introduced by two
+batches of new build-time plugins.** No code change.
+
+**Verification:** live `expo prebuild --platform android --no-install`
+manifest re-check (above); no source changed so the lint/typecheck/test
+gate wasn't re-run (nothing to regress; tree was green from iteration
+72 immediately prior). Removed the freshly-generated, gitignored
+`android/` directory afterward.
+
+**Commit:** none (clean iteration; only this log entry and state).

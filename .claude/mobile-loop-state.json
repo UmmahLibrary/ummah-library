@@ -1,15 +1,10 @@
 {
-  "iteration": 72,
+  "iteration": 73,
   "cycle": 2,
-  "perspectiveIndex": 32,
+  "perspectiveIndex": 33,
   "batch": "mobile-stabilization-08",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 69,
-      "perspective": "Cycle 2, B30 revisited - asset/offline-audio loading fallback, finishing iteration 29's deferred follow-up",
-      "outcome": "GAP FOUND AND FIXED (high-impact): useSurahAudio.ts had 3 unhandled-rejection/stuck-state bugs. Live-reproduced and fixed a genuine stuck 'Loading...' forever bug in startSession."
-    },
     {
       "iteration": 70,
       "perspective": "Cycle 2, B31 revisited - navigation stack edge cases, the .replace() path iteration 30 didn't test",
@@ -23,7 +18,12 @@
     {
       "iteration": 72,
       "perspective": "Cycle 2, B33 revisited - Bundle/APK size audit, closing the expo-system-ui gap iteration 32 deferred",
-      "outcome": "GAP FOUND AND FIXED: userInterfaceStyle was hardcoded 'dark' with no expo-system-ui plugin installed to enforce it (silently dead, per iteration 32's own prebuild warning). Installed expo-system-ui and corrected the value to 'automatic' (matching the app's own runtime default logic) - installing the plugin without fixing the value would have introduced a real regression. Verified via prebuild that strings.xml now carries the correct value."
+      "outcome": "GAP FOUND AND FIXED: userInterfaceStyle was hardcoded 'dark' with no expo-system-ui plugin installed to enforce it. Installed the plugin and corrected the value to 'automatic'."
+    },
+    {
+      "iteration": 73,
+      "perspective": "Cycle 2, B34 revisited - EAS build config correctness, re-verified after two batches of new plugins",
+      "outcome": "CLEAN, re-verified: fresh expo prebuild confirms eas.json, the merged AndroidManifest permission set, and the ITSAppUsesNonExemptEncryption declaration all still hold unchanged after expo-build-properties and expo-system-ui were added. Zero prebuild warnings now (vs iteration 33's one)."
     }
   ]
 }
