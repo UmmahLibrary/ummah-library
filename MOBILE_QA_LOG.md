@@ -3144,3 +3144,81 @@ once per real app mount, not once per boundary reset. No redundant
 **Verification:** read-only iteration; prior gate (136/136) holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 60 — B20 revisited: my own iteration 47 fix had the exact bug iteration 20 fixed (closes out batch 6)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** re-confirmed the migration-file census (`tasbih-store.ts`,
+`sync-settings.ts`, `sync-meta.ts`, `theme.tsx`) is still exhaustive — no
+new migration exists in the codebase. Then checked this loop's own recent
+work for the same shape of bug iteration 20 found in `theme.tsx`: a
+read-time correction that updates in-memory state but is never written
+back to storage.
+
+**Found it, in code I wrote myself two batches ago.**
+[`ZakatScreen.tsx`](apps/mobile/src/screens/ZakatScreen.tsx)'s decimal
+self-heal (iteration 47) called `setState(healed)` but never `setJSON`
+— the exact same gap `theme.tsx` had before iteration 20's fix, down to
+the mechanism: correct on screen every launch (the heal re-runs
+deterministically), but the raw, uncorrected value sits in storage
+indefinitely, including whatever a sync round pushes to another device.
+Slightly narrower in practice than the original `theme.tsx` case, since
+`update()` here spreads the *entire* current state on any field edit
+(so touching any other field on the screen incidentally persists the
+healed values too) — but opening Zakat, seeing already-corrected values,
+and leaving without touching anything would leave the raw value in
+storage forever, same as before.
+
+**Fix:** write back once, only when healing actually changed something
+— identical pattern to `theme.tsx`'s fix (`if (!VALID.has(saved)) void
+setString(...)`), adapted with a `JSON.stringify` comparison since this
+is a multi-field object rather than a single key.
+
+**Live-verified**, same method as iteration 47's original check: wrote a
+corrupted `ul.zakat` value directly to storage (`"75.5.2"`, `"-500"`,
+`"-50"`), navigated to the screen fresh, and confirmed `localStorage`
+now holds the *healed* values (`"75.52"`, `"500"`, `"50"`) — the raw
+corrupted value is gone, not just displayed-over.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
+plus the live write-back check above.
+
+**Commit:** `apps/mobile/src/screens/ZakatScreen.tsx`.
+
+---
+
+## Batch 6 summary (iterations 51–60, branch `mobile-stabilization-06`)
+
+Cycle 2, continued. Ten iterations, six with real fixes — several of
+real consequence:
+
+- **51:** found the exact sync-reload race iteration 44 fixed in
+  `PrayerTrackerScreen` also live in `LibraryContext` — the app's global
+  state for bookmarks, hifz progress, notes, and collections. Fixed with
+  the same `writeGen`/`ignoreStale` pattern.
+- **52:** found and fixed the same race a third time, in
+  `SettingsContext`; closed the sweep — every other `onSyncApplied`
+  consumer confirmed clean.
+- **53:** re-verified kill-and-restore integrity through the new
+  race-guard code — no regression.
+- **54:** found the `ErrorBoundary`'s fallback UI had zero safe-area
+  context, structurally — reordered `App.tsx`'s providers and switched
+  to `SafeAreaView`.
+- **55:** closed two more keyboard-obscured-input gaps iteration 15's
+  original sweep missed, and corrected a wrong "zero `Modal` usage"
+  claim standing in two earlier entries.
+- **56:** closed a notification-permission-denial feedback gap at all 5
+  places it existed, not just the one iteration 16 had logged.
+- **57–58:** audio interruption handling and offline behavior confirmed
+  clean across newer code (JuzReader, sync) this loop has since touched.
+- **59:** confirmed the reminder-sync functions are idempotent by
+  construction, immune to the state-race class found elsewhere this
+  cycle.
+- **60:** found this loop's own iteration-47 fix was missing the exact
+  write-back iteration 20 had already established as the correct
+  pattern — fixed for consistency.
+
+Full detail for each is above, under its own `## Iteration N` heading.
