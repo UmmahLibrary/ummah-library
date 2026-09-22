@@ -4642,3 +4642,53 @@ wasn't re-run (nothing to regress; tree was green from iteration 82
 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 84 — A5, cycle 3: pluralization copy, widened from the two Hifz screens to the whole app
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 5](#iteration-5--hifz-review-arabic-pluralization-copy-āyahāt-vs-āyāt)
+confirmed the specific "āyahāt" typo doesn't exist on mobile;
+[iteration 45](#iteration-45--a5-revisited-hifz-pluralization-checked-beyond-the-one-string)
+widened that to every counted-noun string in the same two Hifz
+screens. This pass widened it once more, to every counted-noun
+pluralization in the mobile app — the same "generalize app-wide"
+move iteration 42 already made for the Zakat perspective, applied here
+for the first time.
+
+**Every inline singular/plural ternary app-wide is grammatically
+correct.** Grepped for the `=== 1 ? … : …` pattern across every screen
+and component (13 sites, not just the 2 Hifz ones): plan-completion,
+sync-item, download-count, streak-day, Hijri date-adjustment,
+plan-behind-schedule (two separate screens, same string), reading-
+goal-pages, search-result, and settings-item-count copy all correctly
+gate on the count, including two sites using `Math.abs(n) === 1` for a
+signed value (a negative "-1 day" correctly reads "1 day", not "1
+days").
+
+**Found a real, if minor, styling inconsistency — not the same bug,
+and not fixed unilaterally.** `packages/core/src/reading-plans.ts`'s
+`unitWord()` — the one non-trivial (function-based, not inline
+ternary) pluralizer in this area, feeding `PlanCompletionCard`'s copy —
+pluralizes `"ayah"` as **`"ayahs"`** (a plain anglicized "+s"), not the
+Arabic plural **`"āyāt"`** the two Hifz screens use for the identical
+concept. This is a genuine cross-screen inconsistency in transliteration
+style, but it is **not** the reported bug: "ayahs" is a real,
+understandable English word (the informal convention, like "cherubs"
+for "cherubim"), unlike "āyahāt," which was a nonsense hybrid. It's
+also **shared `core` code that also drives web's copy** — unifying it
+would mean picking one house style for reading-plan text on both
+platforms, a copy/style call for whoever owns that, not a unilateral
+mobile-only fix under this perspective. Flagging clearly rather than
+either silently ignoring it or rewriting shared copy on my own
+judgment.
+
+**Verification:** targeted code-reading/grep audit across every
+`apps/mobile/src` screen/component plus `unitWord()`; no source
+changed, so the lint/typecheck/test gate wasn't re-run (nothing to
+regress; tree was green from iteration 83 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
