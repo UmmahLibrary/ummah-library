@@ -1875,3 +1875,76 @@ verified it against the actual code rather than assumed it):
 
 **Commit:** `packages/core/src/sync-keys.ts` (comment fix only, no
 behavior change).
+
+## Iteration 35 — Correcting iteration 34, then fixing what it missed
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Correction to iteration 34: I was wrong that no privacy policy exists.**
+Iteration 34's search only grepped top-level filenames for `*privacy*` and
+missed `apps/mobile/src/screens/PrivacyScreen.tsx` and the shared
+[`packages/core/src/privacy.ts`](packages/core/src/privacy.ts) it renders
+from — the same content that also backs a real static `apps/web/src/app/privacy`
+page, so once the web app is deployed there **is** a hostable privacy-policy
+URL for Play Console. Logging this correction here per the QA log's
+append-only rule (iteration 34's entry stands as originally written, in
+context, rather than being silently edited) — the record needed a fix, so
+here it is.
+
+**I was also wrong, in that same iteration, that "the recovery-phrase
+teardown in SyncSettings deletes the account server-side."** That was an
+unverified assumption. Checked the actual code this time: `disableSync()`
+(implemented identically on
+[web](apps/web/src/lib/sync/sync-settings.ts),
+[mobile](apps/mobile/src/lib/sync/sync-settings.ts), and the extension)
+only forgets the secret **on the local device** — no network call, no
+delete request. Checked the server side too:
+[`apps/web/src/app/api/sync/route.ts`](apps/web/src/app/api/sync/route.ts)
+implements `POST`/`OPTIONS` only, no `DELETE`, and
+[`sync-store.ts`](apps/web/src/app/api/sync/sync-store.ts) sets no TTL on
+stored entries. **There is genuinely no way — no UI, no API route — for a
+user to get their synced ciphertext removed from the server.** It sits
+there indefinitely under the anonymous `accountId`, unreadable but
+undeletable.
+
+**With that corrected understanding, fixed the actual gap the perspective
+was after: the privacy policy's own text was stale relative to the sync
+feature it never mentioned.** `PRIVACY_UPDATED` was "16 June 2026" — a
+week *before* ADR 0033 (sync) was even accepted (2026-06-23) — and the
+"Your data stays on your device" section flatly claimed "that data is
+never sent to us and we cannot see it," which stopped being true the
+moment sync shipped as an opt-in feature. Added a new "Cross-device sync
+(optional)" section to
+[`packages/core/src/privacy.ts`](packages/core/src/privacy.ts) (shared by
+web and mobile, so both platforms' policy pages update from one place)
+describing what actually happens: E2EE, the recovery phrase, what
+`MANAGED_KEYS` can sync (explicitly naming the qaḍāʾ/ḥayḍ logs, matching
+what iteration 34 verified), and — accurately, not overpromising a
+support process that doesn't exist in code — that disabling sync doesn't
+currently delete server-side data. Softened the earlier section's
+"never sent to us" claim to "by default" with a pointer to the new
+section, so the two don't flatly contradict each other.
+
+**Live-verified** via the browser preview: navigated to the mobile
+`Privacy` screen and confirmed the new section renders correctly —
+bold emphasis, bullet list, and the updated date all correct — using the
+exact same shared content the web `/privacy` page will render.
+
+**Logged, not fixed (architectural, out of scope for this loop — needs
+the project owner's decision):** the missing account-deletion capability
+found above. Building it means a new authenticated `DELETE` (or similar)
+`/api/sync` capability, a new `SyncBackend` port method, and UI on all
+three platforms to trigger it — a real new capability surface that
+deserves its own ADR per `AGENTS.md` rule 6, not something to bolt on
+inside a QA-loop iteration. Options for the owner: build real deletion,
+or document/commit to a manual support-request process and reflect that
+honestly in the policy instead of silence. Left the policy's current
+wording accurate to what exists today rather than promising either.
+
+**Verification:** `pnpm lint` and `pnpm typecheck` clean full-workspace,
+`pnpm --filter @ummahlibrary/core test` 508/508,
+`pnpm --filter @ummahlibrary/mobile test` 117/117, plus the live
+browser-preview render check above.
+
+**Commit:** `packages/core/src/privacy.ts`.

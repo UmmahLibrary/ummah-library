@@ -1,29 +1,29 @@
 {
-  "iteration": 34,
+  "iteration": 35,
   "cycle": 1,
   "perspectiveIndex": 35,
   "batch": "mobile-stabilization-04",
   "consecutiveCleanIterations": 0,
   "history": [
     {
-      "iteration": 31,
-      "perspective": "B32 - Error boundaries / crash resilience against malformed data",
-      "outcome": "GAP FOUND AND FIXED: added ErrorBoundary.tsx wired around the whole provider tree in App.tsx. Live-verified via browser preview."
-    },
-    {
       "iteration": 32,
       "perspective": "B33 - Bundle/APK size audit for Play Store",
-      "outcome": "GAP FOUND AND FIXED: release builds shipped with R8 minify + resource shrinking both off. Installed and configured expo-build-properties, verified end-to-end via a real expo prebuild."
+      "outcome": "GAP FOUND AND FIXED: R8 minify + resource shrinking both off, installed and configured expo-build-properties, verified via real expo prebuild."
     },
     {
       "iteration": 33,
-      "perspective": "B34 - EAS build config correctness (production profile, permission minimalism, ITSAppUsesNonExemptEncryption accuracy)",
-      "outcome": "GAP FOUND AND FIXED: unused SYSTEM_ALERT_WINDOW permission in the merged release manifest, blocked via android.blockedPermissions. Confirmed ITSAppUsesNonExemptEncryption:false is accurate and eas.json's production profile is correct."
+      "perspective": "B34 - EAS build config correctness",
+      "outcome": "GAP FOUND AND FIXED: unused SYSTEM_ALERT_WINDOW permission blocked. Confirmed ITSAppUsesNonExemptEncryption and eas.json production profile are correct."
     },
     {
       "iteration": 34,
-      "perspective": "B35 - Play Store data-safety/permissions-justification accuracy given local-first + opt-in sync",
-      "outcome": "BLOCKER LOGGED (needs user): no privacy policy exists anywhere in the repo - required for any Play Store submission, can't be fabricated by this loop. GAP FOUND AND FIXED separately: sync-keys.ts had a stale comment claiming ul.qada/ul.haid (menstrual cycle log) are excluded from sync when they're actually in MANAGED_KEYS and do sync as E2EE ciphertext - misleading for anyone filling out the Data Safety form's menstrual-cycle data-type disclosure. Documented a full verified data inventory in the QA log for whoever writes the real privacy policy/Data Safety form."
+      "perspective": "B35 - Play Store data-safety/permissions-justification accuracy",
+      "outcome": "Contained two unverified mistakes corrected in iteration 35 (claimed no privacy policy exists - it does; claimed disableSync deletes server data - it doesn't). GAP FOUND AND FIXED: stale sync-keys.ts comment about ul.haid/ul.qada exclusion."
+    },
+    {
+      "iteration": 35,
+      "perspective": "B35 continued - correcting iteration 34 and fixing the real gap it missed",
+      "outcome": "GAP FOUND AND FIXED: privacy.ts was stale relative to the shipped sync feature - added an accurate Cross-device sync section (E2EE, what syncs including qada/haid, no server-side deletion yet) to the shared core privacy content. Live-verified rendering on the mobile Privacy screen. Logged (not fixed, needs owner decision): no account-deletion capability exists anywhere - local-only disableSync, no DELETE API route, no TTL on stored entries."
     }
   ]
 }
