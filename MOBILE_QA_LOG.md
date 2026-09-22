@@ -4590,3 +4590,55 @@ browser-preview check — a pure unit-test addition with no UI or
 runtime-behavior change to observe.
 
 **Commit:** `apps/mobile/src/tasbih-store.test.ts` (new).
+
+---
+
+## Iteration 83 — A4, cycle 3: qada stepper, the zero-floor/rapid-decrement edge checked for the first time
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 4](#iteration-4--qada--stepper-race-condition-under-rapid-taps)
+confirmed rapid taps on the qaḍāʾ `+`/`−` stepper can't lose an
+increment (functional `setState` form, no stale-closure re-read);
+[iteration 44](#iteration-44--a4-revisited-closing-the-sync-reload-race-deferred-in-iteration-22)
+closed the sync-reload race iteration 4 explicitly deferred. Neither
+pass specifically checked the **decrement-at-zero** edge — what
+actually stops the counter from going negative, and whether *that*
+guard is itself race-safe, which is a meaningfully different question
+from "does a rapid tap get lost."
+
+**Confirmed the zero-floor is defended at three independent layers, not
+just one.** UI: `PrayerTrackerScreen.tsx`'s "−" button is
+`disabled={owed === 0}`, so it's not normally tappable once nothing's
+owed. Data: `packages/core/src/qada.ts`'s `setQada`/`adjustQada` clamp
+every result through `clampCount` regardless of the UI state — `owed:
+1, delta: -1` → `0` (entry dropped, kept sparse), and `qada.test.ts`
+already asserts this exactly ("cannot go negative; entry dropped at
+0"). Reasoned through the one theoretical timing gap between those two
+layers: two taps landing faster than React re-renders the now-`disabled`
+button could both fire `adjustQadaFor(p, -1)` before the UI catches up
+— but since each call derives `next` from `prev` (the same functional
+pattern iteration 4 verified), the second call's input is already the
+first call's *clamped* output (`0`), so it clamps to `0` again rather
+than `-1`. The UI-timing gap, if it exists at all, is harmless by
+construction — the data layer's clamp is the real guarantee, the
+disabled button is just the normal-path affordance.
+
+**Confirmed this isn't newly-added, untested logic** — `qada.test.ts`
+already covers corrupt-value clamping, the zero-drop behavior, and
+fractional-input flooring directly, so nothing needed adding this pass
+(unlike iteration 82's tasbih-migration finding, where the equivalent
+coverage genuinely didn't exist).
+
+**Clean — a real, previously-unchecked edge of this perspective,
+confirmed solid rather than assumed from the already-verified
+rapid-tap-increment case.** No code change.
+
+**Verification:** targeted code-reading audit
+(`PrayerTrackerScreen.tsx`, `packages/core/src/qada.ts`,
+`qada.test.ts`); no source changed, so the lint/typecheck/test gate
+wasn't re-run (nothing to regress; tree was green from iteration 82
+immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
