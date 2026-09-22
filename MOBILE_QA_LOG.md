@@ -4533,3 +4533,60 @@ gate wasn't re-run (nothing to regress; tree was green from iteration
 80 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 82 — A3, cycle 3: tasbih counter, the sync-race hypothesis ruled out and a real migration-test gap closed
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 3](#iteration-3--tasbih-per-phrase-counter-mobiles-opposite-bug-from-web)
+confirmed switching the dhikr chip can't clobber another phrase's
+count; [iteration 43](#iteration-43--a3-revisited-tasbih-counter-rapid-tap-race-deepened)
+confirmed rapid taps can't race and drop an increment. Neither checked
+the third failure mode this loop has repeatedly found and fixed
+*elsewhere* this cycle (`PrayerTrackerScreen`, `LibraryContext`,
+`SettingsContext`): a sync-triggered reload landing mid-interaction and
+clobbering a fresher local write.
+
+**Hypothesis ruled out by design, not assumed clean.**
+`TasbihScreen.tsx`'s load effect runs once on mount
+(`useEffect(..., [])`) with **no** `onSyncApplied` subscription at
+all — unlike its siblings that got the `writeGen`/`ignoreStale` fix.
+Checked whether that's a gap or deliberate: `packages/core/src/sync-keys.ts`'s
+own doc comment explicitly lists "the tasbih/adhkar counters" among
+keys "Deliberately EXCLUDED" from `MANAGED_KEYS` — `ul.tasbih` never
+syncs, so no remote update could ever arrive for this screen to miss.
+Subscribing to an event that can never carry relevant data would be
+dead code, not a fix. Confirmed via the actual `MANAGED_KEYS` array,
+not just the comment.
+
+**Found and closed a real, different gap while checking the store
+layer: the legacy-record migration iteration 3 specifically praised
+had zero direct test coverage.** `tasbih-store.ts`'s `read()` migrates
+a pre-per-phrase flat `{phraseId, total, target}` record (from before
+the bug-3 fix shipped) into today's `{phraseId, phrases: {...}}` shape,
+and writes the migration back so it only ever runs once per device.
+`stores-corrupt.test.ts` only exercises the corrupt-value → `null`
+fallback for this store; nothing exercised the migration path itself,
+its write-back, or confirmed an already-current record isn't
+re-migrated. If a future refactor broke this silently, a returning
+user upgrading from an old install could lose or scramble their tasbih
+progress with nothing catching it.
+
+**Added** [`tasbih-store.test.ts`](apps/mobile/src/tasbih-store.test.ts)
+(5 new tests, same in-memory `AsyncStorage` mock pattern as
+`stores-corrupt.test.ts`): the legacy shape converts correctly, the
+migration writes back (asserted by re-reading the raw stored JSON, not
+just trusting the returned value), an already-current record passes
+through unchanged, and the two `null`-fallback cases (nothing stored,
+neither shape) are covered explicitly for this store too.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` **152/152** passing (147 + 5 new). No
+browser-preview check — a pure unit-test addition with no UI or
+runtime-behavior change to observe.
+
+**Commit:** `apps/mobile/src/tasbih-store.test.ts` (new).
