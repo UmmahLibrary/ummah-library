@@ -1,15 +1,10 @@
 {
-  "iteration": 31,
+  "iteration": 32,
   "cycle": 1,
-  "perspectiveIndex": 32,
+  "perspectiveIndex": 33,
   "batch": "mobile-stabilization-04",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 28,
-      "perspective": "B29 - Noor theme switching consistency",
-      "outcome": "GAP FOUND AND FIXED: WCAG contrast failure"
-    },
     {
       "iteration": 29,
       "perspective": "B30 - Asset loading fallback (interrupted audio downloads)",
@@ -18,12 +13,17 @@
     {
       "iteration": 30,
       "perspective": "B31 - Navigation stack edge cases (deep stacks, tab switch mid-flow, duplicate pushes)",
-      "outcome": "clean - zero navigation.push() usage anywhere (all navigate(), the duplicate-safe default), combined with iteration 8's no-custom-stack-manipulation finding. Live-verified: rapid triple-tap didn't duplicate-push, tab switch mid-flow correctly preserved and restored reader state."
+      "outcome": "clean - zero navigation.push() usage anywhere, live-verified rapid-tap and tab-switch state preservation"
     },
     {
       "iteration": 31,
       "perspective": "B32 - Error boundaries / crash resilience against malformed data",
-      "outcome": "GAP FOUND AND FIXED: zero error boundary coverage anywhere in the app - added ErrorBoundary.tsx wired around the whole provider tree in App.tsx. Live-verified via browser preview: forced a real render crash, confirmed fallback UI renders instead of a blank screen, confirmed reset button doesn't crash the boundary itself."
+      "outcome": "GAP FOUND AND FIXED: zero error boundary coverage anywhere in the app - added ErrorBoundary.tsx wired around the whole provider tree in App.tsx. Live-verified via browser preview: forced a real render crash, confirmed fallback UI renders instead of a blank screen."
+    },
+    {
+      "iteration": 32,
+      "perspective": "B33 - Bundle/APK size audit for Play Store",
+      "outcome": "GAP FOUND AND FIXED: release builds shipped with R8 minify + resource shrinking both off (no expo-build-properties plugin, no way to set the gradle property otherwise since android/ is gitignored/regenerated). Installed expo-build-properties@~1.0.10 (SDK-54-matched version, verified property-key compatibility against two other versions before trusting it) and enabled both flags in app.json. Verified end-to-end via a real expo prebuild that gradle.properties picks up both flags correctly."
     }
   ]
 }

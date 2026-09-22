@@ -1648,3 +1648,91 @@ clean (13 pre-existing warnings, 0 errors, none from this change), plus
 the live browser-preview crash/recover check above.
 
 **Commit:** `apps/mobile/src/ErrorBoundary.tsx` (new), `apps/mobile/App.tsx`.
+
+## Iteration 32 — Bundle/APK size audit for Play Store
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** what actually ships in the release Android artifact — asset
+sizes, dependency bloat, and whether the standard Android release
+optimizations (code shrinking, resource shrinking) are switched on.
+
+**Assets are lean and not a concern:** `assets/fonts/` is 332 KB (one
+IndoPak Nastaʿlīq `.ttf`; the Latin/Arabic Google Fonts are pulled in as
+individual per-weight packages, not full families), icons/splash total
+~68 KB. `tz-lookup` (the one non-Expo runtime dependency with an embedded
+geo dataset) is 173 KB unpacked — not worth replacing. `eas.json`'s
+production profile already builds `app-bundle` (AAB), so Play Store's own
+dynamic delivery handles per-ABI/per-density splitting — no APK-side ABI
+splitting needed.
+
+**Found and fixed a real gap: release builds ship with R8 code shrinking
+and resource shrinking both off.** Read the actual generated
+`android/app/build.gradle` (from a fresh `expo prebuild`, not hand-edited —
+`android/` is gitignored and regenerated per build) — `minifyEnabled` and
+`shrinkResources` are both gated behind gradle properties
+(`android.enableMinifyInReleaseBuilds`, `android.enableShrinkResourcesInReleaseBuilds`)
+that default to `false` and were never set anywhere in this project: no
+`expo-build-properties` plugin, no other way to set an Android gradle
+property declaratively for a project that doesn't commit its native
+`android/` folder. Every release build/bundle was therefore shipping
+completely unminified, unobfuscated, unshrunk Java/Kotlin bytecode and
+every resource whether referenced or not — pure avoidable bloat for a
+Play Store submission.
+
+**Fix:** installed `expo-build-properties` via `npx expo install` (which
+resolves the exact version this SDK 54 project needs — `~1.0.10`, not the
+version a naive `npm view` dist-tag search would suggest) and configured it
+in [`app.json`](apps/mobile/app.json):
+```json
+["expo-build-properties", { "android": {
+  "enableMinifyInReleaseBuilds": true,
+  "enableShrinkResourcesInReleaseBuilds": true
+} }]
+```
+Verified the property-name wiring is actually correct for this project's
+installed React Native/Expo template version before trusting it (checked
+two different `expo-build-properties` versions' source — an older one
+still targets the legacy `android.enableProguardInReleaseBuilds` gradle
+key, which this project's generated `build.gradle` no longer reads at
+all; only the SDK-54-matched `~1.0.10` writes the current
+`android.enableMinifyInReleaseBuilds`/`enableShrinkResourcesInReleaseBuilds`
+keys this template actually checks — installing the wrong version would
+have silently done nothing).
+
+**Live-verified the fix actually reaches the native build**, the
+strongest verification available without a full Android SDK/EAS build in
+this environment: ran a real `expo prebuild --platform android --no-install`
+and confirmed `android/gradle.properties` now contains
+`android.enableMinifyInReleaseBuilds=true` and
+`android.enableShrinkResourcesInReleaseBuilds=true`. The default
+`proguard-rules.pro` this template ships is the standard Expo/RN one (plus
+an inert `reanimated` rule — reanimated isn't a dependency here, harmless);
+every installed native module (`async-storage`, `screens`,
+`safe-area-context`, `svg`, `notifications`, `secure-store`, etc.) ships its
+own consumer ProGuard rules bundled in its AAR, which the Android Gradle
+Plugin merges in automatically, so minification is expected to be safe
+with no custom keep rules needed — but **actually building and
+smoke-testing a real minified release AAB/APK on a device is something
+this environment can't do** (no Android SDK, no EAS credentials) and
+should happen before the next Play Store upload, not be assumed clean.
+
+**Also noticed** (not fixed — separate, unrelated, pre-existing, and
+genuinely out of scope for a size audit): `expo prebuild` warns
+`android: userInterfaceStyle: Install expo-system-ui in your project to
+enable this feature` — `app.json` sets `"userInterfaceStyle": "dark"` but
+the plugin needed to actually enforce that at the native level isn't
+installed. Logging this for a future iteration (native-UI-consistency
+perspective), not chasing it here.
+
+**Verification:** `pnpm lint` and `pnpm typecheck` clean full-workspace;
+`pnpm --filter @ummahlibrary/mobile test` 117/117 passing. Full-workspace
+`pnpm test` and `pnpm build` both still fail, but confirmed (via `git
+stash` + re-run) on the *pre-existing, unrelated* web/extension duplicate-
+React-installs breakage documented in iteration 1 — reproduced identically
+with this change stashed out, so it's not something this iteration
+introduced or something a mobile-only change could fix.
+
+**Commit:** `apps/mobile/app.json`, `apps/mobile/package.json`,
+`pnpm-lock.yaml` (adds `expo-build-properties`).
