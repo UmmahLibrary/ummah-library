@@ -1,29 +1,29 @@
 {
-  "iteration": 14,
+  "iteration": 15,
   "cycle": 1,
-  "perspectiveIndex": 15,
+  "perspectiveIndex": 16,
   "batch": "mobile-stabilization-02",
-  "consecutiveCleanIterations": 1,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 11,
-      "perspective": "B12 - App background/foreground transitions",
-      "outcome": "clean by strong code-level evidence"
-    },
     {
       "iteration": 12,
       "perspective": "B13 - Kill-and-restore state integrity",
-      "outcome": "clean, live-verified with truncated JSON injection"
+      "outcome": "clean, live-verified"
     },
     {
       "iteration": 13,
       "perspective": "B14 - Tablet/iPad layout",
-      "outcome": "functionally fine, no content-width cap anywhere - logged as design-system recommendation, not fixed"
+      "outcome": "functionally fine, no content-width cap - logged, not fixed"
     },
     {
       "iteration": 14,
-      "perspective": "B15 - Safe-area/notch handling on every screen",
-      "outcome": "clean, consistent pattern confirmed across every navigation stack: 4 custom-title root screens + Onboarding correctly handle manual insets, every other screen (including ToolsListScreen, initially looked inconsistent) correctly relies on native-stack's built-in header safe-area handling. Chased down and resolved the ToolsListScreen discrepancy rather than leaving it ambiguous."
+      "perspective": "B15 - Safe-area/notch handling",
+      "outcome": "clean, consistent pattern confirmed across every stack"
+    },
+    {
+      "iteration": 15,
+      "perspective": "B16 - Keyboard-avoiding behavior on every text-input screen",
+      "outcome": "GAP FOUND AND FIXED: CollectionsScreen and PlansScreen had TextInputs that could land below the fold (rename input in a long list; custom-plan input at the bottom of a preset-plans list) with no KeyboardAvoidingView. Wrapped both matching ZakatScreen's already-established pattern. Functionally live-verified (typing/value updates work); actual keyboard-obscuring behavior itself not observable in a desktop browser."
     }
   ]
 }

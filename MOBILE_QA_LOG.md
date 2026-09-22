@@ -698,3 +698,60 @@ screens have the responsibility* (custom title → needs manual insets, all
 do) rather than pixel-perfect notch clearance, which needs a real device.
 
 **Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 15 — Keyboard-avoiding behavior on every text-input screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** every screen with a `TextInput` for whether the keyboard could
+obscure it, with no way to bring it back into view.
+
+**Found and fixed a real gap on 2 of 5 screens.** Of the 5 screens with a
+`TextInput` (`ZakatScreen`, `SearchScreen`, `SurahListScreen`,
+`CollectionsScreen`, `PlansScreen`), only `ZakatScreen` wrapped its
+`ScrollView` in a `KeyboardAvoidingView`. `SearchScreen` and
+`SurahListScreen` don't need it — their input is a search bar fixed at the
+very top, never at risk of being covered by a keyboard opening from the
+bottom. But:
+
+- **`CollectionsScreen`** — the per-collection rename `TextInput` sits
+  inside a card that can itself be arbitrarily tall (each collection can
+  hold many saved āyāt, each rendered with Arabic text, translation, and
+  notes), and multiple collections stack in one long `ScrollView`. A rename
+  on anything but the first collection could land well below the fold.
+- **`PlansScreen`** — the "Create your own" custom-plan pages-per-day/days-
+  to-finish `TextInput` sits at the very bottom of a `ScrollView` listing
+  every preset plan above it (confirmed live: had to scroll past ~6 preset
+  plan cards to reach it).
+
+Neither had any keyboard-avoiding treatment at all.
+
+**Fix:** wrapped both screens' `ScrollView` in a `KeyboardAvoidingView`
+(`behavior={Platform.OS === "ios" ? "padding" : undefined}`), copying
+`ZakatScreen`'s exact, already-established pattern rather than inventing a
+new one — this codebase had already solved this problem once; the other
+two screens just hadn't been brought in line with it.
+
+**Live-verified functionally** via `preview_start({name: "mobile"})`:
+created a collection and renamed it via the (now keyboard-avoiding-wrapped)
+input — typed correctly, value updated. Scrolled to `PlansScreen`'s custom
+plan section, changed "Pages a day" from 2 to 5 — value updated, estimated
+duration recalculated (121 days) and finish date recalculated
+(2027-01-20) correctly. Functional correctness confirmed; actual
+on-device keyboard-obscuring behavior itself isn't observable in a desktop
+browser (no virtual keyboard triggers there), same verification-gap caveat
+as other native-only perspectives in this loop — the fix's mechanism
+(`KeyboardAvoidingView`'s `padding` behavior) is the same one already
+shipped and presumably working in `ZakatScreen`, not a new unverified
+pattern.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass; `pnpm lint` (full workspace) — 0 errors, same 13
+pre-existing warnings. Both files re-formatted with `prettier --write`
+after the JSX wrap.
+
+**Commit:** `fix(mobile): wrap Collections and Plans screens in
+KeyboardAvoidingView`.
