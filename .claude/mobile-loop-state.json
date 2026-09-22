@@ -1,29 +1,29 @@
 {
-  "iteration": 36,
+  "iteration": 37,
   "cycle": 1,
-  "perspectiveIndex": 36,
+  "perspectiveIndex": 37,
   "batch": "mobile-stabilization-04",
-  "consecutiveCleanIterations": 1,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 33,
-      "perspective": "B34 - EAS build config correctness",
-      "outcome": "GAP FOUND AND FIXED: unused SYSTEM_ALERT_WINDOW permission blocked."
-    },
     {
       "iteration": 34,
       "perspective": "B35 - Play Store data-safety accuracy",
-      "outcome": "Contained two mistakes corrected in iteration 35. GAP FOUND AND FIXED: stale sync-keys.ts comment."
+      "outcome": "Contained two mistakes corrected in iteration 35."
     },
     {
       "iteration": 35,
-      "perspective": "B35 continued - correcting iteration 34, fixing the real gap",
-      "outcome": "GAP FOUND AND FIXED: privacy.ts stale relative to shipped sync feature - added Cross-device sync section. Logged (needs owner decision): no account-deletion capability exists."
+      "perspective": "B35 continued",
+      "outcome": "GAP FOUND AND FIXED: privacy.ts stale relative to shipped sync feature."
     },
     {
       "iteration": 36,
       "perspective": "B36 - Empty and loading states on every screen",
-      "outcome": "clean - thoroughly traced every data-fetching screen (SurahListScreen, CollectionsScreen, PlansScreen, SearchScreen, HadithScreen, TafsirScreen, MosqueFinderScreen, and more). All have proper loading/error/empty handling including retry-on-failure on the first-run-critical SurahListScreen."
+      "outcome": "clean - thoroughly traced every data-fetching screen, all have proper loading/error/empty handling."
+    },
+    {
+      "iteration": 37,
+      "perspective": "B37 - Copy/microcopy consistency and correctness vs web",
+      "outcome": "GAP FOUND AND FIXED: MosqueFinderScreen error message missing web's trailing 'and retry'. Confirmed location-permission and Zakat copy match well with correct platform adaptation. Logged (not fixed, capability not copy gap): mobile has no distinct offline-detection status like web's navigator.onLine-based one."
     }
   ]
 }

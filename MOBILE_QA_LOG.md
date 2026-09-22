@@ -2003,3 +2003,44 @@ verifying it properly, not skimming it.
 gate from iteration 35 still holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 37 — Copy/microcopy consistency and correctness vs web
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** shared-feature copy between mobile and web for wording
+drift — Zakat, mosque finder, prayer times, Qibla, location-permission
+messaging, and the previously-fixed "āyahāt"/"āyāt" typo (regression
+check, still clean).
+
+**Mostly consistent, with good platform-appropriate adaptation where it
+should differ.** "Location permission was denied" messaging matches
+verbatim across `MosqueFinderScreen`, `PrayerTimesScreen`, `QiblaScreen`
+and their web equivalents, correctly adapted for the platform ("Enable it
+in **Settings**" on mobile vs "Enable it in **your browser**" on web) —
+that's the right kind of difference, not a bug. Zakat's "Reset amounts"
+copy and behavior match exactly (same shared comment in both files).
+
+**Found and fixed one small, real wording drift.**
+`MosqueFinderScreen`'s generic network-error message read "Couldn't load
+nearby mosques. Check your connection." — missing web's trailing "**and
+retry**" (`MosqueFinder.tsx`: "Check your connection and retry."). Synced
+the wording.
+
+**Noted, not fixed (a capability gap, not a copy bug — out of scope for
+this perspective):** web's `MosqueFinder` has a distinct `"offline"`
+status with its own message ("You're offline. Mosque search needs an
+internet connection...") detected via a browser-only API
+(`navigator.onLine`); mobile has no equivalent (`@react-native-community/netinfo`
+isn't installed) and collapses every network failure into the generic
+`"error"` state. The existing message already says "check your
+connection," which substantially covers the same need, so this isn't
+urgent — but building real offline detection would mean adding a new
+native dependency, which is a feature addition, not a text fix. Logging
+for a future iteration if it's judged worth the dependency.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 117/117.
+
+**Commit:** `apps/mobile/src/screens/MosqueFinderScreen.tsx`.

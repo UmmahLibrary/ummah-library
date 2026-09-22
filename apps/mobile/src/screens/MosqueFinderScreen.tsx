@@ -151,7 +151,7 @@ export function MosqueFinderScreen() {
 
       {status === "error" && (
         <View style={styles.cta}>
-          <Text style={styles.ctaText}>Couldn't load nearby mosques. Check your connection.</Text>
+          <Text style={styles.ctaText}>Couldn't load nearby mosques. Check your connection and retry.</Text>
           <Pressable style={styles.chip} onPress={() => coords && fetchNearby(coords, radius)}>
             <Text style={styles.chipText}>Try again</Text>
           </Pressable>
