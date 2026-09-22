@@ -2627,3 +2627,90 @@ typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
 plus the live before/after title check above.
 
 **Commit:** `apps/mobile/src/screens/MushafPageScreen.tsx`.
+
+## Iteration 50 — B11 revisited: the ErrorBoundary can leave the splash screen stuck forever (closes out batch 5)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-05`
+
+**Checked:** iteration 10 fixed the splash screen to hide once fonts and
+the onboarding check both resolve, via `AppGate`'s own `useEffect`. This
+pass asked a question only possible to ask *after* iteration 31 (much
+later in this same loop) added the `ErrorBoundary`: what happens if a
+crash is caught **before `AppGate` ever mounts** — during
+`SafeAreaProvider`/`ThemeProvider`/`I18nProvider`/`SettingsProvider`/
+`LibraryProvider` initialization, several of which read from persisted
+storage on mount, i.e. exactly the kind of state the `ErrorBoundary`
+itself exists to protect against?
+
+**Found and fixed a real, serious gap: this was possible, and it would
+have hung the app forever with no visible recovery.**
+`SplashScreen.hideAsync()` is called in exactly one place —
+`AppGate`'s `useEffect`. If the crash happens anywhere in the provider
+tree *above* `AppGate`, that effect never runs. `expo-splash-screen`'s
+`preventAutoHideAsync()` keeps the native splash **covering the RN
+content** until `hideAsync()` is explicitly called — so the
+`ErrorBoundary`'s fallback UI ("Something went wrong" / "Try again")
+would render successfully, entirely correctly, **invisibly**, behind a
+splash screen that never goes away. The one feature built specifically to
+give a crashing app a recovery path would be unreachable for crashes in
+exactly the startup window most likely to produce one.
+
+**Fix:** [`ErrorBoundary.tsx`](apps/mobile/src/ErrorBoundary.tsx)'s
+`componentDidCatch` now also calls `SplashScreen.hideAsync().catch(() =>
+{})` — guaranteed the moment any crash is caught, regardless of where in
+the tree it happened, and a no-op if the splash was already hidden by the
+normal path. This is the one deliberate exception to the file's own
+"stay independent of everything it might be catching" design principle
+(stated in its header comment): `expo-splash-screen` is a leaf native
+module, not app logic that could itself be the thing crashing, so
+importing it doesn't compromise that independence.
+
+**Live-verified the mechanism still works correctly** with the new
+import in place, reusing iteration 31's exact temporary-throw-and-revert
+method: forced a real crash in `HomeScreen`, confirmed the fallback still
+renders with no new errors from the `SplashScreen` import, reverted
+before committing. Couldn't verify the actual splash-hide timing itself
+on web — same honest limitation iteration 10 already documented
+(`expo-splash-screen` has no native splash to control in a browser) —
+this needs a real-device check before the next Play Store build.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
+plus the live crash/fallback re-check above.
+
+**Commit:** `apps/mobile/src/ErrorBoundary.tsx`.
+
+---
+
+## Batch 5 summary (iterations 41–50, branch `mobile-stabilization-05`)
+
+Cycle 2 of the perspective catalogue — deepening rather than re-skimming.
+Ten iterations, six with real fixes:
+
+- **41:** confirmed prayer-time DST correctness is structural; added
+  Southern Hemisphere and half-hour-offset timezone test coverage.
+- **42:** confirmed Zakat's four fields are the only free-text numeric
+  inputs in the entire app; ruled out a comma-locale concern.
+- **43:** confirmed the tasbih counter's rapid-tap handling was already
+  exemplary.
+- **44:** closed a real sync-reload race in `PrayerTrackerScreen`
+  deferred since iteration 22 — a generation-counter guard, verified with
+  deterministic tests reproducing the exact race.
+- **45:** confirmed Hifz pluralization correctness beyond the one
+  originally-reported string.
+- **46:** confirmed the khatm completion card's undo/reset paths avoid
+  both the Zakat-reset and stepper-race bug classes.
+- **47:** confirmed Zakat's calculation layer already defends against
+  negative values regardless of path; extended the currency-only
+  load-time self-heal to every decimal field; live-verified against a
+  corrupted-storage scenario.
+- **48:** re-confirmed zero custom back-handling after 40 more iterations
+  of changes; examined the `ErrorBoundary`'s navigation-reset behavior.
+- **49:** closed the "Page NaN" title-flash cosmetic gap iteration 9 had
+  deliberately deferred.
+- **50:** found and fixed a real gap in the `ErrorBoundary` itself — a
+  crash during startup could leave the splash screen stuck forever,
+  hiding the recovery UI it exists to show.
+
+Full detail for each is above, under its own `## Iteration N` heading.

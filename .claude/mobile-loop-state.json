@@ -1,15 +1,10 @@
 {
-  "iteration": 49,
+  "iteration": 50,
   "cycle": 2,
-  "perspectiveIndex": 9,
+  "perspectiveIndex": 10,
   "batch": "mobile-stabilization-05",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 46,
-      "perspective": "Cycle 2, A6 - khatm completion undo/reset paths deepened",
-      "outcome": "clean - overshoot-safe, no unrelated-field wipe, already race-safe."
-    },
     {
       "iteration": 47,
       "perspective": "Cycle 2, A7/A8 - Zakat reset scope and negative-amount defense in depth",
@@ -23,7 +18,12 @@
     {
       "iteration": 49,
       "perspective": "Cycle 2, B10 - deep-link handling, closing the cosmetic gap left open",
-      "outcome": "GAP FOUND AND FIXED: fixed the 'Page NaN' title-bar flash on a malformed /page/xyz link that iteration 9 had explicitly deferred as cosmetic - one-line fix, live-verified both the malformed and valid paths in the browser preview."
+      "outcome": "GAP FOUND AND FIXED: fixed the 'Page NaN' title-bar flash on a malformed deep link."
+    },
+    {
+      "iteration": 50,
+      "perspective": "Cycle 2, B11 - splash screen timing, ErrorBoundary interaction",
+      "outcome": "GAP FOUND AND FIXED (serious): a crash before AppGate mounts never called hideAsync(), leaving the native splash covering the ErrorBoundary's recovery UI forever. Added hideAsync() to ErrorBoundary.componentDidCatch, guaranteed regardless of where the crash happened. Live-verified the mechanism still works via iteration 31's crash-test method. Batch 5 complete."
     }
   ]
 }
