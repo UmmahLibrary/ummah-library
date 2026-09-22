@@ -1,15 +1,10 @@
 {
-  "iteration": 52,
+  "iteration": 53,
   "cycle": 2,
-  "perspectiveIndex": 12,
+  "perspectiveIndex": 13,
   "batch": "mobile-stabilization-06",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 49,
-      "perspective": "Cycle 2, B10 - deep-link handling, closing the cosmetic gap left open",
-      "outcome": "GAP FOUND AND FIXED: fixed the 'Page NaN' title-bar flash."
-    },
     {
       "iteration": 50,
       "perspective": "Cycle 2, B11 - splash screen timing, ErrorBoundary interaction",
@@ -18,12 +13,17 @@
     {
       "iteration": 51,
       "perspective": "Cycle 2, B12 - background/foreground transitions, found the PrayerTracker race elsewhere",
-      "outcome": "GAP FOUND AND FIXED (serious): LibraryContext.tsx had the same unguarded sync-reload-vs-local-write race as PrayerTrackerScreen, at higher stakes (hifz progress, notes, collections)."
+      "outcome": "GAP FOUND AND FIXED (serious): LibraryContext.tsx had the same unguarded sync-reload race as PrayerTrackerScreen, at higher stakes."
     },
     {
       "iteration": 52,
       "perspective": "Cycle 2, B12 continued - checked every remaining onSyncApplied consumer",
-      "outcome": "GAP FOUND AND FIXED: SettingsContext.tsx had the same race across 10 of its 11 writers. Checked all 11 onSyncApplied consumers app-wide - the other 9 are pure read/refresh screens with no local writes to race, confirmed clean. This closes out the race-condition sweep motivated by iteration 44's original PrayerTracker fix."
+      "outcome": "GAP FOUND AND FIXED: SettingsContext.tsx had the same race. Closed the sweep - other 9 consumers confirmed clean."
+    },
+    {
+      "iteration": 53,
+      "perspective": "Cycle 2, B13 - kill-and-restore state integrity, re-verified through the new race-guard changes",
+      "outcome": "clean - confirmed the writeGen/ignoreStale guards added in iterations 51-52 are a no-op on cold start by construction (writeGen always 0 on fresh mount), then live-verified with the same corruption scenario iteration 12 used, through the exact new code paths. No regression."
     }
   ]
 }

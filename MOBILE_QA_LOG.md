@@ -2810,3 +2810,39 @@ iteration 44's deterministic tests and this iteration's own static
 verification.
 
 **Commit:** `apps/mobile/src/state/SettingsContext.tsx`.
+
+## Iteration 53 — B13 revisited: kill-and-restore, re-verified through the race-guard changes just made
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 12 found strong, structural corruption protection
+(every read goes through `getJSON`'s try/catch + shape-validator, lint-
+enforced by ADR 0028) and live-verified it by writing truncated/wrong-
+shape JSON and cold-reloading. This pass asked whether the `writeGen`/
+`ignoreStale` guard just added to `LibraryContext` and `SettingsContext`
+(iterations 51-52) could have disturbed that — a legitimate question,
+since `stores-corrupt.test.ts` tests the *store* layer
+(`library-store.ts`) directly, not the *React context* layer where the
+new wrapping code actually lives, so nothing in the existing test suite
+directly exercises `load()`'s corruption handling through the new guard.
+
+**Reasoned through it first, then verified live rather than trusting the
+reasoning alone.** `writeGen` is an in-memory `useRef`, always `0` on a
+fresh mount; `ignoreStale`'s check (`currentGen() === gen`) is trivially
+true on the very first `load()` call since nothing could have written
+locally yet — so the guard is a no-op for a cold start by construction,
+and the existing corruption-fallback behavior should flow through
+untouched. Confirmed this live: wrote the same class of corruption
+iteration 12 used, through the exact fields the new guard now wraps
+(truncated `ul.hifz`, wrong-shape `ul.bookmarks`, empty `ul.editions`,
+wrong-type `ul.scale`), cold-reloaded, and got the same clean result —
+Home rendered fully and correctly, including "Continue reading" from the
+still-valid `ul.lastRead`, no new console errors.
+
+No fix needed; the two recent changes don't interact badly.
+
+**Verification:** live corrupted-storage check above; no code changed
+this iteration, prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).
