@@ -2462,3 +2462,42 @@ grep for the wrong string (already exhaustive, already run twice now) is
 the proportionate check for a static string literal.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 46 — A6 revisited: khatm completion, the undo/reset paths deepened
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-05`
+
+**Checked:** iteration 6 confirmed the 604/604 completion card itself
+renders correctly (unlike web's still-open equivalent bug). This pass
+checked the two interactions that card exposes — the "−1" undo and "Start
+a new khatm" — for the two failure classes already found elsewhere this
+cycle: an unrelated-field wipe (Zakat's "Reset amounts" bug) and a
+stepper race (Qada/tasbih).
+
+**Clean on all three checks.**
+- **Overshoot safety:** `adjustKhatma`'s `Math.min(totalPages, ...)` clamp
+  means the app's own +1/−1 controls can never push `currentPage` past
+  `totalPages` — but the completion check itself is `>=`, not `===`, so
+  even a hypothetical overshoot (e.g. corrupted/merged sync data) would
+  still correctly read as "complete" rather than rendering broken.
+- **No unrelated-field wipe:** `clearKhatmaAndRefresh` (`"Start a new
+  khatm"`) does `{ ...prev, khatma: null }` — only the khatm itself.
+  `goal`, `log`, and `pagesToday` (the daily-goal streak and reading
+  history) are untouched, confirmed by reading the full state shape —
+  this screen doesn't have Zakat's bug.
+- **Race safety:** `adjustKhatma` already uses the functional-`setState`-
+  with-write-inside-updater pattern (the source comment names it as
+  mirroring the Qada-tracker fix directly) — the same class of fix
+  iteration 44 had to *add* to `PrayerTrackerScreen` was already present
+  here from the start.
+- **Undo correctness:** tapping "−1" from the complete state decrements
+  `currentPage` below `totalPages`, which flips the `>=` check and
+  correctly falls through to the normal mid-progress view — not a dead
+  end.
+
+No fix needed.
+
+**Verification:** read-only iteration; prior gate holds.
+
+**Commit:** none (clean iteration; no code changes).

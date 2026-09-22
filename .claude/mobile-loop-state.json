@@ -1,15 +1,10 @@
 {
-  "iteration": 45,
+  "iteration": 46,
   "cycle": 2,
-  "perspectiveIndex": 5,
+  "perspectiveIndex": 6,
   "batch": "mobile-stabilization-05",
-  "consecutiveCleanIterations": 1,
+  "consecutiveCleanIterations": 2,
   "history": [
-    {
-      "iteration": 42,
-      "perspective": "Cycle 2, A2 - Zakat sanitization extended app-wide",
-      "outcome": "clean - Zakat's 4 fields are the only free-text numeric inputs in the app."
-    },
     {
       "iteration": 43,
       "perspective": "Cycle 2, A3 - tasbih counter, rapid-tap race deepened",
@@ -18,12 +13,17 @@
     {
       "iteration": 44,
       "perspective": "Cycle 2, A4 - closed the sync-reload race deferred in iteration 22",
-      "outcome": "GAP FOUND AND FIXED: added a generation-counter guard (ignoreStale) to PrayerTrackerScreen's sync reload, verified with 3 deterministic unit tests reproducing the exact race."
+      "outcome": "GAP FOUND AND FIXED: added a generation-counter guard (ignoreStale) to PrayerTrackerScreen's sync reload."
     },
     {
       "iteration": 45,
       "perspective": "Cycle 2, A5 - Hifz pluralization, checked beyond the one string",
-      "outcome": "clean - re-confirmed both ayah/ayat ternaries correct, checked every other counted-noun string in both Hifz screens (found the day/days streak label also correct). Deliberately did not manufacture a test-extraction for a trivial string literal."
+      "outcome": "clean - re-confirmed both ternaries correct, checked adjacent counted-noun strings too."
+    },
+    {
+      "iteration": 46,
+      "perspective": "Cycle 2, A6 - khatm completion undo/reset paths deepened",
+      "outcome": "clean - overshoot-safe (>= not ===), Start-a-new-khatm only clears khatma field (no Zakat-style unrelated wipe), already uses the race-safe functional setState pattern iteration 44 had to add elsewhere, -1 undo correctly falls back to mid-progress view."
     }
   ]
 }
