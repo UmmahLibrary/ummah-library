@@ -15,7 +15,7 @@ import type { MergeStrategy, QuranScript } from "@ummahlibrary/core";
 import { noorThemes } from "@ummahlibrary/ui";
 import { useTheme, THEMES, type Palette } from "../theme";
 import { useI18n } from "../i18n/I18nProvider";
-import { LOCALES } from "../i18n/config";
+import { LOCALES, localeDir } from "../i18n/config";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { RECITER, RECITERS } from "../plugins";
@@ -171,9 +171,13 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>{t("common.language")}</Text>
+        <Text style={[styles.sectionLabel, { writingDirection: localeDir(locale) }]}>
+          {t("common.language")}
+        </Text>
         <View style={styles.card}>
-          <Text style={styles.pickSub}>{t("settings.languageHint")}</Text>
+          <Text style={[styles.pickSub, { writingDirection: localeDir(locale) }]}>
+            {t("settings.languageHint")}
+          </Text>
           <View style={[styles.swatchRow, { marginTop: 13 }]}>
             {LOCALES.map((l) => {
               const on = l.code === locale;

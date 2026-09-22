@@ -3293,3 +3293,67 @@ overlap with the sync engine — nothing to check there.
 **Verification:** read-only iteration; prior gate (136/136) holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 63 — B23 revisited: a whole surface iteration 23 never checked — the app's own RTL UI locale
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 23 thoroughly verified RTL for *Qur'ān content*
+(script direction, word-by-word alignment). This pass checked something
+that scope never covered: the app also has a full **RTL UI locale**
+(Urdu, `dir: "rtl"` in
+[`i18n/config.ts`](apps/mobile/src/i18n/config.ts)) — the interface
+chrome itself, not Quran text, a completely different surface iteration
+23's live-verification never touched.
+
+**Confirmed the scope is deliberately, honestly narrow — not a gap in
+itself.** `I18nProvider.tsx`'s own header comment explains mobile
+doesn't flip the OS-level layout direction (`I18nManager.forceRTL`
+needs a full native restart + `expo-updates`, which this app doesn't
+depend on) — a documented, correct scoping decision, not an oversight.
+The message catalogue is explicitly "a **starter slice**" (8 keys: the
+bottom tab bar + 3 Settings strings), with Urdu translations flagged
+"first pass... needs native review before release." All appropriately
+conservative for an MVP i18n effort.
+
+**Found a real gap inside that narrow, intentional scope.** The
+per-element RTL workaround the comment prescribes —
+`localeDir()`, exported from `config.ts` specifically so "a screen can
+apply `writingDirection: 'rtl'` to the specific text it renders" — had
+**zero call sites anywhere in the app**. Confirmed by reading
+`SettingsScreen.tsx` (the only screen consuming translated strings
+directly): `locale` was destructured only to highlight the selected
+language pill, never passed to `localeDir()`. The infrastructure the
+comment describes was built and exported, but nothing had actually used
+it yet.
+
+**Fix:** applied `writingDirection: localeDir(locale)` to the two
+Settings elements that render translated text via a controllable `Text`
+component — the "Language" section label and the language-picker hint
+sentence.
+
+**Live-verified precisely, not just visually**: switched to Urdu in the
+browser preview, then inspected the actual DOM. Confirmed
+`element.style.direction === "rtl"` on both fixed elements — proof the
+explicit fix is what's applying the direction, not incidental browser
+behavior. Also checked the one place I'm **not** fixing and why: the
+bottom tab bar passes `tabBarLabel: t(...)` as a **plain string** to
+React Navigation's own internal label component, which offers no prop
+to attach a custom `writingDirection` — switching to a custom render
+function is a real navigation-config change, bigger than this
+perspective's per-element scope. Checked whether that actually matters
+live: the tab labels ("ہوم", "پڑھیں") get `dir: rtl` computed **without**
+an explicit style (`element.style.direction` is empty), via this
+renderer's own automatic Unicode-BiDi detection on pure-RTL string
+content — likely fine as-is, though this is `react-native-web`'s
+rendering specifically, not a confirmed guarantee of identical behavior
+on native iOS/Android text rendering. Logging this distinction honestly
+rather than either claiming it's proven fine or forcing an unnecessary
+navigation-config change to "fix" something not shown to be broken.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
+plus the live DOM-inspection check above.
+
+**Commit:** `apps/mobile/src/screens/SettingsScreen.tsx`.
