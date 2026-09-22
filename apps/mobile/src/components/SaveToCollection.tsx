@@ -49,7 +49,15 @@ export function SaveToCollection({
   return (
     <>
       {asIcon ? (
-        <Pressable onPress={() => setOpen(true)} hitSlop={8} accessibilityLabel="Save āyah">
+        <Pressable
+          onPress={() => setOpen(true)}
+          // 18px icon + 8px hitSlop was a 34×34 tap target, short of the
+          // 44×44dp minimum — for a button rendered once per āyah across
+          // the whole reader, worth getting right. 13 on each side reaches
+          // 44×44 exactly.
+          hitSlop={13}
+          accessibilityLabel="Save āyah"
+        >
           <Icon name="bookmark" size={18} color={saved ? colors.accent : colors.faint} sw={1.8} />
         </Pressable>
       ) : (

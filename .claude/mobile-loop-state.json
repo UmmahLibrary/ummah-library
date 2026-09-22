@@ -1,15 +1,10 @@
 {
-  "iteration": 26,
+  "iteration": 27,
   "cycle": 1,
-  "perspectiveIndex": 27,
+  "perspectiveIndex": 28,
   "batch": "mobile-stabilization-03",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 23,
-      "perspective": "B24 - RTL/Arabic rendering correctness",
-      "outcome": "clean, live-verified"
-    },
     {
       "iteration": 24,
       "perspective": "B25 - Font loading fallback",
@@ -23,7 +18,12 @@
     {
       "iteration": 26,
       "perspective": "B27 - Screen-reader labels and focus order",
-      "outcome": "GAPS FOUND AND FIXED: 3 icon/glyph-only buttons missing accessibilityLabel (PrayerTimesScreen bell toggles x5, TranslationManager close, SearchScreen clear). Codebase otherwise already largely accessible. Live-verified through the real accessibility tree via read_page, the strongest verification available short of a real screen reader."
+      "outcome": "GAPS FOUND AND FIXED: 3 icon/glyph-only buttons"
+    },
+    {
+      "iteration": 27,
+      "perspective": "B28 - Touch target sizing (44dp) on icon buttons, steppers, tab bar",
+      "outcome": "GAPS FOUND AND FIXED: SaveToCollection bookmark icon (used per-ayah, very high reach) was a 34x34 effective target, widened hitSlop to reach 44x44. ReaderControls' 3 toggle chips were ~31px tall with no hitSlop, added hitSlop=7. NOT an exhaustive sweep - dozens of other icon buttons with varying hitSlop exist; flagged for a future cycle to continue. Verification gap noted: could not reliably boundary-test hitSlop's actual expanded zone in this environment (coordinate-space mismatch between read_page's viewport and screenshot pixels), though regression-checked fine and hitSlop itself is well-precedented in this codebase."
     }
   ]
 }

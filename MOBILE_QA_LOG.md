@@ -1367,3 +1367,66 @@ tree is exactly what TalkBack/VoiceOver read from.
 `test` 116/116 pass; `pnpm lint` — 0 errors, same 13 pre-existing warnings.
 
 **Commit:** `fix(mobile): add missing accessibilityLabels to 3 icon/glyph-only buttons`.
+
+---
+
+## Iteration 27 — Touch target sizing (≥44×44dp) on icon buttons, steppers, tab bar
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** whether icon-only buttons and small controls meet the
+44×44dp minimum touch-target guideline (Android accessibility / Material
+Design), live-measuring real DOM bounding boxes in the running preview
+rather than guessing from styles alone.
+
+**Found and fixed two real, high-leverage gaps.** A first broad
+measurement pass over every `role="button"/"switch"/"tab"` element
+produced a huge, noisy result (~400 near-duplicate entries, almost
+certainly per-āyah elements and other screens' DOM still mounted off-
+screen by React Navigation) — not a useful way to work, and I didn't try to
+salvage it; I went back to source instead, using the two genuinely small
+measurements from that pass (a 40×20-ish "switch" and 68–79×31 toggle
+chips) as leads to chase down directly in code:
+
+- **`SaveToCollection.tsx`'s icon-only bookmark toggle** — an 18×18 `Icon`
+  in a `Pressable` with `hitSlop={8}`, a 34×34 effective tap target. This
+  component renders **once per āyah** via `AyahView.tsx` (i.e. constantly,
+  throughout the entire reading experience) plus once on `HomeScreen`'s
+  "Verse of the day" card — plausibly the single most-tapped icon-only
+  control in the app. Bumped `hitSlop` to `13` (18 + 13 + 13 = 44, exactly
+  at the guideline).
+- **`ReaderControls.tsx`'s three reading-settings toggle chips**
+  ("Transliteration", "Word transliteration", "Tap a word to hear") — text-
+  labelled (not icon-only, so not an iteration-26-style gap), but only
+  ~31px tall (`paddingVertical: 6` + text line-height) with no `hitSlop` at
+  all. Added `hitSlop={7}` to each (31 + 7 + 7 = 45).
+
+**Not attempting an exhaustive sweep of every icon button in the app** —
+`hitSlop` fixes are low-risk (purely additive, no visual change) but the
+codebase has dozens of icon-only `Pressable`s with varying `hitSlop`
+values; auditing every one precisely would need the same kind of careful,
+per-component measurement as these two, not a blind find-and-replace.
+Fixed the two clearest, highest-reach instances found this iteration;
+future iterations revisiting this catalogue entry on a later cycle should
+continue the sweep rather than treating it as fully closed.
+
+**Verification, with an honest gap:** `pnpm --filter @ummahlibrary/mobile
+typecheck` clean; `test` 116/116 pass; `pnpm lint` — 0 errors, same 13
+pre-existing warnings. Confirmed no regression — the bookmark button still
+opens its modal on a normal click, verified live via
+`preview_start({name: "mobile"})`. **What I could not reliably verify**:
+clicking *just outside* the old 8px boundary but *inside* the new 13px one
+to directly prove the expanded hit zone — `hitSlop` in `react-native-web`
+isn't reflected in `getBoundingClientRect()` (it's implemented via JS-level
+hit-testing, not a DOM size change), and the coordinate space my
+measurement script read (`1024`-wide, from `read_page`'s reported viewport)
+didn't line up cleanly with the `computer` tool's screenshot-pixel click
+coordinates in this session, making a precise boundary-pixel test
+unreliable rather than just re-confirming what regular clicks already
+show. `hitSlop` itself is a standard, heavily-precedented RN API already
+used successfully throughout this exact codebase — the change is a
+well-understood, low-risk application of it, not a novel mechanism.
+
+**Commit:** `fix(mobile): widen hitSlop on the per-āyah bookmark toggle and
+reader-settings chips to meet the 44dp touch-target minimum`.
