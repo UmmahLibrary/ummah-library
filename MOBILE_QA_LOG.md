@@ -1430,3 +1430,60 @@ well-understood, low-risk application of it, not a novel mechanism.
 
 **Commit:** `fix(mobile): widen hitSlop on the per-āyah bookmark toggle and
 reader-settings chips to meet the 44dp touch-target minimum`.
+
+---
+
+## Iteration 28 — Noor theme switching consistency across all 8 palettes, every screen, light+dark
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** every hardcoded color literal across `apps/mobile/src`
+(bypassing the theme system is the main way a screen can look fine in the
+one theme it was built/tested against and break in the other seven), then
+live-verified the worst case.
+
+**Found and fixed a real, calculated contrast failure affecting the
+majority of themes.** `QiblaScreen.tsx`, `PrayerTimesScreen.tsx`, and
+`MosqueFinderScreen.tsx` all hardcode their "Use my location" CTA button's
+text as `color: "#fff"`, with the button's background set to `c.accent`
+(which varies per theme). `packages/ui/src/themes.ts` already has a
+purpose-built token for exactly this — `ink: string; // text colour on top
+of the accent/gold surface` — calibrated per theme (dark, near-black `ink`
+values for the light/vibrant-accent dark-mode themes; light, near-white
+`ink` values for the dark-accent light-mode themes) and already used
+correctly elsewhere (e.g. `CollectionsScreen.tsx`'s `emptyBtnText`). These
+three files bypassed it.
+
+Computed WCAG contrast ratios for white text against each theme's `accent`
+to confirm this wasn't cosmetic nitpicking: **obsidian** (`#e6b855`) ≈
+1.8:1, **midnight** (`#f0c868`) ≈ 1.6:1, **emerald** (`#e3b756`) ≈ 1.8:1,
+**ocean** (`#45c7bd`) ≈ 2.1:1 — all badly fail even the minimum 3:1
+large-text threshold, let alone the 4.5:1 normal-text one (this 15px bold
+label doesn't qualify as WCAG "large text"). The four light-mode themes
+(ivory/sepia/mint/rose) happen to have dark accents, so white text
+accidentally looked fine there — which is exactly how this kind of bug
+hides: correct in the themes someone tested, broken in the others. Since
+the app defaults to `obsidian` on a dark-mode device, this plausibly
+affected the majority of real users, not an edge case.
+
+**Fix:** changed all three to `color: c.ink`.
+
+**Live-verified in the actual worst-case theme**, not just calculated: via
+`preview_start({name: "mobile"})`, switched to **Midnight** (the theme
+with the lightest accent) in Settings, cleared `ul.prayerCoords` to reach
+`QiblaScreen`'s "Use my location" CTA (its initial, coords-less state),
+and confirmed the button text now renders dark and clearly legible against
+the light-gold background — screenshotted before relying on the
+calculation alone.
+
+**Also checked and intentionally left alone**, confirmed correct: `shadowColor: "#000"` in `SurahReaderScreen.tsx` (shadows are conventionally dark
+regardless of theme); `GRADE_GOOD`/`LATE` semantic status colors in
+`HadithScreen.tsx`/`PrayerTrackerScreen.tsx` (intentionally
+theme-independent semantic colors, not surface/text pairings).
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass; `pnpm lint` — 0 errors, same 13 pre-existing warnings.
+
+**Commit:** `fix(mobile): use the theme's ink token instead of hardcoded
+white for CTA button text`.

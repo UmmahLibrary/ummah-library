@@ -209,7 +209,7 @@ function makeStyles(c: Palette) {
       paddingVertical: 12,
       paddingHorizontal: 24,
     },
-    ctaBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+    ctaBtnText: { color: c.ink, fontSize: 15, fontWeight: "700" },
     compassWrap: { alignItems: "center", gap: 16, width: "100%" },
     compassCard: {
       width: "100%",
