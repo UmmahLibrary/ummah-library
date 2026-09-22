@@ -1,29 +1,29 @@
 {
-  "iteration": 40,
-  "cycle": 1,
-  "perspectiveIndex": 40,
+  "iteration": 41,
+  "cycle": 2,
+  "perspectiveIndex": 1,
   "batch": "mobile-stabilization-05",
   "consecutiveCleanIterations": 0,
   "history": [
     {
-      "iteration": 37,
-      "perspective": "B37 - Copy/microcopy consistency vs web",
-      "outcome": "GAP FOUND AND FIXED: MosqueFinderScreen error message wording synced with web."
-    },
-    {
       "iteration": 38,
       "perspective": "B38 - Push notification content correctness",
-      "outcome": "clean - all 5 reminder types share content-building code in core with direct test coverage."
+      "outcome": "clean - shared, tested code."
     },
     {
       "iteration": 39,
-      "perspective": "B39 - Mosque finder live-location accuracy and permission-denied fallback",
-      "outcome": "Distance math and permission fallback confirmed solid. Documented (not reversed) a deliberate tested tradeoff in OverpassPlacesProvider. GAP FOUND AND FIXED: added a missing retry button to the zero-results state."
+      "perspective": "B39 - Mosque finder accuracy and permission-denied fallback",
+      "outcome": "Documented a deliberate tested tradeoff, added a missing retry button."
     },
     {
       "iteration": 40,
       "perspective": "B40 - Test coverage audit",
-      "outcome": "GAP FOUND AND FIXED: storage.ts (the shared persistence primitive every store depends on) had zero direct test coverage - added storage.test.ts (14 tests) covering malformed-JSON fallback, write-failure swallowing, and every validator predicate's edge cases. Confirmed the dozen 'untested' store files are false positives - correctly thin, already covered via stores-corrupt.test.ts. Batch 4 (iterations 31-40) complete - ready to push and open PR."
+      "outcome": "GAP FOUND AND FIXED: added storage.test.ts. Batch 4 complete, PR #280 opened against batch 3."
+    },
+    {
+      "iteration": 41,
+      "perspective": "Cycle 2, A1 - prayer-time timezone-of-location, deepened",
+      "outcome": "Confirmed DST correctness is structural (delegates to Intl, never does manual local-time math). GAP FOUND AND FIXED: test suite only covered one coordinate/date - added Southern Hemisphere DST and half-hour-offset timezone tests, both pass (coverage gap, not a behavior bug)."
     }
   ]
 }

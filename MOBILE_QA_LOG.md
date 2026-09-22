@@ -2238,3 +2238,61 @@ Ten iterations, seven with real fixes, three clean-but-thoroughly-verified:
   every store in the app depends on.
 
 Full detail for each is above, under its own `## Iteration N` heading.
+
+---
+
+# Cycle 2 — deepening pass
+
+Iteration 41 begins a second full pass through the perspective catalogue.
+Per the loop's own protocol, cycle 2 goes deeper on each perspective
+rather than re-skimming: stress-testing fixes made quickly the first time,
+adding tests that were skipped, and (in the final ~10-15 iterations)
+starting a Play Store readiness pass.
+
+## Iteration 41 — A1 revisited: prayer-time timezone-of-location, deepened
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-05`
+
+**Checked:** iteration 1 confirmed `fmtPrayerTime`/`timeZoneFor` correctly
+render prayer times in the *location's* timezone rather than the device's
+(web's bug #1), and removed a dangerous unused duplicate. This pass
+re-examined whether that fix is actually as robust as it looked, rather
+than re-confirming the same single test case still passes.
+
+**Confirmed DST correctness is structural, not incidental.**
+`fmtPrayerTime` never does manual local-time arithmetic — it holds a
+`Date` (always an absolute UTC instant) and only ever formats it via
+`toLocaleTimeString({ timeZone })`, delegating all DST-transition logic to
+the JS engine's ICU implementation. There's no code path where this app
+could get DST wrong, because it never computes wall-clock time itself.
+
+**Confirmed the `coords === null` device-timezone fallback is intentional,
+not a footgun.** `timeZoneFor` returns `undefined` when there's no saved
+location, which `fmtPrayerTime` correctly treats as "omit `timeZone`,
+let `toLocaleTimeString` use the device's own zone" — the only sane
+behavior when there's no location to derive a zone from, and already
+documented as deliberate in the source.
+
+**Found a real, if narrow, test-coverage gap.** The existing test suite
+only exercised one coordinate (London) and one date, so a distinct code
+path — `tz-lookup`'s geographic resolution for a **Southern Hemisphere,
+DST-observing** location, and a **half-hour UTC-offset** timezone (both
+meaningfully different from a single Northern-Hemisphere, whole-hour-offset
+test case) — had never actually been exercised. Added two tests to
+[`utils.test.ts`](apps/mobile/src/utils.test.ts): Sydney (opposite-season
+DST) and Mumbai (UTC+5:30) — both pass, confirming the implementation
+already handled these correctly; the gap was in coverage, not behavior.
+
+**Noted, not actionable:** all screens use `Location.Accuracy.Low`
+(network-based location, error up to a few km) — near a timezone border,
+this could in principle resolve the wrong IANA zone. This is an inherent
+tradeoff of the accuracy level already deliberately chosen consistently
+app-wide (checked in iteration 39), not a bug to fix here, and web has the
+same fundamental limitation with any location-derived timezone.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` — 133/133
+passing (131 prior + 2 new).
+
+**Commit:** `apps/mobile/src/utils.test.ts`.

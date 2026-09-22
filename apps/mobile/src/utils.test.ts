@@ -61,6 +61,32 @@ describe("fmtPrayerTime", () => {
     expect(fmtPrayerTime(instant, london)).toBe(expected);
   });
 
+  it("renders correctly for a Southern Hemisphere, DST-observing location", () => {
+    // Sydney observes its own (opposite-season) DST — a distinct code path
+    // from London's northern-hemisphere summer time above.
+    const sydney = { latitude: -33.8688, longitude: 151.2093 };
+    const instant = "2026-06-21T12:00:00Z";
+    const expected = new Date(instant).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Australia/Sydney",
+    });
+    expect(fmtPrayerTime(instant, sydney)).toBe(expected);
+  });
+
+  it("renders correctly for a half-hour UTC-offset timezone", () => {
+    // India Standard Time is UTC+5:30 — a distinct code path from the
+    // whole-hour offsets covered above, in case of any truncation bug.
+    const mumbai = { latitude: 19.076, longitude: 72.8777 };
+    const instant = "2026-06-21T12:00:00Z";
+    const expected = new Date(instant).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Kolkata",
+    });
+    expect(fmtPrayerTime(instant, mumbai)).toBe(expected);
+  });
+
   it("falls back to the device timezone when coordinates are unknown", () => {
     const instant = "2026-06-21T12:00:00Z";
     const expected = new Date(instant).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
