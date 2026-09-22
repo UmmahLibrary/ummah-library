@@ -4476,3 +4476,60 @@ source changed, so the lint/typecheck/test gate wasn't re-run (nothing
 to regress; tree was green from iteration 79 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 81 — A2, cycle 3: Zakat sanitization sweep, correcting a now-stale "only 4 fields" claim
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 42](#iteration-42--a2-revisited-extending-zakats-sanitization-check-app-wide)
+exhaustively grepped every `TextInput` app-wide and concluded "Zakat's
+four fields are the *only* free-text numeric inputs in the entire
+mobile app." Re-ran that same grep rather than trusting the standing
+claim, specifically because this loop has since added and touched
+screens (custom reading plans among them) that could have introduced a
+new one.
+
+**The claim is now stale — found a genuine correction, not a code
+bug.** `PlansScreen.tsx`'s "Create your own" custom-plan flow has a
+`keyboardType="number-pad"` `TextInput` (lines 357–360, "Pages a day" /
+"Days to finish") that iteration 42's sweep didn't catch — either it
+existed and was missed, or it postdates that pass; either way, the
+"only Zakat's four fields" statement is no longer accurate today, and
+per this log's append-only convention that's worth correcting on the
+record rather than leaving a future iteration to rediscover the
+discrepancy and wonder which pass was wrong.
+
+**Investigated the new field for the actual bug class this perspective
+cares about — found it already well-guarded, at two independent
+layers, not one.** Client-side: the "pace" branch does
+`Number(perDay) || 0` (garbage/NaN input collapses to 0, not a crash or
+`NaN` leaking into scheduling math) and the "duration" branch does
+`Math.max(0, Math.floor(Number(days) || 0))` (also clamps negative and
+floors a decimal). Shared-core: `validatePlanDraft`
+(`packages/core/src/reading-plans.ts`) then independently rejects a
+non-integer or sub-1 `unitsPerDay` (`Number.isInteger(Infinity)` is
+`false`, so even an edge case like typing enough digits to approach
+`Infinity` is caught here, not just by the client-side coercion) and an
+invalid or before-start end date — either failure disables the "Start"
+button via `customErrors`/`customDraft` being `null`. And unlike
+Zakat's `decimal-pad` fields (where iteration 42 ruled out a
+comma-decimal-locale bug specifically because the native keyboard can't
+produce a comma), this field's `number-pad` keyboard is even more
+restrictive — digits only, no separator key at all on either platform.
+
+**No fix needed; the record is corrected instead.** This is the same
+shape as iteration 35 correcting iteration 34: the earlier pass's
+conclusion was reasonable when made and has simply been overtaken by
+new code, not "wrong" in a way that implies the earlier work was
+careless.
+
+**Verification:** targeted code-reading audit
+(`PlansScreen.tsx`, `packages/core/src/reading-plans.ts`'s
+`validatePlanDraft`); no source changed, so the lint/typecheck/test
+gate wasn't re-run (nothing to regress; tree was green from iteration
+80 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
