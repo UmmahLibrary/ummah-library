@@ -1,15 +1,10 @@
 {
-  "iteration": 74,
+  "iteration": 75,
   "cycle": 2,
-  "perspectiveIndex": 34,
+  "perspectiveIndex": 35,
   "batch": "mobile-stabilization-08",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 71,
-      "perspective": "Cycle 2, B32 revisited - error boundaries/crash resilience against malformed persisted data, audited by data surface",
-      "outcome": "CLEAN: audited every remaining JSON.parse call site not covered by stores-corrupt.test.ts. All already defended, including the highest-risk backup-import path."
-    },
     {
       "iteration": 72,
       "perspective": "Cycle 2, B33 revisited - Bundle/APK size audit, closing the expo-system-ui gap iteration 32 deferred",
@@ -23,7 +18,12 @@
     {
       "iteration": 74,
       "perspective": "Cycle 2, B35 revisited - Play Store data-safety/permissions-justification, resolving iteration 33's deferred storage permissions",
-      "outcome": "GAP FOUND AND FIXED: traced READ/WRITE_EXTERNAL_STORAGE to expo-file-system's unconditional manifest declaration (not document-picker/sharing as iteration 33 guessed). Confirmed genuinely unused via 3 independent checks (sandboxed storage only, SAF/FileProvider don't need them, zero runtime checkSelfPermission references in the module's own source). Blocked both, merged manifest now down to exactly 6 justifiable permissions."
+      "outcome": "GAP FOUND AND FIXED: traced READ/WRITE_EXTERNAL_STORAGE to expo-file-system's unconditional manifest declaration. Confirmed genuinely unused via 3 independent checks and blocked both."
+    },
+    {
+      "iteration": 75,
+      "perspective": "Cycle 2, B36 revisited - empty/loading states, the local-storage-only screens iteration 36's sweep didn't individually enumerate",
+      "outcome": "GAP FOUND AND FIXED: HijriCalendarScreen returned bare null during its brief local-read load gap instead of the themed blank placeholder PlanDetailScreen/ReadingGoalsScreen already establish as the pattern. Fixed to match. Other local-storage screens (Profile, PrayerTracker, Zakat, Tasbih) confirmed already correct."
     }
   ]
 }

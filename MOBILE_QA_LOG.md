@@ -4067,3 +4067,60 @@ at all (established in iteration 69), so there's nothing there to
 exercise.
 
 **Commit:** `apps/mobile/app.json`.
+
+---
+
+## Iteration 75 — Cycle 2, B36 revisited: empty/loading states, the screens iteration 36's sweep didn't individually enumerate
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 36](#iteration-36--empty-and-loading-states-on-every-screen)
+traced every *network*-touching screen individually and found the app
+genuinely well-built there. It didn't explicitly enumerate the
+local-storage-only screens (`ProfileScreen`, `ReadingGoalsScreen`,
+`PlanDetailScreen`, `PrayerTrackerScreen`, `HijriCalendarScreen`,
+`ZakatScreen`, `TasbihScreen`) — reasonable at the time since its own
+framing was about *fetches*, but worth a deliberate pass now since a
+local read still has a real (if brief) async gap between mount and data
+arriving.
+
+**Read each one's load path and how it renders before that resolves.**
+Found the app already has an established, consistent pattern for this:
+`PlanDetailScreen` and `ReadingGoalsScreen` both gate their first render
+on a `null`/`ready` state and return a themed `<View style={styles.screen} />`
+placeholder (matching background color) until their local read resolves
+— avoiding a flash of the navigator's unthemed background. `ProfileScreen`
+and `PrayerTrackerScreen` instead initialize their state to zero/empty
+values that double as the legitimate first-run empty state (0 streak, 0
+pages, no qaḍāʾ owed) — also correct, same reasoning iteration 36 already
+accepted for `HomeScreen`/`RamadanScreen`'s progressive-enhancement
+pattern. `ZakatScreen`/`TasbihScreen` have no async load at all (pure
+local calculators), so the question doesn't apply.
+
+**Found and fixed one real inconsistency: `HijriCalendarScreen` broke
+the established pattern.** Its own `today`/`view` state also starts
+`null` while a local `getString(KEYS.hijriAdjust)` read resolves — but
+its guard was `if (!view || !today) return null;`, rendering **nothing**
+instead of the themed placeholder its sibling screens use. A bare
+`null` return briefly shows whatever the navigator's native-stack screen
+wrapper renders underneath (unthemed) rather than this app's own
+background, for the one frame before the read resolves — small, but a
+real deviation from a pattern this same codebase already established
+twice over.
+
+**Fix:** changed the guard to `return <View style={styles.screen} />;`,
+reusing the screen's own existing `styles.screen` (`backgroundColor: c.bg`)
+— the exact same style object and pattern `PlanDetailScreen`/
+`ReadingGoalsScreen` already use, so this isn't a new pattern, just
+applying the existing one consistently.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136. Live-verified via
+`preview_start({name: "mobile"})`: navigated to the Hijri Calendar
+screen, confirmed it renders fully (month grid, observances, sunnah
+fasting section, upcoming fasts) with no console errors beyond the
+same pre-existing `validatePath` web-preview artifact.
+
+**Commit:** `apps/mobile/src/screens/HijriCalendarScreen.tsx`.
