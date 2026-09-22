@@ -3103,3 +3103,44 @@ No fix needed.
 **Verification:** read-only iteration; prior gate (136/136) holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 59 — B19 revisited: reminder re-sync race safety and the ErrorBoundary's effect-execution question
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** two things downstream of this cycle's own earlier fixes.
+First: `App.tsx`'s `syncAll()` re-runs every reminder family's sync on
+every `AppState` foreground event — the exact same trigger shape as the
+`onSyncApplied`-driven reload race iterations 44/51/52 found and fixed
+elsewhere. Does `syncPrayerReminders`/`syncAdhkarReminder`/
+`syncPlanReminder` have the same vulnerability if foreground events fire
+in quick succession (a rapid app-switch-away-and-back)? Second: does the
+`ErrorBoundary` (added iteration 31, wraps everything *below* `App()`'s
+own top-level `useEffect`) risk re-running that effect — and re-triggering
+`syncAll()` redundantly — every time its "Try again" resets state?
+
+**Both confirmed clean, for different reasons than the state-race
+fixes.** The reminder-sync functions are **idempotent by construction**,
+not merely lucky: each does `notifier.cancel(id)` then conditionally
+`notifier.schedule({ id, ... })`, and `notifier.ts`'s `schedule()` always
+replaces any existing notification under that same stable `id`
+(`identifier: n.id`). Two overlapping calls converge to whichever
+prefs-read resolved last — never a duplicate, never a crash, unlike the
+React-state race class this cycle found (which specifically caused **data
+loss** by clobbering fresher in-memory state with a stale reload). This
+is a fundamentally different shape: no in-memory state to clobber, since
+each call reads storage fresh and the notifier's own replace-by-id
+semantics absorb any interleaving harmlessly.
+
+For the `ErrorBoundary` question: re-traced the actual component tree.
+`App()`'s top-level `useEffect` (which calls `syncAll()`) belongs to
+`App()` itself, which sits *outside* what the boundary wraps — the
+boundary's `render()` swapping to its fallback and back only re-renders
+`this.props.children`, never `App()` itself, so `App()`'s effects run
+once per real app mount, not once per boundary reset. No redundant
+`syncAll()` risk from the recovery flow.
+
+**Verification:** read-only iteration; prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).
