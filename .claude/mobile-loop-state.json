@@ -1,15 +1,10 @@
 {
-  "iteration": 23,
+  "iteration": 24,
   "cycle": 1,
-  "perspectiveIndex": 24,
+  "perspectiveIndex": 25,
   "batch": "mobile-stabilization-03",
-  "consecutiveCleanIterations": 3,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 20,
-      "perspective": "B21 - AsyncStorage/SQLite migration safety",
-      "outcome": "GAP FOUND AND FIXED"
-    },
     {
       "iteration": 21,
       "perspective": "B22 - Secure storage of sync recovery secret",
@@ -18,12 +13,17 @@
     {
       "iteration": 22,
       "perspective": "B23 - Sync engine mobile edge cases",
-      "outcome": "clean by design; iteration 4 deferred race closed out with documented recommendation"
+      "outcome": "clean by design; iteration 4 race closed out"
     },
     {
       "iteration": 23,
-      "perspective": "B24 - RTL/Arabic rendering correctness (Indopak, word-level highlighting, mixed-direction)",
-      "outcome": "clean, thoroughly live-verified: switched to IndoPak script, confirmed correct RTL word order in both verse-by-verse and continuous Reading modes, and confirmed the word-by-word transliteration row is RTL-ordered to correctly mirror the Arabic above it rather than misaligning in a fixed LTR order."
+      "perspective": "B24 - RTL/Arabic rendering correctness",
+      "outcome": "clean, thoroughly live-verified"
+    },
+    {
+      "iteration": 24,
+      "perspective": "B25 - Font loading fallback and flash-of-unstyled-text",
+      "outcome": "SEVERE GAP FOUND AND FIXED: no FOUT risk (single comprehensive fontMap), but useFonts' error was silently discarded, meaning any single bad font asset would freeze the app on the splash screen forever with no fallback (compounds with iteration 10's splash fix). Now proceeds past the gate on a font error instead of hanging. Live-verified the normal path has no regression; the error path itself not forceable to test live without corrupting a real asset."
     }
   ]
 }

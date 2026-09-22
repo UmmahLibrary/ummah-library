@@ -1197,3 +1197,62 @@ No code changes — this perspective checked out clean on live inspection
 across both reading modes and both scripts.
 
 **Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 24 — Font loading fallback and flash-of-unstyled-text
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** whether every font used anywhere in the app is covered by the
+startup loading gate (no flash-of-unstyled-text risk from a font that
+loads outside it), and what happens if font loading fails outright.
+
+**No FOUT risk — clean.** [`fonts.ts`](apps/mobile/src/fonts.ts)'s single
+`fontMap` (passed to the one `useFonts()` call in `App.tsx`) includes
+*every* typeface the app uses: all 5 Hanken Grotesk (Latin UI) weights, all
+4 IBM Plex Sans Arabic weights, and the IndoPak Nastaʿlīq face (checked
+live in [iteration 23](#iteration-23--rtlarabic-rendering-correctness-indopak-script-word-level-highlighting-mixed-direction-layout)).
+Nothing loads a font lazily or outside this gate, so there's no path to a
+flash of system-default text anywhere in the app.
+
+**Found and fixed a real, severe failure mode: a single bad font asset
+could freeze the app forever.** `expo-font`'s own `useFonts` implementation
+([`node_modules/expo-font/src/FontHooks.ts`](node_modules/expo-font/src/FontHooks.ts))
+returns `[loaded, error]` — and critically, **if the load ever rejects,
+`loaded` never becomes `true` on its own**; only a successful load sets it.
+`App.tsx` destructured only the first element
+(`const [fontsLoaded] = useFonts(fontMap)`), silently discarding `error`.
+Combined with `if (!fontsLoaded) return null` gating literally the entire
+app, **and** [iteration 10](#iteration-10--cold-start-time-and-splash-screen-timing)'s
+`SplashScreen.hideAsync()` only firing once that gate clears: a single
+corrupted, missing, or unparseable font asset — the custom
+converted-from-`.woff2` IndoPak `.ttf` being the most exposed candidate,
+being the one non-Google-Fonts-package asset in the map — would leave the
+user staring at a **permanently frozen native splash screen**, with no
+error surfaced, no fallback, and no way to proceed. Not a hypothetical:
+`loadAsync` loads local bundled assets, so this needs a bad *build*, not a
+bad network condition, but corrupted asset bundling and per-device font-
+parsing quirks are real, non-zero-probability failure classes — and the
+consequence (total, silent, unrecoverable app-startup failure) is about as
+severe as this loop has found.
+
+**Fix:** [`App.tsx`](apps/mobile/App.tsx) now destructures `fontError` too
+and gates on `if (!fontsLoaded && !fontError) return null` — proceeding
+past the splash screen with the OS default typeface on a font-load error
+instead of hanging forever. A screen that looks slightly off-brand is
+categorically better than an app that never starts.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass; `pnpm lint` — 0 errors, same 13 pre-existing warnings.
+Live-verified the normal (fonts-load-successfully) path still boots and
+renders identically via `preview_start({name: "mobile"})` — no regression.
+**Not verified live:** the actual error path itself, since the RN-web
+preview's fonts load successfully and deliberately corrupting a real font
+asset to force the failure would be a messier, riskier way to test a
+two-line, directly-sourced-from-the-library's-own-documented-return-type
+fix than the risk warrants.
+
+**Commit:** `fix(mobile): don't let a failed font load freeze the app on
+the splash screen forever`.
