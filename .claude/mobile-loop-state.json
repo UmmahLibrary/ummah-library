@@ -1,15 +1,10 @@
 {
-  "iteration": 89,
+  "iteration": 90,
   "cycle": 3,
-  "perspectiveIndex": 10,
+  "perspectiveIndex": 11,
   "batch": "mobile-stabilization-09",
-  "consecutiveCleanIterations": 3,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 86,
-      "perspective": "A7/A8, cycle 3 - Zakat, a real cross-field race found in setAsset",
-      "outcome": "GAP FOUND AND FIXED: setAsset built its patch from a stale closure instead of prev. Fixed and live-reproduced the exact race."
-    },
     {
       "iteration": 87,
       "perspective": "B9, cycle 3 - back-button handling re-verified after batches 6-9, plus a pseudo-modal check",
@@ -18,12 +13,17 @@
     {
       "iteration": 88,
       "perspective": "B10, cycle 3 - deep links, chasing down the plans/:id question iteration 9 deferred",
-      "outcome": "OUT OF SCOPE, precisely characterized: plans/:id ignores the id on mobile, a real feature-parity gap vs web's template preview/start flow. Logged for a product decision."
+      "outcome": "OUT OF SCOPE, precisely characterized: plans/:id ignores the id on mobile, a real feature-parity gap vs web. Logged for a product decision."
     },
     {
       "iteration": 89,
       "perspective": "B11, cycle 3 - cold start/splash, a rejected-promise hypothesis ruled out, a splash/theme mismatch found",
-      "outcome": "HYPOTHESIS RULED OUT (getString can never reject, proven from source) + OUT OF SCOPE finding: splash.backgroundColor is static dark with no light-mode variant despite theme.tsx defaulting to light Ivory on light-mode devices. Confirmed the installed expo-splash-screen version supports a dark: variant but app.json doesn't use the props-object form needed, and fixing needs a light splash asset this loop can't generate. Logged precisely."
+      "outcome": "HYPOTHESIS RULED OUT + OUT OF SCOPE finding: splash color has no light-mode variant despite theme.tsx defaulting to light Ivory on light-mode devices. Needs an asset this loop can't generate. Logged precisely."
+    },
+    {
+      "iteration": 90,
+      "perspective": "B12, cycle 3 - the sync-reload race found again in theme.tsx and HijriCalendarScreen, a third confirmed in RamadanScreen and deferred",
+      "outcome": "GAP FOUND AND FIXED x2: theme.tsx (setTheme/loadTheme + the legacy-migration write-back) and HijriCalendarScreen (changeAdjust/loadAdjust) both had the exact race iterations 44/51/52 already fixed elsewhere. Fixed both with writeGen/ignoreStale. Found and DEFERRED a third confirmed instance in RamadanScreen.tsx (loadRamadanData/toggleFast/toggleWorship) - logged with full detail for iteration 91 to fix immediately. ProfileScreen still unchecked. Batch 9 boundary - pushing and opening PR against mobile-stabilization-08."
     }
   ]
 }

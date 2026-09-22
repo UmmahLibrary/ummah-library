@@ -5005,3 +5005,81 @@ no source changed, so the lint/typecheck/test gate wasn't re-run
 prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 90 — B12, cycle 3: the same sync-reload race, found again in two more places, a third confirmed and deferred (closes out batch 9)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 11](#iteration-11--app-backgroundforeground-transitions-timers-audio-in-flight-requests)
+found background/foreground handling clean via three purpose-built
+mechanisms; [iteration 51](#iteration-51--b12-revisited-the-exact-race-fixed-in-prayertracker-was-also-live-in-librarycontext-app-wide)
+and [52](#iteration-52--b12-continued-the-same-race-a-third-time-in-settingscontext)
+found and fixed the sync-reload-vs-local-write race (a stale
+`onSyncApplied`-triggered reload clobbering a fresher local write) in
+`LibraryContext` and `SettingsContext`, and swept the remaining
+`onSyncApplied` consumers — but only named 5 of the 9 remaining
+screens explicitly as checked-clean ("Home, mosque finder, names,
+prayer times, Qibla"). This pass went through the un-named remainder
+(`theme.tsx`, `HijriCalendarScreen`, `RamadanScreen`, `ProfileScreen`)
+individually rather than assuming "most" meant "all."
+
+**Found and fixed the same bug a fourth and fifth time.**
+- **`theme.tsx`** — `loadTheme()` (mounts + `onSyncApplied`) called
+  `setThemeKey(key)` directly with no guard; `setTheme()` (every theme
+  swatch tap) did too. A reload in flight when the user picked a theme
+  could silently revert their pick back to whatever `ul.theme` held
+  when the reload started. Also guarded the adjacent legacy-migration
+  write-back (`setString(KEYS.theme, key)` for a pre-per-theme
+  `"dark"`/`"light"` value) with the same generation check — a
+  narrower but real secondary bug where a *stale* migration write
+  could land in storage *after* a fresher `setTheme()` pick already
+  wrote its own value there.
+- **`HijriCalendarScreen.tsx`** — `loadAdjust()` (mounts +
+  `onSyncApplied`) and `changeAdjust()` (every date-adjustment chip
+  tap) both write `adjust`/`today`/`view` state derived from
+  `ul.hijriAdjust` (a synced key) with no guard between them — the
+  identical shape.
+
+**Fix, both:** the same `writeGen`/`ignoreStale` pattern iterations
+44/51/52 already established — a generation counter bumped by every
+local write, with the reload discarding its own result if a newer
+local write landed since it started.
+
+**Found, precisely characterized, and deliberately deferred to the
+next iteration rather than expanding this one further: `RamadanScreen.tsx`
+has the identical bug a sixth time.** `loadRamadanData()` (mounts +
+`onSyncApplied`) calls `setFasts`/`setWorship` directly; `toggleFast`/
+`toggleWorship` use the functional `setState(prev => …)` form for
+their own update but don't guard against a concurrent stale reload
+overwriting it afterward. Both `ul.ramadanFasts` and `ul.ramadanWorship`
+are confirmed `MANAGED_KEYS` entries (synced), so this is a live race
+window, not hypothetical — logging the exact mechanism and file so the
+next iteration can fix it immediately rather than re-deriving this
+investigation. `ProfileScreen.tsx` — the one remaining unchecked
+consumer — still needs the same look; it's not yet been checked
+individually.
+
+**Live-verified both fixes**, not just the underlying `ignoreStale`
+mechanism (already proven via iteration 44's 3 deterministic tests):
+reproducing the exact race itself isn't reachable from outside the
+bundle the way iteration 86's Zakat DOM-event technique was (no
+externally-callable hook for `emitSyncApplied()`), so verified the
+normal path instead, matching iterations 51/52's own precedent.
+`preview_start({name: "mobile"})`: tapped the Midnight theme swatch,
+confirmed the screen re-themed and `localStorage.getItem('ul.theme')`
+read `"midnight"`; tapped the Hijri Calendar's "+1" date-adjustment
+chip, confirmed the label updated to "(+1 day)" and
+`localStorage.getItem('ul.hijriAdjust')` read `"1"`. No new console
+errors beyond the two already-documented, harmless artifacts.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 152/152 passing (unchanged — this mechanism
+is already covered by iteration 44's tests, these are new consumers of
+it, not new logic). Live verification as detailed above.
+
+**Commit:** `apps/mobile/src/theme.tsx`,
+`apps/mobile/src/screens/HijriCalendarScreen.tsx`.

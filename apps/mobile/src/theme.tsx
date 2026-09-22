@@ -13,6 +13,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -25,6 +26,7 @@ import {
 } from "@ummahlibrary/ui";
 import { KEYS, getString, setString } from "./storage";
 import { onSyncApplied } from "./lib/sync/sync-events";
+import { ignoreStale } from "./utils";
 
 export type { Palette, ThemeKey };
 
@@ -61,19 +63,34 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     Appearance.getColorScheme() === "light" ? "ivory" : "obsidian",
   );
 
+  // Guards the same sync-reload-vs-local-write race this loop already found
+  // and fixed in PrayerTrackerScreen/LibraryContext/SettingsContext: a sync
+  // round (or app-foreground, which funnels through the same
+  // `onSyncApplied` signal) can start `loadTheme()`'s read *before* a tap on
+  // a theme swatch lands, then resolve *after* — silently reverting the
+  // user's just-picked theme back to whatever was in storage when the
+  // reload started. `setTheme` bumps this on every explicit choice; a
+  // `loadTheme()` in flight when that happens discards its own result
+  // instead of overwriting the newer local pick.
+  const writeGen = useRef(0);
+
   const loadTheme = useCallback(async () => {
+    const gen = writeGen.current;
+    const currentGen = () => writeGen.current;
     const saved = await getString(KEYS.theme);
     if (!saved) return;
     const key = VALID.has(saved) ? (saved as ThemeKey) : LEGACY[saved];
     if (key) {
-      setThemeKey(key);
+      ignoreStale(currentGen, gen, setThemeKey)(key);
       // Unlike the other legacy migrations in this codebase (tasbih-store,
       // sync-settings), a mapped legacy value was never written back — every
       // launch re-read "dark"/"light" and re-mapped it in memory, correct but
       // silently perpetuating the legacy value in storage (and in whatever a
       // sync round pushes) forever. Persist the migrated key once, same as
-      // the others.
-      if (!VALID.has(saved)) void setString(KEYS.theme, key);
+      // the others — gen-guarded too, so a stale migration write can't land
+      // in storage *after* a newer `setTheme()` pick already wrote its own
+      // (different, non-legacy) value there.
+      if (!VALID.has(saved) && currentGen() === gen) void setString(KEYS.theme, key);
     }
   }, []);
 
@@ -84,6 +101,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [loadTheme]);
 
   const setTheme = (key: ThemeKey) => {
+    writeGen.current++;
     setThemeKey(key);
     void setString(KEYS.theme, key);
   };
