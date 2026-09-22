@@ -4192,3 +4192,50 @@ no source changed, so the lint/typecheck/test gate wasn't re-run
 prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 77 — Cycle 2, B38 revisited: push notification content correctness, re-verified plus the delivery hop iteration 38 didn't check
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** whether [iteration 38](#iteration-38--push-notification-content-correctness)'s
+"all five reminder families, one shared content module, byte-identical
+with web" finding still holds after three batches of changes, plus one
+layer it didn't examine: whether the generated content actually reaches
+`expo-notifications`' native scheduling call unmangled.
+
+**Re-verified the content layer — unchanged, still exactly as
+described.** `apps/mobile/src` still has exactly the same five
+reminder modules (`prayer-reminders.ts`, `adhkar-reminders.ts`,
+`plan-reminders.ts`, `sunnah-fast-reminders.ts`,
+`islamic-event-reminders.ts`) — no sixth family was added since.
+`packages/core/src/reminders.ts`'s title/body strings for all four
+non-plan types are byte-identical to iteration 38's own quotes.
+Re-checked the truncation-risk conclusion too: `islamic-events.ts`'s
+bundled event list (still the only source of `event.name` interpolated
+into a title) is unchanged — a fixed, developer-authored list, longest
+entry ~20 characters, still no user-authored/unbounded input feeding
+any notification title.
+
+**New this pass: traced the one hop iteration 38 didn't — from the
+generated `{title, body}` to the actual native call.**
+[`notifier.ts`](apps/mobile/src/notifier.ts)'s scheduling wrapper does
+`Notifications.scheduleNotificationAsync({ …, content: { title: n.title,
+body: n.body } })` — a direct, untransformed pass-through, no
+truncation, template re-wrapping, or platform-conditional mangling
+between content generation and the OS call. Confirms correctness holds
+end-to-end, not just at the content-builder layer already tested by
+`reminders.test.ts`/`reading-plans.test.ts`.
+
+**Clean — re-verified, and extended one layer deeper.** No code change.
+
+**Verification:** targeted code-reading audit
+(`packages/core/src/reminders.ts`, `islamic-events.ts`,
+`apps/mobile/src/notifier.ts`, and a directory listing confirming no
+new reminder family exists); no source changed, so the lint/typecheck/
+test gate wasn't re-run (nothing to regress; tree was green from
+iteration 76 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
