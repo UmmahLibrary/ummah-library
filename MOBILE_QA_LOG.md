@@ -3727,3 +3727,67 @@ every download attempt fail, which is exactly what exercised the new
 
 **Commit:** `apps/mobile/src/audio/useSurahAudio.ts`,
 `apps/mobile/src/components/DownloadButton.tsx`.
+
+---
+
+## Iteration 70 — Cycle 2, B31 revisited: navigation stack edge cases, the `.replace()` path iteration 30 didn't test
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** [iteration 30](#iteration-30--navigation-stack-edge-cases-deep-back-stacks-tab-switch-mid-flow-duplicate-pushes)
+verified duplicate-push safety and tab-switch state preservation for
+`navigation.navigate()`, the codebase's near-universal navigation call —
+but a second pattern exists that it didn't examine:
+`navigation.replace()`, used by `SurahReaderScreen.tsx`'s and
+`MushafPageScreen.tsx`'s "← Previous" / "Next →" footer controls (a
+`grep` for `\.replace(` confirms these are the only two call sites,
+both structurally identical: a guarded `n - 1`/`n + 1` replace of the
+current route). `replace()` is a different code path from `navigate()`
+in React Navigation — worth its own check rather than assuming iteration
+30's `navigate()` conclusion covers it.
+
+**Live-verified via `preview_start({name: "mobile"})`, not just inferred
+from the library's documented behavior.** Ref-based clicking on the
+footer's "Next →" control repeatedly resolved to stale/out-of-viewport
+coordinates this session (the pane's screenshot frame and the page's
+actual layout frame drifted after a `resize_window` call, a recurrence
+of the ref-staleness friction noted in earlier iterations) — fell back
+to `javascript_tool` to locate the DOM node by its rendered text and
+dispatch a real `.click()`, then read `window.history.length` and
+`window.location.href` directly rather than trusting screenshots alone:
+- Navigated to `/surah/2`, recorded `history.length` (7, carried over
+  from this session's earlier navigation).
+- Tapped "Next →" three times in sequence (→ surah 3 → 4), confirming
+  via the tab title changing each time (Al-Baqara → Aal-i-Imraan →
+  An-Nisaa) that the replace actually re-rendered the target screen.
+- `history.length` stayed at **7 across all three replaces** — proof
+  `navigation.replace()` genuinely replaces the current history/stack
+  entry instead of pushing a new one, so repeatedly tapping "Next"
+  through many surahs cannot bloat the back stack into one entry per
+  surah visited (confirmed via browser `history.length`, the same
+  signal a duplicate `push()` would have visibly incremented).
+- `MushafPageScreen.tsx`'s "← Previous" / "Next →" pair uses the
+  byte-for-byte identical guarded-replace shape — not re-run live since
+  it's the same mechanism already proven, not new code to independently
+  verify.
+
+**Reasoned, not live-tested: rapid double-tap on "Next".** Unlike
+iteration 30's `navigate()` duplicate-tap test (meaningfully different
+because a duplicate `navigate()` call *could* have pushed a second
+stack entry), a duplicate `replace()` call from a double-tap is
+structurally safe regardless of timing: `n` is read once per render
+from `route.params` with no `await` between the tap and the `replace()`
+call, so two clicks landing in the same synchronous handler both target
+the identical `n + 1` route — an idempotent replace of the same
+destination, not a skip-ahead or a corrupted stack.
+
+**Clean — confirms and extends iteration 30's finding** to the one
+navigation pattern it didn't cover. No code change.
+
+**Verification:** live browser-history checks above; no source changed,
+so the full `lint`/`typecheck`/`test` gate wasn't re-run (nothing to
+regress) — confirmed the tree was already green from iteration 69's gate
+immediately prior.
+
+**Commit:** none (clean iteration; only this log entry and state).

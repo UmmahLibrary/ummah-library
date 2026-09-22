@@ -1,19 +1,14 @@
 {
-  "iteration": 69,
+  "iteration": 70,
   "cycle": 2,
-  "perspectiveIndex": 29,
+  "perspectiveIndex": 30,
   "batch": "mobile-stabilization-07",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 66,
-      "perspective": "Cycle 2, B26 - screen-reader labels, SaveToCollection checkbox row",
-      "outcome": "GAP FOUND AND FIXED: checkbox role/state/label added, live-verified via accessibility tree."
-    },
     {
       "iteration": 67,
       "perspective": "Cycle 2, B27 - continuing the touch-target sweep iteration 27 explicitly deferred",
-      "outcome": "GAP FOUND AND FIXED (high-impact): AyahView.tsx's per-ayah action row 3 of 4 icons were 33x33; PrayerTimesScreen's reminder bell was 37x37. Both fixed to hitSlop=14. ~13 more low-hitSlop sites logged for next pass."
+      "outcome": "GAP FOUND AND FIXED (high-impact): AyahView.tsx's per-ayah action row 3 of 4 icons were 33x33; PrayerTimesScreen's reminder bell was 37x37. Both fixed to hitSlop=14."
     },
     {
       "iteration": 68,
@@ -23,7 +18,12 @@
     {
       "iteration": 69,
       "perspective": "Cycle 2, B30 revisited - asset/offline-audio loading fallback, finishing iteration 29's deferred follow-up",
-      "outcome": "GAP FOUND AND FIXED (high-impact): useSurahAudio.ts had 3 unhandled-rejection/stuck-state bugs (downloadSurahs, refreshSaved, startSession+playWord). Live-reproduced and fixed a genuine stuck 'Loading...' forever bug in startSession, root-caused via the validatePath error iteration 21 had dismissed as universally harmless - it wasn't, for audio-store.ts's call sites. Added downloadError UI feedback to DownloadButton."
+      "outcome": "GAP FOUND AND FIXED (high-impact): useSurahAudio.ts had 3 unhandled-rejection/stuck-state bugs. Live-reproduced and fixed a genuine stuck 'Loading...' forever bug in startSession."
+    },
+    {
+      "iteration": 70,
+      "perspective": "Cycle 2, B31 revisited - navigation stack edge cases, the .replace() path iteration 30 didn't test",
+      "outcome": "CLEAN, extended: live-verified via window.history.length that navigation.replace() (surah/mushaf-page prev/next) never bloats the back stack across repeated taps. Batch 7 boundary - pushing and opening PR against mobile-stabilization-06."
     }
   ]
 }
