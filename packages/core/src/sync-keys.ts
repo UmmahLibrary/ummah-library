@@ -11,12 +11,24 @@
  * prayer/calendar configuration — so the most recent change on any device wins.
  *
  * Deliberately EXCLUDED (still, even after the v2/Phase-1-3 element-merge
- * keys below landed per ADR 0034/0035): the reading-goal logs and active
- * plan, the tasbih/adhkar counters (including `ul.hifz.streak` — a counter,
- * not element-merged), and `ul.searchHistory`. Also excluded: the sync
- * sidecar itself (`ul.sync.*` — it must never sync), device-local flags
- * (`ul.onboarded`), and per-page scroll offsets. Notification preferences are held
- * back too, since scheduling is per-device.
+ * keys below landed per ADR 0034/0035): the reading-**goal** state
+ * (`ul.readingGoal` the target, `ul.readingPages` today's distinct pages,
+ * `ul.khatma` khatm progress) and the active reading **plan**
+ * (`ul.readingPlan`), the tasbih/adhkar counters (including
+ * `ul.hifz.streak` — a counter, not element-merged), and `ul.searchHistory`.
+ * Also excluded: the sync sidecar itself (`ul.sync.*` — it must never
+ * sync), device-local flags (`ul.onboarded`), and per-page scroll offsets.
+ * Notification preferences are held back too, since scheduling is
+ * per-device.
+ *
+ * Named explicitly above (not just "the reading-goal logs and active
+ * plan") because that phrasing previously read as if it meant
+ * `ul.readingLog`/`ul.readingActive` — which are a *different* pair of
+ * keys, the day-by-day streak log and active-dates list, and unlike the
+ * ones above, both of those ARE in `MANAGED_KEYS` (Phase 1/2 element-merge,
+ * below). An auditor skimming the old wording could easily conclude the
+ * wrong pair is excluded; this NOTE and the explicit key names exist so
+ * that mistake can't repeat.
  *
  * NOTE for anyone auditing what sync actually transmits (e.g. for a Play
  * Store Data Safety disclosure): `ul.qada` and `ul.haid` — the qaḍāʾ and

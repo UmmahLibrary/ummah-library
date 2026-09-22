@@ -4692,3 +4692,61 @@ changed, so the lint/typecheck/test gate wasn't re-run (nothing to
 regress; tree was green from iteration 83 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 85 — A6, cycle 3: khatm completion, checked for a sync-comment bug and found one
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 6](#iteration-6--khatm-604604-completion-state)
+confirmed the completion card itself renders correctly;
+[iteration 46](#iteration-46--a6-revisited-khatm-completion-the-undoreset-paths-deepened)
+deepened into overshoot safety, unrelated-field-wipe safety, and race
+safety for the "−1"/"Start a new khatm" controls. Neither checked
+whether `ul.khatma` has any sync-related implications — a natural next
+question given iteration 82 found the equivalent check valuable for
+tasbih this same cycle.
+
+**Confirmed `ul.khatma` (and its sibling reading-goal keys) are
+correctly excluded from sync** — `ReadingGoalsScreen.tsx`/`PlanDetailScreen.tsx`
+both already use the `state === null` → themed-placeholder gate rather
+than an `onSyncApplied` subscription (already established as correct
+in iteration 75's finding, extended here to confirm it's *also* correct
+for exactly this reason: there's genuinely nothing to sync).
+
+**Found and fixed a real bug while confirming that — a misleading doc
+comment in shared `core`, the same class iterations 34/35 already had
+to fix once for `ul.qada`/`ul.haid`.** `packages/core/src/sync-keys.ts`'s
+own exclusion comment read "Deliberately EXCLUDED: the reading-goal
+logs and active plan" — prose that an auditor could very reasonably
+read as naming `ul.readingLog`/`ul.readingActive` (the day-by-day
+streak log and active-dates list). Those two keys are **not** what's
+excluded; they're both sitting right there in `MANAGED_KEYS`, synced
+via Phase 1/2 element-merge. The keys actually excluded are a
+*different* set entirely — `ul.readingGoal`, `ul.readingPages`,
+`ul.khatma`, and `ul.readingPlan` — which the old prose never named
+explicitly. This is exactly the failure mode iteration 34/35's own NOTE
+about `ul.qada`/`ul.haid` exists to prevent, just recurring in the same
+file for a different pair of keys the earlier fix didn't happen to
+touch.
+
+**Fix:** rewrote the comment to name every excluded key explicitly
+(`ul.readingGoal`, `ul.readingPages`, `ul.khatma`, `ul.readingPlan`)
+and added a short note explaining exactly why the old wording was
+dangerous — cross-referencing `ul.readingLog`/`ul.readingActive` by
+name so the two easily-confused pairs can't be mixed up again, matching
+the explicit-key-name style the existing `ul.qada`/`ul.haid` NOTE
+already established as this file's convention.
+
+**Verification:** `pnpm --filter @ummahlibrary/core typecheck` clean,
+`pnpm --filter @ummahlibrary/core test` 508/508 passing; `pnpm --filter
+@ummahlibrary/mobile typecheck` clean, `pnpm --filter
+@ummahlibrary/mobile test` 152/152 passing; `pnpm lint` — 0 errors,
+same 13 pre-existing warnings. No browser-preview check — a doc-comment
+fix in shared `core` with zero behavior change, same as iteration
+34/35's equivalent fix.
+
+**Commit:** `packages/core/src/sync-keys.ts` (comment fix only, no
+behavior change).
