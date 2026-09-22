@@ -1736,3 +1736,64 @@ introduced or something a mobile-only change could fix.
 
 **Commit:** `apps/mobile/app.json`, `apps/mobile/package.json`,
 `pnpm-lock.yaml` (adds `expo-build-properties`).
+
+## Iteration 33 — EAS build config correctness
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** the production EAS build profile, whether declared Android
+permissions match what actually ends up in the merged release manifest
+(permission minimalism), and whether `ITSAppUsesNonExemptEncryption: false`
+is actually accurate given sync's E2EE crypto (ADR 0033).
+
+**`eas.json`'s production profile is correct as-is:** `buildType:
+"app-bundle"` (AAB, not APK) — Play Store's own dynamic delivery handles
+per-ABI/per-density splitting, so no manual ABI-split config is needed.
+`autoIncrement: true` handles versionCode bumps automatically.
+
+**`ITSAppUsesNonExemptEncryption: false` is accurate, verified rather than
+assumed.** Read every crypto primitive actually imported by the sync layer
+([`noble-cipher.ts`](apps/mobile/src/lib/sync/noble-cipher.ts)): AES-GCM,
+HKDF, HMAC, PBKDF2, SHA-256 — all standard, published, non-proprietary
+algorithms, used only to protect the user's own synced data
+(authentication/data-integrity use), and this isn't a cryptography
+product. That's exactly Apple's Category 5 Part 2 exemption criteria, so
+`false` (meaning "exempt, no export-compliance paperwork needed") is the
+correct declaration, not an oversight.
+
+**Found and fixed a real permission-minimalism gap.** Ran a real `expo
+prebuild` and read the actual merged `AndroidManifest.xml` (not just
+`app.json`'s permissions list, which only covers permissions the app
+explicitly asks for — plenty more get merged in silently from the base
+RN/Expo template and autolinked native modules). Found
+`android.permission.SYSTEM_ALERT_WINDOW` ("draw over other apps") in the
+release manifest — not declared anywhere in this app's own `app.json`,
+coming from the base Expo/RN template's dev-tooling default, and with
+**zero legitimate use** in a Quran/prayer-times app with no overlay/bubble
+UI anywhere. This is one of Android's "special access" permissions Google
+Play's Permissions Declaration form scrutinizes specifically, so shipping
+it unused is pure unnecessary review-friction and attack surface.
+
+**Fix:** added it to `app.json`'s existing `android.blockedPermissions`
+array — same mechanism already proven in this file for stripping
+`RECORD_AUDIO`. Live-verified via a fresh `expo prebuild` that the merged
+manifest now marks it `tools:node="remove"`, identical to the existing
+`RECORD_AUDIO` entry.
+
+**Also checked but left alone:** `READ_EXTERNAL_STORAGE` /
+`WRITE_EXTERNAL_STORAGE` also appear in the merged manifest, most likely
+from `expo-document-picker`/`expo-sharing` (used by
+[`backup.ts`](apps/mobile/src/backup.ts) for JSON backup import/export).
+Didn't touch these: removing them risks breaking a real, working feature,
+and on this project's targetSdkVersion (Android scoped storage applies),
+they're effectively inert at runtime anyway — the OS doesn't grant broad
+external-storage access to apps targeting a modern SDK regardless of this
+manifest entry. Flagging for a closer look in a future "permissions
+justification" pass (perspective B35) rather than guessing here.
+
+**Verification:** `pnpm lint` and `pnpm typecheck` clean full-workspace,
+`pnpm --filter @ummahlibrary/mobile test` 117/117 passing, plus the live
+`expo prebuild` manifest check above.
+
+**Commit:** `apps/mobile/app.json`.

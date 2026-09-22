@@ -1,15 +1,10 @@
 {
-  "iteration": 32,
+  "iteration": 33,
   "cycle": 1,
-  "perspectiveIndex": 33,
+  "perspectiveIndex": 34,
   "batch": "mobile-stabilization-04",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 29,
-      "perspective": "B30 - Asset loading fallback (interrupted audio downloads)",
-      "outcome": "GAP FOUND AND FIXED: corrupt-file cleanup on interrupted download"
-    },
     {
       "iteration": 30,
       "perspective": "B31 - Navigation stack edge cases (deep stacks, tab switch mid-flow, duplicate pushes)",
@@ -23,7 +18,12 @@
     {
       "iteration": 32,
       "perspective": "B33 - Bundle/APK size audit for Play Store",
-      "outcome": "GAP FOUND AND FIXED: release builds shipped with R8 minify + resource shrinking both off (no expo-build-properties plugin, no way to set the gradle property otherwise since android/ is gitignored/regenerated). Installed expo-build-properties@~1.0.10 (SDK-54-matched version, verified property-key compatibility against two other versions before trusting it) and enabled both flags in app.json. Verified end-to-end via a real expo prebuild that gradle.properties picks up both flags correctly."
+      "outcome": "GAP FOUND AND FIXED: release builds shipped with R8 minify + resource shrinking both off. Installed expo-build-properties@~1.0.10 (SDK-54-matched version) and enabled both flags in app.json. Verified end-to-end via a real expo prebuild that gradle.properties picks up both flags correctly."
+    },
+    {
+      "iteration": 33,
+      "perspective": "B34 - EAS build config correctness (production profile, permission minimalism, ITSAppUsesNonExemptEncryption accuracy)",
+      "outcome": "GAP FOUND AND FIXED: SYSTEM_ALERT_WINDOW permission present in the merged release manifest with zero legitimate use, coming from the base RN/Expo template not app.json. Added to android.blockedPermissions, verified stripped via a fresh expo prebuild. Also confirmed ITSAppUsesNonExemptEncryption:false is accurate (sync crypto is all standard AES-GCM/HKDF/HMAC/PBKDF2/SHA-256, exemption-eligible) and eas.json's production profile (app-bundle, autoIncrement) is already correct."
     }
   ]
 }
