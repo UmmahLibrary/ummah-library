@@ -1,15 +1,10 @@
 {
-  "iteration": 78,
-  "cycle": 2,
-  "perspectiveIndex": 38,
+  "iteration": 79,
+  "cycle": 3,
+  "perspectiveIndex": 0,
   "batch": "mobile-stabilization-08",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 75,
-      "perspective": "Cycle 2, B36 revisited - empty/loading states, the local-storage-only screens iteration 36's sweep didn't individually enumerate",
-      "outcome": "GAP FOUND AND FIXED: HijriCalendarScreen returned bare null during its load gap instead of the themed placeholder pattern established elsewhere. Fixed to match."
-    },
     {
       "iteration": 76,
       "perspective": "Cycle 2, B37 revisited - copy/microcopy vs web, checking what's changed since iteration 37",
@@ -23,7 +18,12 @@
     {
       "iteration": 78,
       "perspective": "Cycle 2, B39 revisited - mosque finder, closing (partially) the live-verification gap iteration 39 explicitly left open",
-      "outcome": "GAP FOUND AND FIXED (with an honest limitation): the original 'no mosques found' branch is still unreachable in preview (expo-location's real permission check blocks before a mocked fetch would matter). But reaching the 'denied' branch surfaced a real bug: Linking.openSettings() has no react-native-web implementation, throws synchronously at 4 call sites. Added .catch() to all 4 (correct for native's rare promise-rejection case) but documented clearly that .catch() cannot catch a synchronous throw - the web-preview crash itself is an iteration-21-class harmless shim gap, zero impact on real native."
+      "outcome": "GAP FOUND AND FIXED (with an honest limitation): couldn't reach the original 'no mosques found' branch (expo-location's permission check blocks before a mocked fetch matters), but found and fixed 4 unguarded Linking.openSettings() call sites; documented that .catch() cannot fix the web-preview's synchronous-throw manifestation (harmless, iteration-21-class shim gap)."
+    },
+    {
+      "iteration": 79,
+      "perspective": "Cycle 2, B40 revisited - test coverage audit, closing cycle 2's pass through the catalogue",
+      "outcome": "GAP FOUND AND FIXED: reading-goals.ts's recordMushafPage (khatma-cursor monotonicity, page de-duplication) and writeGoal's non-obvious 0-vs-negative clamping had zero test coverage. Added reading-goals.test.ts (11 tests). Reminder-scheduling modules re-confirmed correctly thin. CYCLE 2 COMPLETE - starting cycle 3."
     }
   ]
 }

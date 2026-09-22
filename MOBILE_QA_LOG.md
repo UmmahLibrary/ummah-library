@@ -4319,3 +4319,85 @@ confirmed the screen responded normally — no stuck or broken state.
 `apps/mobile/src/screens/PrayerTimesScreen.tsx`,
 `apps/mobile/src/screens/QiblaScreen.tsx`,
 `apps/mobile/src/notification-permission-alert.ts`.
+
+---
+
+## Iteration 79 — Cycle 2, B40 revisited: test coverage audit, closing cycle 2's pass through the catalogue
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 40](#iteration-40--test-coverage-audit-closes-out-batch-4)
+judged every "untested" `apps/mobile/src` module as of batch 4 —
+mostly false positives (thin `getJSON`/`setJSON` pass-throughs already
+covered by `stores-corrupt.test.ts`), with one real gap fixed
+(`storage.ts` itself). Re-ran that same judgment against every module
+still without a dedicated test file today, including ones this loop
+has itself touched or that predate it but weren't examined then.
+
+**Re-confirmed the reminder-scheduling modules are correctly thin, not
+a gap.** `adhkar-reminders.ts`, `islamic-event-reminders.ts`,
+`plan-reminders.ts`, `prayer-reminders.ts`, `sunnah-fast-reminders.ts`
+(26–33 lines each) each just wire a store read/write to
+`@ummahlibrary/core`'s shared `sync*Reminders` scheduling function —
+the exact same "real logic lives in core, already tested" shape
+iteration 40 established for the data stores. Confirmed by reading one
+in full (`prayer-reminders.ts`) rather than assuming the pattern held
+for all five from a line count alone.
+
+**Found and fixed the actual gap: `reading-goals.ts` has real,
+untested branching logic, unlike its sibling scheduling/store
+files.** Unlike the reminder modules, this one *is* the habit-tracking
+logic itself, not a thin wrapper: `recordMushafPage()` de-duplicates a
+day's distinct pages before incrementing the log count, and advances
+the khatma cursor **only when the new page is further along than the
+current one** (`page > s.khatma.currentPage`) — a specific, easy-to-get-
+backwards business rule (re-reading an earlier page must not regress
+khatma progress) that had zero test coverage. `writeGoal()` also has a
+genuinely non-obvious clamp worth pinning down: `Math.max(1,
+Math.floor(target) || DEFAULT_GOAL)` means a **zero** target falls back
+to `DEFAULT_GOAL` (0 is falsy, so the `||` short-circuits) while a
+**negative** target does not (a negative number is truthy) and instead
+clamps to `1` via `Math.max` — two different-looking inputs hitting two
+different code paths to two different results, exactly the kind of
+thing a future refactor could invert without anyone noticing.
+
+**Added** [`reading-goals.test.ts`](apps/mobile/src/reading-goals.test.ts)
+(11 new tests, same in-memory `AsyncStorage` mock pattern as
+`stores-corrupt.test.ts`/`storage.test.ts`): `readReadingState`'s
+defaults and its `pagesToday` derivation (today's log entry
+specifically, not any entry); `writeGoal`'s fractional/zero/negative
+clamping, all three asserted explicitly rather than just the "normal"
+case; `recordMushafPage`'s first-call, duplicate-page-same-day, and
+second-distinct-page-same-day counting; and all three khatma-cursor
+cases (advances forward, never regresses on a re-read, stays `null`
+with no active khatma).
+
+**Other modules checked and confirmed correctly thin, not re-tested:**
+`notification-permission-alert.ts` (iteration 56) is a single
+`Alert.alert` call with static copy — no branching to test.
+`prayer-timings-provider.ts`, `verses.ts`, `word-translit.ts`,
+`indopak.ts` are data-fetch/cache adapters already exercised
+transitively through `offlineCache.test.ts`'s cache-layer coverage and
+the screens that consume them (live-verified across many earlier
+iterations). `plans.ts`'s own branching (`pausePlan`/`resumePlan`/
+`advancePlanToPage`) is close in shape to what `reading-goals.ts` just
+gained coverage for but is a larger, separate unit — flagging it for a
+future test-coverage pass rather than scope-creeping this iteration.
+
+**This closes cycle 2's second full pass through the 40-item
+perspective catalogue** (iteration 79 = B40, the last entry). Cycle 2
+was not the "100% clean" pass the loop's own stopping criterion
+requires to consider finishing early — this cycle alone found and fixed
+real issues as recently as this same iteration — so the loop continues
+into cycle 3 per `.claude/MOBILE_STABILIZATION_LOOP.md`'s own rule
+rather than stopping.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` **147/147** passing (136 + 11 new). No
+browser-preview check — a pure unit-test addition with no UI or
+runtime-behavior change to observe, same as iteration 40's own
+`storage.test.ts` addition.
+
+**Commit:** `apps/mobile/src/reading-goals.test.ts` (new).
