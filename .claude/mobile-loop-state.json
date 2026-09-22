@@ -1,15 +1,10 @@
 {
-  "iteration": 66,
+  "iteration": 67,
   "cycle": 2,
-  "perspectiveIndex": 26,
+  "perspectiveIndex": 27,
   "batch": "mobile-stabilization-07",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 63,
-      "perspective": "Cycle 2, B23 - RTL, the app's own RTL UI locale (Urdu)",
-      "outcome": "GAP FOUND AND FIXED: localeDir() had zero call sites, fixed 2 Settings elements."
-    },
     {
       "iteration": 64,
       "perspective": "Cycle 2, B24 - font coverage vs iteration 63's RTL fix",
@@ -18,12 +13,17 @@
     {
       "iteration": 65,
       "perspective": "Cycle 2, B25 - text scaling, 2 more fixed-badge screens",
-      "outcome": "GAP FOUND AND FIXED: HijriCalendarScreen's month-grid overlap. RamadanScreen checked and genuinely clean (measured, not assumed)."
+      "outcome": "GAP FOUND AND FIXED: HijriCalendarScreen's month-grid overlap. RamadanScreen genuinely clean."
     },
     {
       "iteration": 66,
-      "perspective": "Cycle 2, B26 - screen-reader labels, checked SaveToCollection which postdates iteration 26",
-      "outcome": "GAP FOUND AND FIXED: a checkbox-styled collection row used a bare Unicode glyph with no accessibilityRole/State. Added checkbox role, checked state, and a name+count label. Live-verified via the actual accessibility tree: checkbox \"My Favorites, 1 saved\". Noted (not fixed, needs a focused pass): TranslationManager and the reminder-toggle components may have the same class of gap (Switch with sibling text, no wrapping label) - scope uncertain across 4 components, logged for a dedicated future iteration."
+      "perspective": "Cycle 2, B26 - screen-reader labels, SaveToCollection checkbox row",
+      "outcome": "GAP FOUND AND FIXED: checkbox role/state/label added, live-verified via accessibility tree."
+    },
+    {
+      "iteration": 67,
+      "perspective": "Cycle 2, B27 - continuing the touch-target sweep iteration 27 explicitly deferred",
+      "outcome": "GAP FOUND AND FIXED (high-impact): AyahView.tsx's per-ayah action row has 4 icon buttons; iteration 27 fixed only 1 (bookmark), the other 3 (Play/Memorize/Share) were still 33x33, well under 44dp, rendered on every ayah across the whole app. Also fixed PrayerTimesScreen's reminder bell (37x37) found via direct comparison against HijriCalendarScreen's equivalent (already correct at 50x50). Fixed all 4 to hitSlop=14. ~13 more low-hitSlop sites identified but not checked yet, logged for the next pass matching iteration 27's own stated approach."
     }
   ]
 }

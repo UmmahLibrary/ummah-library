@@ -271,7 +271,10 @@ export function PrayerTimesScreen() {
                   {OBLIGATORY_PRAYERS.includes(name) && (
                     <Pressable
                       onPress={() => void toggleReminder(name)}
-                      hitSlop={10}
+                      // 17px icon + hitSlop 10 was a 37×37 tap target, short
+                      // of the 44×44dp minimum (see iteration 27) — 14 on
+                      // each side reaches 45×45.
+                      hitSlop={14}
                       accessibilityRole="switch"
                       accessibilityState={{ checked: !!reminders[name] }}
                       accessibilityLabel={`${reminders[name] ? "Turn off" : "Turn on"} reminder for ${PRAYER_LABELS[name]}`}

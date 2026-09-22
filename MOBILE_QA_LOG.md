@@ -3512,3 +3512,57 @@ typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
 plus the live accessibility-tree check above.
 
 **Commit:** `apps/mobile/src/components/SaveToCollection.tsx`.
+
+## Iteration 67 — B27 revisited: continuing the sweep iteration 27 explicitly asked a later pass to continue
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 27 deliberately fixed only the two clearest
+instances found at the time and said so explicitly: "future iterations
+revisiting this catalogue entry on a later cycle should continue the
+sweep rather than treating it as fully closed." This pass took that up —
+grepped every `hitSlop={N}` with N < 10 app-wide (17 sites) and checked
+the highest-traffic ones against their actual icon size.
+
+**Found the most consequential touch-target gap this loop has caught.**
+`AyahView.tsx` — the component that renders the action row under *every
+displayed āyah*, throughout the entire reading experience — has **four**
+icon-only buttons in that row: Play, Memorize, the bookmark toggle
+(`SaveToCollection`), and Share. Iteration 27 fixed the bookmark icon
+(18px + `hitSlop={13}` = 44×44) but the other **three, in the exact same
+row**, were left at 17px + `hitSlop={8}` = **33×33** — 11px short of the
+guideline on each axis, and rendered constantly across the app's single
+most-used screen.
+
+**Also found and fixed `PrayerTimesScreen`'s per-prayer reminder bell**
+(17px icon + `hitSlop={10}` = 37×37, still short) by direct comparison
+against its near-identical sibling in `HijriCalendarScreen` — which
+turned out to already clear the guideline comfortably (a fixed 34×34
+box + `hitSlop={8}` = 50×50), confirming the gap was specific to
+`PrayerTimesScreen`'s bare-icon version, not the pattern in general.
+
+**Fix:** `hitSlop={14}` on all four (`AyahView`'s three, plus the prayer
+bell) — 17 + 14 + 14 = 45, clearing 44dp with the same margin this
+iteration's other fixes used for identically-sized 17px icons.
+
+**Not attempting the rest of the 17-site list this iteration either** —
+matching iteration 27's own stated approach: fix the clearest,
+highest-reach instances found, leave the rest logged for the next pass
+rather than force a rushed blanket change. Remaining candidates from the
+grep (`AudioRangeControls`, `DownloadButton`, `ReaderControls`'s
+`hitSlop={7}`, `CollectionsScreen`, `DownloadsScreen`,
+`OnboardingScreen`, `SettingsScreen`'s erase button, `SearchScreen`,
+`SurahReaderScreen`'s loop button) still need the same per-component icon
+-size check before concluding anything either way.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136.
+Live-verified in the browser preview: the per-āyah action row still
+renders (8 "Play āyah" buttons found via the accessibility tree on one
+screen) and still responds to a tap — no new console errors beyond the
+same pre-existing, already-documented `validatePath` web-preview
+artifact from iteration 21.
+
+**Commit:** `apps/mobile/src/components/AyahView.tsx`,
+`apps/mobile/src/screens/PrayerTimesScreen.tsx`.
