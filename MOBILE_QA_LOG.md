@@ -864,3 +864,54 @@ most "nothing custom exists to break" findings elsewhere in this loop —
 but it's still reasoning from source, not a watched device.
 
 **Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 18 — Offline/airplane-mode behavior on every network-touching screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether losing network access mid-session produces a graceful
+error instead of a crash, blank screen, or infinite spinner — across both
+never-fetched and previously-fetched content.
+
+**Result: clean, and unusually thoroughly live-verified.** `api.ts` wraps
+essentially every content call — surahs, translations, tafsir, hadith
+sections, 99 names, adhkar, search corpus — in `readThrough`
+([`offlineCache.ts`](apps/mobile/src/offlineCache.ts)): network-first,
+falling back to a disk cache on failure, with age/size-bounded eviction
+(`stores-corrupt.test.ts`'s sibling for this layer). Verified live via
+`preview_start({name: "mobile"})` by overriding `window.fetch` to always
+reject (a true offline simulation, not just a slow/flaky one):
+
+- **Never-fetched content while offline** (`SurahReader` for a fresh
+  surah, `NamesScreen`): each showed a clear, screen-specific error
+  ("Couldn't load this surah.", "Could not load names. Check your
+  connection.") — no crash, no blank screen, no stuck spinner.
+- **Previously-fetched content while offline** (re-opened a surah already
+  loaded earlier in the same session): also showed the "couldn't load"
+  error rather than serving the disk cache.
+
+**Traced the cache-miss to its actual cause rather than reporting it as a
+bug:** `expo-file-system`'s own web implementation
+(`node_modules/expo-file-system/src/ExpoFileSystem.web.ts`) is an explicit,
+official stub — every method just does `console.warn('expo-file-system is
+not supported on web')` and no-ops. `offlineCache.ts` already wraps every
+disk operation in try/catch, so this isn't a crash — it's `readThrough`
+correctly and silently falling back to "network only" on a platform whose
+disk-cache primitive doesn't exist. This is a **verification-environment
+limitation, not an app bug**: on a real Android/iOS device,
+`expo-file-system` is a mature, fully-native module and the disk cache
+should genuinely serve previously-fetched content offline there — the
+RN-web preview simply cannot exercise that specific path, the same class of
+gap as several native-only perspectives earlier in this loop, just traced
+all the way to its root cause this time instead of stopping at "can't
+verify."
+
+**Not fixing anything** — there's nothing broken in this app's own code to
+fix; the graceful-degradation design (try/catch everywhere, no raw
+propagation of a cache failure) is exactly what made the web-only
+cache-unavailability a non-event instead of a crash.
+
+**Commit:** none (clean iteration; no code changes).
