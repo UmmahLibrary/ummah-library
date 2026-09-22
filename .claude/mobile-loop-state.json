@@ -1,15 +1,10 @@
 {
-  "iteration": 12,
+  "iteration": 13,
   "cycle": 1,
-  "perspectiveIndex": 13,
+  "perspectiveIndex": 14,
   "batch": "mobile-stabilization-02",
-  "consecutiveCleanIterations": 2,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 9,
-      "perspective": "B10 - Deep link handling, including malformed links",
-      "outcome": "BUG FOUND AND FIXED"
-    },
     {
       "iteration": 10,
       "perspective": "B11 - Cold start time and splash screen timing",
@@ -23,7 +18,12 @@
     {
       "iteration": 12,
       "perspective": "B13 - Kill-and-restore state integrity",
-      "outcome": "clean, strong existing coverage (getJSON/setJSON try-catch + shape validation, ADR 0028 structural enforcement, stores-corrupt.test.ts). Live-verified by writing truncated JSON directly into localStorage and cold-reloading - no crash, clean fallback everywhere."
+      "outcome": "clean, strong existing coverage, live-verified with truncated JSON injection"
+    },
+    {
+      "iteration": 13,
+      "perspective": "B14 - Tablet/iPad layout (supportsTablet: true - is it actually usable?)",
+      "outcome": "functionally fine at tablet widths (live-tested 768x1024 and 1024x1366), but no content-width cap anywhere means forms like Zakat stretch full-bleed with awkward label/input gaps. Logged as a design-system-level recommendation (a maxContentWidth primitive in packages/ui), not fixed - cross-cutting visual design decision, out of scope for a single iteration."
     }
   ]
 }

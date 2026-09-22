@@ -594,3 +594,49 @@ it's not load-bearing for this app's resilience even if a native write
 were ever non-atomic.
 
 **Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 13 — Tablet/iPad layout (`supportsTablet: true` — is it actually usable?)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** `app.json` sets `ios.supportsTablet: true` (iPad runs the app
+un-scaled, not letterboxed), so live-tested several representative screens
+at tablet widths via `resize_window` in the RN-web preview: 768×1024
+(standard tablet preset) and 1024×1366 (iPad Pro portrait-ish).
+
+**Result: functionally fine, one real but low-severity polish gap found —
+logged, not fixed.** Only 5 of ~30 screens reference
+`Dimensions`/`useWindowDimensions`/`maxWidth` at all
+(`CollectionsScreen`, `HifzDashboardScreen`, `OnboardingScreen`,
+`PrayerTrackerScreen`, `QiblaScreen`); everywhere else is plain
+flex-based layout with no tablet-specific treatment, and nothing broke,
+overflowed, or became unreadable at either tested width — `SurahList`,
+`PrayerTracker`, `Home`, and the `SurahReader` verse view all held up fine,
+since per-ayah blocks and card grids don't get meaningfully worse as the
+viewport widens.
+
+**What does look genuinely unpolished:** form screens like
+[`ZakatScreen.tsx`](apps/mobile/src/screens/ZakatScreen.tsx) use a
+label-left/`flex:1`-spacer/input-right `Row` layout
+([`ZakatScreen.tsx:235-247`](apps/mobile/src/screens/ZakatScreen.tsx#L235))
+with no content-width cap. At 1024px wide, the label hugs the left edge and
+the (still `minWidth: 100`-sized) input pins to the far right with a huge
+empty gap between them — functionally fine (still tappable, still typeable,
+values still correct) but visually the kind of "obviously not designed for
+this screen size" rough edge that would stand out on an actual iPad.
+
+**Not fixing this now.** A content-width cap is a cross-cutting visual
+design decision, not a per-screen bug — per `AGENTS.md`, palette/layout
+primitives belong in `packages/ui` (the Noor design system), and something
+like a shared `maxContentWidth` token/wrapper used consistently across
+every screen is a design-system-level change, not a scoped fix for one
+iteration of this loop. Recommending it as a concrete follow-up rather than
+improvising a partial version here: e.g. a `ScreenContainer`/`FormRow`
+primitive in `packages/ui` that caps and centers content past some width,
+adopted screen-by-screen.
+
+**Commit:** none (clean iteration; findings logged, no code changes — this
+one specifically deferred rather than fixed).
