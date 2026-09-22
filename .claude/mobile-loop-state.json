@@ -1,15 +1,10 @@
 {
-  "iteration": 51,
+  "iteration": 52,
   "cycle": 2,
-  "perspectiveIndex": 11,
+  "perspectiveIndex": 12,
   "batch": "mobile-stabilization-06",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 48,
-      "perspective": "Cycle 2, B9 - back-button handling re-checked, ErrorBoundary interaction",
-      "outcome": "clean - re-confirmed invariant still holds."
-    },
     {
       "iteration": 49,
       "perspective": "Cycle 2, B10 - deep-link handling, closing the cosmetic gap left open",
@@ -18,12 +13,17 @@
     {
       "iteration": 50,
       "perspective": "Cycle 2, B11 - splash screen timing, ErrorBoundary interaction",
-      "outcome": "GAP FOUND AND FIXED (serious): crash before AppGate mounts never hid the splash screen, hiding the ErrorBoundary's recovery UI forever. Batch 5 complete, PR #281 opened."
+      "outcome": "GAP FOUND AND FIXED (serious): crash before AppGate mounts never hid the splash screen. Batch 5 complete, PR #281 opened."
     },
     {
       "iteration": 51,
       "perspective": "Cycle 2, B12 - background/foreground transitions, found the PrayerTracker race elsewhere",
-      "outcome": "GAP FOUND AND FIXED (serious): LibraryContext.tsx - the app's global, entire-lifetime state provider covering bookmarks/hifz/streak/collections/notes/lastRead - had the exact same unguarded sync-reload-vs-local-write race as PrayerTrackerScreen (iteration 44), but at much higher stakes (hifz progress, notes, collections could be silently reverted). Applied the same writeGen/ignoreStale pattern across all 8 writers and 7 reloaded state pieces. NOTE: SettingsContext.tsx also consumes onSyncApplied and hasn't been checked for the same pattern yet - next iteration."
+      "outcome": "GAP FOUND AND FIXED (serious): LibraryContext.tsx had the same unguarded sync-reload-vs-local-write race as PrayerTrackerScreen, at higher stakes (hifz progress, notes, collections)."
+    },
+    {
+      "iteration": 52,
+      "perspective": "Cycle 2, B12 continued - checked every remaining onSyncApplied consumer",
+      "outcome": "GAP FOUND AND FIXED: SettingsContext.tsx had the same race across 10 of its 11 writers. Checked all 11 onSyncApplied consumers app-wide - the other 9 are pure read/refresh screens with no local writes to race, confirmed clean. This closes out the race-condition sweep motivated by iteration 44's original PrayerTracker fix."
     }
   ]
 }

@@ -2767,3 +2767,46 @@ errors, only pre-existing unrelated noise already documented earlier in
 this log.
 
 **Commit:** `apps/mobile/src/state/LibraryContext.tsx`.
+
+## Iteration 52 — B12 continued: the same race, a third time, in SettingsContext
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** having found the sync-reload-vs-local-write race in two
+places now (`PrayerTrackerScreen`, `LibraryContext`), checked every
+remaining `onSyncApplied` consumer for the same shape. Of the 11
+consumers, most are pure read/refresh screens (Home, mosque finder,
+names, prayer times, Qibla — no local writes to race). One more had it.
+
+**Found and fixed the same bug a third time.**
+[`SettingsContext.tsx`](apps/mobile/src/state/SettingsContext.tsx) —
+another app-lifetime provider — has `loadPrefs()` conditionally
+overwriting 9 preference fields on every `onSyncApplied` event, and 10 of
+its 11 writer functions (every one except `setTafsirCompare`, which
+isn't reloaded on sync at all — confirmed `ul.tafsirCompare` isn't a
+`MANAGED_KEYS` entry, so there's nothing for it to race) could each have
+their tap silently reverted by a reload that started before the tap's
+write landed. Lower stakes than `LibraryContext` (a reverted preference
+toggle, not lost hifz progress), but the same real bug, and by now a
+recognizable pattern worth closing everywhere it appears rather than
+leaving it half-fixed.
+
+**Fix:** the same `writeGen`/`ignoreStale` pattern, applied precisely —
+guarded every setter `loadPrefs` touches, left `setTafsirCompare`
+unguarded since it genuinely has nothing to race.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136.
+Live-verified in the browser preview that the app still boots and
+renders correctly with `SettingsProvider` (which wraps the entire app)
+initializing without error — no new console errors beyond the same
+pre-existing, already-documented noise. Couldn't complete a full toggle-
+by-toggle click-through this session (the RN-web preview's navigation
+state has been unreliable for click-based navigation throughout this
+session, documented honestly rather than claiming a check that didn't
+finish) — the mechanism itself is the same one already proven correct by
+iteration 44's deterministic tests and this iteration's own static
+verification.
+
+**Commit:** `apps/mobile/src/state/SettingsContext.tsx`.
