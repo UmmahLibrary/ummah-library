@@ -52,8 +52,6 @@ interface ThemeContextValue {
   mode: ThemeMode;
   colors: Palette;
   setTheme: (key: ThemeKey) => void;
-  /** Flip between the default dark and light themes (top-bar style toggle). */
-  toggle: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -97,7 +95,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       mode,
       colors: noorThemes[themeKey],
       setTheme,
-      toggle: () => setTheme(mode === "dark" ? "ivory" : "obsidian"),
     };
   }, [themeKey]);
 

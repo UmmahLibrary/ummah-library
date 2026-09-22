@@ -1,15 +1,10 @@
 {
-  "iteration": 67,
+  "iteration": 68,
   "cycle": 2,
-  "perspectiveIndex": 27,
+  "perspectiveIndex": 28,
   "batch": "mobile-stabilization-07",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 64,
-      "perspective": "Cycle 2, B24 - font coverage vs iteration 63's RTL fix",
-      "outcome": "GAP FOUND AND FIXED: sectionLabel's hardcoded fontFamily overrode the dynamic RTL font selection."
-    },
     {
       "iteration": 65,
       "perspective": "Cycle 2, B25 - text scaling, 2 more fixed-badge screens",
@@ -23,7 +18,12 @@
     {
       "iteration": 67,
       "perspective": "Cycle 2, B27 - continuing the touch-target sweep iteration 27 explicitly deferred",
-      "outcome": "GAP FOUND AND FIXED (high-impact): AyahView.tsx's per-ayah action row has 4 icon buttons; iteration 27 fixed only 1 (bookmark), the other 3 (Play/Memorize/Share) were still 33x33, well under 44dp, rendered on every ayah across the whole app. Also fixed PrayerTimesScreen's reminder bell (37x37) found via direct comparison against HijriCalendarScreen's equivalent (already correct at 50x50). Fixed all 4 to hitSlop=14. ~13 more low-hitSlop sites identified but not checked yet, logged for the next pass matching iteration 27's own stated approach."
+      "outcome": "GAP FOUND AND FIXED (high-impact): AyahView.tsx's per-ayah action row 3 of 4 icons were 33x33; PrayerTimesScreen's reminder bell was 37x37. Both fixed to hitSlop=14. ~13 more low-hitSlop sites logged for next pass."
+    },
+    {
+      "iteration": 68,
+      "perspective": "Cycle 2, B29 revisited - Noor theme switching consistency across all 8 palettes",
+      "outcome": "GAP FOUND AND FIXED: theme.tsx's ThemeContextValue exposed a dead, never-called toggle() that also didn't match web's remember-last-theme-per-mode behavior. Removed it. Confirmed all 33 screens + components consume useTheme() correctly. Live-verified Midnight/Ivory switches. Logged: mobile lacks web's header quick-toggle (product decision, out of scope); zero test coverage of theme.tsx (flagged for #40)."
     }
   ]
 }

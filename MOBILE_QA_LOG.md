@@ -3566,3 +3566,73 @@ artifact from iteration 21.
 
 **Commit:** `apps/mobile/src/components/AyahView.tsx`,
 `apps/mobile/src/screens/PrayerTimesScreen.tsx`.
+
+---
+
+## Iteration 68 — Cycle 2, B29 revisited: Noor theme switching consistency across all 8 palettes
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 28's own fix (the `c.ink`-on-CTA contrast bug) still
+holds, then went past hardcoded-color-literal grepping (already swept
+clean last cycle, re-confirmed: the remaining `#000`/`rgba(0,0,0,…)` hits
+in `SurahReaderScreen.tsx` shadows and `SaveToCollection.tsx`/
+`TranslationManager.tsx` modal backdrops are the same intentionally
+theme-independent cases iteration 28 already signed off on) into the
+theme *plumbing* itself: does every screen/component actually consume
+`useTheme()`, and does the theme context's own API surface behave
+consistently across the eight palettes and both modes.
+
+Confirmed all 33 screens and all-but-one component call `useTheme()`
+directly; the one exception, `DownloadButton.tsx`, receives `colors` as a
+prop from its caller instead — not a bypass, just prop-drilled from a
+parent that does call the hook, so no screen or component can render
+without going through the theme system.
+
+**Found and fixed a real inconsistency: `theme.tsx`'s `ThemeContextValue`
+exposed a `toggle()` function that was completely dead code** — grepped
+every call site across `apps/mobile/src` and confirmed nothing
+destructures or calls `.toggle` from `useTheme()` anywhere; it's only
+referenced inside `theme.tsx` itself. Worse, had it ever been wired up,
+its behavior wouldn't have matched web's equivalent: web's
+`apps/web/src/components/ThemeToggle.tsx` flips light↔dark and restores
+`lastThemeForMode(target)` — the specific theme the user was last on in
+that mode (Midnight stays Midnight, not reset to Obsidian). Mobile's
+`toggle` instead hardcoded `mode === "dark" ? "ivory" : "obsidian"`,
+discarding whichever of the eight themes was actually selected. Per
+`AGENTS.md`'s "don't add features" / "don't design for hypothetical
+future requirements" guidance, wiring up a header quick-toggle button is
+out of scope for this loop (that's a UI feature addition, not a bug fix)
+— logged below instead. But leaving a half-correct, unreachable function
+sitting on the context's public type is its own hazard: it's exactly the
+kind of copy-pasted-looking API that a future PR could wire to a button
+without noticing it silently discards the user's actual theme choice.
+Removed `toggle` from `ThemeContextValue`'s interface and its
+implementation in `theme.tsx`.
+
+**Out of scope, logged for a product decision:** mobile has no top-bar
+quick light/dark toggle — users must open Settings and pick from the
+8-swatch grid every time, whereas web has a one-tap `ThemeToggle` in its
+header. Whether mobile should gain an equivalent (and, if so, matching
+web's "remember last theme per mode" behavior rather than the
+now-removed hardcoded-obsidian/ivory version) is a design/product call,
+not a bug fix.
+
+**Also confirmed clean:** no test file references `theme.tsx` at all
+(zero direct coverage of `ThemeProvider`/`useTheme`) — flagged for the
+test-coverage-audit perspective (catalogue #40) rather than added here,
+to keep this iteration scoped to the theme-consistency finding.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136. Live-verified via
+`preview_start({name: "mobile"})`: opened Settings, switched from the
+default dark theme to **Midnight** (screenshotted — swatch selection
+ring moved, whole screen re-themed), then to **Ivory** (screenshotted —
+full light-theme repaint: background, text, accent, the language-picker
+segmented control, and the reciter radio all updated together), zero
+console errors either time. Confirms the theme system itself is intact
+after removing the dead code.
+
+**Commit:** `apps/mobile/src/theme.tsx`.
