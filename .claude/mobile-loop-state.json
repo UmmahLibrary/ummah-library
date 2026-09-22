@@ -1,15 +1,10 @@
 {
-  "iteration": 46,
+  "iteration": 47,
   "cycle": 2,
-  "perspectiveIndex": 6,
+  "perspectiveIndex": 7,
   "batch": "mobile-stabilization-05",
-  "consecutiveCleanIterations": 2,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 43,
-      "perspective": "Cycle 2, A3 - tasbih counter, rapid-tap race deepened",
-      "outcome": "clean - functional setState already correctly avoids stale-closure increment loss."
-    },
     {
       "iteration": 44,
       "perspective": "Cycle 2, A4 - closed the sync-reload race deferred in iteration 22",
@@ -23,7 +18,12 @@
     {
       "iteration": 46,
       "perspective": "Cycle 2, A6 - khatm completion undo/reset paths deepened",
-      "outcome": "clean - overshoot-safe (>= not ===), Start-a-new-khatm only clears khatma field (no Zakat-style unrelated wipe), already uses the race-safe functional setState pattern iteration 44 had to add elsewhere, -1 undo correctly falls back to mid-progress view."
+      "outcome": "clean - overshoot-safe, no unrelated-field wipe, already race-safe, undo works correctly."
+    },
+    {
+      "iteration": 47,
+      "perspective": "Cycle 2, A7/A8 - Zakat reset scope and negative-amount defense in depth",
+      "outcome": "GAP FOUND AND FIXED: confirmed calculateZakat/sumValues already defend the math against negative values reaching storage via any path, but the load-time hydration only self-healed currency, not the decimal fields (display-layer gap, not a calculation bug). Extended the self-heal to gold/silver price, liabilities, and every asset value. Live-verified with a corrupted-storage scenario: every field healed to exactly what typing the same text would produce."
     }
   ]
 }

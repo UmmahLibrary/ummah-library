@@ -64,7 +64,23 @@ export function ZakatScreen() {
         // Self-heal a currency value saved before sanitizeCurrency existed —
         // a stray digit in it used to silently fuse into the displayed totals.
         currency: sanitizeCurrency(saved.currency ?? DEFAULT.currency) || DEFAULT.currency,
-        assets: { ...EMPTY_ASSETS, ...(saved.assets ?? {}) },
+        // Same self-heal for the decimal fields: onChangeText only sanitizes
+        // what's *typed* on this device, so a value arriving another way
+        // (synced from another device, hand-edited storage, a future bug)
+        // could reach here raw — e.g. a stray "-" or a second "." — and
+        // display as-is until next edited. calculateZakat() already guards
+        // the maths against this (sumValues/liabilities both discard a
+        // negative), but the displayed field shouldn't show a value the UI
+        // itself would never let you type.
+        goldPricePerGram: sanitizeDecimal(saved.goldPricePerGram ?? DEFAULT.goldPricePerGram),
+        silverPricePerGram: sanitizeDecimal(saved.silverPricePerGram ?? DEFAULT.silverPricePerGram),
+        liabilities: sanitizeDecimal(saved.liabilities ?? DEFAULT.liabilities),
+        assets: Object.fromEntries(
+          Object.entries({ ...EMPTY_ASSETS, ...(saved.assets ?? {}) }).map(([id, v]) => [
+            id,
+            sanitizeDecimal(v),
+          ]),
+        ),
       });
     });
   }, []);

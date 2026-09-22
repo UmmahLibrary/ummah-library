@@ -2501,3 +2501,57 @@ No fix needed.
 **Verification:** read-only iteration; prior gate holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 47 — A7/A8 revisited: Zakat reset scope and negative-amount defense in depth
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-05`
+
+**Checked:** iteration 7 cross-referenced iteration 2's live-verified
+findings without new investigation. This pass actually went further:
+confirmed `reset()`'s exact field scope by reading the source
+(`assets`/`liabilities` only — matches the documented intent exactly),
+then asked a question iteration 2 didn't: negative amounts can't be
+*typed*, because `sanitizeDecimal` runs on every keystroke — but is that
+the *only* place this is defended, or does the actual Zakat math have its
+own protection if a negative value reached the stored state some other
+way (synced from another device, hand-edited storage, a future bug)?
+
+**Found real defense-in-depth already in place at the calculation
+layer, confirmed by reading `packages/core/src/zakat.ts`, not
+assumed.** `calculateZakat`'s `liabilities` input is clamped
+(`> 0 ? input.liabilities : 0`), and `sumValues` (which totals the asset
+categories) filters `v > 0` per entry — a negative asset value is
+silently excluded from the total, not subtracted. **The actual zakat
+figure can't be corrupted by a negative value reaching storage through a
+path other than this screen's own keystroke sanitizer** — core defends
+the math independent of any one UI.
+
+**Found and fixed a real, if narrower, display-layer gap.** The
+load-time hydration (`useEffect` reading `ul.zakat`) only self-healed
+`currency` (an existing, already-documented fix for a past bug) —
+`goldPricePerGram`, `silverPricePerGram`, `liabilities`, and each asset
+value were loaded **raw**, with no equivalent self-heal. The maths was
+always safe (per the above), but the **displayed field** could show a
+value the app's own UI would never let a user type — a raw `"-50"`
+sitting in the Liabilities box, for instance, until the user next edited
+it. Extended the same self-heal pattern from `currency` to every decimal
+field.
+
+**Live-verified the fix**, not just the reasoning: wrote a corrupted
+state directly into storage (`{ goldPricePerGram: "-75.5.2abc", assets:
+{ cash: "-500", gold: "100" }, liabilities: "-50" }`, simulating exactly
+what a stray sync/corruption path could produce), reloaded, and read
+every input's actual DOM `value` (not `read_page`'s placeholder-based
+name, per the ground-truth lesson from iteration 2). Every field
+self-healed to precisely what typing the same raw text would have
+produced: gold price `"75.52"`, cash `"500"`, liabilities `"50"` — and
+the displayed totals (`Total assets $600.00`, `Net wealth $550.00`)
+matched, confirming the healed values, not the raw ones, feed the
+calculation.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
+plus the live corrupted-storage self-heal check above.
+
+**Commit:** `apps/mobile/src/screens/ZakatScreen.tsx`.
