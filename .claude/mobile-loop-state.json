@@ -1,15 +1,10 @@
 {
-  "iteration": 73,
+  "iteration": 74,
   "cycle": 2,
-  "perspectiveIndex": 33,
+  "perspectiveIndex": 34,
   "batch": "mobile-stabilization-08",
-  "consecutiveCleanIterations": 1,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 70,
-      "perspective": "Cycle 2, B31 revisited - navigation stack edge cases, the .replace() path iteration 30 didn't test",
-      "outcome": "CLEAN, extended: live-verified via window.history.length that navigation.replace() never bloats the back stack. Batch 7 boundary - pushed, PR #283 opened against mobile-stabilization-06."
-    },
     {
       "iteration": 71,
       "perspective": "Cycle 2, B32 revisited - error boundaries/crash resilience against malformed persisted data, audited by data surface",
@@ -23,7 +18,12 @@
     {
       "iteration": 73,
       "perspective": "Cycle 2, B34 revisited - EAS build config correctness, re-verified after two batches of new plugins",
-      "outcome": "CLEAN, re-verified: fresh expo prebuild confirms eas.json, the merged AndroidManifest permission set, and the ITSAppUsesNonExemptEncryption declaration all still hold unchanged after expo-build-properties and expo-system-ui were added. Zero prebuild warnings now (vs iteration 33's one)."
+      "outcome": "CLEAN, re-verified: fresh expo prebuild confirms eas.json, the merged AndroidManifest permission set, and the ITSAppUsesNonExemptEncryption declaration all still hold unchanged."
+    },
+    {
+      "iteration": 74,
+      "perspective": "Cycle 2, B35 revisited - Play Store data-safety/permissions-justification, resolving iteration 33's deferred storage permissions",
+      "outcome": "GAP FOUND AND FIXED: traced READ/WRITE_EXTERNAL_STORAGE to expo-file-system's unconditional manifest declaration (not document-picker/sharing as iteration 33 guessed). Confirmed genuinely unused via 3 independent checks (sandboxed storage only, SAF/FileProvider don't need them, zero runtime checkSelfPermission references in the module's own source). Blocked both, merged manifest now down to exactly 6 justifiable permissions."
     }
   ]
 }

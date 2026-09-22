@@ -3988,3 +3988,82 @@ gate wasn't re-run (nothing to regress; tree was green from iteration
 `android/` directory afterward.
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 74 — Cycle 2, B35 revisited: Play Store data-safety/permissions-justification, resolving iteration 33's deferred storage permissions
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 33](#iteration-33--eas-build-config-correctness)
+found `READ_EXTERNAL_STORAGE`/`WRITE_EXTERNAL_STORAGE` in the merged
+manifest, guessed they came from `expo-document-picker`/`expo-sharing`
+(used by [`backup.ts`](apps/mobile/src/backup.ts)), judged them
+"effectively inert" under scoped storage, and explicitly deferred a
+closer look to "a future 'permissions justification' pass (perspective
+B35)" — this perspective, one revisit later.
+
+**Traced the actual source — it wasn't the guess.** `grep`ping every
+installed package's Android manifest for these two permission strings
+found exactly one hit: `node_modules/expo-file-system/android/src/main/AndroidManifest.xml`
+declares both **unconditionally, with no `maxSdkVersion` cap and no
+opt-out flag** — its config plugin
+(`expo-file-system/plugin/build/withFileSystem.js`) adds them
+unconditionally too. Neither `expo-document-picker` nor `expo-sharing`
+reference these permissions anywhere in their Android source at all.
+
+**Confirmed they're genuinely unused by this app, not just
+"effectively inert," with three independent checks:**
+1. Every one of this app's `expo-file-system` call sites
+   (`audio-store.ts`'s `Paths.document`, `offlineCache.ts`'s
+   `Paths.cache`, `backup.ts`'s export file) operates inside the app's
+   own **sandboxed** storage — the OS never gates that behind these
+   permissions on any Android version, scoped storage or not.
+2. `backup.ts`'s only touch of anything resembling "external" storage
+   is via `expo-sharing`'s `shareAsync()` (a `FileProvider` `content://`
+   handoff) and `expo-document-picker`'s `getDocumentAsync()` (Storage
+   Access Framework) — both purpose-built to avoid needing these legacy
+   permissions, confirmed by the same grep finding zero references in
+   either package.
+3. `grep`ped `expo-file-system`'s own native Android source for any
+   `checkSelfPermission`/runtime use of these permission strings —
+   **zero hits, anywhere but the manifest declaration itself.** The
+   module never actually checks or relies on them; they're pure
+   boilerplate from a version of the package predating scoped storage,
+   carried forward unconditionally for every consumer regardless of
+   which of its APIs they actually call. This project's generated
+   `android/build.gradle`/`gradle.properties` confirm no
+   `requestLegacyExternalStorage` opt-in and a modern target SDK, so
+   scoped storage fully applies.
+
+**Fix:** added both to `app.json`'s `android.blockedPermissions`, the
+same mechanism already proven here for `RECORD_AUDIO` and
+`SYSTEM_ALERT_WINDOW`. Live-verified via a fresh
+`expo prebuild --platform android --no-install` that the merged
+manifest now marks both `tools:node="remove"` — the release manifest's
+permission list is down to exactly six, every one directly traceable to
+a real, visible feature: location (Qibla/prayer times/mosque finder),
+internet (API/sync), audio settings (recitation playback),
+notifications (reminders), and vibrate. Nothing left that would need
+its own justification paragraph in the Play Console form.
+
+**Honest residual risk, stated rather than hidden:** this is a manifest
+edit for a native-only code path with no way to smoke-test on a real
+device or emulator in this environment (same limitation iteration 32
+and 33 already stated for the minify and `SYSTEM_ALERT_WINDOW` changes)
+— the confidence here rests on the module never referencing these
+permissions in its own runtime code (point 3 above), not on having
+actually run a build. Backup export/import and offline audio download
+should get one real-device smoke test before the next Play Store
+upload, same standing caveat as the earlier build-config changes.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136; live `expo prebuild` manifest
+re-check (above). No browser-preview check — native-manifest-only
+change, `expo-file-system` doesn't function on the web preview target
+at all (established in iteration 69), so there's nothing there to
+exercise.
+
+**Commit:** `apps/mobile/app.json`.
