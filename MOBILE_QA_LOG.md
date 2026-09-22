@@ -368,3 +368,68 @@ app-specific logic to find fault with; noting the verification gap
 transparently instead of claiming coverage this environment can't provide.
 
 **Commit:** none (clean iteration; no reproducible app-level issue).
+
+---
+
+## Iteration 9 — Deep link (`ummahlibrary://`) handling, including malformed links
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-01`
+
+**Checked:** `App.tsx`'s `linking` config and every param-taking deep-linked
+screen (`SurahReader: "surah/:surah"`, `JuzReader: "juz/:juz"`,
+`MushafPage: "page/:page"`, `PlanDetail: "plans/:id"`) for how they handle a
+malformed or out-of-range param — a link a user could get from a bad share,
+a stale bookmark, or someone probing the scheme.
+
+**Found and fixed a real bug:** `SurahReaderScreen.tsx` had
+`useEffect(() => { setLastRead(n); ... }, [n])` firing **unconditionally**,
+two lines above the effect that actually validates `n`
+(`!Number.isInteger(n) || n < 1 || n > TOTAL_SURAHS`) and shows a "Couldn't
+load this surah." error. `setLastRead` itself does zero validation — it
+just writes whatever number it's given straight to `AsyncStorage`. So
+opening e.g. `ummahlibrary://surah/9999` (or `/abc` → `NaN`, or `/-5`)
+showed the correct error on screen, but silently poisoned the persisted
+"continue reading" surah with a number no real surah will ever match. Not a
+crash — `HomeScreen.tsx`'s `{last && (...)}` guard means the "Continue
+reading" card just quietly stops appearing — but genuine, unnecessary data
+corruption from a single malformed link, and a real UX regression (losing
+your actual continue-reading position) with no error surfaced anywhere.
+
+**Fix:** gated the `setLastRead(n)` call with the same validity check the
+adjacent effect already uses
+([`SurahReaderScreen.tsx:147-153`](apps/mobile/src/screens/SurahReaderScreen.tsx#L147)).
+
+**Live-verified** via `preview_start({name: "mobile"})`: navigated to
+`/surah/9999` — got the "Couldn't load this surah." error, and
+`localStorage.getItem('ul.lastRead')` stayed `null` (previously it would
+have been `{"surah":9999}`). Navigated to `/surah/2` afterward — `lastRead`
+correctly became `{"surah":2}`, confirming the guard didn't break the normal
+path.
+
+**Other screens on the same audit, all clean:**
+- `JuzReaderScreen.tsx` validates `juz` before use and shows an error state;
+  no unconditional side effect ahead of the check.
+- `MushafPageScreen.tsx` validates via `isValidPageNumber(n)` before use and
+  shows an error state. Minor, not-worth-fixing cosmetic note: the header
+  title (`navigation.setOptions({ title: \`Page ${n}\` })`) is set before
+  validation, so a malformed `/page/xyz` would flash "Page NaN" in the title
+  bar above the "Couldn't load page NaN." error body — cosmetic only, no
+  storage or state impact, and only visible via a malformed link in the
+  first place.
+- `PlanDetailScreen.tsx` doesn't read `route.params.id` at all — it always
+  shows whatever `readActivePlan()` returns (this app supports one active
+  reading plan at a time per ADR 0025). A malformed or garbage `:id` is
+  simply never touched, so there's nothing to corrupt; noting this only
+  because it means `plans/:id` deep links can't target a *specific*
+  non-active plan today, which may or may not be intentional — not
+  investigating further, as it's a design question, not a bug.
+- The catch-all `NotFound: "*"` route in `App.tsx` correctly handles any
+  path that doesn't match a configured screen at all.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` and `test`
+(116/116) pass; `pnpm lint` — 0 errors, same 13 pre-existing warnings as
+before (none new, none on the changed lines' logic).
+
+**Commit:** `fix(mobile): don't persist an out-of-range surah from a
+malformed deep link`.

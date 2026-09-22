@@ -1,52 +1,30 @@
 {
-  "iteration": 8,
+  "iteration": 9,
   "cycle": 1,
-  "perspectiveIndex": 9,
+  "perspectiveIndex": 10,
   "batch": "mobile-stabilization-01",
-  "consecutiveCleanIterations": 7,
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 1,
-      "perspective": "A1 - Prayer-time timezone-of-location vs device-timezone bug",
-      "outcome": "clean (already fixed on mobile via fmtPrayerTime); removed unused fmtTime dead code as a footgun-prevention fix"
-    },
-    {
-      "iteration": 2,
-      "perspective": "A2 - Zakat currency-field sanitization + adjacent Reset/negative-amount bugs (covers A7, A8 too)",
-      "outcome": "clean, verified live via mobile-web preview; all 3 related web bugs already prevented on mobile"
-    },
-    {
-      "iteration": 3,
-      "perspective": "A3 - Tasbih per-phrase counter (mobile's opposite bug from web)",
-      "outcome": "clean, verified live; per-phrase progress correctly isolated via TasbihRecord.phrases map in core"
-    },
-    {
-      "iteration": 4,
-      "perspective": "A4 - Qada +/- stepper race condition under rapid taps",
-      "outcome": "clean, verified live with 3 rapid taps producing 3 owed; safe functional-updater pattern used throughout",
-      "notableFinding": "onSyncApplied(load) re-reads stores wholesale on every sync pull, a different narrower race - deferred to iteration 23"
-    },
-    {
-      "iteration": 5,
-      "perspective": "A5 - Hifz review Arabic pluralization copy (ayahat vs ayat)",
-      "outcome": "clean, confirmed via repo-wide grep; both mobile call sites already use correct plural"
-    },
     {
       "iteration": 6,
       "perspective": "A6 - Khatm 604/604 completion state",
-      "outcome": "clean - mobile already has a dedicated completion UI web still lacks; live-verified by forcing currentPage to 604 via localStorage + one tap",
-      "notableFinding": "web still has this bug unfixed per WEB_QA_LIVE_BROWSER_REPORT.md; out of scope to backport, noted only"
+      "outcome": "clean - mobile already has a dedicated completion UI web still lacks"
     },
     {
       "iteration": 7,
       "perspective": "A7/A8 - Zakat reset-wipes-prices / negative amounts (cross-reference)",
-      "outcome": "already fully covered live in iteration 2; logged cross-reference instead of re-testing, advancing to catalogue group B"
+      "outcome": "already covered in iteration 2"
     },
     {
       "iteration": 8,
-      "perspective": "B9 - Android hardware back-button handling on every screen/modal",
-      "outcome": "clean by code review (zero custom BackHandler/Modal/beforeRemove logic anywhere); honestly flagged that real hardware-back testing needs an Android device/emulator this environment doesn't have",
-      "notableFinding": "browser-back-as-proxy jumped 2 levels in the RN-web preview, likely a tab-switch history-replace artifact unrelated to native BackHandler - not investigated further, out of scope (Play Store target is native, not web)"
+      "perspective": "B9 - Android hardware back-button handling",
+      "outcome": "clean by code review; honestly flagged no Android device/emulator available to test the real hardware back button"
+    },
+    {
+      "iteration": 9,
+      "perspective": "B10 - Deep link (ummahlibrary://) handling, including malformed links",
+      "outcome": "BUG FOUND AND FIXED: setLastRead(n) fired before validation in SurahReaderScreen, letting a malformed deep link (e.g. surah/9999) poison the persisted continue-reading surah. Fixed by gating it with the same validity check used two lines below. Live-verified both the fix and the regression case.",
+      "notableFinding": "PlanDetailScreen ignores route.params.id entirely (single active-plan model per ADR 0025) - deep links to a specific non-active plan don't target it; may be intentional, not investigated further. MushafPageScreen briefly shows 'Page NaN' in header title on malformed input - cosmetic only, not fixed."
     }
   ]
 }
