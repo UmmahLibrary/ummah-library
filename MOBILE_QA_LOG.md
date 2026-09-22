@@ -2336,3 +2336,39 @@ none manufactured.
 confirming); prior gate (133/133 mobile tests) holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 43 — A3 revisited: tasbih counter, rapid-tap race deepened
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-05`
+
+**Checked:** iteration 3 confirmed switching the dhikr chip can't clobber
+another phrase's count. This pass checked the other realistic failure
+mode for a *tap counter specifically* — rapid, repeated taps in quick
+succession (the dial's actual primary usage pattern) racing on a stale
+closure and silently dropping increments.
+
+**Already correctly handled, and well.** `TasbihScreen.tsx`'s `tap()`
+uses the React functional-`setState` form
+(`setState(prev => ...)`), computing each increment from `prev`, not
+from a closed-over `progress` value — the source comment even names this
+exact failure mode as the reason. React guarantees queued functional
+updaters for one state setter apply sequentially against each other's
+output, so N taps queued before a re-render each land correctly instead
+of all applying "+1" against the same stale total (the bug this pattern
+specifically avoids). The `store.write(next)` persistence call is issued
+from inside that same updater with the already-correct, monotonically
+increasing `next` value, in dispatch order — not a separate effect that
+could re-read stale state.
+
+Also checked: switching chips mid-"lap" (right after a phrase hits its
+target and visually wraps to 0) can't leave a stale "just completed"
+flash on the new phrase, since `justLapped`/`progress`/`view` are all
+derived fresh from `state` every render, not cached in separate local
+state.
+
+No fix needed — this was already exemplary, not merely adequate.
+
+**Verification:** read-only iteration; prior gate holds.
+
+**Commit:** none (clean iteration; no code changes).
