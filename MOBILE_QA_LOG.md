@@ -3222,3 +3222,39 @@ real consequence:
   pattern — fixed for consistency.
 
 Full detail for each is above, under its own `## Iteration N` heading.
+
+## Iteration 61 — B21 revisited: sync secret storage, checked for the race classes found elsewhere this cycle
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 21 confirmed mobile's recovery-secret storage
+already matched web's hardening. This pass checked
+[`SyncSection.tsx`](apps/mobile/src/components/SyncSection.tsx) (the
+screen holding that secret in React state) for two things this cycle's
+other work made newly relevant: the `onSyncApplied`-reload race found and
+fixed in `LibraryContext`/`SettingsContext`, and a concurrent-call race
+between "Turn on"/"Sync now" and "Turn off sync."
+
+**No `onSyncApplied` reload race — confirmed by absence, not
+inspection.** `SyncSection` doesn't subscribe to `onSyncApplied` at all;
+its one `useEffect` reads `isSyncEnabled()`/`readSyncSecret()` once on
+mount and never again. It was already excluded from iteration 52's
+11-consumer sweep for exactly this reason, re-confirmed here.
+
+**Investigated a plausible-looking gap, then ruled it out by actually
+tracing the interaction, not by pattern-matching.** The "Turn off sync"
+button has no `disabled={busy}` guard, unlike "Sync now"/"Turn on" —
+looked like the same missing-guard shape as bugs found elsewhere this
+loop. But `turnOff()`'s state-changing logic (`disableSync()`,
+`resetSyncRuntime()`, clearing `secret`/`enabled`) only runs inside a
+native `Alert.alert`'s confirm callback, and a native Alert is modal on
+both platforms — nothing else is tappable while it's showing. There's no
+actual window for a concurrent `turnOn`/`syncNow` call to interleave with
+`turnOff`'s effects; the missing `disabled` prop is inert, not a bug.
+
+No fix needed.
+
+**Verification:** read-only iteration; prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).

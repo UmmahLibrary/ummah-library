@@ -1,15 +1,10 @@
 {
-  "iteration": 60,
+  "iteration": 61,
   "cycle": 2,
-  "perspectiveIndex": 20,
+  "perspectiveIndex": 21,
   "batch": "mobile-stabilization-07",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 57,
-      "perspective": "Cycle 2, B17 - audio interruption handling",
-      "outcome": "clean - shared hook covers both reader screens."
-    },
     {
       "iteration": 58,
       "perspective": "Cycle 2, B18 - offline behavior, mosque search and sync",
@@ -18,12 +13,17 @@
     {
       "iteration": 59,
       "perspective": "Cycle 2, B19 - reminder re-sync race safety",
-      "outcome": "clean - idempotent by construction, different shape from the state-race class."
+      "outcome": "clean - idempotent by construction."
     },
     {
       "iteration": 60,
       "perspective": "Cycle 2, B20 - migration write-back census",
-      "outcome": "GAP FOUND AND FIXED: this loop's own iteration 47 fix (ZakatScreen decimal self-heal) had the exact never-written-back bug iteration 20 found and fixed in theme.tsx. Fixed with the identical write-back-once pattern, live-verified. Batch 6 complete - ready to push and open PR."
+      "outcome": "GAP FOUND AND FIXED: ZakatScreen's iteration 47 self-heal had the same never-written-back bug as theme.tsx's original gap. Batch 6 complete, PR #282 opened."
+    },
+    {
+      "iteration": 61,
+      "perspective": "Cycle 2, B21 - sync secret storage, checked for race classes found this cycle",
+      "outcome": "clean - SyncSection has no onSyncApplied subscription (already excluded from iteration 52's sweep). Investigated a plausible-looking missing disabled={busy} guard on Turn off sync and ruled it out: the state-changing logic only runs inside a modal Alert.alert confirm callback, which prevents any interleaving with a concurrent turnOn/syncNow call."
     }
   ]
 }
