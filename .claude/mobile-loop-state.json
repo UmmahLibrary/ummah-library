@@ -1,15 +1,10 @@
 {
-  "iteration": 13,
+  "iteration": 14,
   "cycle": 1,
-  "perspectiveIndex": 14,
+  "perspectiveIndex": 15,
   "batch": "mobile-stabilization-02",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 10,
-      "perspective": "B11 - Cold start time and splash screen timing",
-      "outcome": "GAP FOUND AND FIXED"
-    },
     {
       "iteration": 11,
       "perspective": "B12 - App background/foreground transitions",
@@ -18,12 +13,17 @@
     {
       "iteration": 12,
       "perspective": "B13 - Kill-and-restore state integrity",
-      "outcome": "clean, strong existing coverage, live-verified with truncated JSON injection"
+      "outcome": "clean, live-verified with truncated JSON injection"
     },
     {
       "iteration": 13,
-      "perspective": "B14 - Tablet/iPad layout (supportsTablet: true - is it actually usable?)",
-      "outcome": "functionally fine at tablet widths (live-tested 768x1024 and 1024x1366), but no content-width cap anywhere means forms like Zakat stretch full-bleed with awkward label/input gaps. Logged as a design-system-level recommendation (a maxContentWidth primitive in packages/ui), not fixed - cross-cutting visual design decision, out of scope for a single iteration."
+      "perspective": "B14 - Tablet/iPad layout",
+      "outcome": "functionally fine, no content-width cap anywhere - logged as design-system recommendation, not fixed"
+    },
+    {
+      "iteration": 14,
+      "perspective": "B15 - Safe-area/notch handling on every screen",
+      "outcome": "clean, consistent pattern confirmed across every navigation stack: 4 custom-title root screens + Onboarding correctly handle manual insets, every other screen (including ToolsListScreen, initially looked inconsistent) correctly relies on native-stack's built-in header safe-area handling. Chased down and resolved the ToolsListScreen discrepancy rather than leaving it ambiguous."
     }
   ]
 }

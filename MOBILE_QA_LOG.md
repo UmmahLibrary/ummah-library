@@ -640,3 +640,61 @@ adopted screen-by-screen.
 
 **Commit:** none (clean iteration; findings logged, no code changes — this
 one specifically deferred rather than fixed).
+
+---
+
+## Iteration 14 — Safe-area/notch handling on every screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** every screen for whether it can render content under the
+status bar/notch/home-indicator, given `App.tsx` renders headers via
+`headerShown: false` at the **tab-navigator** level but the underlying
+per-tab `Stack.Navigator`s (`HomeStack`, `ReadStack`, `ToolsStack`,
+`HifzStack`, `MoreStack`) each set their own `screenOptions` independently.
+
+**Result: clean, consistent pattern — but had to chase down one apparent
+inconsistency to be sure.** Exactly 5 screens use
+`useSafeAreaInsets`/`SafeAreaView`
+(`HomeScreen`, `SurahListScreen`, `MoreMenuScreen`, `HifzDashboardScreen`,
+`OnboardingScreen`), and cross-checking every stack's `Stack.Screen`
+options confirms this is exactly right:
+
+- 4 of the 5 (`Today`, `SurahList`, `MoreMenu`, `HifzDashboard`) are each
+  the **root** screen of their stack with `headerShown: false` explicitly
+  set, rendering their own custom "big title" instead of the native header
+  — those need, and have, manual `insets.top` padding.
+- `OnboardingScreen` renders entirely outside any navigator (`AppGate`
+  shows it directly before `NavRoot` mounts), so it has no header chrome at
+  all from any library and correctly handles its own insets.
+- Every other screen — including, importantly, `ToolsListScreen` (`Tools`
+  tab's root) and all ~24 pushed sub-screens across every stack — relies on
+  `@react-navigation/native-stack`'s own default header (`headerShown`
+  defaults `true`, not overridden), which has safe-area handling built in
+  by the library itself. These correctly have *no* manual inset code.
+
+**The apparent inconsistency, resolved:** `ToolsListScreen` was the one
+root screen that looked odd — no `headerShown: false`, no manual insets,
+yet the RN-web preview renders its "Tools" title flush at the top-left with
+no visible header bar, looking identical in style to the other four
+screens' *custom* big titles. Checked `ToolsListScreen.tsx` directly: it
+defines no title text of its own anywhere (its only string literals are the
+11 tool-tile labels) — the "Tools" text on screen is the native header's
+`title` from `ToolsStack.tsx`'s `options={{ title: "Tools" }}`. The visual
+similarity is just `react-native-web`'s native-stack header shim rendering
+minimally (no border/shadow) in this preview, not a real header being
+skipped — the actual native header component (and its safe-area handling)
+is still there and is guaranteed by the library on a real device regardless
+of how flat the web shim draws it.
+
+**Verification and its limits:** confirmed via code audit across every
+`navigation/*.tsx` file and `preview_start({name: "mobile"})`. Like
+back-button handling (iteration 8), the actual safe-area *reservation* is
+native-stack/bottom-tabs library behavior this app's code can't uniquely
+break — `react-native-web` has no real notch to observe the difference
+against, so the visual confirmation here is necessarily about *which
+screens have the responsibility* (custom title → needs manual insets, all
+do) rather than pixel-perfect notch clearance, which needs a real device.
+
+**Commit:** none (clean iteration; no code changes).
