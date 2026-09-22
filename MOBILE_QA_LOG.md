@@ -1487,3 +1487,76 @@ theme-independent semantic colors, not surface/text pairings).
 
 **Commit:** `fix(mobile): use the theme's ink token instead of hardcoded
 white for CTA button text`.
+
+---
+
+## Iteration 29 — Asset loading fallback (icons, interrupted offline audio downloads)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** app icon/image loading (already covered by
+[iteration 24](#iteration-24--font-loading-fallback-and-flash-of-unstyled-text)'s
+asset-loading audit — nothing new there) and, the perspective's other
+named concern, what happens to an offline reciter-audio download that gets
+interrupted partway through.
+
+**Found and fixed a real bug in the offline-audio download path.**
+[`audio-store.ts`](apps/mobile/src/audio/audio-store.ts)'s `save()` calls
+`File.downloadFileAsync(remoteUrl, dest, …)`. Traced the native Android
+implementation
+(`node_modules/expo-file-system/android/.../FileSystemModule.kt`): it
+streams the response body **directly to the final destination path**
+(`FileOutputStream(destination).use { input.copyTo(it) }`) — there's no
+temp-file-then-atomic-rename, and this version of `expo-file-system`'s
+`File` API has **no `move`/`rename` method at all** (checked both the TS
+wrapper and native Android/iOS sources), so implementing that pattern
+myself isn't cleanly possible with what's installed. A download interrupted
+by a network drop or cancellation mid-transfer leaves a **truncated file
+sitting at the final path**. `has()`/`localUrl()` only check
+`file.exists`, never validity, so:
+- a retry's `has()` check would see the corrupt file and **skip
+  re-downloading it**, believing it already succeeded;
+- `isSurahDownloaded()` would eventually report the surah "complete" once
+  the ayah count matches, corrupt file included;
+- playback would hand the corrupt file to the audio player and fail, with
+  nothing in the UI telling the user *why* — the app still thinks that
+  ayah is safely downloaded for offline use.
+
+**Fix:** wrapped the download in try/catch; on failure, delete `dest` if
+it exists before re-throwing, so a failed/interrupted download never
+leaves a phantom "looks downloaded" file behind, and a retry actually
+retries.
+
+**Added a regression test** distinct from the existing "fails cleanly
+before writing anything" test (which doesn't exercise this path — its fake
+throws *before* any file exists): `audio-store.test.ts` now also covers a
+fetch that writes a partial file (`fsState.files.set(dest, 3)`) and *then*
+throws, mimicking a connection dropping mid-transfer, and asserts the
+partial file is gone afterward.
+
+**Honest residual gap, not fixed:** this only catches failures the JS
+runtime can actually observe (network errors, cancellation) — a hard OS-
+level process kill mid-write can't be caught by any `try/catch`, so a
+corrupt file from *that* specific scenario (or one left over from before
+this fix existed) would still be silently trusted by `has()`. Closing that
+completely would need either a real atomic-rename primitive (unavailable
+in this `expo-file-system` version) or validating file size/integrity on
+every `has()` check (a bigger, slower change affecting every read, not
+just downloads) — flagging as a known limitation rather than
+over-engineering a partial fix for it now.
+
+**Related, out of scope:** `useSurahAudio.ts`'s bulk-download IIFE
+(`void (async () => { try {...} finally {...} })()`) has no `.catch()`, so
+*any* download failure — pre-existing, not something this iteration
+introduced — produces an unhandled promise rejection with zero user-facing
+error message. Surfacing a real "download failed" message is a UI addition,
+a different scope than this iteration's storage-layer fix; noting it for a
+future iteration.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 117/117 pass (116 + 1 new); `pnpm lint` — 0 errors, same 13
+pre-existing warnings.
+
+**Commit:** `fix(mobile): clean up a partially-downloaded audio file
+instead of leaving it looking saved`.

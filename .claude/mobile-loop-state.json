@@ -1,29 +1,29 @@
 {
-  "iteration": 28,
+  "iteration": 29,
   "cycle": 1,
-  "perspectiveIndex": 29,
+  "perspectiveIndex": 30,
   "batch": "mobile-stabilization-03",
   "consecutiveCleanIterations": 0,
   "history": [
     {
-      "iteration": 25,
-      "perspective": "B26 - Large accessibility text scaling",
-      "outcome": "GAP FOUND AND FIXED: AyahBadge overflow"
-    },
-    {
       "iteration": 26,
       "perspective": "B27 - Screen-reader labels and focus order",
-      "outcome": "GAPS FOUND AND FIXED: 3 icon/glyph-only buttons"
+      "outcome": "GAPS FOUND AND FIXED"
     },
     {
       "iteration": 27,
       "perspective": "B28 - Touch target sizing (44dp)",
-      "outcome": "GAPS FOUND AND FIXED: 2 high-reach hitSlop widenings"
+      "outcome": "GAPS FOUND AND FIXED"
     },
     {
       "iteration": 28,
-      "perspective": "B29 - Noor theme switching consistency across all 8 palettes",
-      "outcome": "GAP FOUND AND FIXED: Qibla/PrayerTimes/MosqueFinder CTA buttons hardcoded white text on a theme-accent background, bypassing the design system's own purpose-built 'ink' token. Computed WCAG contrast: fails badly (~1.6-2.1:1) on obsidian/midnight/emerald/ocean, the app's default dark-mode themes - accidentally fine on the 4 light-mode themes only by coincidence, which is exactly how this class of bug hides. Fixed to use c.ink; live-verified in the worst-case Midnight theme."
+      "perspective": "B29 - Noor theme switching consistency",
+      "outcome": "GAP FOUND AND FIXED: WCAG contrast failure on CTA buttons"
+    },
+    {
+      "iteration": 29,
+      "perspective": "B30 - Asset loading fallback (icons, interrupted offline audio downloads)",
+      "outcome": "GAP FOUND AND FIXED: an interrupted audio download leaves a truncated file at the final path (expo-file-system streams directly to destination, no temp+rename, and this version's File API has no move method at all). has()/localUrl() only check existence not validity, so a corrupt file looked permanently 'downloaded'. Fixed by cleaning up dest on a caught failure; added a regression test distinct from the existing clean-failure test. Honest residual gap noted: can't catch a hard process kill, and a pre-existing corrupt file (from before this fix, or from that uncatchable case) would still be silently trusted - documented as a known limitation, not over-engineered around."
     }
   ]
 }

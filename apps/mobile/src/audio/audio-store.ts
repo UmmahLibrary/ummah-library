@@ -46,7 +46,20 @@ export const mobileAudioStore: AudioStore = {
     if (dest.exists) return; // idempotent
     const dir = surahDir(reciterId, ref.sura);
     if (!dir.exists) dir.create({ intermediates: true, idempotent: true });
-    await File.downloadFileAsync(remoteUrl, dest, { idempotent: true });
+    try {
+      await File.downloadFileAsync(remoteUrl, dest, { idempotent: true });
+    } catch (e) {
+      // expo-file-system streams straight to `dest` (no temp-file-then-rename
+      // — this version's File API has no move/rename at all) — an interrupted
+      // download (network drop, cancellation) can leave a truncated file at
+      // the final path. has()/localUrl() only check existence, so a corrupt
+      // leftover would look "downloaded" forever: a retry's has() check would
+      // skip it, and a completed surah's ayahCount would include a file that
+      // fails on playback with no obvious way to fix it. Clean it up so the
+      // failure surfaces honestly and a retry actually re-downloads it.
+      if (dest.exists) dest.delete();
+      throw e;
+    }
   },
 
   async removeSurah(reciterId, surah) {
