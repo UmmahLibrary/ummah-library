@@ -2434,3 +2434,31 @@ promise-ordering by hand isn't practical either way).
 
 **Commit:** `apps/mobile/src/screens/PrayerTrackerScreen.tsx`,
 `apps/mobile/src/utils.ts`, `apps/mobile/src/utils.test.ts`.
+
+## Iteration 45 — A5 revisited: Hifz pluralization, checked beyond the one string
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-05`
+
+**Checked:** iteration 5 confirmed the specific "āyahāt" typo doesn't
+exist on mobile. This pass re-confirmed that (re-grepped both ternaries —
+still correctly `count === 1 ? "āyah" : "āyāt"`) and checked whether the
+*class* of bug (a singular/plural mismatch in a counted-noun string) shows
+up anywhere else in the same two screens that the original narrow grep
+wouldn't have caught.
+
+**Clean.** Every counted-noun string in `HifzDashboardScreen.tsx` and
+`HifzReviewScreen.tsx` pluralizes correctly, including one the original
+check didn't specifically look at: `Longest streak: {n} day{n === 1 ? ""
+: "s"}`.
+
+**Deliberately not adding a test here**, unlike iteration 44's extraction:
+this is a trivial inline ternary, not logic worth pulling into a shared
+helper just to make it unit-testable — this codebase has no
+component-rendering test harness, and manufacturing an abstraction whose
+only purpose is to dodge that gap would be exactly the kind of premature
+engineering this project's own conventions warn against. A repo-wide
+grep for the wrong string (already exhaustive, already run twice now) is
+the proportionate check for a static string literal.
+
+**Commit:** none (clean iteration; no code changes).
