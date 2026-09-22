@@ -171,7 +171,20 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        <Text style={[styles.sectionLabel, { writingDirection: localeDir(locale) }]}>
+        <Text
+          style={[
+            styles.sectionLabel,
+            // sectionLabel hardcodes fontFamily: FONT.bold, which — unlike
+            // every other Text in this app — bypasses Type.tsx's dynamic,
+            // writingDirection-based font selection entirely (it wins the
+            // style-array merge). writingDirection alone flips the reading
+            // order but silently keeps rendering Urdu script in the Latin
+            // typeface; override the family too when the locale is RTL.
+            localeDir(locale) === "rtl"
+              ? { writingDirection: "rtl", fontFamily: FONT.arBold }
+              : null,
+          ]}
+        >
           {t("common.language")}
         </Text>
         <View style={styles.card}>

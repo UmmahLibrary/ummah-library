@@ -1,15 +1,10 @@
 {
-  "iteration": 63,
+  "iteration": 64,
   "cycle": 2,
-  "perspectiveIndex": 23,
+  "perspectiveIndex": 24,
   "batch": "mobile-stabilization-07",
   "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 60,
-      "perspective": "Cycle 2, B20 - migration write-back census",
-      "outcome": "GAP FOUND AND FIXED: ZakatScreen's self-heal had the same never-written-back bug as theme.tsx. Batch 6 complete, PR #282 opened."
-    },
     {
       "iteration": 61,
       "perspective": "Cycle 2, B21 - sync secret storage",
@@ -18,12 +13,17 @@
     {
       "iteration": 62,
       "perspective": "Cycle 2, B22 - sync engine edge cases",
-      "outcome": "clean - confirmed the deferred race from iteration 22 is fully closed by iterations 44/51/52. Extended cursor-safety finding to storage layer."
+      "outcome": "clean - confirmed the deferred race from iteration 22 is fully closed."
     },
     {
       "iteration": 63,
-      "perspective": "Cycle 2, B23 - RTL, checked the app's own RTL UI locale (Urdu) which iteration 23 never covered",
-      "outcome": "GAP FOUND AND FIXED: localeDir() exists specifically for screens to apply writingDirection:rtl to translated text, but had zero call sites anywhere. Fixed the 2 Settings elements that use a controllable Text component. Live-verified via DOM inspection (element.style.direction === rtl). Documented, not fixed: the tab bar's tabBarLabel plain-string API can't take this treatment - confirmed live it still gets correct dir:rtl via automatic Unicode-BiDi detection, not a confirmed bug."
+      "perspective": "Cycle 2, B23 - RTL, checked the app's own RTL UI locale (Urdu)",
+      "outcome": "GAP FOUND AND FIXED: localeDir() had zero call sites, fixed 2 Settings elements."
+    },
+    {
+      "iteration": 64,
+      "perspective": "Cycle 2, B24 - font coverage, checked it directly against iteration 63's RTL fix",
+      "outcome": "GAP FOUND AND FIXED: sectionLabel hardcodes fontFamily: FONT.bold, which wins the style-array merge over Type.tsx's dynamic writingDirection-based font selection - the Urdu 'Language' section label was flipping direction correctly but rendering in the Latin font underneath. Fixed by overriding fontFamily to FONT.arBold alongside writingDirection when RTL. Live-verified via computed-style DOM inspection, both Urdu (now correct) and English (unregressed) states."
     }
   ]
 }

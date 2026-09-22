@@ -3357,3 +3357,52 @@ typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
 plus the live DOM-inspection check above.
 
 **Commit:** `apps/mobile/src/screens/SettingsScreen.tsx`.
+
+## Iteration 64 — B24 revisited: my own iteration 63 fix had a font-family gap, found by checking font coverage against it directly
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 24 confirmed every font the app uses is covered
+by the startup loading gate, with no lazy-loaded font anywhere. This pass
+connected that to iteration 63's fresh RTL-direction fix: `Type.tsx`'s
+`Text` wrapper picks a font family dynamically based on
+`writingDirection` (`familyFor()`'s first branch switches to the IBM
+Plex Sans Arabic family whenever `writingDirection === "rtl"`) — so
+adding `writingDirection: "rtl"` to translated Urdu text, as iteration
+63 did, should have *also* switched those elements to the correct
+script-appropriate font, not just flipped reading order. Worth verifying
+directly rather than assuming the two features composed correctly.
+
+**Found they didn't compose correctly for one of the two elements —
+live DOM inspection, not just code reading.** Switched to Urdu in the
+browser preview and read `getComputedStyle(el).fontFamily` on both fixed
+elements. The hint sentence correctly showed `IBMPlexSansArabic_400Regular`.
+The "Language" section label showed **`HankenGrotesk_700Bold`** — the
+Latin-only UI font, rendering genuine Urdu script text in the wrong
+typeface. Root cause: `sectionLabel`'s `StyleSheet` definition hardcodes
+`fontFamily: FONT.bold` directly — unlike every other `Text` in this
+screen, which lets `Type.tsx`'s dynamic `familyFor()` infer the family
+from weight/direction. In the style array `[styles.sectionLabel, {
+writingDirection: "rtl" }]`, that hardcoded value sits in the
+*caller's* style, which wins the merge over `Type.tsx`'s dynamically
+computed `fontFamily` — `writingDirection` flips correctly, but the
+font family silently stays wrong underneath it.
+
+**Fix:** override `fontFamily` explicitly alongside `writingDirection`
+when the locale is RTL, to `FONT.arBold` (the bold Arabic-family variant
+already used elsewhere for heavy RTL text) — matching what `sectionLabel`
+already does for the LTR case, just extended to the RTL one instead of
+silently falling through it.
+
+**Live-verified both states precisely**, not just the fix: Urdu now
+shows `IBMPlexSansArabic_700Bold` on the section label (was
+`HankenGrotesk_700Bold`); switched back to English and confirmed the
+label still shows `HankenGrotesk_700Bold` — no regression to the
+far-more-common non-RTL case.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
+plus the live before/after font-family check above.
+
+**Commit:** `apps/mobile/src/screens/SettingsScreen.tsx`.
