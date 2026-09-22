@@ -3064,3 +3064,42 @@ No fix needed.
 **Verification:** read-only iteration; prior gate (136/136) holds.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 58 — B18 revisited: mosque search and sync's offline behavior
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 18 traced `readThrough`'s graceful-degradation
+design across content screens (surahs, tafsir, hadith, names). This pass
+checked two things outside that scope: `getNearbyMosques` (deliberately
+audited for accuracy, not offline behavior, back in iteration 39), and
+the sync feature (added well after iteration 18's original check, and
+the subject of three of this loop's own recent fixes).
+
+**Both clean, and both by deliberate design already documented
+elsewhere.** `getNearbyMosques` calls `getJson` directly, not
+`readThrough` — same as `getPrayerTimes`, and for the same reason
+`api.ts`'s own header comment states for prayer times: this is live,
+location-dependent data, not stable content a reader "opened," so caching
+it risks silently serving a stale/wrong result rather than a clear
+"unavailable." Going offline surfaces through the same already-audited
+`getJson` retry/error path iteration 39 confirmed `MosqueFinderScreen`
+handles cleanly (with a retry option on every terminal state, iteration
+39's own fix).
+
+For sync: **background auto-sync** (`App.tsx`'s foreground trigger)
+swallows a network failure completely silently
+(`.catch(() => {})`) — deliberate, matching ADR 0033's documented intent
+("failures are swallowed"), and correct for a non-blocking background
+operation the user never explicitly triggered. **Manual "Sync now"**
+(`SyncSection.tsx`) is the opposite, correctly: wrapped in try/catch,
+sets an explicit `SERVER_DOWN` status message on failure — the right
+distinction, since a user-initiated action needs feedback a silent
+background one doesn't.
+
+No fix needed.
+
+**Verification:** read-only iteration; prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).
