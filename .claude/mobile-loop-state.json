@@ -1,15 +1,10 @@
 {
-  "iteration": 79,
+  "iteration": 80,
   "cycle": 3,
   "perspectiveIndex": 0,
   "batch": "mobile-stabilization-08",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 76,
-      "perspective": "Cycle 2, B37 revisited - copy/microcopy vs web, checking what's changed since iteration 37",
-      "outcome": "CLEAN for mobile. Found two web-side gaps (out of scope, logged): inconsistent notification-permission copy, and the identical missing-catch download bug iteration 69 fixed on mobile."
-    },
     {
       "iteration": 77,
       "perspective": "Cycle 2, B38 revisited - push notification content correctness, re-verified plus the delivery hop iteration 38 didn't check",
@@ -18,12 +13,17 @@
     {
       "iteration": 78,
       "perspective": "Cycle 2, B39 revisited - mosque finder, closing (partially) the live-verification gap iteration 39 explicitly left open",
-      "outcome": "GAP FOUND AND FIXED (with an honest limitation): couldn't reach the original 'no mosques found' branch (expo-location's permission check blocks before a mocked fetch matters), but found and fixed 4 unguarded Linking.openSettings() call sites; documented that .catch() cannot fix the web-preview's synchronous-throw manifestation (harmless, iteration-21-class shim gap)."
+      "outcome": "GAP FOUND AND FIXED (with an honest limitation): found and fixed 4 unguarded Linking.openSettings() call sites; documented that .catch() cannot fix the web-preview's synchronous-throw manifestation (harmless, iteration-21-class shim gap)."
     },
     {
       "iteration": 79,
       "perspective": "Cycle 2, B40 revisited - test coverage audit, closing cycle 2's pass through the catalogue",
-      "outcome": "GAP FOUND AND FIXED: reading-goals.ts's recordMushafPage (khatma-cursor monotonicity, page de-duplication) and writeGoal's non-obvious 0-vs-negative clamping had zero test coverage. Added reading-goals.test.ts (11 tests). Reminder-scheduling modules re-confirmed correctly thin. CYCLE 2 COMPLETE - starting cycle 3."
+      "outcome": "GAP FOUND AND FIXED: reading-goals.ts's khatma-cursor monotonicity and writeGoal's 0-vs-negative clamping had zero test coverage. Added reading-goals.test.ts (11 tests). CYCLE 2 COMPLETE."
+    },
+    {
+      "iteration": 80,
+      "perspective": "A1, cycle 3 - timezone-of-location vs device, re-checked against code added since cycle 2",
+      "outcome": "CLEAN: re-swept every date/time formatting/construction site added in batches 6-8. Two new toLocaleDateString sites already correctly UTC-anchored (grep initially looked wrong, full source proved otherwise). RamadanScreen's local-anchored construction confirmed self-consistent. prayer-timings-provider.ts's date-fetch uses device-local day, same accepted tradeoff as iteration 41's location-accuracy finding, not a new bug. Batch 8 boundary - pushing and opening PR against mobile-stabilization-07."
     }
   ]
 }

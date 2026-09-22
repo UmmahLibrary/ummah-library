@@ -4401,3 +4401,78 @@ runtime-behavior change to observe, same as iteration 40's own
 `storage.test.ts` addition.
 
 **Commit:** `apps/mobile/src/reading-goals.test.ts` (new).
+
+---
+
+# Cycle 3 — third pass through the catalogue
+
+Iteration 80 begins a third full pass. Cycle 2 (iterations 41–79) found
+and fixed real issues throughout, including in its very last iteration,
+so per the loop's own stopping criterion this continues rather than
+wrapping up.
+
+## Iteration 80 — A1, cycle 3: timezone-of-location vs device, re-checked against code added since cycle 2
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 1](#iteration-1--prayer-time-timezone-of-location-vs-device-timezone-bug)
+confirmed every `toLocaleTimeString` call site was correctly
+location-timezone-aware; [iteration 41](#iteration-41--a1-revisited-prayer-time-timezone-of-location-deepened)
+confirmed the fix is structurally sound (delegates to ICU, never does
+manual wall-clock arithmetic) and added Southern-Hemisphere/half-hour-
+offset test coverage. Neither pass could have seen code added in
+batches 6–8 since — this pass re-swept every date/time formatting and
+construction site added since, specifically looking for the same bug
+class (a device-relative zone silently substituting for the correct
+one) resurfacing in new code.
+
+**Found two new `toLocaleDateString` call sites — both already
+correctly guarded, verified rather than assumed from a truncated
+grep.** `SunnahFastReminderToggle.tsx`'s and `HijriCalendarScreen.tsx`'s
+(×2) `gregorianFull`/month-grid-label helpers construct a UTC-midnight
+instant via `Date.UTC(g.year, g.month - 1, g.day)` specifically so a
+calendar day (which has no time-of-day meaning) round-trips correctly
+regardless of device timezone — and each already passes
+`timeZone: "UTC"` explicitly to `toLocaleDateString`. My first grep's
+output cut off before that option inside the multi-line call and
+looked like a bug at a glance; reading the full source showed it isn't
+one.
+
+**Checked a different date-construction pattern for a mismatch, found
+it internally consistent.** `RamadanScreen.tsx`'s `ramadanStartStr`
+uses the **local** `new Date(year, month - 1, day)` constructor (not
+`Date.UTC`), a different convention from the UTC-anchored one above —
+but it's read back through `localISODate()`, which uses the matching
+**local** getters (`getFullYear`/`getMonth`/`getDate`). Construct-local,
+read-local is just as safe a round-trip as construct-UTC, read-UTC;
+what would actually be a bug is *mixing* the two conventions on one
+value, which doesn't happen here.
+
+**Extended the search past display formatting into the data-fetch
+layer, and found the same accepted tradeoff in a call site iterations
+1 and 41 didn't examine.** `prayer-timings-provider.ts`'s
+`getTodaysTimings()` computes which calendar day's prayer times to
+request via `localISODate(new Date())` — the **device's** local day,
+not the **saved coordinates'**. Near the location's own midnight, if
+the device's timezone differs from the saved location's (traveling
+with stale coordinates, or vice versa), this could fetch the wrong
+day's timings. This is architecturally the same device-vs-location
+tension iteration 41 already identified for `Location.Accuracy.Low`
+resolving the wrong IANA zone near a border, and already judged an
+inherent tradeoff of a narrow edge case rather than a bug — applying
+the same reasoning here rather than fixing this one call site in
+isolation while leaving the underlying tradeoff (device and saved
+coordinates can genuinely diverge) undecided everywhere else it
+applies.
+
+**Clean — every date/time site added since cycle 2 checked
+individually, none reproduce the bug class.** No code change.
+
+**Verification:** targeted code-reading audit across
+`SunnahFastReminderToggle.tsx`, `HijriCalendarScreen.tsx`,
+`RamadanScreen.tsx`, `utils.ts`, `prayer-timings-provider.ts`; no
+source changed, so the lint/typecheck/test gate wasn't re-run (nothing
+to regress; tree was green from iteration 79 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
