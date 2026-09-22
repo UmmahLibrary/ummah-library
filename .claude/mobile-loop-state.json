@@ -1,15 +1,10 @@
 {
-  "iteration": 16,
+  "iteration": 17,
   "cycle": 1,
-  "perspectiveIndex": 17,
+  "perspectiveIndex": 18,
   "batch": "mobile-stabilization-02",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 1,
   "history": [
-    {
-      "iteration": 13,
-      "perspective": "B14 - Tablet/iPad layout",
-      "outcome": "functionally fine, design recommendation logged, not fixed"
-    },
     {
       "iteration": 14,
       "perspective": "B15 - Safe-area/notch handling",
@@ -18,12 +13,17 @@
     {
       "iteration": 15,
       "perspective": "B16 - Keyboard-avoiding behavior",
-      "outcome": "GAP FOUND AND FIXED: CollectionsScreen and PlansScreen wrapped in KeyboardAvoidingView"
+      "outcome": "GAP FOUND AND FIXED"
     },
     {
       "iteration": 16,
-      "perspective": "B17 - Android permission request flow (location, notifications)",
-      "outcome": "GAP FOUND AND FIXED: all 3 location screens (Qibla, MosqueFinder, PrayerTimes) had a denied-state 'Try again' button with no way to reach Settings on permanent denial. Added Linking.openSettings() shortcut to all three. Notification permission handling was already clean. Smaller related gap (silent toggle failure on reminder switches) logged, not fixed - different UI treatment needed."
+      "perspective": "B17 - Android permission request flow",
+      "outcome": "GAP FOUND AND FIXED: Open Settings shortcut added to all 3 location screens"
+    },
+    {
+      "iteration": 17,
+      "perspective": "B18 - Audio playback interruption (calls, other apps, headphone unplug)",
+      "outcome": "clean, exceptionally well-engineered already - playbackStatusUpdate listener explicitly names and handles 'a call came in, or the system took audio focus' by freezing the stall watchdog rather than skipping ahead. Strongest code-evidence-based clean finding in this loop so far."
     }
   ]
 }

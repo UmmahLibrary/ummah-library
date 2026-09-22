@@ -816,3 +816,51 @@ and `prettier`.
 
 **Commit:** `fix(mobile): add an Open Settings shortcut when location
 permission is denied`.
+
+---
+
+## Iteration 17 — Audio playback interruption (calls, other apps, headphone unplug)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether reciter audio handles an OS-level interruption
+(incoming call, another app taking audio focus, headphone route change)
+gracefully instead of desyncing the queue, skipping āyāt, or leaving the
+UI stuck on "playing" while actually silent.
+
+**Result: clean — this is the most deliberately-engineered perspective
+I've audited yet.** [`useSurahAudio.ts:382-401`](apps/mobile/src/audio/useSurahAudio.ts#L382)'s
+`playbackStatusUpdate` listener explicitly distinguishes "paused because
+buffering" from "paused after having genuinely played" and names the exact
+scenario this loop's perspective is asking about, verbatim, in its own
+comment: *"the screen went off, a call came in, or the system took audio
+focus. Freeze the stall watchdog so we hold on this āyah and its highlight
+instead of skipping ahead; playback (and the poll below) resumes us when
+audio comes back."* Concretely: the stall-detection timer (which would
+otherwise skip a hung āyah after `STALL_MS`) is deliberately cleared during
+an external pause so the queue doesn't advance or skip while genuinely
+interrupted, and the word-highlight poll (which drives `resyncRef`, see
+[iteration 11](#iteration-11--app-backgroundforeground-transitions-timers-audio-in-flight-requests))
+naturally re-syncs once playback resumes.
+
+Also relevant and already in place: `setAudioModeAsync({ playsInSilentMode:
+true, shouldPlayInBackground: true })` keeps the audio session alive
+through backgrounding rather than fighting `expo-audio`'s own auto-pause,
+and lock-screen/notification media controls (`setActiveForLockScreen`) are
+armed once per session — the comment there notes "an external pause is
+handled by the pause-aware watchdog below," i.e. the lock-screen pause
+button and a genuine OS interruption both flow through the exact same,
+already-audited path.
+
+**Verification and its limits:** this is native OS behavior (telephony
+interruption, audio-focus arbitration, headphone route change) that
+`react-native-web` has no equivalent for and this environment has no real
+device to phone-call-interrupt. Calling this clean based on the code: the
+comment doesn't just claim generic robustness, it names this exact
+perspective's three scenarios (call, other-app audio focus, "screen went
+off") as the specific case being handled, which is stronger evidence than
+most "nothing custom exists to break" findings elsewhere in this loop —
+but it's still reasoning from source, not a watched device.
+
+**Commit:** none (clean iteration; no code changes).
