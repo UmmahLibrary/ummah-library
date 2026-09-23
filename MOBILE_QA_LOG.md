@@ -3222,3 +3222,572 @@ real consequence:
   pattern — fixed for consistency.
 
 Full detail for each is above, under its own `## Iteration N` heading.
+
+## Iteration 61 — B21 revisited: sync secret storage, checked for the race classes found elsewhere this cycle
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 21 confirmed mobile's recovery-secret storage
+already matched web's hardening. This pass checked
+[`SyncSection.tsx`](apps/mobile/src/components/SyncSection.tsx) (the
+screen holding that secret in React state) for two things this cycle's
+other work made newly relevant: the `onSyncApplied`-reload race found and
+fixed in `LibraryContext`/`SettingsContext`, and a concurrent-call race
+between "Turn on"/"Sync now" and "Turn off sync."
+
+**No `onSyncApplied` reload race — confirmed by absence, not
+inspection.** `SyncSection` doesn't subscribe to `onSyncApplied` at all;
+its one `useEffect` reads `isSyncEnabled()`/`readSyncSecret()` once on
+mount and never again. It was already excluded from iteration 52's
+11-consumer sweep for exactly this reason, re-confirmed here.
+
+**Investigated a plausible-looking gap, then ruled it out by actually
+tracing the interaction, not by pattern-matching.** The "Turn off sync"
+button has no `disabled={busy}` guard, unlike "Sync now"/"Turn on" —
+looked like the same missing-guard shape as bugs found elsewhere this
+loop. But `turnOff()`'s state-changing logic (`disableSync()`,
+`resetSyncRuntime()`, clearing `secret`/`enabled`) only runs inside a
+native `Alert.alert`'s confirm callback, and a native Alert is modal on
+both platforms — nothing else is tappable while it's showing. There's no
+actual window for a concurrent `turnOn`/`syncNow` call to interleave with
+`turnOff`'s effects; the missing `disabled` prop is inert, not a bug.
+
+No fix needed.
+
+**Verification:** read-only iteration; prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 62 — B22 revisited: the deferred race is closed; extended the cursor-safety finding down to storage
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 22's central finding — the "backgrounded-push
+race" it deliberately deferred as too risky to fix without real
+multi-device timing to verify against — **is the exact bug iterations
+44/51/52 found and fixed this cycle**, using deterministic unit tests
+instead of live timing, closing the loop this iteration started.
+Confirmed the fix (`writeGen`/`ignoreStale`) actually covers the specific
+nuance iteration 22 described (a reload landing *between* two rapid taps,
+not just before/after a single one): since every local write bumps the
+counter regardless of how many taps happen, a reload dispatched before
+any of them is discarded correctly no matter how many writes land in
+between.
+
+**Extended the "killed mid-sync is safe" finding one layer down, to the
+actual storage.** Iteration 22 verified `sync-engine.ts` only advances
+the cursor *after* every entry in a round is durably applied. This pass
+checked the cursor's own persistence: `sync-meta.ts`'s `readCursor()`
+validates `Number.isInteger(n) && n >= 0`, falling back to `0` (start the
+next round from scratch — redundant, not lossy) for anything malformed. A
+kill mid-write to the cursor key itself degrades the same safe way the
+engine-level logic already does, not just at the round-coordination
+layer.
+
+**Confirmed no interaction with this cycle's write-back fixes**: `ul.zakat`
+(the iteration 60 fix) isn't in `MANAGED_KEYS` at all, so it has zero
+overlap with the sync engine — nothing to check there.
+
+**Verification:** read-only iteration; prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 63 — B23 revisited: a whole surface iteration 23 never checked — the app's own RTL UI locale
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 23 thoroughly verified RTL for *Qur'ān content*
+(script direction, word-by-word alignment). This pass checked something
+that scope never covered: the app also has a full **RTL UI locale**
+(Urdu, `dir: "rtl"` in
+[`i18n/config.ts`](apps/mobile/src/i18n/config.ts)) — the interface
+chrome itself, not Quran text, a completely different surface iteration
+23's live-verification never touched.
+
+**Confirmed the scope is deliberately, honestly narrow — not a gap in
+itself.** `I18nProvider.tsx`'s own header comment explains mobile
+doesn't flip the OS-level layout direction (`I18nManager.forceRTL`
+needs a full native restart + `expo-updates`, which this app doesn't
+depend on) — a documented, correct scoping decision, not an oversight.
+The message catalogue is explicitly "a **starter slice**" (8 keys: the
+bottom tab bar + 3 Settings strings), with Urdu translations flagged
+"first pass... needs native review before release." All appropriately
+conservative for an MVP i18n effort.
+
+**Found a real gap inside that narrow, intentional scope.** The
+per-element RTL workaround the comment prescribes —
+`localeDir()`, exported from `config.ts` specifically so "a screen can
+apply `writingDirection: 'rtl'` to the specific text it renders" — had
+**zero call sites anywhere in the app**. Confirmed by reading
+`SettingsScreen.tsx` (the only screen consuming translated strings
+directly): `locale` was destructured only to highlight the selected
+language pill, never passed to `localeDir()`. The infrastructure the
+comment describes was built and exported, but nothing had actually used
+it yet.
+
+**Fix:** applied `writingDirection: localeDir(locale)` to the two
+Settings elements that render translated text via a controllable `Text`
+component — the "Language" section label and the language-picker hint
+sentence.
+
+**Live-verified precisely, not just visually**: switched to Urdu in the
+browser preview, then inspected the actual DOM. Confirmed
+`element.style.direction === "rtl"` on both fixed elements — proof the
+explicit fix is what's applying the direction, not incidental browser
+behavior. Also checked the one place I'm **not** fixing and why: the
+bottom tab bar passes `tabBarLabel: t(...)` as a **plain string** to
+React Navigation's own internal label component, which offers no prop
+to attach a custom `writingDirection` — switching to a custom render
+function is a real navigation-config change, bigger than this
+perspective's per-element scope. Checked whether that actually matters
+live: the tab labels ("ہوم", "پڑھیں") get `dir: rtl` computed **without**
+an explicit style (`element.style.direction` is empty), via this
+renderer's own automatic Unicode-BiDi detection on pure-RTL string
+content — likely fine as-is, though this is `react-native-web`'s
+rendering specifically, not a confirmed guarantee of identical behavior
+on native iOS/Android text rendering. Logging this distinction honestly
+rather than either claiming it's proven fine or forcing an unnecessary
+navigation-config change to "fix" something not shown to be broken.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
+plus the live DOM-inspection check above.
+
+**Commit:** `apps/mobile/src/screens/SettingsScreen.tsx`.
+
+## Iteration 64 — B24 revisited: my own iteration 63 fix had a font-family gap, found by checking font coverage against it directly
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 24 confirmed every font the app uses is covered
+by the startup loading gate, with no lazy-loaded font anywhere. This pass
+connected that to iteration 63's fresh RTL-direction fix: `Type.tsx`'s
+`Text` wrapper picks a font family dynamically based on
+`writingDirection` (`familyFor()`'s first branch switches to the IBM
+Plex Sans Arabic family whenever `writingDirection === "rtl"`) — so
+adding `writingDirection: "rtl"` to translated Urdu text, as iteration
+63 did, should have *also* switched those elements to the correct
+script-appropriate font, not just flipped reading order. Worth verifying
+directly rather than assuming the two features composed correctly.
+
+**Found they didn't compose correctly for one of the two elements —
+live DOM inspection, not just code reading.** Switched to Urdu in the
+browser preview and read `getComputedStyle(el).fontFamily` on both fixed
+elements. The hint sentence correctly showed `IBMPlexSansArabic_400Regular`.
+The "Language" section label showed **`HankenGrotesk_700Bold`** — the
+Latin-only UI font, rendering genuine Urdu script text in the wrong
+typeface. Root cause: `sectionLabel`'s `StyleSheet` definition hardcodes
+`fontFamily: FONT.bold` directly — unlike every other `Text` in this
+screen, which lets `Type.tsx`'s dynamic `familyFor()` infer the family
+from weight/direction. In the style array `[styles.sectionLabel, {
+writingDirection: "rtl" }]`, that hardcoded value sits in the
+*caller's* style, which wins the merge over `Type.tsx`'s dynamically
+computed `fontFamily` — `writingDirection` flips correctly, but the
+font family silently stays wrong underneath it.
+
+**Fix:** override `fontFamily` explicitly alongside `writingDirection`
+when the locale is RTL, to `FONT.arBold` (the bold Arabic-family variant
+already used elsewhere for heavy RTL text) — matching what `sectionLabel`
+already does for the LTR case, just extended to the RTL one instead of
+silently falling through it.
+
+**Live-verified both states precisely**, not just the fix: Urdu now
+shows `IBMPlexSansArabic_700Bold` on the section label (was
+`HankenGrotesk_700Bold`); switched back to English and confirmed the
+label still shows `HankenGrotesk_700Bold` — no regression to the
+far-more-common non-RTL case.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
+plus the live before/after font-family check above.
+
+**Commit:** `apps/mobile/src/screens/SettingsScreen.tsx`.
+
+## Iteration 65 — B25 revisited: two more fixed-size-badge-with-a-number screens, one real, one a genuine negative result
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 25 found and fixed `AyahBadge`'s overflow at 200%
+accessibility text scale, verified on `HomeScreen`/`SurahListScreen`
+only. This pass searched for the *same risk shape* elsewhere — a fixed
+or aspect-ratio-locked small container holding short numeric text — and
+found two more candidates: `RamadanScreen`'s 30-cell fasting-day grid
+(`fastCell`/`fastNum`) and `HijriCalendarScreen`'s 7-column month grid
+(`cell`/`dayNum`+`gregLabel`, two stacked text lines per cell).
+
+**RamadanScreen: genuinely clean — measured, not assumed.** Pattern-
+matching against `AyahBadge` suggested this would overflow too, so
+verified with the exact same DOM-based 2x-scale simulation iteration 25
+established, at a real phone width (375px, not the wider desktop preview
+default) this time. Precise measurement: a 2-digit day number's rendered
+box (29×33px at 2x scale) fits comfortably inside its 40×40 cell —
+`fastNum`'s smaller base size (11.5px vs whatever `AyahBadge` uses)
+leaves enough headroom that this specific cell never hits the wall
+`AyahBadge` did. Reporting this honestly as a real negative result from
+measurement, not skipping the check because the first hunch didn't pan
+out.
+
+**HijriCalendarScreen: real, and visually severe — confirmed by
+screenshot, not just inference.** The same 2x simulation on the month
+grid showed calendar rows **visibly overlapping and colliding** — day
+numbers from adjacent rows bleeding into each other, several genuinely
+unreadable. Root cause: two stacked `Text` lines (`dayNum` 13px +
+`gregLabel` 8px) both growing at once pushes a cell's *content* height
+past whatever *row* height the grid was actually built for, with nothing
+capping either line.
+
+**Fix:** `maxFontSizeMultiplier={1.3}` on both `dayNum` and `gregLabel`
+— same policy `AyahBadge` already established (numbers/secondary markers
+get capped, not frozen; the surrounding UI keeps scaling normally).
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136.
+Live-confirmed the normal (default-scale) calendar still renders cleanly
+with the new props — no regression. Same honest caveat iteration 25
+already documented applies to the fix itself: the DOM-scaling simulation
+sets raw CSS `font-size` directly, bypassing `maxFontSizeMultiplier`'s
+real mechanism (`PixelRatio.getFontScale()`) entirely — it's what *found*
+both results here (the real bug and the negative one), not something
+that can confirm the cap takes effect through the actual native
+mechanism. That still needs a real device.
+
+**Commit:** `apps/mobile/src/screens/HijriCalendarScreen.tsx`.
+
+## Iteration 66 — B26 revisited: a checkbox-shaped row with no checkbox semantics, in code that postdates the original sweep
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 26's icon-only-button sweep covered every screen
+and component that existed at the time. This pass focused on
+[`SaveToCollection.tsx`](apps/mobile/src/components/SaveToCollection.tsx)
+specifically — a component this loop has directly edited twice since
+(iterations 27's touch-target fix, iteration 55's keyboard-avoiding
+fix) without ever re-checking its accessibility semantics against
+iteration 26's own standard.
+
+**Found a real gap of a different shape than iteration 26 checked: not a
+missing label on an icon button, but missing *role and state* on a
+checkbox-styled row.** The per-collection row in the "Save to
+collection" modal renders a bare Unicode glyph (`"☑"`/`"☐"`) as its only
+indication of membership, inside a `Pressable` with no
+`accessibilityRole` and no `accessibilityState` — functionally a
+checkbox with none of a checkbox's screen-reader semantics. A screen
+reader would read the raw glyph's platform-dependent character name
+(if anything meaningful at all) rather than a clear "checked"/"unchecked"
+announcement.
+
+**Fix:** added `accessibilityRole="checkbox"`,
+`accessibilityState={{ checked: on }}`, and an explicit
+`accessibilityLabel` combining the collection name and item count
+(``"${c.name}, ${c.ayahs.length} saved"``) — matching iteration 26's own
+established convention of including relevant context, not just a bare
+label.
+
+**Checked for the same glyph pattern elsewhere** (`grep '☑|☐'`
+app-wide) — this was the only occurrence, unlike iteration 26's `"✕"`
+sweep which found three. Also noticed, but **not fixing speculatively**:
+`TranslationManager.tsx`'s multi-select list pairs a `Switch` with
+sibling descriptive text rather than a wrapping accessible label —
+plausibly the same underlying gap (a screen reader focusing the `Switch`
+directly might get no name context), but confirming that needs checking
+across several structurally-similar toggle components
+(`PlanReminderToggle`, `AdhkarReminderToggle`,
+`SunnahFastReminderToggle`, `TranslationManager`) rather than one
+narrow fix — logging as a real observation for a focused future pass
+rather than guessing at scope here.
+
+**Live-verified through the actual accessibility tree**, matching
+iteration 26's own gold-standard method: created a real collection in
+the browser preview, then read the tree —
+`checkbox "My Favorites, 1 saved"`. Exact role, exact state-aware label.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
+plus the live accessibility-tree check above.
+
+**Commit:** `apps/mobile/src/components/SaveToCollection.tsx`.
+
+## Iteration 67 — B27 revisited: continuing the sweep iteration 27 explicitly asked a later pass to continue
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 27 deliberately fixed only the two clearest
+instances found at the time and said so explicitly: "future iterations
+revisiting this catalogue entry on a later cycle should continue the
+sweep rather than treating it as fully closed." This pass took that up —
+grepped every `hitSlop={N}` with N < 10 app-wide (17 sites) and checked
+the highest-traffic ones against their actual icon size.
+
+**Found the most consequential touch-target gap this loop has caught.**
+`AyahView.tsx` — the component that renders the action row under *every
+displayed āyah*, throughout the entire reading experience — has **four**
+icon-only buttons in that row: Play, Memorize, the bookmark toggle
+(`SaveToCollection`), and Share. Iteration 27 fixed the bookmark icon
+(18px + `hitSlop={13}` = 44×44) but the other **three, in the exact same
+row**, were left at 17px + `hitSlop={8}` = **33×33** — 11px short of the
+guideline on each axis, and rendered constantly across the app's single
+most-used screen.
+
+**Also found and fixed `PrayerTimesScreen`'s per-prayer reminder bell**
+(17px icon + `hitSlop={10}` = 37×37, still short) by direct comparison
+against its near-identical sibling in `HijriCalendarScreen` — which
+turned out to already clear the guideline comfortably (a fixed 34×34
+box + `hitSlop={8}` = 50×50), confirming the gap was specific to
+`PrayerTimesScreen`'s bare-icon version, not the pattern in general.
+
+**Fix:** `hitSlop={14}` on all four (`AyahView`'s three, plus the prayer
+bell) — 17 + 14 + 14 = 45, clearing 44dp with the same margin this
+iteration's other fixes used for identically-sized 17px icons.
+
+**Not attempting the rest of the 17-site list this iteration either** —
+matching iteration 27's own stated approach: fix the clearest,
+highest-reach instances found, leave the rest logged for the next pass
+rather than force a rushed blanket change. Remaining candidates from the
+grep (`AudioRangeControls`, `DownloadButton`, `ReaderControls`'s
+`hitSlop={7}`, `CollectionsScreen`, `DownloadsScreen`,
+`OnboardingScreen`, `SettingsScreen`'s erase button, `SearchScreen`,
+`SurahReaderScreen`'s loop button) still need the same per-component icon
+-size check before concluding anything either way.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136.
+Live-verified in the browser preview: the per-āyah action row still
+renders (8 "Play āyah" buttons found via the accessibility tree on one
+screen) and still responds to a tap — no new console errors beyond the
+same pre-existing, already-documented `validatePath` web-preview
+artifact from iteration 21.
+
+**Commit:** `apps/mobile/src/components/AyahView.tsx`,
+`apps/mobile/src/screens/PrayerTimesScreen.tsx`.
+
+---
+
+## Iteration 68 — Cycle 2, B29 revisited: Noor theme switching consistency across all 8 palettes
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 28's own fix (the `c.ink`-on-CTA contrast bug) still
+holds, then went past hardcoded-color-literal grepping (already swept
+clean last cycle, re-confirmed: the remaining `#000`/`rgba(0,0,0,…)` hits
+in `SurahReaderScreen.tsx` shadows and `SaveToCollection.tsx`/
+`TranslationManager.tsx` modal backdrops are the same intentionally
+theme-independent cases iteration 28 already signed off on) into the
+theme *plumbing* itself: does every screen/component actually consume
+`useTheme()`, and does the theme context's own API surface behave
+consistently across the eight palettes and both modes.
+
+Confirmed all 33 screens and all-but-one component call `useTheme()`
+directly; the one exception, `DownloadButton.tsx`, receives `colors` as a
+prop from its caller instead — not a bypass, just prop-drilled from a
+parent that does call the hook, so no screen or component can render
+without going through the theme system.
+
+**Found and fixed a real inconsistency: `theme.tsx`'s `ThemeContextValue`
+exposed a `toggle()` function that was completely dead code** — grepped
+every call site across `apps/mobile/src` and confirmed nothing
+destructures or calls `.toggle` from `useTheme()` anywhere; it's only
+referenced inside `theme.tsx` itself. Worse, had it ever been wired up,
+its behavior wouldn't have matched web's equivalent: web's
+`apps/web/src/components/ThemeToggle.tsx` flips light↔dark and restores
+`lastThemeForMode(target)` — the specific theme the user was last on in
+that mode (Midnight stays Midnight, not reset to Obsidian). Mobile's
+`toggle` instead hardcoded `mode === "dark" ? "ivory" : "obsidian"`,
+discarding whichever of the eight themes was actually selected. Per
+`AGENTS.md`'s "don't add features" / "don't design for hypothetical
+future requirements" guidance, wiring up a header quick-toggle button is
+out of scope for this loop (that's a UI feature addition, not a bug fix)
+— logged below instead. But leaving a half-correct, unreachable function
+sitting on the context's public type is its own hazard: it's exactly the
+kind of copy-pasted-looking API that a future PR could wire to a button
+without noticing it silently discards the user's actual theme choice.
+Removed `toggle` from `ThemeContextValue`'s interface and its
+implementation in `theme.tsx`.
+
+**Out of scope, logged for a product decision:** mobile has no top-bar
+quick light/dark toggle — users must open Settings and pick from the
+8-swatch grid every time, whereas web has a one-tap `ThemeToggle` in its
+header. Whether mobile should gain an equivalent (and, if so, matching
+web's "remember last theme per mode" behavior rather than the
+now-removed hardcoded-obsidian/ivory version) is a design/product call,
+not a bug fix.
+
+**Also confirmed clean:** no test file references `theme.tsx` at all
+(zero direct coverage of `ThemeProvider`/`useTheme`) — flagged for the
+test-coverage-audit perspective (catalogue #40) rather than added here,
+to keep this iteration scoped to the theme-consistency finding.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136. Live-verified via
+`preview_start({name: "mobile"})`: opened Settings, switched from the
+default dark theme to **Midnight** (screenshotted — swatch selection
+ring moved, whole screen re-themed), then to **Ivory** (screenshotted —
+full light-theme repaint: background, text, accent, the language-picker
+segmented control, and the reciter radio all updated together), zero
+console errors either time. Confirms the theme system itself is intact
+after removing the dead code.
+
+**Commit:** `apps/mobile/src/theme.tsx`.
+
+---
+
+## Iteration 69 — Cycle 2, B30 revisited: asset/offline-audio loading fallback, and the "validatePath" error finally traced to a real bug
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** iteration 29's own explicitly-deferred follow-up: "`useSurahAudio.ts`'s
+bulk-download IIFE has no `.catch()`, so any download failure produces an
+unhandled promise rejection with zero user-facing error message" —
+exactly the kind of thing cycle 2 exists to go back and finish.
+
+**Found and fixed three unhandled-rejection / stuck-state bugs in
+`apps/mobile/src/audio/useSurahAudio.ts`, one of them live-reproduced with
+a genuinely broken UI, not just a theoretical gap:**
+
+1. **`downloadSurahs`** — confirmed the iteration-29 finding: its IIFE's
+   `try { … } finally { … }` had no `catch`, so a failed download (the
+   underlying `audio-store.ts` `save()` already cleans up its partial file
+   and re-throws, per iteration 29's fix) became an unhandled rejection and
+   left the button silently back at "Download for offline listening" with
+   no indication anything had gone wrong. Added a `catch` that sets a new
+   `downloadError` flag, threaded it through `SurahAudio` and into
+   `DownloadButton.tsx`, which now shows "Download failed — tap to retry"
+   (tapping again just calls `downloadSurahs` fresh, which already works).
+
+2. **`refreshSaved`** — a *second*, higher-reach instance of the same
+   pattern: `mobileAudioStore.savedSurahs().then(...)` with no `.catch()`,
+   called unconditionally on **every mount** of every surah/juzʾ reader
+   screen (not just when the user taps download). Added
+   `.catch(() => [])`, mirroring `savedSurahs()`'s own "no audio dir yet"
+   empty-array convention, so a storage read failure just means "nothing
+   shows downloaded" instead of an unhandled rejection on every navigation.
+
+3. **`startSession` (and `playWord`) — the real find.** Investigating why
+   #2 fires so often led to reproducing the exact
+   `TypeError: this.validatePath is not a function` error that
+   [iteration 21](#iteration-21--secure-storage-of-the-sync-recovery-secret-parity-with-webs-hardening)
+   already root-caused (expo-file-system's `File`/`Directory` constructors
+   call `this.validatePath()`, which the web stub doesn't implement) and
+   judged "purely a web-preview artifact with zero functional impact,
+   not worth fixing" — a conclusion iteration 21 reached by auditing
+   `offlineCache.ts`'s call sites specifically. **That conclusion doesn't
+   hold for `audio-store.ts`'s call sites, which iteration 21 didn't
+   audit.** Live-reproduced: tapping "Play āyah" called
+   `mobileAudioStore.localUrl()` inside `startSession`'s async IIFE, which
+   has no top-level error handling at all — the throw became an unhandled
+   rejection **and** left `buffering`/`playingKey` stuck exactly as set
+   at the top of `startSession`, so the reader's audio dock showed
+   "Loading…" forever with no recovery short of restarting the app.
+   Screenshotted the stuck state before fixing it, then confirmed the fix:
+   same tap now recovers cleanly to idle with zero console errors.
+   Wrapped the whole IIFE body in `try/catch`, resetting `playingKey`/
+   `buffering`/`activeWord` on failure. Applied the identical fix to
+   `playWord`'s IIFE (same missing-catch shape around the same
+   `mobileAudioStore.localUrl()` call; not independently reproduced as a
+   stuck state since that path never sets `buffering`, but the unhandled
+   rejection is the same bug).
+
+**Corrected record, not a contradiction:** iteration 21's technical
+root-cause diagnosis (the `validatePath` stub gap) was and remains
+correct, and its judgment about `offlineCache.ts` specifically was
+reasonable — but "harmless in the one place I checked" had been read by
+later iterations (65, 67, 68) as "harmless everywhere," which is exactly
+how a real bug keeps hiding in plain sight in a shared error string. On
+a real Android/iOS device this specific `validatePath` throw can't
+happen (expo-file-system is fully implemented there) — but the missing
+try/catch itself is platform-independent: any real on-device storage
+failure (permission revoked, disk full, corrupted state) would have hit
+the same stuck-forever "Loading…" screen. Fixed the structural gap, not
+just the web-preview symptom.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136 (no new test added — mocking
+`useSurahAudio`'s `expo-audio`/`AppState`/native-timer surface for a
+proper regression test is a much larger lift than this fix; flagging
+dedicated hook coverage for the test-coverage-audit perspective, #40,
+same as iteration 68's note on `theme.tsx`). Live-verified via
+`preview_start({name: "mobile"})` on `/surah/2`: reproduced the stuck
+"Loading…" state pre-fix, confirmed post-fix the same tap sequence
+produces zero `validatePath`/unhandled-rejection console errors and the
+player returns to idle; separately verified `DownloadButton` still
+renders its normal label and the new "Download failed — tap to retry"
+wording is reachable (the web preview's `expo-file-system` stub makes
+every download attempt fail, which is exactly what exercised the new
+`downloadError` path end to end).
+
+**Commit:** `apps/mobile/src/audio/useSurahAudio.ts`,
+`apps/mobile/src/components/DownloadButton.tsx`.
+
+---
+
+## Iteration 70 — Cycle 2, B31 revisited: navigation stack edge cases, the `.replace()` path iteration 30 didn't test
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-07`
+
+**Checked:** [iteration 30](#iteration-30--navigation-stack-edge-cases-deep-back-stacks-tab-switch-mid-flow-duplicate-pushes)
+verified duplicate-push safety and tab-switch state preservation for
+`navigation.navigate()`, the codebase's near-universal navigation call —
+but a second pattern exists that it didn't examine:
+`navigation.replace()`, used by `SurahReaderScreen.tsx`'s and
+`MushafPageScreen.tsx`'s "← Previous" / "Next →" footer controls (a
+`grep` for `\.replace(` confirms these are the only two call sites,
+both structurally identical: a guarded `n - 1`/`n + 1` replace of the
+current route). `replace()` is a different code path from `navigate()`
+in React Navigation — worth its own check rather than assuming iteration
+30's `navigate()` conclusion covers it.
+
+**Live-verified via `preview_start({name: "mobile"})`, not just inferred
+from the library's documented behavior.** Ref-based clicking on the
+footer's "Next →" control repeatedly resolved to stale/out-of-viewport
+coordinates this session (the pane's screenshot frame and the page's
+actual layout frame drifted after a `resize_window` call, a recurrence
+of the ref-staleness friction noted in earlier iterations) — fell back
+to `javascript_tool` to locate the DOM node by its rendered text and
+dispatch a real `.click()`, then read `window.history.length` and
+`window.location.href` directly rather than trusting screenshots alone:
+- Navigated to `/surah/2`, recorded `history.length` (7, carried over
+  from this session's earlier navigation).
+- Tapped "Next →" three times in sequence (→ surah 3 → 4), confirming
+  via the tab title changing each time (Al-Baqara → Aal-i-Imraan →
+  An-Nisaa) that the replace actually re-rendered the target screen.
+- `history.length` stayed at **7 across all three replaces** — proof
+  `navigation.replace()` genuinely replaces the current history/stack
+  entry instead of pushing a new one, so repeatedly tapping "Next"
+  through many surahs cannot bloat the back stack into one entry per
+  surah visited (confirmed via browser `history.length`, the same
+  signal a duplicate `push()` would have visibly incremented).
+- `MushafPageScreen.tsx`'s "← Previous" / "Next →" pair uses the
+  byte-for-byte identical guarded-replace shape — not re-run live since
+  it's the same mechanism already proven, not new code to independently
+  verify.
+
+**Reasoned, not live-tested: rapid double-tap on "Next".** Unlike
+iteration 30's `navigate()` duplicate-tap test (meaningfully different
+because a duplicate `navigate()` call *could* have pushed a second
+stack entry), a duplicate `replace()` call from a double-tap is
+structurally safe regardless of timing: `n` is read once per render
+from `route.params` with no `await` between the tap and the `replace()`
+call, so two clicks landing in the same synchronous handler both target
+the identical `n + 1` route — an idempotent replace of the same
+destination, not a skip-ahead or a corrupted stack.
+
+**Clean — confirms and extends iteration 30's finding** to the one
+navigation pattern it didn't cover. No code change.
+
+**Verification:** live browser-history checks above; no source changed,
+so the full `lint`/`typecheck`/`test` gate wasn't re-run (nothing to
+regress) — confirmed the tree was already green from iteration 69's gate
+immediately prior.
+
+**Commit:** none (clean iteration; only this log entry and state).

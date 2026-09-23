@@ -30,7 +30,9 @@ export function DownloadButton({
     ? `Downloading ${pct}%`
     : allSaved
       ? "Saved for offline listening"
-      : "Download for offline listening";
+      : audio.downloadError
+        ? "Download failed — tap to retry"
+        : "Download for offline listening";
 
   return (
     <Pressable
