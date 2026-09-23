@@ -1,29 +1,29 @@
 {
-  "iteration": 80,
+  "iteration": 90,
   "cycle": 3,
-  "perspectiveIndex": 0,
-  "batch": "mobile-stabilization-08",
-  "consecutiveCleanIterations": 1,
+  "perspectiveIndex": 11,
+  "batch": "mobile-stabilization-09",
+  "consecutiveCleanIterations": 0,
   "history": [
     {
-      "iteration": 77,
-      "perspective": "Cycle 2, B38 revisited - push notification content correctness, re-verified plus the delivery hop iteration 38 didn't check",
-      "outcome": "CLEAN, re-verified: all 5 reminder families and content unchanged since iteration 38. New check: traced content through to scheduleNotificationAsync, confirmed untransformed pass-through."
+      "iteration": 87,
+      "perspective": "B9, cycle 3 - back-button handling re-verified after batches 6-9, plus a pseudo-modal check",
+      "outcome": "CLEAN: zero-custom-back-handling invariant re-confirmed. New check: pseudo-modal overlay pattern search, none found."
     },
     {
-      "iteration": 78,
-      "perspective": "Cycle 2, B39 revisited - mosque finder, closing (partially) the live-verification gap iteration 39 explicitly left open",
-      "outcome": "GAP FOUND AND FIXED (with an honest limitation): found and fixed 4 unguarded Linking.openSettings() call sites; documented that .catch() cannot fix the web-preview's synchronous-throw manifestation (harmless, iteration-21-class shim gap)."
+      "iteration": 88,
+      "perspective": "B10, cycle 3 - deep links, chasing down the plans/:id question iteration 9 deferred",
+      "outcome": "OUT OF SCOPE, precisely characterized: plans/:id ignores the id on mobile, a real feature-parity gap vs web. Logged for a product decision."
     },
     {
-      "iteration": 79,
-      "perspective": "Cycle 2, B40 revisited - test coverage audit, closing cycle 2's pass through the catalogue",
-      "outcome": "GAP FOUND AND FIXED: reading-goals.ts's khatma-cursor monotonicity and writeGoal's 0-vs-negative clamping had zero test coverage. Added reading-goals.test.ts (11 tests). CYCLE 2 COMPLETE."
+      "iteration": 89,
+      "perspective": "B11, cycle 3 - cold start/splash, a rejected-promise hypothesis ruled out, a splash/theme mismatch found",
+      "outcome": "HYPOTHESIS RULED OUT + OUT OF SCOPE finding: splash color has no light-mode variant despite theme.tsx defaulting to light Ivory on light-mode devices. Needs an asset this loop can't generate. Logged precisely."
     },
     {
-      "iteration": 80,
-      "perspective": "A1, cycle 3 - timezone-of-location vs device, re-checked against code added since cycle 2",
-      "outcome": "CLEAN: re-swept every date/time formatting/construction site added in batches 6-8. Two new toLocaleDateString sites already correctly UTC-anchored (grep initially looked wrong, full source proved otherwise). RamadanScreen's local-anchored construction confirmed self-consistent. prayer-timings-provider.ts's date-fetch uses device-local day, same accepted tradeoff as iteration 41's location-accuracy finding, not a new bug. Batch 8 boundary - pushing and opening PR against mobile-stabilization-07."
+      "iteration": 90,
+      "perspective": "B12, cycle 3 - the sync-reload race found again in theme.tsx and HijriCalendarScreen, a third confirmed in RamadanScreen and deferred",
+      "outcome": "GAP FOUND AND FIXED x2: theme.tsx (setTheme/loadTheme + the legacy-migration write-back) and HijriCalendarScreen (changeAdjust/loadAdjust) both had the exact race iterations 44/51/52 already fixed elsewhere. Fixed both with writeGen/ignoreStale. Found and DEFERRED a third confirmed instance in RamadanScreen.tsx (loadRamadanData/toggleFast/toggleWorship) - logged with full detail for iteration 91 to fix immediately. ProfileScreen still unchecked. Batch 9 boundary - pushing and opening PR against mobile-stabilization-08."
     }
   ]
 }

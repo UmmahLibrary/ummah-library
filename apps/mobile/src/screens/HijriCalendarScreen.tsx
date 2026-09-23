@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import {
   type HijriDate,
@@ -53,16 +53,28 @@ export function HijriCalendarScreen() {
   const [view, setView] = useState<{ year: number; month: number } | null>(null);
   const [reminders, setReminders] = useState<Record<string, boolean>>({});
 
+  // Guards the same sync-reload-vs-local-write race this loop already found
+  // and fixed in PrayerTrackerScreen/LibraryContext/SettingsContext/theme.tsx:
+  // `ul.hijriAdjust` is synced, so a sync round or app-foreground can start
+  // `loadAdjust()`'s read *before* a tap on a date-adjustment chip lands,
+  // then resolve *after* — silently reverting the user's just-picked
+  // adjustment back to whatever was in storage when the reload started.
+  const writeGen = useRef(0);
+
   useEffect(() => {
-    const loadAdjust = () =>
+    const loadAdjust = () => {
+      const gen = writeGen.current;
+      const currentGen = () => writeGen.current;
       void getString(KEYS.hijriAdjust).then((raw) => {
         const n = raw === null ? 0 : parseInt(raw, 10);
         const a = Number.isFinite(n) ? Math.max(-2, Math.min(2, n)) : 0;
         const t = gregorianToHijri(todayGregorian(), a);
+        if (currentGen() !== gen) return; // a newer local pick already landed
         setAdjust(a);
         setToday(t);
         setView({ year: t.year, month: t.month });
       });
+    };
     loadAdjust();
     void readEventReminders().then(setReminders);
     // Reminders are per-device (not synced) — only the adjustment re-reads on sync.
@@ -84,6 +96,7 @@ export function HijriCalendarScreen() {
   }
 
   function changeAdjust(next: number) {
+    writeGen.current++;
     setAdjust(next);
     void setString(KEYS.hijriAdjust, String(next));
     setToday(gregorianToHijri(todayGregorian(), next));

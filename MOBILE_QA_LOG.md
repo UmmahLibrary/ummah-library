@@ -4476,3 +4476,610 @@ source changed, so the lint/typecheck/test gate wasn't re-run (nothing
 to regress; tree was green from iteration 79 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 81 — A2, cycle 3: Zakat sanitization sweep, correcting a now-stale "only 4 fields" claim
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 42](#iteration-42--a2-revisited-extending-zakats-sanitization-check-app-wide)
+exhaustively grepped every `TextInput` app-wide and concluded "Zakat's
+four fields are the *only* free-text numeric inputs in the entire
+mobile app." Re-ran that same grep rather than trusting the standing
+claim, specifically because this loop has since added and touched
+screens (custom reading plans among them) that could have introduced a
+new one.
+
+**The claim is now stale — found a genuine correction, not a code
+bug.** `PlansScreen.tsx`'s "Create your own" custom-plan flow has a
+`keyboardType="number-pad"` `TextInput` (lines 357–360, "Pages a day" /
+"Days to finish") that iteration 42's sweep didn't catch — either it
+existed and was missed, or it postdates that pass; either way, the
+"only Zakat's four fields" statement is no longer accurate today, and
+per this log's append-only convention that's worth correcting on the
+record rather than leaving a future iteration to rediscover the
+discrepancy and wonder which pass was wrong.
+
+**Investigated the new field for the actual bug class this perspective
+cares about — found it already well-guarded, at two independent
+layers, not one.** Client-side: the "pace" branch does
+`Number(perDay) || 0` (garbage/NaN input collapses to 0, not a crash or
+`NaN` leaking into scheduling math) and the "duration" branch does
+`Math.max(0, Math.floor(Number(days) || 0))` (also clamps negative and
+floors a decimal). Shared-core: `validatePlanDraft`
+(`packages/core/src/reading-plans.ts`) then independently rejects a
+non-integer or sub-1 `unitsPerDay` (`Number.isInteger(Infinity)` is
+`false`, so even an edge case like typing enough digits to approach
+`Infinity` is caught here, not just by the client-side coercion) and an
+invalid or before-start end date — either failure disables the "Start"
+button via `customErrors`/`customDraft` being `null`. And unlike
+Zakat's `decimal-pad` fields (where iteration 42 ruled out a
+comma-decimal-locale bug specifically because the native keyboard can't
+produce a comma), this field's `number-pad` keyboard is even more
+restrictive — digits only, no separator key at all on either platform.
+
+**No fix needed; the record is corrected instead.** This is the same
+shape as iteration 35 correcting iteration 34: the earlier pass's
+conclusion was reasonable when made and has simply been overtaken by
+new code, not "wrong" in a way that implies the earlier work was
+careless.
+
+**Verification:** targeted code-reading audit
+(`PlansScreen.tsx`, `packages/core/src/reading-plans.ts`'s
+`validatePlanDraft`); no source changed, so the lint/typecheck/test
+gate wasn't re-run (nothing to regress; tree was green from iteration
+80 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 82 — A3, cycle 3: tasbih counter, the sync-race hypothesis ruled out and a real migration-test gap closed
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 3](#iteration-3--tasbih-per-phrase-counter-mobiles-opposite-bug-from-web)
+confirmed switching the dhikr chip can't clobber another phrase's
+count; [iteration 43](#iteration-43--a3-revisited-tasbih-counter-rapid-tap-race-deepened)
+confirmed rapid taps can't race and drop an increment. Neither checked
+the third failure mode this loop has repeatedly found and fixed
+*elsewhere* this cycle (`PrayerTrackerScreen`, `LibraryContext`,
+`SettingsContext`): a sync-triggered reload landing mid-interaction and
+clobbering a fresher local write.
+
+**Hypothesis ruled out by design, not assumed clean.**
+`TasbihScreen.tsx`'s load effect runs once on mount
+(`useEffect(..., [])`) with **no** `onSyncApplied` subscription at
+all — unlike its siblings that got the `writeGen`/`ignoreStale` fix.
+Checked whether that's a gap or deliberate: `packages/core/src/sync-keys.ts`'s
+own doc comment explicitly lists "the tasbih/adhkar counters" among
+keys "Deliberately EXCLUDED" from `MANAGED_KEYS` — `ul.tasbih` never
+syncs, so no remote update could ever arrive for this screen to miss.
+Subscribing to an event that can never carry relevant data would be
+dead code, not a fix. Confirmed via the actual `MANAGED_KEYS` array,
+not just the comment.
+
+**Found and closed a real, different gap while checking the store
+layer: the legacy-record migration iteration 3 specifically praised
+had zero direct test coverage.** `tasbih-store.ts`'s `read()` migrates
+a pre-per-phrase flat `{phraseId, total, target}` record (from before
+the bug-3 fix shipped) into today's `{phraseId, phrases: {...}}` shape,
+and writes the migration back so it only ever runs once per device.
+`stores-corrupt.test.ts` only exercises the corrupt-value → `null`
+fallback for this store; nothing exercised the migration path itself,
+its write-back, or confirmed an already-current record isn't
+re-migrated. If a future refactor broke this silently, a returning
+user upgrading from an old install could lose or scramble their tasbih
+progress with nothing catching it.
+
+**Added** [`tasbih-store.test.ts`](apps/mobile/src/tasbih-store.test.ts)
+(5 new tests, same in-memory `AsyncStorage` mock pattern as
+`stores-corrupt.test.ts`): the legacy shape converts correctly, the
+migration writes back (asserted by re-reading the raw stored JSON, not
+just trusting the returned value), an already-current record passes
+through unchanged, and the two `null`-fallback cases (nothing stored,
+neither shape) are covered explicitly for this store too.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` **152/152** passing (147 + 5 new). No
+browser-preview check — a pure unit-test addition with no UI or
+runtime-behavior change to observe.
+
+**Commit:** `apps/mobile/src/tasbih-store.test.ts` (new).
+
+---
+
+## Iteration 83 — A4, cycle 3: qada stepper, the zero-floor/rapid-decrement edge checked for the first time
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 4](#iteration-4--qada--stepper-race-condition-under-rapid-taps)
+confirmed rapid taps on the qaḍāʾ `+`/`−` stepper can't lose an
+increment (functional `setState` form, no stale-closure re-read);
+[iteration 44](#iteration-44--a4-revisited-closing-the-sync-reload-race-deferred-in-iteration-22)
+closed the sync-reload race iteration 4 explicitly deferred. Neither
+pass specifically checked the **decrement-at-zero** edge — what
+actually stops the counter from going negative, and whether *that*
+guard is itself race-safe, which is a meaningfully different question
+from "does a rapid tap get lost."
+
+**Confirmed the zero-floor is defended at three independent layers, not
+just one.** UI: `PrayerTrackerScreen.tsx`'s "−" button is
+`disabled={owed === 0}`, so it's not normally tappable once nothing's
+owed. Data: `packages/core/src/qada.ts`'s `setQada`/`adjustQada` clamp
+every result through `clampCount` regardless of the UI state — `owed:
+1, delta: -1` → `0` (entry dropped, kept sparse), and `qada.test.ts`
+already asserts this exactly ("cannot go negative; entry dropped at
+0"). Reasoned through the one theoretical timing gap between those two
+layers: two taps landing faster than React re-renders the now-`disabled`
+button could both fire `adjustQadaFor(p, -1)` before the UI catches up
+— but since each call derives `next` from `prev` (the same functional
+pattern iteration 4 verified), the second call's input is already the
+first call's *clamped* output (`0`), so it clamps to `0` again rather
+than `-1`. The UI-timing gap, if it exists at all, is harmless by
+construction — the data layer's clamp is the real guarantee, the
+disabled button is just the normal-path affordance.
+
+**Confirmed this isn't newly-added, untested logic** — `qada.test.ts`
+already covers corrupt-value clamping, the zero-drop behavior, and
+fractional-input flooring directly, so nothing needed adding this pass
+(unlike iteration 82's tasbih-migration finding, where the equivalent
+coverage genuinely didn't exist).
+
+**Clean — a real, previously-unchecked edge of this perspective,
+confirmed solid rather than assumed from the already-verified
+rapid-tap-increment case.** No code change.
+
+**Verification:** targeted code-reading audit
+(`PrayerTrackerScreen.tsx`, `packages/core/src/qada.ts`,
+`qada.test.ts`); no source changed, so the lint/typecheck/test gate
+wasn't re-run (nothing to regress; tree was green from iteration 82
+immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 84 — A5, cycle 3: pluralization copy, widened from the two Hifz screens to the whole app
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 5](#iteration-5--hifz-review-arabic-pluralization-copy-āyahāt-vs-āyāt)
+confirmed the specific "āyahāt" typo doesn't exist on mobile;
+[iteration 45](#iteration-45--a5-revisited-hifz-pluralization-checked-beyond-the-one-string)
+widened that to every counted-noun string in the same two Hifz
+screens. This pass widened it once more, to every counted-noun
+pluralization in the mobile app — the same "generalize app-wide"
+move iteration 42 already made for the Zakat perspective, applied here
+for the first time.
+
+**Every inline singular/plural ternary app-wide is grammatically
+correct.** Grepped for the `=== 1 ? … : …` pattern across every screen
+and component (13 sites, not just the 2 Hifz ones): plan-completion,
+sync-item, download-count, streak-day, Hijri date-adjustment,
+plan-behind-schedule (two separate screens, same string), reading-
+goal-pages, search-result, and settings-item-count copy all correctly
+gate on the count, including two sites using `Math.abs(n) === 1` for a
+signed value (a negative "-1 day" correctly reads "1 day", not "1
+days").
+
+**Found a real, if minor, styling inconsistency — not the same bug,
+and not fixed unilaterally.** `packages/core/src/reading-plans.ts`'s
+`unitWord()` — the one non-trivial (function-based, not inline
+ternary) pluralizer in this area, feeding `PlanCompletionCard`'s copy —
+pluralizes `"ayah"` as **`"ayahs"`** (a plain anglicized "+s"), not the
+Arabic plural **`"āyāt"`** the two Hifz screens use for the identical
+concept. This is a genuine cross-screen inconsistency in transliteration
+style, but it is **not** the reported bug: "ayahs" is a real,
+understandable English word (the informal convention, like "cherubs"
+for "cherubim"), unlike "āyahāt," which was a nonsense hybrid. It's
+also **shared `core` code that also drives web's copy** — unifying it
+would mean picking one house style for reading-plan text on both
+platforms, a copy/style call for whoever owns that, not a unilateral
+mobile-only fix under this perspective. Flagging clearly rather than
+either silently ignoring it or rewriting shared copy on my own
+judgment.
+
+**Verification:** targeted code-reading/grep audit across every
+`apps/mobile/src` screen/component plus `unitWord()`; no source
+changed, so the lint/typecheck/test gate wasn't re-run (nothing to
+regress; tree was green from iteration 83 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 85 — A6, cycle 3: khatm completion, checked for a sync-comment bug and found one
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 6](#iteration-6--khatm-604604-completion-state)
+confirmed the completion card itself renders correctly;
+[iteration 46](#iteration-46--a6-revisited-khatm-completion-the-undoreset-paths-deepened)
+deepened into overshoot safety, unrelated-field-wipe safety, and race
+safety for the "−1"/"Start a new khatm" controls. Neither checked
+whether `ul.khatma` has any sync-related implications — a natural next
+question given iteration 82 found the equivalent check valuable for
+tasbih this same cycle.
+
+**Confirmed `ul.khatma` (and its sibling reading-goal keys) are
+correctly excluded from sync** — `ReadingGoalsScreen.tsx`/`PlanDetailScreen.tsx`
+both already use the `state === null` → themed-placeholder gate rather
+than an `onSyncApplied` subscription (already established as correct
+in iteration 75's finding, extended here to confirm it's *also* correct
+for exactly this reason: there's genuinely nothing to sync).
+
+**Found and fixed a real bug while confirming that — a misleading doc
+comment in shared `core`, the same class iterations 34/35 already had
+to fix once for `ul.qada`/`ul.haid`.** `packages/core/src/sync-keys.ts`'s
+own exclusion comment read "Deliberately EXCLUDED: the reading-goal
+logs and active plan" — prose that an auditor could very reasonably
+read as naming `ul.readingLog`/`ul.readingActive` (the day-by-day
+streak log and active-dates list). Those two keys are **not** what's
+excluded; they're both sitting right there in `MANAGED_KEYS`, synced
+via Phase 1/2 element-merge. The keys actually excluded are a
+*different* set entirely — `ul.readingGoal`, `ul.readingPages`,
+`ul.khatma`, and `ul.readingPlan` — which the old prose never named
+explicitly. This is exactly the failure mode iteration 34/35's own NOTE
+about `ul.qada`/`ul.haid` exists to prevent, just recurring in the same
+file for a different pair of keys the earlier fix didn't happen to
+touch.
+
+**Fix:** rewrote the comment to name every excluded key explicitly
+(`ul.readingGoal`, `ul.readingPages`, `ul.khatma`, `ul.readingPlan`)
+and added a short note explaining exactly why the old wording was
+dangerous — cross-referencing `ul.readingLog`/`ul.readingActive` by
+name so the two easily-confused pairs can't be mixed up again, matching
+the explicit-key-name style the existing `ul.qada`/`ul.haid` NOTE
+already established as this file's convention.
+
+**Verification:** `pnpm --filter @ummahlibrary/core typecheck` clean,
+`pnpm --filter @ummahlibrary/core test` 508/508 passing; `pnpm --filter
+@ummahlibrary/mobile typecheck` clean, `pnpm --filter
+@ummahlibrary/mobile test` 152/152 passing; `pnpm lint` — 0 errors,
+same 13 pre-existing warnings. No browser-preview check — a doc-comment
+fix in shared `core` with zero behavior change, same as iteration
+34/35's equivalent fix.
+
+**Commit:** `packages/core/src/sync-keys.ts` (comment fix only, no
+behavior change).
+
+---
+
+## Iteration 86 — A7/A8, cycle 3: Zakat, a real cross-field race found in the one place iterations 2/7/47 hadn't looked
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 2](#iteration-2--zakat-currency-field-sanitization-and-adjacent-resetnegative-amount-bugs)
+confirmed "Reset amounts" and negative-amount typing are both safe;
+[iteration 47](#iteration-47--a7a8-revisited-zakat-reset-scope-and-negative-amount-defense-in-depth)
+confirmed `reset()`'s exact field scope, `calculateZakat`'s
+defense-in-depth against a negative value reaching storage some other
+way, and fixed a display self-heal gap (later itself corrected for a
+missing write-back in iteration 60). None of those passes specifically
+checked `ZakatScreen.tsx`'s own state-update pattern for the rapid-
+tap/same-tick race class this loop has repeatedly found and fixed
+elsewhere (qada, tasbih, khatm) — a natural next question given how
+many of this screen's own neighbors in this cycle already needed that
+exact fix.
+
+**Found and fixed a real one, in the one call site that's structurally
+different from the rest.** Every `ZakatScreen.tsx` field except the
+per-asset ones (`currency`, `goldPricePerGram`, `silverPricePerGram`,
+`nisabBasis`, `liabilities`) calls the shared `update(patch)` helper
+with a patch touching only that one field — safe, since `update`
+already merges via `setState(prev => ({...prev, ...patch}))`. But
+`setAsset(id, value)` — the handler behind **every** asset category
+input (cash, gold, silver, investments, business, receivables) —
+built its patch as `{ assets: { ...state.assets, [id]: value } }`,
+reading `state.assets` from the **outer closure**, not from `prev`
+inside the updater. Two different asset fields edited within the same
+tick (before React re-renders) each capture the *same* stale
+`state.assets` snapshot; the second field's patch wholesale-replaces
+`assets` with its own snapshot-plus-edit, silently discarding whatever
+the first field's edit had just written. The other fields never hit
+this because their patches don't reference sibling state at all — only
+the multi-field `assets` object was exposed to it.
+
+**Fix:** gave `setAsset` its own `setState` call deriving from
+`prev.assets` instead of routing through `update()`'s external-snapshot
+patch — the same functional-derive-from-`prev` pattern already used
+correctly by the qada/tasbih/khatm steppers this loop fixed or
+confirmed safe earlier this cycle.
+
+**Live-reproduced the exact race, not just reasoned through it.** Real
+same-tick concurrent edits from a human aren't reproducible through UI
+automation (each `computer` click is its own event-loop turn), so used
+`javascript_tool` to fire two native `input` events on two different
+empty asset fields **synchronously, in one script execution** — the
+precise race window the bug depended on — via the native
+`HTMLInputElement.value` setter + `dispatchEvent`, the standard
+technique for driving a React-controlled input from outside React.
+Read back both the DOM values (`"111"`/`"222"`, both preserved) and the
+actual persisted `ul.zakat` storage entry
+(`assets: {"cash":"500","gold":"111","silver":"222",…}`) — confirming
+the fix holds at both the render and the storage layer, not just in
+the DOM's optimistic display.
+
+**No unit test added** — same reasoning iteration 45 already gave for
+this exact class of UI-state-timing logic: this codebase has no
+component-rendering test harness, and the live, exact-race
+reproduction above is a stronger verification for this specific bug
+than a unit test extracting the logic into an artificially-testable
+shape would be.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 152/152 passing (unchanged — no new test,
+by design, see above). Live browser-preview reproduction and fix
+confirmation as detailed above; no new console errors beyond the two
+already-documented, harmless web-preview artifacts (`validatePath`,
+`Linking.openSettings`).
+
+**Commit:** `apps/mobile/src/screens/ZakatScreen.tsx`.
+
+---
+
+## Iteration 87 — B9, cycle 3: back-button handling re-verified after batches 6–9, plus a pseudo-modal check neither prior pass ran
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 8](#iteration-8--android-hardware-back-button-handling-on-every-screenmodal)
+found zero app-specific back-handling anywhere (no `BackHandler`,
+`Modal`, `presentation:`, or navigation-blocking listener), with the
+honest caveat that no Android emulator exists in this environment to
+actually press the button. [Iteration 48](#iteration-48--b9-revisited-back-button-handling-re-checked-after-40-iterations-of-changes-plus-the-errorboundary-interaction)
+re-confirmed the same invariant after ~40 iterations and checked the
+`ErrorBoundary` interaction. A separate iteration, 55, later found
+iteration 8's specific "zero `Modal` usage" sub-claim had been wrong
+all along (a wildcard re-export in `Type.tsx` meant the app does use
+`Modal`, twice, both already correctly wired with `onRequestClose`).
+This pass re-ran the full invariant grep fresh against everything
+batches 6–9 added, and added a check neither prior pass ran.
+
+**The "zero custom back-handling" invariant still holds — re-grepped,
+not assumed.** `BackHandler`, `presentation:`, `beforeRemove`, and
+`preventRemove` all still return zero matches across
+`apps/mobile/src`. The two `Modal` usages iteration 55 found
+(`SaveToCollection.tsx`, `TranslationManager.tsx`) are still the only
+two, and both still have `onRequestClose` wired — no regression since.
+
+**New this pass: searched for a "fake modal" — a full-screen overlay
+that** ***looks*** **like a modal but isn't a real `<Modal>` component,
+which would mean the hardware back button falls straight through to
+the underlying screen instead of dismissing it.** Neither prior pass
+checked for this specific gap between the *real* `Modal` component
+(which Android's back button correctly intercepts via
+`onRequestClose`) and a plain absolutely-positioned `View` styled to
+look like one (which the back button doesn't know about at all).
+Grepped for backdrop/overlay/`zIndex`/`elevation` patterns outside the
+two known `Modal` files — the one match (`SurahReaderScreen.tsx`'s
+`elevation: 6`) turned out to be a small floating pill/chip
+(`borderRadius: 999`, card padding), not a full-screen overlay. No
+pseudo-modal pattern exists anywhere in the app.
+
+**Clean — the invariant holds, and a genuinely new angle came up
+empty rather than untested.** No code change.
+
+**Verification:** targeted grep audit across `apps/mobile/src`
+(`BackHandler`/`Modal`/`presentation:`/`beforeRemove`/`preventRemove`/
+overlay-style patterns); no source changed, so the lint/typecheck/test
+gate wasn't re-run (nothing to regress; tree was green from iteration
+86 immediately prior). Still no Android emulator in this environment
+to press an actual hardware back button — same honest limitation
+iterations 8 and 48 already stated, not newly resolved here.
+
+**Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 88 — B10, cycle 3: deep links, finally chasing down the `plans/:id` question iteration 9 explicitly deferred
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 9](#iteration-9--deep-link-ummahlibrary-handling-including-malformed-links)
+found and fixed a real malformed-link bug (`SurahReaderScreen`
+poisoning `lastRead` from an out-of-range surah); [iteration 49](#iteration-49--b10-revisited-deep-link-handling-closing-the-cosmetic-gap-left-open)
+re-confirmed no new param-taking routes were added and closed a
+cosmetic title-flash gap. Both passes noted, without investigating,
+that `PlanDetailScreen` never reads `route.params.id` at all — iteration
+9 called it "a design question, not a bug" and moved on. Re-confirmed
+`App.tsx`'s `linking` config still has exactly the same four
+param-taking routes as before (no new ones added in batches 6–9), then
+finally chased down that deferred question properly.
+
+**It's a real cross-platform feature-parity gap, not just an
+unexplored design nuance — confirmed by reading web's actual
+implementation, not guessed at.** `apps/web/src/app/plans/[id]/page.tsx`
+routes to `PlanDetailView`, which computes
+`isActive = !!plan && plan.template.id === templateId` — the `:id`
+genuinely selects **which catalogue template** to show: if it matches
+the active plan, the live progress view renders; if it doesn't (or
+nothing's active), a **template preview with a "Start this plan"
+button** renders instead (warning first if it would replace an
+existing plan). Mobile's `PlanDetailScreen` does none of this — it
+ignores `:id` entirely and always shows `readActivePlan()`'s result
+(the live plan, or "No active plan." if none). A `plans/hifz-in-a-year`
+link that would correctly preview-and-offer-to-start that template on
+web either shows an unrelated active plan or a bare "No active plan."
+on mobile, with zero indication of what the link actually pointed to.
+
+**Confirmed mobile has the underlying capability, just not wired to
+this route.** `PlansScreen.tsx` (mobile's plan-list screen, not
+`PlanDetailScreen`) already maps `PLAN_TEMPLATES` to tappable rows that
+call `startPlan(pl.id)` — the catalogue-browsing/starting feature
+exists, mobile's information architecture just splits what web does in
+one screen (`PlanDetailView`, template-aware) across two
+(`PlansScreen` for browsing/starting, `PlanDetailScreen` for progress
+only), and the deep link only ever reaches the second one.
+
+**Not building this — logging it as out of scope, per this loop's own
+guardrail against feature work.** Closing this properly means a real
+product/UX decision this loop shouldn't make unilaterally: redirect
+`plans/:id` to `PlansScreen` with the template highlighted, give
+`PlanDetailScreen` the same template-awareness `PlanDetailView` has, or
+something else entirely. Flagging it precisely — with the exact file
+and the exact web behavior to match, unlike iteration 9's vaguer
+note — so whoever picks this up doesn't have to re-derive the
+comparison from scratch.
+
+**Verification:** targeted code-reading audit
+(`apps/mobile/App.tsx`, `PlanDetailScreen.tsx`, `PlansScreen.tsx`,
+`apps/web/src/app/plans/[id]/page.tsx`, `PlanDetailView.tsx`); no
+source changed, so the lint/typecheck/test gate wasn't re-run (nothing
+to regress; tree was green from iteration 87 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 89 — B11, cycle 3: cold start/splash, a rejected-promise hypothesis ruled out and a real splash/theme mismatch found
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 10](#iteration-10--cold-start-time-and-splash-screen-timing)
+added the `preventAutoHideAsync`/`hideAsync` fix in the first place;
+[iteration 50](#iteration-50--b11-revisited-the-errorboundary-can-leave-the-splash-screen-stuck-forever-closes-out-batch-5)
+found and fixed the specific gap where a crash *above* `AppGate` in the
+provider tree left the splash stuck forever, since `hideAsync()` only
+lived in `AppGate`'s own effect. Neither checked the **other** way
+`onboarded` could stay `null` forever without a render-phase crash: a
+rejected `getString()` promise, which `ErrorBoundary` can't catch
+either (it only catches render-phase errors, not a promise rejection
+inside a `useEffect`).
+
+**Hypothesis ruled out by reading the actual implementation, not
+assumed safe.** `storage.ts`'s `getString()` already wraps
+`AsyncStorage.getItem` in try/catch and returns `null` on any failure
+— it can never reject. `AppGate`'s
+`getString(KEYS.onboarded).then((v) => setOnboarded(v === "1"))` is
+therefore provably safe: the promise it awaits always resolves, so
+`onboarded` can never get stuck at `null` from this path. Combined
+with iteration 50's crash-path fix and the existing `fontError`
+fallback in `App()`, every startup gate this screen depends on is now
+confirmed to always eventually resolve one way or another.
+
+**Found and precisely characterized a real, separate gap — not the
+"stuck forever" class, but a cosmetic cold-start mismatch that's
+existed since iteration 10's very first fix, not introduced by any
+later change.** `app.json`'s `splash.backgroundColor` is a single
+static `#0b0f0e` (Obsidian's dark background) with no light-mode
+variant, but `theme.tsx` has always defaulted the first-run Noor theme
+from `Appearance.getColorScheme()` — a device in light mode boots
+straight into the light Ivory theme. Native splash is dark on every
+device regardless; a light-mode user's cold start is native dark
+splash → (briefly) whatever paints before the theme resolves → light
+Ivory content, a color flash in the opposite direction from the blank-
+flash iteration 10 originally fixed.
+
+**Confirmed this is actually fixable, not just a limitation, but needs
+an asset this loop can't create.** Read
+`node_modules/expo-splash-screen/plugin/build/withSplashScreen.js`
+directly: this installed version's config plugin *does* support a
+per-theme `dark: { image, backgroundColor }` override — but only when
+`app.json`'s `expo-splash-screen` plugin entry uses the new props-object
+form; this app still has it as a bare string (`"expo-splash-screen"`,
+no config), which falls back to the legacy single-splash path with no
+dark-mode branch at all. Closing this for real needs a light-colored
+splash asset (an actual image file) this loop has no business
+generating for a shipping app icon/splash — logged precisely, with the
+exact plugin capability and config shape needed, rather than left as a
+vague "maybe fixable someday" note.
+
+**Verification:** targeted code-reading audit (`storage.ts`,
+`App.tsx`, `theme.tsx`, `app.json`,
+`node_modules/expo-splash-screen/plugin/build/withSplashScreen.js`);
+no source changed, so the lint/typecheck/test gate wasn't re-run
+(nothing to regress; tree was green from iteration 88 immediately
+prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 90 — B12, cycle 3: the same sync-reload race, found again in two more places, a third confirmed and deferred (closes out batch 9)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-09`
+
+**Checked:** [iteration 11](#iteration-11--app-backgroundforeground-transitions-timers-audio-in-flight-requests)
+found background/foreground handling clean via three purpose-built
+mechanisms; [iteration 51](#iteration-51--b12-revisited-the-exact-race-fixed-in-prayertracker-was-also-live-in-librarycontext-app-wide)
+and [52](#iteration-52--b12-continued-the-same-race-a-third-time-in-settingscontext)
+found and fixed the sync-reload-vs-local-write race (a stale
+`onSyncApplied`-triggered reload clobbering a fresher local write) in
+`LibraryContext` and `SettingsContext`, and swept the remaining
+`onSyncApplied` consumers — but only named 5 of the 9 remaining
+screens explicitly as checked-clean ("Home, mosque finder, names,
+prayer times, Qibla"). This pass went through the un-named remainder
+(`theme.tsx`, `HijriCalendarScreen`, `RamadanScreen`, `ProfileScreen`)
+individually rather than assuming "most" meant "all."
+
+**Found and fixed the same bug a fourth and fifth time.**
+- **`theme.tsx`** — `loadTheme()` (mounts + `onSyncApplied`) called
+  `setThemeKey(key)` directly with no guard; `setTheme()` (every theme
+  swatch tap) did too. A reload in flight when the user picked a theme
+  could silently revert their pick back to whatever `ul.theme` held
+  when the reload started. Also guarded the adjacent legacy-migration
+  write-back (`setString(KEYS.theme, key)` for a pre-per-theme
+  `"dark"`/`"light"` value) with the same generation check — a
+  narrower but real secondary bug where a *stale* migration write
+  could land in storage *after* a fresher `setTheme()` pick already
+  wrote its own value there.
+- **`HijriCalendarScreen.tsx`** — `loadAdjust()` (mounts +
+  `onSyncApplied`) and `changeAdjust()` (every date-adjustment chip
+  tap) both write `adjust`/`today`/`view` state derived from
+  `ul.hijriAdjust` (a synced key) with no guard between them — the
+  identical shape.
+
+**Fix, both:** the same `writeGen`/`ignoreStale` pattern iterations
+44/51/52 already established — a generation counter bumped by every
+local write, with the reload discarding its own result if a newer
+local write landed since it started.
+
+**Found, precisely characterized, and deliberately deferred to the
+next iteration rather than expanding this one further: `RamadanScreen.tsx`
+has the identical bug a sixth time.** `loadRamadanData()` (mounts +
+`onSyncApplied`) calls `setFasts`/`setWorship` directly; `toggleFast`/
+`toggleWorship` use the functional `setState(prev => …)` form for
+their own update but don't guard against a concurrent stale reload
+overwriting it afterward. Both `ul.ramadanFasts` and `ul.ramadanWorship`
+are confirmed `MANAGED_KEYS` entries (synced), so this is a live race
+window, not hypothetical — logging the exact mechanism and file so the
+next iteration can fix it immediately rather than re-deriving this
+investigation. `ProfileScreen.tsx` — the one remaining unchecked
+consumer — still needs the same look; it's not yet been checked
+individually.
+
+**Live-verified both fixes**, not just the underlying `ignoreStale`
+mechanism (already proven via iteration 44's 3 deterministic tests):
+reproducing the exact race itself isn't reachable from outside the
+bundle the way iteration 86's Zakat DOM-event technique was (no
+externally-callable hook for `emitSyncApplied()`), so verified the
+normal path instead, matching iterations 51/52's own precedent.
+`preview_start({name: "mobile"})`: tapped the Midnight theme swatch,
+confirmed the screen re-themed and `localStorage.getItem('ul.theme')`
+read `"midnight"`; tapped the Hijri Calendar's "+1" date-adjustment
+chip, confirmed the label updated to "(+1 day)" and
+`localStorage.getItem('ul.hijriAdjust')` read `"1"`. No new console
+errors beyond the two already-documented, harmless artifacts.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 152/152 passing (unchanged — this mechanism
+is already covered by iteration 44's tests, these are new consumers of
+it, not new logic). Live verification as detailed above.
+
+**Commit:** `apps/mobile/src/theme.tsx`,
+`apps/mobile/src/screens/HijriCalendarScreen.tsx`.
