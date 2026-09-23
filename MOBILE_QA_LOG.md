@@ -5531,3 +5531,68 @@ test gate wasn't re-run (nothing to regress; tree was green from
 iteration 97 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 99 — AsyncStorage migration safety, the write-back bug found a third and fourth time
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-10`
+
+**Checked:** [iteration 20](#iteration-20--asyncstoragesqlite-migration-safety-and-corrupted-store-recovery)
+cataloged all four shape-migrations in the app and found `theme.tsx`
+correcting a legacy value in memory every launch without ever writing
+the correction back to storage — fixed. [Iteration 60](#iteration-60--b20-revisited-my-own-iteration-47-fix-had-the-exact-bug-iteration-20-fixed-closes-out-batch-6)
+re-confirmed the four-migration census was still exhaustive, then found
+the *identical* bug shape recurring in `ZakatScreen`'s decimal self-heal
+— fixed. Given this exact pattern had now independently recurred once
+already, the obvious cycle-3 question was whether it had happened a
+third time in the ~40 iterations since.
+
+**Re-confirmed the keyword census is still exhaustive, then found the
+actual gap by reasoning from the bug's *shape*, not its vocabulary.**
+Grepping for "heal"/"migrat" still turns up the same 5 files as before
+— no new keyword-tagged migration exists. But the underlying pattern
+(storage holds a value the UI itself would never write, a read
+function corrects it into local state, nothing persists the
+correction) doesn't require either word. Checked every place reading
+`ul.hijriAdjust` — a value the UI can only ever set to one of five
+fixed options (`[-2, -1, 0, 1, 2]`) via `HijriCalendarScreen`'s own
+`changeAdjust` — and found **both** `HijriCalendarScreen.tsx`'s and
+`RamadanScreen.tsx`'s independent copies of `loadAdjust()` clamp an
+out-of-range or malformed stored value with `Math.max(-2, Math.min(2,
+n))` before setting it into local state, exactly like `theme.tsx`
+before its fix, with no write-back in either file.
+
+**Fix:** the same "write back once, only when clamping actually
+changed the value" pattern as both prior fixes, applied independently
+in both files (they don't share an implementation, so each needed its
+own fix — same as `ZakatScreen`'s bug wasn't deduplicated against
+`theme.tsx`'s).
+
+**Live-verified both, using the exact method iterations 20/60
+established**: wrote `ul.hijriAdjust = "99"` directly to storage,
+navigated to `HijriCalendarScreen` — UI correctly showed "(+2 days)",
+and the raw storage value was now `"2"`, not the un-healed `"99"`.
+Repeated with `"-50"` on `RamadanScreen` — storage read `"-2"`
+afterward. Both screens independently heal and persist correctly.
+
+**Noted, not chased further this iteration:** a keyword grep for
+"heal"/"migrat" can't be trusted as a complete census for this bug
+class, since this instance used neither word — it was found by
+recognizing the *shape* (a bounded-option UI value being clamped from
+an unbounded stored one) instead. If this recurs a fifth time, a
+future pass might be better served by grepping for the shape directly
+(`Math.max(\-?\d.*Math\.min` near a `set` call with no matching
+`setString`/`setJSON` nearby) rather than vocabulary.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck`
+clean; `pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm
+--filter @ummahlibrary/mobile test` 152/152 passing (unchanged — this
+mirrors an already-proven pattern, not new logic needing its own
+test, same reasoning iterations 20/60 gave). Live verification as
+detailed above; no new console errors beyond the one already-
+documented, harmless `Linking.openSettings` artifact.
+
+**Commit:** `apps/mobile/src/screens/HijriCalendarScreen.tsx`,
+`apps/mobile/src/screens/RamadanScreen.tsx`.

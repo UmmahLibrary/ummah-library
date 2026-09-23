@@ -12,7 +12,7 @@ import {
 } from "@ummahlibrary/core";
 import { Khatam, Icon, type IconName } from "@ummahlibrary/ui";
 import { api } from "../api";
-import { KEYS, getJSON, getString, isObjectRecord, setJSON } from "../storage";
+import { KEYS, getJSON, getString, isObjectRecord, setJSON, setString } from "../storage";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 import { fmtCountdown, fmtPrayerTime, ignoreStale, localISODate } from "../utils";
@@ -78,7 +78,14 @@ export function RamadanScreen({ navigation }: Props) {
     const loadAdjust = () =>
       void getString(KEYS.hijriAdjust).then((raw) => {
         const n = Number(raw);
-        if (Number.isFinite(n)) setHijriAdjust(Math.max(-2, Math.min(2, n)));
+        if (!Number.isFinite(n)) return;
+        const a = Math.max(-2, Math.min(2, n));
+        setHijriAdjust(a);
+        // Same write-back gap iterations 20/60 found in theme.tsx/ZakatScreen,
+        // and this cycle's own iteration 99 in HijriCalendarScreen's copy of
+        // this exact clamp — persist a corrected out-of-range value once
+        // rather than silently re-healing the same raw bad value forever.
+        if (raw !== null && raw !== String(a)) void setString(KEYS.hijriAdjust, String(a));
       });
     loadAdjust();
     return onSyncApplied(loadAdjust);

@@ -73,6 +73,13 @@ export function HijriCalendarScreen() {
         setAdjust(a);
         setToday(t);
         setView({ year: t.year, month: t.month });
+        // Same write-back gap iterations 20/60 already found (and fixed) in
+        // theme.tsx/ZakatScreen: an out-of-range or malformed stored value
+        // gets corrected in memory every launch but was never persisted back,
+        // so the raw bad value — and whatever a sync round pushes from it —
+        // would live in storage forever. Persist once, only when clamping
+        // actually changed something.
+        if (raw !== null && raw !== String(a)) void setString(KEYS.hijriAdjust, String(a));
       });
     };
     loadAdjust();
