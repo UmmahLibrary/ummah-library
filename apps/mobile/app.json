@@ -5,7 +5,7 @@
     "version": "1.0.1",
     "orientation": "portrait",
     "scheme": "ummahlibrary",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "icon": "./assets/icon.png",
     "backgroundColor": "#0b0f0e",
     "newArchEnabled": true,
@@ -28,7 +28,9 @@
       ],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
-        "android.permission.SYSTEM_ALERT_WINDOW"
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "ios": {
@@ -56,6 +58,7 @@
       ],
       "expo-font",
       "expo-splash-screen",
+      "expo-system-ui",
       "expo-notifications",
       "@react-native-community/datetimepicker",
       "expo-secure-store",

@@ -126,7 +126,11 @@ export function HijriCalendarScreen() {
     [view, adjust],
   );
 
-  if (!view || !today) return null;
+  // A themed blank placeholder, not `null` — matches PlanDetailScreen's and
+  // ReadingGoalsScreen's identical brief-load gate, avoiding a flash of the
+  // navigator's unthemed background before this screen's own state (a local
+  // storage read for the day-adjustment offset) resolves.
+  if (!view || !today) return <View style={styles.screen} />;
 
   const month = hijriMonth(view.month);
   const eventDays = new Set(monthly.map((m) => m.event.day));

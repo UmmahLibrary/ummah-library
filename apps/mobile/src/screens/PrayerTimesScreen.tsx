@@ -209,7 +209,7 @@ export function PrayerTimesScreen() {
             <Pressable style={styles.chip} onPress={locate}>
               <Text style={styles.chipText}>Try again</Text>
             </Pressable>
-            <Pressable style={styles.chip} onPress={() => void Linking.openSettings()}>
+            <Pressable style={styles.chip} onPress={() => void Linking.openSettings().catch(() => {})}>
               <Text style={styles.chipText}>Open Settings</Text>
             </Pressable>
           </View>

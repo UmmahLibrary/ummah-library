@@ -3791,3 +3791,688 @@ regress) — confirmed the tree was already green from iteration 69's gate
 immediately prior.
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 71 — Cycle 2, B32 revisited: error boundaries / crash resilience against malformed persisted data, this time by data surface rather than by screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 31](#iteration-31--error-boundaries--crash-resilience-against-malformed-data)
+covered the *generic* half of this perspective — a render-time crash
+anywhere gets caught by a real error boundary instead of a permanently
+blank screen. It didn't specifically audit whether every place that
+*parses persisted data* is itself defended, which is the more targeted
+reading of "against malformed persisted data." `stores-corrupt.test.ts`
+(added mid-loop, cycle-4-era per its own header) already covers most
+`ul.*` key stores, but three surfaces sit outside that test file:
+`i18n/locale-store.ts`, `tafsir-compare-store.ts`, and the
+backup/import path (`backup.ts` + `backup-store.ts`) — the last one
+being the highest-risk surface in the whole app, since it's the one
+place a user can hand the app an arbitrary external file to parse.
+
+**Audited every remaining `JSON.parse` call site in `apps/mobile/src`
+(a `grep` beyond `stores-corrupt.test.ts`'s store list) plus the two
+un-tested stores above, one by one:**
+- `i18n/locale-store.ts` — no JSON at all; reads a raw string and
+  validates with `isLocale()` before trusting it. Safe by construction.
+- `tafsir-compare-store.ts` — routes through `storage.ts`'s generic
+  `getJSON(key, fallback, isValid)` with `isStringArray`, the same
+  hardened primitive `stores-corrupt.test.ts` already exercises for
+  every other store; just not wired into that specific integration
+  test. Safe, not independently re-tested (would be redundant with
+  `storage.test.ts`'s existing coverage of `getJSON` itself).
+- **`backup.ts`'s import path — the real test of this perspective**,
+  since it's the one place `JSON.parse` runs on a string the app didn't
+  write itself (a file picked via `expo-document-picker`, potentially
+  edited by hand or corrupted in transit). Traced the full chain:
+  `JSON.parse` wrapped in try/catch (`"That file isn't valid JSON."`);
+  the parsed envelope then goes through `@ummahlibrary/core`'s
+  `validateBackup()`, which checks `app`/`version` **and** that every
+  value in `.data` is actually a string (not just that `.data` is an
+  object) before `backup.ts` trusts the `as { data: Record<string,
+  string> }` cast — so the cast is backed by a real runtime check, not
+  just a type-level assumption. `backup-store.ts`'s `restore()` then
+  filters incoming keys through `isBackupKey` so a crafted payload
+  can't plant a non-`ul.*` key or the sync secret sidecar (already
+  covered by `backup-store.test.ts`). And even if a per-*value* payload
+  were somehow wrong-shaped-but-still-a-string past all of that, it
+  would land back on the same hardened `getJSON` read path every other
+  store already uses — defense in depth, not a single point of failure.
+- Also checked the two `JSON.parse` sites in `offlineCache.ts`
+  (manifest load, cached-response read) and the one each in
+  `lib/sync/mobile-sync-state-store.ts` and `lib/sync/sync-meta.ts`
+  (already the subject of iteration 62's cursor-safety deepening) —
+  all four already wrapped in try/catch with a safe fallback.
+
+**Clean — every JSON-parsing / persisted-data-reading call site in the
+mobile app now confirmed individually, not just inferred from the
+existence of `stores-corrupt.test.ts`.** No code change; this iteration
+is a completeness proof; the audit trail itself is the deliverable for
+matching later Play Store readiness diligence.
+
+**Verification:** no source changed, so the full gate wasn't re-run
+(the tree was still green from iteration 69, and iteration 70 made no
+source changes either); this iteration was a targeted code-reading
+audit, not something with an observable browser-preview surface.
+
+**Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 72 — Cycle 2, B33 revisited: Bundle/APK size audit, closing the `expo-system-ui` gap iteration 32 explicitly deferred
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 32](#iteration-32--bundleapk-size-audit-for-play-store)
+fixed R8 minify/shrink and, in passing, noticed `expo prebuild` warning
+`android: userInterfaceStyle: Install expo-system-ui in your project to
+enable this feature` — `app.json` declared `"userInterfaceStyle": "dark"`
+but the plugin needed to actually apply that at the native level was
+never installed, so the setting was silently dead. Iteration 32 logged
+it "for a future iteration" rather than chase it mid-size-audit; grepped
+the log since and confirmed no later iteration picked it up.
+
+**Found the declared value itself was also wrong, not just unenforced.**
+`theme.tsx`'s own `ThemeProvider` has always defaulted the *first-run*
+Noor theme from `Appearance.getColorScheme()` (light device → Ivory,
+otherwise → Obsidian) — i.e. the app's own long-established intent is to
+follow the OS's light/dark setting, not force dark. A hardcoded
+`"dark"` in `app.json` would, once actually enforced, have forced
+`AppCompatDelegate`'s native night-mode to dark unconditionally —
+mismatching a user on a light-mode Android device, and mismatching any
+of the four light-mode Noor themes (ivory/sepia/mint/rose) for anything
+drawn by native Android chrome (keyboard tint, some OEM system dialogs)
+outside this app's own themed views. Simply installing the plugin
+without correcting the value would have *introduced* a real regression,
+not fixed one.
+
+**Fix:** `npx expo install expo-system-ui` (resolved `~6.0.9` for this
+SDK 54 project, the same version-correctness care iteration 32 itself
+called out — a naive install can silently target the wrong native
+config keys), added it to `app.json`'s `plugins`, and changed
+`userInterfaceStyle` from `"dark"` to `"automatic"` — matching what the
+app's own runtime default logic already does, and what Android does
+today anyway in the plugin's absence (RN's `AppCompatDelegate` defaults
+to `MODE_NIGHT_FOLLOW_SYSTEM` unless overridden), so this closes the
+gap without changing today's actual on-device behavior.
+
+**Verified the fix reaches past the point iteration 32 checked, down to
+the actual mechanism.** Read `expo-system-ui`'s own config-plugin source
+(`node_modules/expo-system-ui/plugin/build/withAndroidUserInterfaceStyle.js`):
+it writes the config value into `strings.xml` as
+`expo_system_ui_user_interface_style`, which the native module reads at
+startup to call `AppCompatDelegate.setDefaultNightMode()`. Ran a real
+`expo prebuild --platform android --no-install` and confirmed both:
+(1) the previous `userInterfaceStyle` prebuild warning is gone, and
+(2) `android/app/src/main/res/values/strings.xml` now contains
+`<string name="expo_system_ui_user_interface_style"
+translatable="false">automatic</string>` — concrete proof the setting
+reaches the exact resource the native module reads, not just that the
+plugin is listed. Removed the freshly-generated, gitignored `android/`
+directory afterward (same as iteration 32's own cleanup). Native
+`AppCompatDelegate` behavior itself still can't be smoke-tested without
+a real device/EAS build, same honest limitation iteration 32 already
+stated for this whole perspective.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136. No browser-preview check — this is
+a native-Android-only config path with zero effect on the
+`react-native-web` preview target, so there is nothing for that preview
+to exercise (stated here rather than skipped silently).
+
+**Commit:** `apps/mobile/app.json`, `apps/mobile/package.json`,
+`pnpm-lock.yaml` (adds `expo-system-ui`).
+
+---
+
+## Iteration 73 — Cycle 2, B34 revisited: EAS build config correctness, re-verified after two batches of new plugins
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** whether [iteration 33](#iteration-33--eas-build-config-correctness)'s
+three findings (`eas.json`'s production profile, the
+`ITSAppUsesNonExemptEncryption` declaration, and the blocked-permission
+fix for `SYSTEM_ALERT_WINDOW`) still hold — genuinely worth re-checking
+rather than assumed, since `expo-build-properties` (iteration 32) and
+`expo-system-ui` (iteration 72, immediately prior) were both added to
+`app.json`'s `plugins` afterward, and either could in principle have
+pulled in its own permissions or altered the merged manifest.
+
+**`eas.json` unchanged and still correct:** `production.android.buildType:
+"app-bundle"`, `autoIncrement: true`, `preview` profile building an
+internal-distribution APK — identical to iteration 33's reading, no
+drift.
+
+**Re-ran the actual verification iteration 33 used, not just re-read its
+conclusion.** A fresh `expo prebuild --platform android --no-install`
+now completes with **zero warnings at all** (confirming iteration 72's
+`expo-system-ui` fix closed that warning for good, not just for one
+run) and the merged `AndroidManifest.xml`'s permission list is
+byte-for-byte the same set iteration 33 found:
+`ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION`, `INTERNET`,
+`MODIFY_AUDIO_SETTINGS`, `POST_NOTIFICATIONS`, `READ_EXTERNAL_STORAGE`,
+`VIBRATE`, `WRITE_EXTERNAL_STORAGE`, plus `RECORD_AUDIO` and
+`SYSTEM_ALERT_WINDOW` both still correctly marked
+`tools:node="remove"`. Neither `expo-build-properties` nor
+`expo-system-ui` introduced anything new — both are build-time/resource
+config only, no runtime permissions of their own, confirmed rather than
+assumed.
+
+**Re-confirmed the encryption-export declaration against today's actual
+crypto imports**, not the ones recorded in the log two batches ago:
+`noble-cipher.ts` still imports exactly the same five primitives
+(AES-GCM, HKDF, HMAC, PBKDF2, SHA-256) iteration 33 checked — no new
+crypto surface was added by the sync-hardening work in iterations 61–62
+or elsewhere this cycle. `ITSAppUsesNonExemptEncryption: false` remains
+accurate.
+
+**Deliberately left alone (in scope for the next perspective, not this
+one):** the `READ_EXTERNAL_STORAGE`/`WRITE_EXTERNAL_STORAGE` permissions
+iteration 33 explicitly deferred to "a future 'permissions
+justification' pass (perspective B35)" — that's literally next
+iteration's perspective in the catalogue; picking it up here would just
+be working ahead rather than deepening *this* one.
+
+**Clean — re-verification holds, no regressions introduced by two
+batches of new build-time plugins.** No code change.
+
+**Verification:** live `expo prebuild --platform android --no-install`
+manifest re-check (above); no source changed so the lint/typecheck/test
+gate wasn't re-run (nothing to regress; tree was green from iteration
+72 immediately prior). Removed the freshly-generated, gitignored
+`android/` directory afterward.
+
+**Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 74 — Cycle 2, B35 revisited: Play Store data-safety/permissions-justification, resolving iteration 33's deferred storage permissions
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 33](#iteration-33--eas-build-config-correctness)
+found `READ_EXTERNAL_STORAGE`/`WRITE_EXTERNAL_STORAGE` in the merged
+manifest, guessed they came from `expo-document-picker`/`expo-sharing`
+(used by [`backup.ts`](apps/mobile/src/backup.ts)), judged them
+"effectively inert" under scoped storage, and explicitly deferred a
+closer look to "a future 'permissions justification' pass (perspective
+B35)" — this perspective, one revisit later.
+
+**Traced the actual source — it wasn't the guess.** `grep`ping every
+installed package's Android manifest for these two permission strings
+found exactly one hit: `node_modules/expo-file-system/android/src/main/AndroidManifest.xml`
+declares both **unconditionally, with no `maxSdkVersion` cap and no
+opt-out flag** — its config plugin
+(`expo-file-system/plugin/build/withFileSystem.js`) adds them
+unconditionally too. Neither `expo-document-picker` nor `expo-sharing`
+reference these permissions anywhere in their Android source at all.
+
+**Confirmed they're genuinely unused by this app, not just
+"effectively inert," with three independent checks:**
+1. Every one of this app's `expo-file-system` call sites
+   (`audio-store.ts`'s `Paths.document`, `offlineCache.ts`'s
+   `Paths.cache`, `backup.ts`'s export file) operates inside the app's
+   own **sandboxed** storage — the OS never gates that behind these
+   permissions on any Android version, scoped storage or not.
+2. `backup.ts`'s only touch of anything resembling "external" storage
+   is via `expo-sharing`'s `shareAsync()` (a `FileProvider` `content://`
+   handoff) and `expo-document-picker`'s `getDocumentAsync()` (Storage
+   Access Framework) — both purpose-built to avoid needing these legacy
+   permissions, confirmed by the same grep finding zero references in
+   either package.
+3. `grep`ped `expo-file-system`'s own native Android source for any
+   `checkSelfPermission`/runtime use of these permission strings —
+   **zero hits, anywhere but the manifest declaration itself.** The
+   module never actually checks or relies on them; they're pure
+   boilerplate from a version of the package predating scoped storage,
+   carried forward unconditionally for every consumer regardless of
+   which of its APIs they actually call. This project's generated
+   `android/build.gradle`/`gradle.properties` confirm no
+   `requestLegacyExternalStorage` opt-in and a modern target SDK, so
+   scoped storage fully applies.
+
+**Fix:** added both to `app.json`'s `android.blockedPermissions`, the
+same mechanism already proven here for `RECORD_AUDIO` and
+`SYSTEM_ALERT_WINDOW`. Live-verified via a fresh
+`expo prebuild --platform android --no-install` that the merged
+manifest now marks both `tools:node="remove"` — the release manifest's
+permission list is down to exactly six, every one directly traceable to
+a real, visible feature: location (Qibla/prayer times/mosque finder),
+internet (API/sync), audio settings (recitation playback),
+notifications (reminders), and vibrate. Nothing left that would need
+its own justification paragraph in the Play Console form.
+
+**Honest residual risk, stated rather than hidden:** this is a manifest
+edit for a native-only code path with no way to smoke-test on a real
+device or emulator in this environment (same limitation iteration 32
+and 33 already stated for the minify and `SYSTEM_ALERT_WINDOW` changes)
+— the confidence here rests on the module never referencing these
+permissions in its own runtime code (point 3 above), not on having
+actually run a build. Backup export/import and offline audio download
+should get one real-device smoke test before the next Play Store
+upload, same standing caveat as the earlier build-config changes.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136; live `expo prebuild` manifest
+re-check (above). No browser-preview check — native-manifest-only
+change, `expo-file-system` doesn't function on the web preview target
+at all (established in iteration 69), so there's nothing there to
+exercise.
+
+**Commit:** `apps/mobile/app.json`.
+
+---
+
+## Iteration 75 — Cycle 2, B36 revisited: empty/loading states, the screens iteration 36's sweep didn't individually enumerate
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 36](#iteration-36--empty-and-loading-states-on-every-screen)
+traced every *network*-touching screen individually and found the app
+genuinely well-built there. It didn't explicitly enumerate the
+local-storage-only screens (`ProfileScreen`, `ReadingGoalsScreen`,
+`PlanDetailScreen`, `PrayerTrackerScreen`, `HijriCalendarScreen`,
+`ZakatScreen`, `TasbihScreen`) — reasonable at the time since its own
+framing was about *fetches*, but worth a deliberate pass now since a
+local read still has a real (if brief) async gap between mount and data
+arriving.
+
+**Read each one's load path and how it renders before that resolves.**
+Found the app already has an established, consistent pattern for this:
+`PlanDetailScreen` and `ReadingGoalsScreen` both gate their first render
+on a `null`/`ready` state and return a themed `<View style={styles.screen} />`
+placeholder (matching background color) until their local read resolves
+— avoiding a flash of the navigator's unthemed background. `ProfileScreen`
+and `PrayerTrackerScreen` instead initialize their state to zero/empty
+values that double as the legitimate first-run empty state (0 streak, 0
+pages, no qaḍāʾ owed) — also correct, same reasoning iteration 36 already
+accepted for `HomeScreen`/`RamadanScreen`'s progressive-enhancement
+pattern. `ZakatScreen`/`TasbihScreen` have no async load at all (pure
+local calculators), so the question doesn't apply.
+
+**Found and fixed one real inconsistency: `HijriCalendarScreen` broke
+the established pattern.** Its own `today`/`view` state also starts
+`null` while a local `getString(KEYS.hijriAdjust)` read resolves — but
+its guard was `if (!view || !today) return null;`, rendering **nothing**
+instead of the themed placeholder its sibling screens use. A bare
+`null` return briefly shows whatever the navigator's native-stack screen
+wrapper renders underneath (unthemed) rather than this app's own
+background, for the one frame before the read resolves — small, but a
+real deviation from a pattern this same codebase already established
+twice over.
+
+**Fix:** changed the guard to `return <View style={styles.screen} />;`,
+reusing the screen's own existing `styles.screen` (`backgroundColor: c.bg`)
+— the exact same style object and pattern `PlanDetailScreen`/
+`ReadingGoalsScreen` already use, so this isn't a new pattern, just
+applying the existing one consistently.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136. Live-verified via
+`preview_start({name: "mobile"})`: navigated to the Hijri Calendar
+screen, confirmed it renders fully (month grid, observances, sunnah
+fasting section, upcoming fasts) with no console errors beyond the
+same pre-existing `validatePath` web-preview artifact.
+
+**Commit:** `apps/mobile/src/screens/HijriCalendarScreen.tsx`.
+
+---
+
+## Iteration 76 — Cycle 2, B37 revisited: copy/microcopy vs web, checking what's changed since iteration 37
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 37](#iteration-37--copymicrocopy-consistency-and-correctness-vs-web)
+compared Zakat/mosque-finder/prayer-times/Qibla copy against web (batch
+4). Three batches of fixes have added or touched mobile copy since —
+the centralized notification-permission alert (iteration 56), the
+per-collection accessibility label (iteration 66), and the download-
+failure message (iteration 69) — none of which existed when iteration
+37 ran, so "still consistent with web" was an open question, not a
+re-confirmed fact.
+
+**Notification-permission copy: platform-appropriate, and more internally
+consistent than web's own version.** Mobile's
+[`notification-permission-alert.ts`](apps/mobile/src/notification-permission-alert.ts)
+("Notifications are off" / "Enable notifications in Settings to get
+your ${reminderLabel}.") is one shared function wired into all five
+reminder toggles, so mobile's wording is identical across every one of
+them. Checked web's equivalent and found web is **not** as consistent
+with itself: `PlanReminderToggle.tsx` says "...enable them in site
+settings to get the nudge," `PrayerTimesView.tsx` says "...enable them
+to be reminded," and `AdhkarReminderToggle.tsx`/`SunnahFastReminderToggle.tsx`
+show **no denied-permission message at all**. The wording difference
+from mobile's phrasing is the expected platform adaptation (Settings
+app vs browser site settings) iteration 37 already established as
+correct, not drift — but web's own internal inconsistency is a
+separate, real thing, **out of scope to fix here** (apps/web QA is a
+different pass) but worth recording since it's the kind of gap that's
+easy to lose track of once it's this scattered.
+
+**The "Download failed — tap to retry" copy (iteration 69) has no web
+equivalent to compare against — traced why, and it's a real web bug,
+not a missing string.** `apps/web/src/components/ReadingAudio.tsx`'s
+`downloadAudio()` has the **identical** missing-`catch` shape iteration
+69 fixed on mobile's `downloadSurahs` — a bare
+`try { … } finally { setDownload(null); }` with no `catch`, so a failed
+download on web today silently reverts the button to "Download for
+offline listening" with zero explanation, the same unhandled-rejection
+class of bug, just never fixed on that side. Confirmed by reading the
+code directly rather than assuming from the missing string. **Not
+fixed** — `apps/web` is out of scope for this loop, and this isn't a
+shared `core`/`packages` module (mobile's `useSurahAudio.ts` and web's
+`ReadingAudio.tsx` are independent platform implementations of the same
+feature, not one shared file), so there's nothing to fix "once at the
+shared layer" per this loop's own rule 5. Flagging clearly for a future
+web QA pass to apply the same fix mobile already has.
+
+**Regression-checked the "āyahāt"/"āyāt" pluralization fix** iteration
+37 also re-verified — still clean; the only remaining occurrences of
+"āyahāt" anywhere in the repo are negative test assertions proving it
+*doesn't* render.
+
+**No mobile-side copy bug found — clean for this app, with two findings
+recorded for elsewhere.** No code change.
+
+**Verification:** targeted code-reading audit across
+`apps/mobile/src/notification-permission-alert.ts`,
+`apps/web/src/components/{PlanReminderToggle,PrayerTimesView,AdhkarReminderToggle,SunnahFastReminderToggle,ReadingAudio}.tsx`;
+no source changed, so the lint/typecheck/test gate wasn't re-run
+(nothing to regress; tree was green from iteration 75 immediately
+prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 77 — Cycle 2, B38 revisited: push notification content correctness, re-verified plus the delivery hop iteration 38 didn't check
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** whether [iteration 38](#iteration-38--push-notification-content-correctness)'s
+"all five reminder families, one shared content module, byte-identical
+with web" finding still holds after three batches of changes, plus one
+layer it didn't examine: whether the generated content actually reaches
+`expo-notifications`' native scheduling call unmangled.
+
+**Re-verified the content layer — unchanged, still exactly as
+described.** `apps/mobile/src` still has exactly the same five
+reminder modules (`prayer-reminders.ts`, `adhkar-reminders.ts`,
+`plan-reminders.ts`, `sunnah-fast-reminders.ts`,
+`islamic-event-reminders.ts`) — no sixth family was added since.
+`packages/core/src/reminders.ts`'s title/body strings for all four
+non-plan types are byte-identical to iteration 38's own quotes.
+Re-checked the truncation-risk conclusion too: `islamic-events.ts`'s
+bundled event list (still the only source of `event.name` interpolated
+into a title) is unchanged — a fixed, developer-authored list, longest
+entry ~20 characters, still no user-authored/unbounded input feeding
+any notification title.
+
+**New this pass: traced the one hop iteration 38 didn't — from the
+generated `{title, body}` to the actual native call.**
+[`notifier.ts`](apps/mobile/src/notifier.ts)'s scheduling wrapper does
+`Notifications.scheduleNotificationAsync({ …, content: { title: n.title,
+body: n.body } })` — a direct, untransformed pass-through, no
+truncation, template re-wrapping, or platform-conditional mangling
+between content generation and the OS call. Confirms correctness holds
+end-to-end, not just at the content-builder layer already tested by
+`reminders.test.ts`/`reading-plans.test.ts`.
+
+**Clean — re-verified, and extended one layer deeper.** No code change.
+
+**Verification:** targeted code-reading audit
+(`packages/core/src/reminders.ts`, `islamic-events.ts`,
+`apps/mobile/src/notifier.ts`, and a directory listing confirming no
+new reminder family exists); no source changed, so the lint/typecheck/
+test gate wasn't re-run (nothing to regress; tree was green from
+iteration 76 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 78 — Cycle 2, B39 revisited: mosque finder, closing the live-verification gap iteration 39 explicitly left open
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 39](#iteration-39--mosque-finder-live-location-accuracy-and-permission-denied-fallback)
+explicitly noted it couldn't live-verify its own "Search again" fix in
+the browser preview ("stale navigation refs... made reaching the screen
+unreliable this session") and stated that honestly instead of claiming
+an untested screenshot. Went back to actually reach the screen this
+time, using `javascript_tool` to mock `navigator.geolocation` and
+`fetch` (overriding any Overpass-domain request to return an empty
+result set) rather than relying on the real, unavailable browser
+geolocation permission.
+
+**The Overpass mock didn't get exercised — the app's `expo-location`
+permission check runs first and blocks on the real (denied) browser
+permission before ever reaching the mocked fetch,** so the "no mosques
+found" / "Search again" branch iteration 39 fixed still isn't reachable
+in this preview environment without also being able to grant a real
+browser geolocation permission, which isn't controllable from page-
+context JS. Recording this honestly rather than claiming the original
+gap is closed — it isn't, for the same structural reason iteration 39
+already gave.
+
+**Reaching the "denied" branch instead surfaced a different, real, and
+reproducible bug: `Linking.openSettings()` throws instead of being
+caught.** Tapping "Open Settings" produced an **uncaught** (not just
+"uncaught in promise") `TypeError: Linking.openSettings is not a
+function`. Traced it to `react-native-web`'s `Linking` shim
+(`node_modules/react-native-web/dist/exports/Linking/index.js`), which
+has no `openSettings` export at all — only real `react-native`'s native
+implementation does. Found the same unguarded `void Linking.openSettings()`
+shape at **four** call sites: this screen, `PrayerTimesScreen.tsx`,
+`QiblaScreen.tsx`, and `notification-permission-alert.ts` (iteration
+56's shared permission-denial alert).
+
+**Fixed all four to `.catch(() => {})`**, matching this codebase's
+established pattern for every other native-module call that returns a
+promise (`SplashScreen.preventAutoHideAsync()`, `setAudioModeAsync()`,
+etc.) — real `Linking.openSettings()` does return a `Promise<void>` on
+Android/iOS (confirmed in `react-native/Libraries/Linking/Linking.js`),
+and while a rejection there is rare (no Activity available to handle
+the Settings intent), it's the same class of defensive gap iteration 69
+fixed for `useSurahAudio.ts`.
+
+**Honest limitation, stated rather than hidden: this fix does NOT
+resolve the reproduced web-preview crash.** `Linking.openSettings` is
+`undefined` on `react-native-web`, so calling it **throws synchronously**
+before the returned value's `.catch()` is ever reached — no amount of
+promise handling in the calling code can catch a TypeError from calling
+`undefined()`. Live-verified this directly: after the fix, tapping
+"Open Settings" still logs the identical uncaught TypeError. What the
+fix *did* confirm, live: the screen's own state survives the exception
+completely intact — "Try again" was tapped immediately after and worked
+normally, so this is a self-contained, non-fatal event-handler
+exception, not something that leaves the screen stuck or crashes the
+app. Given real Android/iOS always implements `Linking.openSettings`
+(confirmed in the RN source above), this is the same class of finding
+as iteration 21's `validatePath` — a genuine gap in the web preview's
+own third-party shim, with zero impact on the real native app, not
+something to route around in this app's own source. Recording the root
+cause here so, per iteration 21's own reasoning, no future iteration
+re-flags it as a mystery.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` 136/136. Live-verified via
+`preview_start({name: "mobile"})`: reached `PrayerTimesScreen`'s
+"denied" state, tapped "Open Settings" (confirmed the still-present,
+now-explained web-only TypeError), then tapped "Try again" and
+confirmed the screen responded normally — no stuck or broken state.
+
+**Commit:** `apps/mobile/src/screens/MosqueFinderScreen.tsx`,
+`apps/mobile/src/screens/PrayerTimesScreen.tsx`,
+`apps/mobile/src/screens/QiblaScreen.tsx`,
+`apps/mobile/src/notification-permission-alert.ts`.
+
+---
+
+## Iteration 79 — Cycle 2, B40 revisited: test coverage audit, closing cycle 2's pass through the catalogue
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 40](#iteration-40--test-coverage-audit-closes-out-batch-4)
+judged every "untested" `apps/mobile/src` module as of batch 4 —
+mostly false positives (thin `getJSON`/`setJSON` pass-throughs already
+covered by `stores-corrupt.test.ts`), with one real gap fixed
+(`storage.ts` itself). Re-ran that same judgment against every module
+still without a dedicated test file today, including ones this loop
+has itself touched or that predate it but weren't examined then.
+
+**Re-confirmed the reminder-scheduling modules are correctly thin, not
+a gap.** `adhkar-reminders.ts`, `islamic-event-reminders.ts`,
+`plan-reminders.ts`, `prayer-reminders.ts`, `sunnah-fast-reminders.ts`
+(26–33 lines each) each just wire a store read/write to
+`@ummahlibrary/core`'s shared `sync*Reminders` scheduling function —
+the exact same "real logic lives in core, already tested" shape
+iteration 40 established for the data stores. Confirmed by reading one
+in full (`prayer-reminders.ts`) rather than assuming the pattern held
+for all five from a line count alone.
+
+**Found and fixed the actual gap: `reading-goals.ts` has real,
+untested branching logic, unlike its sibling scheduling/store
+files.** Unlike the reminder modules, this one *is* the habit-tracking
+logic itself, not a thin wrapper: `recordMushafPage()` de-duplicates a
+day's distinct pages before incrementing the log count, and advances
+the khatma cursor **only when the new page is further along than the
+current one** (`page > s.khatma.currentPage`) — a specific, easy-to-get-
+backwards business rule (re-reading an earlier page must not regress
+khatma progress) that had zero test coverage. `writeGoal()` also has a
+genuinely non-obvious clamp worth pinning down: `Math.max(1,
+Math.floor(target) || DEFAULT_GOAL)` means a **zero** target falls back
+to `DEFAULT_GOAL` (0 is falsy, so the `||` short-circuits) while a
+**negative** target does not (a negative number is truthy) and instead
+clamps to `1` via `Math.max` — two different-looking inputs hitting two
+different code paths to two different results, exactly the kind of
+thing a future refactor could invert without anyone noticing.
+
+**Added** [`reading-goals.test.ts`](apps/mobile/src/reading-goals.test.ts)
+(11 new tests, same in-memory `AsyncStorage` mock pattern as
+`stores-corrupt.test.ts`/`storage.test.ts`): `readReadingState`'s
+defaults and its `pagesToday` derivation (today's log entry
+specifically, not any entry); `writeGoal`'s fractional/zero/negative
+clamping, all three asserted explicitly rather than just the "normal"
+case; `recordMushafPage`'s first-call, duplicate-page-same-day, and
+second-distinct-page-same-day counting; and all three khatma-cursor
+cases (advances forward, never regresses on a re-read, stays `null`
+with no active khatma).
+
+**Other modules checked and confirmed correctly thin, not re-tested:**
+`notification-permission-alert.ts` (iteration 56) is a single
+`Alert.alert` call with static copy — no branching to test.
+`prayer-timings-provider.ts`, `verses.ts`, `word-translit.ts`,
+`indopak.ts` are data-fetch/cache adapters already exercised
+transitively through `offlineCache.test.ts`'s cache-layer coverage and
+the screens that consume them (live-verified across many earlier
+iterations). `plans.ts`'s own branching (`pausePlan`/`resumePlan`/
+`advancePlanToPage`) is close in shape to what `reading-goals.ts` just
+gained coverage for but is a larger, separate unit — flagging it for a
+future test-coverage pass rather than scope-creeping this iteration.
+
+**This closes cycle 2's second full pass through the 40-item
+perspective catalogue** (iteration 79 = B40, the last entry). Cycle 2
+was not the "100% clean" pass the loop's own stopping criterion
+requires to consider finishing early — this cycle alone found and fixed
+real issues as recently as this same iteration — so the loop continues
+into cycle 3 per `.claude/MOBILE_STABILIZATION_LOOP.md`'s own rule
+rather than stopping.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm --filter
+@ummahlibrary/mobile test` **147/147** passing (136 + 11 new). No
+browser-preview check — a pure unit-test addition with no UI or
+runtime-behavior change to observe, same as iteration 40's own
+`storage.test.ts` addition.
+
+**Commit:** `apps/mobile/src/reading-goals.test.ts` (new).
+
+---
+
+# Cycle 3 — third pass through the catalogue
+
+Iteration 80 begins a third full pass. Cycle 2 (iterations 41–79) found
+and fixed real issues throughout, including in its very last iteration,
+so per the loop's own stopping criterion this continues rather than
+wrapping up.
+
+## Iteration 80 — A1, cycle 3: timezone-of-location vs device, re-checked against code added since cycle 2
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-08`
+
+**Checked:** [iteration 1](#iteration-1--prayer-time-timezone-of-location-vs-device-timezone-bug)
+confirmed every `toLocaleTimeString` call site was correctly
+location-timezone-aware; [iteration 41](#iteration-41--a1-revisited-prayer-time-timezone-of-location-deepened)
+confirmed the fix is structurally sound (delegates to ICU, never does
+manual wall-clock arithmetic) and added Southern-Hemisphere/half-hour-
+offset test coverage. Neither pass could have seen code added in
+batches 6–8 since — this pass re-swept every date/time formatting and
+construction site added since, specifically looking for the same bug
+class (a device-relative zone silently substituting for the correct
+one) resurfacing in new code.
+
+**Found two new `toLocaleDateString` call sites — both already
+correctly guarded, verified rather than assumed from a truncated
+grep.** `SunnahFastReminderToggle.tsx`'s and `HijriCalendarScreen.tsx`'s
+(×2) `gregorianFull`/month-grid-label helpers construct a UTC-midnight
+instant via `Date.UTC(g.year, g.month - 1, g.day)` specifically so a
+calendar day (which has no time-of-day meaning) round-trips correctly
+regardless of device timezone — and each already passes
+`timeZone: "UTC"` explicitly to `toLocaleDateString`. My first grep's
+output cut off before that option inside the multi-line call and
+looked like a bug at a glance; reading the full source showed it isn't
+one.
+
+**Checked a different date-construction pattern for a mismatch, found
+it internally consistent.** `RamadanScreen.tsx`'s `ramadanStartStr`
+uses the **local** `new Date(year, month - 1, day)` constructor (not
+`Date.UTC`), a different convention from the UTC-anchored one above —
+but it's read back through `localISODate()`, which uses the matching
+**local** getters (`getFullYear`/`getMonth`/`getDate`). Construct-local,
+read-local is just as safe a round-trip as construct-UTC, read-UTC;
+what would actually be a bug is *mixing* the two conventions on one
+value, which doesn't happen here.
+
+**Extended the search past display formatting into the data-fetch
+layer, and found the same accepted tradeoff in a call site iterations
+1 and 41 didn't examine.** `prayer-timings-provider.ts`'s
+`getTodaysTimings()` computes which calendar day's prayer times to
+request via `localISODate(new Date())` — the **device's** local day,
+not the **saved coordinates'**. Near the location's own midnight, if
+the device's timezone differs from the saved location's (traveling
+with stale coordinates, or vice versa), this could fetch the wrong
+day's timings. This is architecturally the same device-vs-location
+tension iteration 41 already identified for `Location.Accuracy.Low`
+resolving the wrong IANA zone near a border, and already judged an
+inherent tradeoff of a narrow edge case rather than a bug — applying
+the same reasoning here rather than fixing this one call site in
+isolation while leaving the underlying tradeoff (device and saved
+coordinates can genuinely diverge) undecided everywhere else it
+applies.
+
+**Clean — every date/time site added since cycle 2 checked
+individually, none reproduce the bug class.** No code change.
+
+**Verification:** targeted code-reading audit across
+`SunnahFastReminderToggle.tsx`, `HijriCalendarScreen.tsx`,
+`RamadanScreen.tsx`, `utils.ts`, `prayer-timings-provider.ts`; no
+source changed, so the lint/typecheck/test gate wasn't re-run (nothing
+to regress; tree was green from iteration 79 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
