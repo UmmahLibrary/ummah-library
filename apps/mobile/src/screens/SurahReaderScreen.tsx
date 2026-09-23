@@ -133,6 +133,15 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   }, [ayahs, n, recordPage]);
 
   useLayoutEffect(() => {
+    // A failed load (e.g. a malformed deep link's out-of-range surah number)
+    // must clear a previous surah's title/action instead of leaving them
+    // stranded above the "Couldn't load this surah" body — setOptions only
+    // runs from the `meta` branch below, so without this the header would
+    // keep showing whichever surah was open before the bad navigation.
+    if (error) {
+      navigation.setOptions({ title: "", headerRight: undefined });
+      return;
+    }
     if (!meta) return;
     navigation.setOptions({
       title: meta.transliteration,
@@ -142,7 +151,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         </Pressable>
       ),
     });
-  }, [navigation, meta, colors, openMushaf]);
+  }, [navigation, meta, colors, openMushaf, error]);
 
   // Mark continue-reading and stop audio when leaving the surah. Guarded the
   // same way as the fetch effect below — an out-of-range `n` (a malformed

@@ -5727,3 +5727,143 @@ be the honest way to earn the "two full clean cycles" bar this file's
 own rule sets for an unreserved "ready" claim. Submission readiness
 beyond that is gated on the five owner-decisions above, not on
 further autonomous iteration.
+
+---
+
+## Loop resumed post-100: a real Android emulator became available
+
+Everything above this line was verified through the Expo web preview or
+by reasoning from source — this loop never had a real Android device to
+test against, and said so explicitly wherever that mattered (back
+button, permission dialogs, kill-and-restore, deep links). A local
+Android emulator (`QA_Pixel6`, via `expo run:android`) became available
+after iteration 100, alongside the real production build already
+verified in [the PR #288 follow-up](#) (exact-alarm grant + native
+splash colors, confirmed via `adb`/`uiautomator` against the actual
+installed APK, not just generated resource files).
+
+The iterations below deliberately jump to catalogue items **9**
+(back-button), **13** (kill-and-restore), and **10** (deep links) out
+of strict sequence — not the next unclaimed item (23) — because these
+three were previously verified *only* by code-reasoning ("can't
+exercise live, reasoning from the code instead") and a live device
+finally makes that verification possible. Sequential order resumes
+after these three.
+
+## Iteration 101 — B9 revisited: Android hardware back-button, live on a real device for the first time
+
+**Date:** 2026-09-23
+**Branch:** `mobile-play-store-prep`
+
+**Checked:** whether back-button handling (checked twice before by
+reading source for custom `BackHandler` usage and "fake modal"
+patterns, never by actually pressing the key) behaves correctly at
+real navigation depth.
+
+**Live-verified via `adb shell input keyevent KEYCODE_BACK`** at three
+depths: (1) `Read → SurahReader(Al-Faatiha)`, one back press →
+correctly returned to the `SurahList` (the `Read` tab's stack root, not
+a full app exit); (2) a second back press from a tab-stack root →
+correctly switched to the `Home` tab rather than exiting (confirmed via
+`dumpsys activity activities` showing `MainActivity` still
+`topResumedActivity`); (3) a third back press from `Home`'s own root →
+correctly exited to the launcher (confirmed via
+`mCurrentFocus`/`topResumedActivity` switching to
+`NexusLauncherActivity`). This is exactly the standard, correct Android
+back-stack pattern (in-stack pop → switch-to-first-tab →
+exit-at-first-tab-root) — the two prior code-reading passes were
+right, now with live proof instead of inference.
+
+**Clean.** No fix needed.
+
+**Verification:** live device (`QA_Pixel6` emulator), `adb`
+keyevent + `dumpsys` state checks as detailed above.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 102 — B13 revisited: kill-and-restore, a real process kill instead of a code-only argument
+
+**Date:** 2026-09-23
+**Branch:** `mobile-play-store-prep`
+
+**Checked:** whether app state actually survives a real OS-level
+process kill, not just a description of what *should* happen.
+
+**Live-verified**: opened `Al-Faatiha`, scrolled to āyah 4, then
+`adb shell input keyevent KEYCODE_HOME` (background the app — a
+foregrounded app can't be killed by `am kill`, confirmed the hard way
+when a first attempt without backgrounding first left the process
+alive) followed by `adb shell am kill org.ummahlibrary.app`, confirmed
+via `pidof` returning nothing that the process was genuinely dead (not
+just backgrounded). Relaunching via `am start` showed the Home screen
+with the "Continue reading: Al-Faatiha" card's progress bar correctly
+filled to the persisted position — the reading-progress *data*
+survived the kill with no corruption and no crash. The exact in-stack
+screen (surah reader scrolled to āyah 4) was not restored — the app
+cold-started to Home instead — which is standard Android behavior for
+a killed process (full navigation-stack restoration across process
+death is a deliberate, advanced feature most apps don't implement) and
+not a regression from anything this app has ever done; what matters is
+that no data was lost and nothing crashed.
+
+**Clean.** No fix needed.
+
+**Verification:** live device, real process kill (not `force-stop`,
+not backgrounding alone) confirmed via `pidof`, restore verified via
+screenshot.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 103 — B10 revisited: deep links, malformed ones found a real stale-header bug this time
+
+**Date:** 2026-09-23
+**Branch:** `mobile-play-store-prep`
+
+**Checked:** deep-link handling including malformed links, live via
+`adb shell am start -a android.intent.action.VIEW -d "ummahlibrary://…"`
+— three cases: a valid `surah/2` (Al-Baqara loaded correctly), a
+non-numeric `surah/not-a-number`, an out-of-range `surah/9999`, and a
+totally unknown route. The unknown route correctly hit the `NotFound`
+screen with a "Go to Today" recovery action — clean. Both malformed
+`surah/*` cases didn't crash (`pidof` confirmed the process survived
+both) and correctly rendered "Couldn't load this surah." — but a
+screenshot caught something a crash-only check would have missed: the
+header still read **"Al-Baqara"** — the previous, successfully-loaded
+surah's title — while the body said the load had failed.
+
+**Root cause, found by reading
+[`SurahReaderScreen.tsx`](apps/mobile/src/screens/SurahReaderScreen.tsx#L135):**
+its `useLayoutEffect` that calls `navigation.setOptions({ title:
+meta.transliteration, … })` only runs `if (!meta)` is false — i.e. it
+never runs at all when a malformed `n` sets `meta` to `null` and
+`error` to `true` (both set unconditionally on every navigation, valid
+or not, per the effect just above it). The header's `setOptions` is
+simply never called again after the bad navigation, so it keeps
+whatever the last *valid* surah's title was.
+
+**Fix:** added an `error` branch to the same `useLayoutEffect` —
+`if (error) { navigation.setOptions({ title: "", headerRight:
+undefined }); return; }` — before the existing `if (!meta) return`
+check, and added `error` to the dependency array. This only resets the
+header on a confirmed failure, not during the brief `meta === null`
+window every *normal* surah-to-surah navigation also passes through
+while the next surah's data is loading (which intentionally keeps the
+outgoing surah's title until the new one is ready, a smoother
+transition than a title flash — checked this wasn't accidentally
+broken by re-testing a normal `surah/1` → `surah/2` navigation after
+the fix).
+
+**Live re-verified the exact repro after the fix**: `surah/2` (loads
+Al-Baqara) → `surah/not-a-number` → header now shows no stale title and
+no stray Mushaf-view icon, body still correctly reads "Couldn't load
+this surah."
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck`
+clean; `pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm
+--filter @ummahlibrary/mobile test` 152/152 passing (no new test added
+— this is a `navigation.setOptions` header-chrome fix with no pure
+logic to unit test; the regression coverage is the live repro above,
+consistent with how this loop has treated other header/navigation-only
+fixes). Live-verified on `QA_Pixel6` as detailed above.
+
+**Commit:** `apps/mobile/src/screens/SurahReaderScreen.tsx`.

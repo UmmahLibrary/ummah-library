@@ -1,29 +1,29 @@
 {
-  "iteration": 100,
+  "iteration": 103,
   "cycle": 3,
   "perspectiveIndex": 21,
-  "batch": "mobile-stabilization-10",
-  "consecutiveCleanIterations": 2,
+  "batch": "mobile-live-qa-followup",
+  "consecutiveCleanIterations": 0,
   "history": [
-    {
-      "iteration": 97,
-      "perspective": "Offline/airplane-mode behavior, extended to SyncSection's turnOn() flow",
-      "outcome": "CLEAN, real gap in the sweep closed: turnOn()'s ordering investigated and ruled safe."
-    },
-    {
-      "iteration": 98,
-      "perspective": "Notification scheduling correctness - the standing exact-alarm policy decision re-verified",
-      "outcome": "CLEAN, re-verified unchanged. Consolidated the list of standing owner-decisions for the eventual Play Store readiness summary near iteration 100."
-    },
-    {
-      "iteration": 99,
-      "perspective": "AsyncStorage migration safety, the write-back bug found a third and fourth time",
-      "outcome": "GAP FOUND AND FIXED x2: HijriCalendarScreen.tsx and RamadanScreen.tsx both independently clamp an out-of-range ul.hijriAdjust value into local state with no write-back, the same bug class iterations 20/60 already fixed twice elsewhere. Found by reasoning from the bug's shape, not keyword grep. Fixed both, live-verified."
-    },
     {
       "iteration": 100,
       "perspective": "Secure storage of the sync recovery secret - the backup-export path, the last unchecked exit",
-      "outcome": "CLEAN, genuinely new angle: traced whether the app's own backup export could leak the plaintext secret into a shared file. Confirmed excluded unconditionally by a shared core predicate, already tested at both layers. Loop's stated 100-iteration ceiling reached; batch 10 and this run close out here (cycle 3 was not 100% clean, so this is the numeric ceiling, not the early-stop criterion)."
+      "outcome": "CLEAN, genuinely new angle: traced whether the app's own backup export could leak the plaintext secret into a shared file. Confirmed excluded unconditionally by a shared core predicate, already tested at both layers. Loop's stated 100-iteration ceiling reached; batch 10 closed out here."
+    },
+    {
+      "iteration": 101,
+      "perspective": "Android hardware back-button, live on a real device for the first time (B9 revisited)",
+      "outcome": "CLEAN, live-verified for the first time via a real Android emulator (QA_Pixel6): correct pop/switch-to-home/exit pattern at three navigation depths, confirmed via adb keyevent + dumpsys. Previously only verified by reading source."
+    },
+    {
+      "iteration": 102,
+      "perspective": "Kill-and-restore state integrity, a real process kill instead of a code-only argument (B13 revisited)",
+      "outcome": "CLEAN, live-verified via a genuine adb am kill (confirmed dead via pidof, not just backgrounded). Reading-progress data survived intact; exact in-stack screen not restored, which is standard Android behavior, not a regression."
+    },
+    {
+      "iteration": 103,
+      "perspective": "Deep link handling including malformed links, live on a real device (B10 revisited)",
+      "outcome": "GAP FOUND AND FIXED: a malformed surah/* deep link left the header showing the previous, successfully-loaded surah's title instead of clearing it, because SurahReaderScreen.tsx's header-setting useLayoutEffect never ran on the error path. Fixed by adding an explicit error branch; live re-verified the exact repro is clean after the fix. Found only because a live screenshot was compared, not just a crash/no-crash check."
     }
   ]
 }
