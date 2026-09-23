@@ -17,8 +17,12 @@ const nextConfig = {
     "/api/trpc/[trpc]": ["../../packages/data/datasets/**/*"],
     "/api/v1/surahs/[number]/ayahs/[aya]": ["../../packages/data/datasets/**/*"],
     // The hadith section route reads the ingested collections at runtime (ADR 0022).
-    "/api/v1/hadith/[collection]/sections/[section]": [
+    "/api/v1/hadith/[collection]/sections/[section]": ["../../packages/data/datasets/hadiths/**/*"],
+    // Related-hadith joins the link dataset against the hadith collections at
+    // request time (ADR 0042), so the function needs both slices traced in.
+    "/api/v1/surahs/[number]/ayahs/[aya]/hadith": [
       "../../packages/data/datasets/hadiths/**/*",
+      "../../packages/data/datasets/verse-hadith-links.json",
     ],
   },
 };

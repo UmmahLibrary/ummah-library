@@ -23,6 +23,7 @@ import type {
   DivineName,
   Hadith,
   HadithCollection,
+  HadithLink,
   HadithRepository,
   HadithSection,
   PlanCatalogPort,
@@ -34,6 +35,7 @@ import type {
   TranslatedAyah,
   Translation,
   TranslationRepository,
+  VerseHadithLinkRepository,
   VerseKey,
 } from "@ummahlibrary/core";
 import type { ContentPlugin } from "@ummahlibrary/core";
@@ -281,9 +283,10 @@ export class FileHadithRepository implements HadithRepository {
     if (cached !== undefined) return cached;
     // Restrict to plain ids so the path can't escape the datasets directory.
     const rel = `hadiths/${collectionId}.json`;
-    const doc = /^[a-z0-9-]+$/.test(collectionId) && existsSync(join(datasetsBase(), rel))
-      ? loadJson<HadithDoc>(rel)
-      : null;
+    const doc =
+      /^[a-z0-9-]+$/.test(collectionId) && existsSync(join(datasetsBase(), rel))
+        ? loadJson<HadithDoc>(rel)
+        : null;
     this.#cache.set(collectionId, doc);
     return doc;
   }
@@ -303,5 +306,42 @@ export class FileHadithRepository implements HadithRepository {
       name: doc.sections[String(section)] ?? doc.name,
       hadiths,
     });
+  }
+}
+
+interface VerseHadithLinkDoc {
+  version: string;
+  source: string;
+  minWords: number;
+  links: Record<string, HadithLink[]>;
+}
+
+/**
+ * Verse → hadith links from the generated `verse-hadith-links.json` (#200,
+ * ADR 0042).
+ *
+ * The dataset stores only *references* (collection + number), not hadith text —
+ * the text already ships in `hadiths/*.json`, and duplicating it would double
+ * the payload for no gain. Resolving a reference to its text is the caller's
+ * job (the API layer joins against `FileHadithRepository`), which also keeps
+ * this repository a straight lookup with no cross-dataset coupling.
+ */
+export class FileVerseHadithLinkRepository implements VerseHadithLinkRepository {
+  #doc: VerseHadithLinkDoc | null | undefined;
+
+  #load(): VerseHadithLinkDoc | null {
+    if (this.#doc !== undefined) return this.#doc;
+    // Absent dataset degrades to "no links" rather than throwing: the reader's
+    // Related panel simply has nothing to show, which is also the correct state
+    // for the many ayahs no hadith quotes.
+    this.#doc = existsSync(join(datasetsBase(), "verse-hadith-links.json"))
+      ? loadJson<VerseHadithLinkDoc>("verse-hadith-links.json")
+      : null;
+    return this.#doc;
+  }
+
+  linksForVerse(ref: VerseKey): Promise<readonly HadithLink[]> {
+    const doc = this.#load();
+    return Promise.resolve(doc?.links[`${ref.sura}:${ref.aya}`] ?? []);
   }
 }

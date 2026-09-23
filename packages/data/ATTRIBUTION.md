@@ -164,6 +164,21 @@ for them turns up.
   does, so word indices line up 1:1 with `arabic-uthmani.json`. Ayahs whose source
   alignment failed are skipped. See **ADR 0036**.
 
+## Verse↔hadith links — `datasets/verse-hadith-links.json`
+
+**Derived in this repo; no third-party mapping is used.** The dataset is
+generated at build time by comparing two corpora already bundled here — the
+Tanzil Uthmani text and the ingested hadith Arabic editions — and recording where
+a hadith repeats at least six consecutive words of an ayah.
+
+- **Method:** verbatim quotation only, computed by `buildVerseHadithLinks` in
+  `packages/core/src/verse-hadith.ts`. No topical or interpretive links are
+  produced. See **ADR 0042**.
+- **Licensing:** carries the licences of its two inputs (Tanzil for the Qurʾānic
+  text, the hadith editions' own terms — see above); nothing new is redistributed.
+- **Regenerate:** `pnpm --filter @ummahlibrary/data ingest -- --links-only`
+  (offline; derives purely from files already on disk).
+
 ## Content plugins — `plugins/`
 
 The manifests are bundled; the **content they point to is loaded from upstream**,

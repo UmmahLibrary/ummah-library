@@ -17,6 +17,7 @@ export * from "./languages";
 export * from "./translations";
 export * from "./search";
 export * from "./hadith";
+export * from "./verse-hadith";
 export * from "./prayer";
 export * from "./prayer-tracker";
 export * from "./qada";
