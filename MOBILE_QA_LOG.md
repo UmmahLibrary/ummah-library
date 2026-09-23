@@ -5472,3 +5472,62 @@ source changed, so the lint/typecheck/test gate wasn't re-run (nothing
 to regress; tree was green from iteration 96 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 98 — Notification scheduling correctness — the standing exact-alarm policy decision re-verified, still open
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-10`
+
+**Checked:** [iteration 19](#iteration-19--notification-scheduling-correctness-dst-timezone-change-reboot-exact-alarm-restrictions)
+confirmed reboot survival (library-handled) and DST/timezone drift
+(an accepted, industry-wide limitation of one-shot absolute-instant
+notifications), then flagged a real, Play-Store-policy-sensitive
+finding without unilaterally acting on it: no `SCHEDULE_EXACT_ALARM`/
+`USE_EXACT_ALARM` permission is declared, so every prayer/adhkar/plan
+reminder degrades to **inexact** delivery on Android 13+ — a real
+precision tradeoff for a prayer-times app, deliberately left for the
+project owner to decide given `SCHEDULE_EXACT_ALARM`'s 2024 Play
+Console policy restrictions. [Iteration 59](#iteration-59--b19-revisited-reminder-re-sync-race-safety-and-the-errorboundarys-effect-execution-question)
+covered this perspective's other facet — confirmed the
+`syncPrayerReminders`/`syncAdhkarReminder`/`syncPlanReminder`
+scheduling functions are idempotent-by-construction against rapid
+re-sync, a different question from the exact-alarm policy call. This
+pass re-verified the policy finding is still accurate rather than
+letting an ~80-iteration-old claim go stale by assumption, since
+`app.json` and the notifications dependency have both been touched
+many times since.
+
+**Confirmed unchanged, at the exact source location originally
+cited.** `app.json`'s `android.permissions` array still contains no
+exact-alarm entry. `node_modules/expo-notifications/android/.../
+ExpoSchedulingDelegate.kt` still has the identical
+`canScheduleExactAlarms()` check at **line 106** — the same file, same
+line number iteration 19 cited — confirming the installed
+`expo-notifications` version hasn't changed this behavior at all since
+that check. The finding, and the recommendation, both still hold
+exactly as stated.
+
+**Not escalating to the user now** — this doesn't block the loop's own
+progress (every other perspective keeps being worth checking
+regardless of this one open policy call), and the loop's own protocol
+reserves stopping for genuine blockers, not standing owner-decisions
+that have already been clearly logged. Flagging it here as one of the
+items that belongs in the "ready for Play Store submission" summary
+this loop produces near iteration 100, alongside the other standing
+owner-decisions accumulated this loop (no server-side sync-data
+deletion, iteration 35; the `plans/:id` deep-link feature gap,
+iteration 88; the light-mode splash asset, iteration 89; the
+tablet-width content-cap design primitive, iterations 13/93) — so none
+of them get lost in 98 iterations of log entries when that summary is
+written.
+
+**Clean — re-verified, not re-discovered.** No code change.
+
+**Verification:** direct source re-check (`app.json`,
+`ExpoSchedulingDelegate.kt`); no source changed, so the lint/typecheck/
+test gate wasn't re-run (nothing to regress; tree was green from
+iteration 97 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).

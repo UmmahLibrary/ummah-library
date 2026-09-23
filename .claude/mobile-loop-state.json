@@ -1,15 +1,10 @@
 {
-  "iteration": 97,
+  "iteration": 98,
   "cycle": 3,
-  "perspectiveIndex": 18,
+  "perspectiveIndex": 19,
   "batch": "mobile-stabilization-10",
-  "consecutiveCleanIterations": 6,
+  "consecutiveCleanIterations": 7,
   "history": [
-    {
-      "iteration": 94,
-      "perspective": "Safe-area/notch handling, re-verified after 40+ iterations",
-      "outcome": "CLEAN, re-verified: both invariants confirmed unchanged."
-    },
     {
       "iteration": 95,
       "perspective": "Android permission request flow, plus a numbering-label process note",
@@ -23,7 +18,12 @@
     {
       "iteration": 97,
       "perspective": "Offline/airplane-mode behavior, extended to SyncSection's turnOn() flow",
-      "outcome": "CLEAN, real gap in the sweep closed: turnOn()'s unusual try/catch ordering investigated and ruled safe - enableSync() is purely local (secure-store + AsyncStorage), no network, so nothing before the try block can fail offline."
+      "outcome": "CLEAN, real gap in the sweep closed: turnOn()'s ordering investigated and ruled safe - enableSync() is purely local."
+    },
+    {
+      "iteration": 98,
+      "perspective": "Notification scheduling correctness - the standing exact-alarm policy decision re-verified",
+      "outcome": "CLEAN, re-verified unchanged at the exact source line originally cited (ExpoSchedulingDelegate.kt:106). Consolidated the list of standing owner-decisions accumulated this loop for the eventual Play Store readiness summary near iteration 100."
     }
   ]
 }
