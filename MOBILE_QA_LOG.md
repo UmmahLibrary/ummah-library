@@ -5196,3 +5196,70 @@ cycle, not just the two iteration 53 originally checked.
 changed this iteration, prior gate (152/152) holds.
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 93 — B14, cycle 3: tablet layout, actually revisited for the first time since cycle 1 — a record-keeping gap, not a code one
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-10`
+
+**Checked:** looked for cycle 2's deepening pass of
+[iteration 13](#iteration-13--tabletipad-layout-supportstablet-true--is-it-actually-usable)
+("Tablet/iPad layout") and found [iteration 54](#iteration-54--b14-revisited-the-errorboundarys-own-fallback-has-no-safe-area-awareness),
+headed "B14 revisited" — but its own body opens "iteration 14
+confirmed every screen's safe-area handling is correct," and its whole
+subject (the `ErrorBoundary`'s safe-area awareness) matches
+**catalogue item 15** ("Safe-area/notch handling"), the topic of
+[iteration 14](#iteration-14--safe-areanotch-handling-on-every-screen)
+— not item 14 ("Tablet/iPad layout," iteration 13's topic). This is a
+mislabeling in that iteration's own heading, not a content error (the
+safe-area work itself is sound) — but its effect is real: **cycle 2
+never actually revisited "Tablet/iPad layout" at all.** The perspective
+was silently skipped for a full cycle because the heading claimed it
+had been covered. Recording this plainly, the same way this log
+already corrects its own past entries (iterations 35, 55, 60) rather
+than leaving the discrepancy for a future pass to puzzle over.
+
+**Did the deepening pass that should have happened in cycle 2.**
+Re-verified iteration 13's `ZakatScreen.tsx` finding with precise
+measurement instead of re-eyeballing a screenshot: at 1024px width,
+the gap between the "Cash & bank balances" label and its input is a
+genuine 12px — not the "huge empty gap" iteration 13's prose
+suggested. The actual mechanism is different from what was described,
+though the visual symptom is the same: the label's own container is a
+`flex: 1` box **754px wide**, and short left-aligned text inside a very
+wide box reads as a large blank area even though there's no literal
+margin between siblings. Worth correcting precisely, since "the gap
+is between two elements" and "one element's own box is mostly empty"
+call for different fixes.
+
+**Found a materially worse, new instance — a screen that didn't exist
+in iteration 13.** `PlansScreen.tsx`'s "Create your own" custom-plan
+form (added later in this loop's own work) has a `number-pad`
+`TextInput` for "Pages a day" — a field that only ever holds a 1–2
+digit number — measured at **939px wide on a 1024px viewport**,
+essentially edge-to-edge. This isn't a subtle whitespace-perception
+issue like the Zakat case; it's a plainly oversized input field, and
+it's evidence the underlying gap (no shared content-width-cap
+primitive) is actively getting worse as new screens ship without one,
+not just sitting static since iteration 13.
+
+**Still not fixing it directly — same reasoning iteration 13 already
+gave, now with stronger evidence behind it.** A `maxContentWidth`
+cap belongs in `packages/ui` as a shared primitive (`ScreenContainer`/
+`FormRow`), per `AGENTS.md`'s design-token placement rule — not a
+per-screen patch, and genuinely more than one QA-loop iteration's
+scope (it needs a real design decision: what the cap should be, how it
+should center/pad, whether it differs for forms vs. list/reader
+screens). Restating the recommendation with concrete numbers now
+attached (939px un-capped vs. a sane form-field width) rather than
+just re-asserting the same abstract note a second time.
+
+**Verification:** live measurement via `resize_window`
+(1024×1366) + `javascript_tool` `getBoundingClientRect()` on both
+`ZakatScreen.tsx` and `PlansScreen.tsx`'s custom-plan form; no source
+changed, so the lint/typecheck/test gate wasn't re-run (nothing to
+regress; tree was green from iteration 92 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
