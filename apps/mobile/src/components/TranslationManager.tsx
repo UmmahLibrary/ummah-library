@@ -60,7 +60,7 @@ export function TranslationManager({
         <View style={styles.panel}>
           <View style={styles.head}>
             <Text style={styles.title}>Translations</Text>
-            <Pressable onPress={onClose} hitSlop={10}>
+            <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Close">
               <Text style={styles.close}>✕</Text>
             </Pressable>
           </View>

@@ -13,6 +13,7 @@ import {
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeProvider, useTheme } from "./src/theme";
+import { ErrorBoundary } from "./src/ErrorBoundary";
 import { I18nProvider } from "./src/i18n/I18nProvider";
 import { SettingsProvider } from "./src/state/SettingsContext";
 import { LibraryProvider } from "./src/state/LibraryContext";
@@ -160,7 +161,14 @@ function AppGate() {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts(fontMap);
+  // useFonts resolves `loaded: false` forever if the load ever rejects (a
+  // corrupted/missing font asset) — it never becomes `true` on its own after
+  // an error. Proceed on `fontError` too so one bad font asset can't freeze
+  // the app on the splash screen (SplashScreen.hideAsync() only fires once
+  // AppGate mounts, which is gated on this) with no fallback and no way for
+  // the user to get past it. A screen falling back to the OS default
+  // typeface is far better than an app that never starts.
+  const [fontsLoaded, fontError] = useFonts(fontMap);
 
   // Prime the notifier, then keep every reminder family scheduled — re-syncing on
   // foreground so the schedule rolls to the next day after one fires (#71). Also
@@ -187,18 +195,27 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded && !fontError) return null;
   return (
+    // SafeAreaProvider wraps ErrorBoundary, not the other way around: it's a
+    // stable, well-established layout primitive (not app logic that could
+    // itself be the thing crashing — same reasoning as importing
+    // expo-splash-screen into ErrorBoundary), and the boundary's own
+    // fallback UI needs real inset values to clear a notch/home-indicator
+    // when it renders — a class component can't call useSafeAreaInsets(),
+    // but it can still use the SafeAreaView it exposes.
     <SafeAreaProvider>
-      <ThemeProvider>
-        <I18nProvider>
-          <SettingsProvider>
-            <LibraryProvider>
-              <AppGate />
-            </LibraryProvider>
-          </SettingsProvider>
-        </I18nProvider>
-      </ThemeProvider>
+      <ErrorBoundary>
+        <ThemeProvider>
+          <I18nProvider>
+            <SettingsProvider>
+              <LibraryProvider>
+                <AppGate />
+              </LibraryProvider>
+            </SettingsProvider>
+          </I18nProvider>
+        </ThemeProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }

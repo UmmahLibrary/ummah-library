@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import * as Location from "expo-location";
-import { type Coordinates, type Place, directionsUrl, distanceKm, formatDistanceKm } from "@ummahlibrary/core";
+import {
+  type Coordinates,
+  type Place,
+  directionsUrl,
+  distanceKm,
+  formatDistanceKm,
+} from "@ummahlibrary/core";
 import { Icon } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { KEYS, getJSON, setJSON } from "../storage";
@@ -42,7 +48,11 @@ export function MosqueFinderScreen() {
     const id = ++reqId.current;
     setStatus("loading");
     try {
-      const data = await api.getNearbyMosques({ lat: c.latitude, lng: c.longitude, radius: radiusMeters });
+      const data = await api.getNearbyMosques({
+        lat: c.latitude,
+        lng: c.longitude,
+        radius: radiusMeters,
+      });
       if (id !== reqId.current) return;
       setPlaces(data.places);
       setStatus("ready");
@@ -128,15 +138,20 @@ export function MosqueFinderScreen() {
       {status === "denied" && (
         <View style={styles.cta}>
           <Text style={styles.ctaText}>Location permission was denied. Enable it in Settings.</Text>
-          <Pressable style={styles.chip} onPress={locate}>
-            <Text style={styles.chipText}>Try again</Text>
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <Pressable style={styles.chip} onPress={locate}>
+              <Text style={styles.chipText}>Try again</Text>
+            </Pressable>
+            <Pressable style={styles.chip} onPress={() => void Linking.openSettings().catch(() => {})}>
+              <Text style={styles.chipText}>Open Settings</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
       {status === "error" && (
         <View style={styles.cta}>
-          <Text style={styles.ctaText}>Couldn't load nearby mosques. Check your connection.</Text>
+          <Text style={styles.ctaText}>Couldn't load nearby mosques. Check your connection and retry.</Text>
           <Pressable style={styles.chip} onPress={() => coords && fetchNearby(coords, radius)}>
             <Text style={styles.chipText}>Try again</Text>
           </Pressable>
@@ -169,7 +184,14 @@ export function MosqueFinderScreen() {
           )}
 
           {status === "ready" && places.length === 0 && (
-            <Text style={styles.muted}>No mosques found within {radiusLabel}. Try a wider radius.</Text>
+            <View style={styles.center}>
+              <Text style={styles.muted}>
+                No mosques found within {radiusLabel}. Try a wider radius, or search again.
+              </Text>
+              <Pressable style={styles.chip} onPress={() => fetchNearby(coords, radius)}>
+                <Text style={styles.chipText}>Search again</Text>
+              </Pressable>
+            </View>
           )}
 
           {status === "ready" && places.length > 0 && (
@@ -221,10 +243,21 @@ function makeStyles(c: Palette) {
       alignItems: "center",
     },
     ctaText: { color: c.fg, fontSize: 15, textAlign: "center", lineHeight: 22 },
-    ctaBtn: { backgroundColor: c.accent, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 24 },
-    ctaBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+    ctaBtn: {
+      backgroundColor: c.accent,
+      borderRadius: 10,
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+    },
+    ctaBtnText: { color: c.ink, fontSize: 15, fontWeight: "700" },
     radiusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
-    chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: c.border },
+    chip: {
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
     chipOn: { borderColor: c.accent, backgroundColor: c.accentSoft },
     chipText: { color: c.muted, fontSize: 13 },
     chipTextOn: { color: c.accent, fontWeight: "600" },
@@ -235,7 +268,13 @@ function makeStyles(c: Palette) {
       borderColor: c.border,
       overflow: "hidden",
     },
-    row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
     rowDivider: { borderBottomWidth: 1, borderBottomColor: c.borderSoft },
     rowText: { flex: 1, gap: 2, minWidth: 0 },
     placeName: { color: c.fg, fontSize: 15, fontFamily: FONT.semibold },

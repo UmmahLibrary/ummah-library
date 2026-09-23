@@ -58,14 +58,41 @@ export function ZakatScreen() {
 
   useEffect(() => {
     void getJSON<Partial<ZakatState>>(KEYS.zakat, {}, isObjectRecord).then((saved) => {
-      setState({
+      const healed: ZakatState = {
         ...DEFAULT,
         ...saved,
         // Self-heal a currency value saved before sanitizeCurrency existed —
         // a stray digit in it used to silently fuse into the displayed totals.
         currency: sanitizeCurrency(saved.currency ?? DEFAULT.currency) || DEFAULT.currency,
-        assets: { ...EMPTY_ASSETS, ...(saved.assets ?? {}) },
-      });
+        // Same self-heal for the decimal fields: onChangeText only sanitizes
+        // what's *typed* on this device, so a value arriving another way
+        // (synced from another device, hand-edited storage, a future bug)
+        // could reach here raw — e.g. a stray "-" or a second "." — and
+        // display as-is until next edited. calculateZakat() already guards
+        // the maths against this (sumValues/liabilities both discard a
+        // negative), but the displayed field shouldn't show a value the UI
+        // itself would never let you type.
+        goldPricePerGram: sanitizeDecimal(saved.goldPricePerGram ?? DEFAULT.goldPricePerGram),
+        silverPricePerGram: sanitizeDecimal(saved.silverPricePerGram ?? DEFAULT.silverPricePerGram),
+        liabilities: sanitizeDecimal(saved.liabilities ?? DEFAULT.liabilities),
+        assets: Object.fromEntries(
+          Object.entries({ ...EMPTY_ASSETS, ...(saved.assets ?? {}) }).map(([id, v]) => [
+            id,
+            sanitizeDecimal(v),
+          ]),
+        ),
+      };
+      setState(healed);
+      // Unlike the currency self-heal above (already re-sanitized on every
+      // change), a healed value was never written back on its own — every
+      // launch re-read the same raw value and re-healed it in memory,
+      // correct on screen but silently perpetuating the raw value in
+      // storage (and in whatever a sync round pushes) forever, the same gap
+      // iteration 20 found and fixed for theme.tsx. Persist once, only when
+      // healing actually changed something.
+      if (JSON.stringify(healed) !== JSON.stringify({ ...DEFAULT, ...saved })) {
+        void setJSON(KEYS.zakat, healed);
+      }
     });
   }, []);
 
@@ -78,7 +105,19 @@ export function ZakatScreen() {
   }
 
   function setAsset(id: string, value: string) {
-    update({ assets: { ...state.assets, [id]: value } });
+    // Deliberately not update({ assets: { ...state.assets, [id]: value } }):
+    // that reads the outer `state.assets` snapshot at call time, so two
+    // different asset fields edited within the same tick (before a re-render
+    // lands) would each patch from the same stale `assets` object and the
+    // second field's update would wholesale-overwrite the first field's
+    // value back to its old one. Deriving from `prev` inside the updater —
+    // the same pattern the qada/tasbih/khatm steppers already use — keeps
+    // each edit correctly layered on the other's output.
+    setState((prev) => {
+      const next = { ...prev, assets: { ...prev.assets, [id]: value } };
+      void setJSON(KEYS.zakat, next);
+      return next;
+    });
   }
 
   // "Reset amounts" clears what it says — the entered wealth figures — and

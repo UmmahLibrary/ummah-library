@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import {
   type HijriDate,
@@ -15,6 +15,7 @@ import { useTheme, type Palette } from "../theme";
 import { weekdayOfGregorian } from "../utils";
 import { SunnahFastReminderToggle } from "../components/SunnahFastReminderToggle";
 import { expoNotifier } from "../notifier";
+import { notifyNotificationPermissionDenied } from "../notification-permission-alert";
 import { readEventReminders, setEventReminder } from "../islamic-event-reminders";
 import { onSyncApplied } from "../lib/sync/sync-events";
 
@@ -52,16 +53,35 @@ export function HijriCalendarScreen() {
   const [view, setView] = useState<{ year: number; month: number } | null>(null);
   const [reminders, setReminders] = useState<Record<string, boolean>>({});
 
+  // Guards the same sync-reload-vs-local-write race this loop already found
+  // and fixed in PrayerTrackerScreen/LibraryContext/SettingsContext/theme.tsx:
+  // `ul.hijriAdjust` is synced, so a sync round or app-foreground can start
+  // `loadAdjust()`'s read *before* a tap on a date-adjustment chip lands,
+  // then resolve *after* — silently reverting the user's just-picked
+  // adjustment back to whatever was in storage when the reload started.
+  const writeGen = useRef(0);
+
   useEffect(() => {
-    const loadAdjust = () =>
+    const loadAdjust = () => {
+      const gen = writeGen.current;
+      const currentGen = () => writeGen.current;
       void getString(KEYS.hijriAdjust).then((raw) => {
         const n = raw === null ? 0 : parseInt(raw, 10);
         const a = Number.isFinite(n) ? Math.max(-2, Math.min(2, n)) : 0;
         const t = gregorianToHijri(todayGregorian(), a);
+        if (currentGen() !== gen) return; // a newer local pick already landed
         setAdjust(a);
         setToday(t);
         setView({ year: t.year, month: t.month });
+        // Same write-back gap iterations 20/60 already found (and fixed) in
+        // theme.tsx/ZakatScreen: an out-of-range or malformed stored value
+        // gets corrected in memory every launch but was never persisted back,
+        // so the raw bad value — and whatever a sync round pushes from it —
+        // would live in storage forever. Persist once, only when clamping
+        // actually changed something.
+        if (raw !== null && raw !== String(a)) void setString(KEYS.hijriAdjust, String(a));
       });
+    };
     loadAdjust();
     void readEventReminders().then(setReminders);
     // Reminders are per-device (not synced) — only the adjustment re-reads on sync.
@@ -74,12 +94,16 @@ export function HijriCalendarScreen() {
     // reminder off rather than showing "on" for one that will never fire.
     if (on && expoNotifier.permission() !== "granted") {
       await expoNotifier.requestPermission();
-      if (expoNotifier.permission() !== "granted") return;
+      if (expoNotifier.permission() !== "granted") {
+        notifyNotificationPermissionDenied("event reminder");
+        return;
+      }
     }
     setReminders(await setEventReminder(eventId, on));
   }
 
   function changeAdjust(next: number) {
+    writeGen.current++;
     setAdjust(next);
     void setString(KEYS.hijriAdjust, String(next));
     setToday(gregorianToHijri(todayGregorian(), next));
@@ -122,7 +146,11 @@ export function HijriCalendarScreen() {
     [view, adjust],
   );
 
-  if (!view || !today) return null;
+  // A themed blank placeholder, not `null` — matches PlanDetailScreen's and
+  // ReadingGoalsScreen's identical brief-load gate, avoiding a flash of the
+  // navigator's unthemed background before this screen's own state (a local
+  // storage read for the day-adjustment offset) resolves.
+  if (!view || !today) return <View style={styles.screen} />;
 
   const month = hijriMonth(view.month);
   const eventDays = new Set(monthly.map((m) => m.event.day));
@@ -156,8 +184,18 @@ export function HijriCalendarScreen() {
           const isEvent = eventDays.has(cell.day);
           return (
             <View key={cell.day} style={[styles.cell, isToday && styles.cellToday]}>
-              <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>{cell.day}</Text>
-              <Text style={[styles.gregLabel, isToday && styles.gregLabelToday]}>{cell.gregLabel}</Text>
+              <Text
+                style={[styles.dayNum, isToday && styles.dayNumToday]}
+                maxFontSizeMultiplier={1.3}
+              >
+                {cell.day}
+              </Text>
+              <Text
+                style={[styles.gregLabel, isToday && styles.gregLabelToday]}
+                maxFontSizeMultiplier={1.3}
+              >
+                {cell.gregLabel}
+              </Text>
               {isEvent && !isToday && <View style={styles.eventDot} />}
             </View>
           );

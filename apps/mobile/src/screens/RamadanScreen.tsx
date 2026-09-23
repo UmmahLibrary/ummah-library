@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
@@ -12,10 +12,10 @@ import {
 } from "@ummahlibrary/core";
 import { Khatam, Icon, type IconName } from "@ummahlibrary/ui";
 import { api } from "../api";
-import { KEYS, getJSON, getString, isObjectRecord, setJSON } from "../storage";
+import { KEYS, getJSON, getString, isObjectRecord, setJSON, setString } from "../storage";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
-import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
+import { fmtCountdown, fmtPrayerTime, ignoreStale, localISODate } from "../utils";
 import type { ToolsStackParamList } from "../navigation/types";
 import { onSyncApplied } from "../lib/sync/sync-events";
 
@@ -47,6 +47,16 @@ export function RamadanScreen({ navigation }: Props) {
   const [pagesRead, setPagesRead] = useState(0);
   const [hijriAdjust, setHijriAdjust] = useState(0);
 
+  // Guards the same sync-reload-vs-local-write race this loop already fixed
+  // in PrayerTrackerScreen/LibraryContext/SettingsContext/theme.tsx/
+  // HijriCalendarScreen: ul.ramadanFasts and ul.ramadanWorship are both
+  // synced, so a sync round or app-foreground can start loadRamadanData()'s
+  // read before a fast/worship toggle lands, then resolve after — silently
+  // reverting the tap. toggleFast/toggleWorship bump this on every tap; a
+  // reload in flight when that happens discards its own fasts/worship
+  // result instead of overwriting the newer local toggle.
+  const writeGen = useRef(0);
+
   const hijri = gregorianToHijri(todayGreg(), hijriAdjust);
   const isRamadan = hijri.month === 9;
   const ramadanDay = isRamadan ? hijri.day : null;
@@ -68,7 +78,14 @@ export function RamadanScreen({ navigation }: Props) {
     const loadAdjust = () =>
       void getString(KEYS.hijriAdjust).then((raw) => {
         const n = Number(raw);
-        if (Number.isFinite(n)) setHijriAdjust(Math.max(-2, Math.min(2, n)));
+        if (!Number.isFinite(n)) return;
+        const a = Math.max(-2, Math.min(2, n));
+        setHijriAdjust(a);
+        // Same write-back gap iterations 20/60 found in theme.tsx/ZakatScreen,
+        // and this cycle's own iteration 99 in HijriCalendarScreen's copy of
+        // this exact clamp — persist a corrected out-of-range value once
+        // rather than silently re-healing the same raw bad value forever.
+        if (raw !== null && raw !== String(a)) void setString(KEYS.hijriAdjust, String(a));
       });
     loadAdjust();
     return onSyncApplied(loadAdjust);
@@ -76,9 +93,13 @@ export function RamadanScreen({ navigation }: Props) {
 
   useEffect(() => {
     function loadRamadanData() {
-      void getJSON<Record<number, true>>(KEYS.ramadanFasts, {}, isObjectRecord).then(setFasts);
+      const gen = writeGen.current;
+      const currentGen = () => writeGen.current;
+      void getJSON<Record<number, true>>(KEYS.ramadanFasts, {}, isObjectRecord).then(
+        ignoreStale(currentGen, gen, setFasts),
+      );
       void getJSON<Record<string, Record<string, true>>>(KEYS.ramadanWorship, {}, isObjectRecord).then((m) =>
-        setWorship(m[today] ?? {}),
+        ignoreStale(currentGen, gen, setWorship)(m[today] ?? {}),
       );
       void getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord).then((log) =>
         setPagesRead(
@@ -113,6 +134,7 @@ export function RamadanScreen({ navigation }: Props) {
   }, []);
 
   function toggleFast(day: number) {
+    writeGen.current++;
     setFasts((prev) => {
       const next = { ...prev };
       if (next[day]) delete next[day];
@@ -123,6 +145,7 @@ export function RamadanScreen({ navigation }: Props) {
   }
 
   function toggleWorship(key: string) {
+    writeGen.current++;
     setWorship((prev) => {
       const next = { ...prev };
       if (next[key]) delete next[key];
