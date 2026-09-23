@@ -13,6 +13,7 @@ import {
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeProvider, useTheme } from "./src/theme";
+import { ErrorBoundary } from "./src/ErrorBoundary";
 import { I18nProvider } from "./src/i18n/I18nProvider";
 import { SettingsProvider } from "./src/state/SettingsContext";
 import { LibraryProvider } from "./src/state/LibraryContext";
@@ -196,16 +197,18 @@ export default function App() {
 
   if (!fontsLoaded && !fontError) return null;
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <I18nProvider>
-          <SettingsProvider>
-            <LibraryProvider>
-              <AppGate />
-            </LibraryProvider>
-          </SettingsProvider>
-        </I18nProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <I18nProvider>
+            <SettingsProvider>
+              <LibraryProvider>
+                <AppGate />
+              </LibraryProvider>
+            </SettingsProvider>
+          </I18nProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

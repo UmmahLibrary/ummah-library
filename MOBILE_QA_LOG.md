@@ -1599,3 +1599,642 @@ from the grep:**
   it.
 
 **Commit:** none (clean iteration; no code changes).
+
+## Iteration 31 — Error boundaries / crash resilience against malformed data
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** what happens when a screen throws during render — e.g. from
+malformed data that slipped past a store's read-time validation (ADR 0028's
+guards run at read time; they don't guarantee every downstream consumer
+handles every shape correctly), a null a screen didn't expect, or any other
+uncaught render error.
+
+**Found and fixed a real gap: zero error boundary coverage anywhere in the
+app.** Grepped the whole tree — no `getDerivedStateFromError`,
+`componentDidCatch`, or third-party boundary library anywhere in
+`apps/mobile` (and nothing to mirror from `apps/web` either, which has the
+same gap but is out of scope here). An uncaught render error in *any*
+screen or provider — including ones several layers deep in the provider
+stack — unmounts the whole tree, leaving a **permanently blank screen**
+with no recovery path short of a manual force-quit and relaunch.
+
+**Fix:** added [`ErrorBoundary.tsx`](apps/mobile/src/ErrorBoundary.tsx), a
+class component last-resort crash barrier with a fallback UI ("Something
+went wrong" + a "Try again" button that resets the boundary's state) and
+wired it into [`App.tsx`](apps/mobile/App.tsx) around the whole provider
+tree (`SafeAreaProvider` and everything inside it). Deliberately built with
+raw `react-native` primitives and hardcoded colors instead of this app's
+own `Type`/theme layer — whatever crashed could in principle be inside
+that layer, so the fallback stays independent of everything it exists to
+catch failures in.
+
+**Live-verified in the browser preview** (react-native-web faithfully
+reproduces React error-boundary behavior — it's a pure React/JS mechanism,
+not a native-only one, unlike most perspectives checked in this cycle).
+Temporarily added an unconditional `throw` as the first line of
+`HomeScreen`'s render to force a real crash, reloaded, and confirmed the
+fallback rendered ("Something went wrong" / "Try again") instead of a
+blank screen. Tapped "Try again" and confirmed the boundary resets and
+re-renders cleanly (it re-throws immediately since the injected throw was
+unconditional, so the same fallback correctly reappears rather than
+anything crashing the boundary itself). Reverted the temporary throw
+before running the test/lint gate — it was never committed.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean,
+`pnpm --filter @ummahlibrary/mobile test` 117/117 passing, `pnpm lint`
+clean (13 pre-existing warnings, 0 errors, none from this change), plus
+the live browser-preview crash/recover check above.
+
+**Commit:** `apps/mobile/src/ErrorBoundary.tsx` (new), `apps/mobile/App.tsx`.
+
+## Iteration 32 — Bundle/APK size audit for Play Store
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** what actually ships in the release Android artifact — asset
+sizes, dependency bloat, and whether the standard Android release
+optimizations (code shrinking, resource shrinking) are switched on.
+
+**Assets are lean and not a concern:** `assets/fonts/` is 332 KB (one
+IndoPak Nastaʿlīq `.ttf`; the Latin/Arabic Google Fonts are pulled in as
+individual per-weight packages, not full families), icons/splash total
+~68 KB. `tz-lookup` (the one non-Expo runtime dependency with an embedded
+geo dataset) is 173 KB unpacked — not worth replacing. `eas.json`'s
+production profile already builds `app-bundle` (AAB), so Play Store's own
+dynamic delivery handles per-ABI/per-density splitting — no APK-side ABI
+splitting needed.
+
+**Found and fixed a real gap: release builds ship with R8 code shrinking
+and resource shrinking both off.** Read the actual generated
+`android/app/build.gradle` (from a fresh `expo prebuild`, not hand-edited —
+`android/` is gitignored and regenerated per build) — `minifyEnabled` and
+`shrinkResources` are both gated behind gradle properties
+(`android.enableMinifyInReleaseBuilds`, `android.enableShrinkResourcesInReleaseBuilds`)
+that default to `false` and were never set anywhere in this project: no
+`expo-build-properties` plugin, no other way to set an Android gradle
+property declaratively for a project that doesn't commit its native
+`android/` folder. Every release build/bundle was therefore shipping
+completely unminified, unobfuscated, unshrunk Java/Kotlin bytecode and
+every resource whether referenced or not — pure avoidable bloat for a
+Play Store submission.
+
+**Fix:** installed `expo-build-properties` via `npx expo install` (which
+resolves the exact version this SDK 54 project needs — `~1.0.10`, not the
+version a naive `npm view` dist-tag search would suggest) and configured it
+in [`app.json`](apps/mobile/app.json):
+```json
+["expo-build-properties", { "android": {
+  "enableMinifyInReleaseBuilds": true,
+  "enableShrinkResourcesInReleaseBuilds": true
+} }]
+```
+Verified the property-name wiring is actually correct for this project's
+installed React Native/Expo template version before trusting it (checked
+two different `expo-build-properties` versions' source — an older one
+still targets the legacy `android.enableProguardInReleaseBuilds` gradle
+key, which this project's generated `build.gradle` no longer reads at
+all; only the SDK-54-matched `~1.0.10` writes the current
+`android.enableMinifyInReleaseBuilds`/`enableShrinkResourcesInReleaseBuilds`
+keys this template actually checks — installing the wrong version would
+have silently done nothing).
+
+**Live-verified the fix actually reaches the native build**, the
+strongest verification available without a full Android SDK/EAS build in
+this environment: ran a real `expo prebuild --platform android --no-install`
+and confirmed `android/gradle.properties` now contains
+`android.enableMinifyInReleaseBuilds=true` and
+`android.enableShrinkResourcesInReleaseBuilds=true`. The default
+`proguard-rules.pro` this template ships is the standard Expo/RN one (plus
+an inert `reanimated` rule — reanimated isn't a dependency here, harmless);
+every installed native module (`async-storage`, `screens`,
+`safe-area-context`, `svg`, `notifications`, `secure-store`, etc.) ships its
+own consumer ProGuard rules bundled in its AAR, which the Android Gradle
+Plugin merges in automatically, so minification is expected to be safe
+with no custom keep rules needed — but **actually building and
+smoke-testing a real minified release AAB/APK on a device is something
+this environment can't do** (no Android SDK, no EAS credentials) and
+should happen before the next Play Store upload, not be assumed clean.
+
+**Also noticed** (not fixed — separate, unrelated, pre-existing, and
+genuinely out of scope for a size audit): `expo prebuild` warns
+`android: userInterfaceStyle: Install expo-system-ui in your project to
+enable this feature` — `app.json` sets `"userInterfaceStyle": "dark"` but
+the plugin needed to actually enforce that at the native level isn't
+installed. Logging this for a future iteration (native-UI-consistency
+perspective), not chasing it here.
+
+**Verification:** `pnpm lint` and `pnpm typecheck` clean full-workspace;
+`pnpm --filter @ummahlibrary/mobile test` 117/117 passing. Full-workspace
+`pnpm test` and `pnpm build` both still fail, but confirmed (via `git
+stash` + re-run) on the *pre-existing, unrelated* web/extension duplicate-
+React-installs breakage documented in iteration 1 — reproduced identically
+with this change stashed out, so it's not something this iteration
+introduced or something a mobile-only change could fix.
+
+**Commit:** `apps/mobile/app.json`, `apps/mobile/package.json`,
+`pnpm-lock.yaml` (adds `expo-build-properties`).
+
+## Iteration 33 — EAS build config correctness
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** the production EAS build profile, whether declared Android
+permissions match what actually ends up in the merged release manifest
+(permission minimalism), and whether `ITSAppUsesNonExemptEncryption: false`
+is actually accurate given sync's E2EE crypto (ADR 0033).
+
+**`eas.json`'s production profile is correct as-is:** `buildType:
+"app-bundle"` (AAB, not APK) — Play Store's own dynamic delivery handles
+per-ABI/per-density splitting, so no manual ABI-split config is needed.
+`autoIncrement: true` handles versionCode bumps automatically.
+
+**`ITSAppUsesNonExemptEncryption: false` is accurate, verified rather than
+assumed.** Read every crypto primitive actually imported by the sync layer
+([`noble-cipher.ts`](apps/mobile/src/lib/sync/noble-cipher.ts)): AES-GCM,
+HKDF, HMAC, PBKDF2, SHA-256 — all standard, published, non-proprietary
+algorithms, used only to protect the user's own synced data
+(authentication/data-integrity use), and this isn't a cryptography
+product. That's exactly Apple's Category 5 Part 2 exemption criteria, so
+`false` (meaning "exempt, no export-compliance paperwork needed") is the
+correct declaration, not an oversight.
+
+**Found and fixed a real permission-minimalism gap.** Ran a real `expo
+prebuild` and read the actual merged `AndroidManifest.xml` (not just
+`app.json`'s permissions list, which only covers permissions the app
+explicitly asks for — plenty more get merged in silently from the base
+RN/Expo template and autolinked native modules). Found
+`android.permission.SYSTEM_ALERT_WINDOW` ("draw over other apps") in the
+release manifest — not declared anywhere in this app's own `app.json`,
+coming from the base Expo/RN template's dev-tooling default, and with
+**zero legitimate use** in a Quran/prayer-times app with no overlay/bubble
+UI anywhere. This is one of Android's "special access" permissions Google
+Play's Permissions Declaration form scrutinizes specifically, so shipping
+it unused is pure unnecessary review-friction and attack surface.
+
+**Fix:** added it to `app.json`'s existing `android.blockedPermissions`
+array — same mechanism already proven in this file for stripping
+`RECORD_AUDIO`. Live-verified via a fresh `expo prebuild` that the merged
+manifest now marks it `tools:node="remove"`, identical to the existing
+`RECORD_AUDIO` entry.
+
+**Also checked but left alone:** `READ_EXTERNAL_STORAGE` /
+`WRITE_EXTERNAL_STORAGE` also appear in the merged manifest, most likely
+from `expo-document-picker`/`expo-sharing` (used by
+[`backup.ts`](apps/mobile/src/backup.ts) for JSON backup import/export).
+Didn't touch these: removing them risks breaking a real, working feature,
+and on this project's targetSdkVersion (Android scoped storage applies),
+they're effectively inert at runtime anyway — the OS doesn't grant broad
+external-storage access to apps targeting a modern SDK regardless of this
+manifest entry. Flagging for a closer look in a future "permissions
+justification" pass (perspective B35) rather than guessing here.
+
+**Verification:** `pnpm lint` and `pnpm typecheck` clean full-workspace,
+`pnpm --filter @ummahlibrary/mobile test` 117/117 passing, plus the live
+`expo prebuild` manifest check above.
+
+**Commit:** `apps/mobile/app.json`.
+
+## Iteration 34 — Play Store data-safety/permissions-justification accuracy
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** whether an accurate Play Console Data Safety disclosure is
+even possible right now — what data the app actually collects, stores,
+and (critically) transmits off-device, cross-referenced against the
+codebase's actual behavior rather than assumed from ADR prose.
+
+**No privacy policy exists anywhere in this repo.** Play Console requires
+a hosted privacy policy URL for every app, unconditionally, and this app
+additionally requests location permissions (`ACCESS_FINE_LOCATION`/
+`ACCESS_COARSE_LOCATION` for Qibla/prayer times/mosque finder) which Play
+Store scrutinizes specifically in the Data Safety flow. **This blocks
+actual Play Store submission** — not a code bug, out of scope for this
+loop to write (a privacy policy is a legal document requiring the
+project owner's sign-off, and I'm not fabricating store-listing content
+per this loop's guardrails), but flagging it clearly now rather than
+letting it surface as a surprise at submission time.
+
+**Found and fixed a real, separate bug while verifying the data
+inventory: a misleading, stale doc-comment in the shared sync contract.**
+[`packages/core/src/sync-keys.ts`](packages/core/src/sync-keys.ts)'s
+comment block listed `ul.qada`/`ul.haid` (the qaḍāʾ and **ḥayḍ/menstrual
+cycle log**) as "deliberately EXCLUDED" from sync. Reading the actual
+`MANAGED_KEYS` array below the comment shows they're **not** excluded —
+they're both present, added under ADR 0034's Phase 1 element-merge work,
+and the comment was simply never updated afterward. This isn't cosmetic:
+anyone (developer or compliance reviewer) auditing "does sync ever touch
+menstrual-cycle data" to fill out a Data Safety form would read the
+comment, trust it, and answer **wrong**. Confirmed the actual behavior:
+when a user opts into cross-device sync (off by default, ADR 0033),
+`ul.haid` and `ul.qada` entries **do** get transmitted off-device as
+AES-256-GCM ciphertext to the sync backend — the server can't read them
+or even tell which key they belong to (entry ids are
+`HMAC(dataKey, keyName)`), but the data still **leaves the device**, which
+is what Google's Data Safety disclosure asks about, independent of
+encryption. Fixed the comment to state this accurately and added an
+explicit note for future auditors.
+
+**Data inventory for whoever fills out the real Data Safety form** (not
+committed as a store-listing artifact, just documented here since I
+verified it against the actual code rather than assumed it):
+- **Sync is opt-in and off by default.** An install that never enables it
+  transmits nothing anywhere except the existing prayer-times/mosque-search
+  API calls (location coordinates sent to compute times/find nearby
+  mosques — already covered by the existing `expo-location` permission
+  rationale string).
+- **If sync is enabled:** every `MANAGED_KEYS` entry
+  ([`sync-keys.ts`](packages/core/src/sync-keys.ts)) syncs as E2EE
+  ciphertext to the sync backend (Upstash Redis via `/api/sync`, per ADR
+  0033). This includes bookmarks, reading/reciter/theme preferences, last-read
+  position, prayer-calculation settings (and the **coordinates** used for
+  them), ayah notes, collections, `asmaLearned`, badges, reading log,
+  **prayer log, ramadan worship log, qaḍāʾ log, ḥayḍ log**, and hifz
+  progress. Google Play's Data Safety form has a dedicated, more heavily
+  scrutinized **Health and fitness → menstrual cycle** data-type category
+  distinct from general "app activity" — `ul.haid` syncing means that
+  category applies and needs its own accurate answer (collected: yes,
+  shared: no, encrypted in transit: yes, user can request deletion: yes —
+  the recovery-phrase teardown in `SyncSettings` deletes the account
+  server-side).
+- **No analytics, crash reporting, or ad SDKs anywhere** — confirmed by
+  reading `package.json`: no Sentry/Firebase/Amplitude/etc. This is a
+  genuinely strong, easy-to-state position for the Data Safety form's
+  "no data shared with third parties" sections.
+- **No identifiers, ever.** `accountId` (a bearer capability derived from
+  the recovery phrase, ADR 0033 §1) names a ciphertext blob, not a person
+  — there's no email, no login, no device ID sent anywhere.
+
+**Verification:** `pnpm lint` and `pnpm typecheck` clean full-workspace,
+`pnpm --filter @ummahlibrary/core test` 508/508 passing,
+`pnpm --filter @ummahlibrary/mobile test` 117/117 passing.
+
+**Commit:** `packages/core/src/sync-keys.ts` (comment fix only, no
+behavior change).
+
+## Iteration 35 — Correcting iteration 34, then fixing what it missed
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Correction to iteration 34: I was wrong that no privacy policy exists.**
+Iteration 34's search only grepped top-level filenames for `*privacy*` and
+missed `apps/mobile/src/screens/PrivacyScreen.tsx` and the shared
+[`packages/core/src/privacy.ts`](packages/core/src/privacy.ts) it renders
+from — the same content that also backs a real static `apps/web/src/app/privacy`
+page, so once the web app is deployed there **is** a hostable privacy-policy
+URL for Play Console. Logging this correction here per the QA log's
+append-only rule (iteration 34's entry stands as originally written, in
+context, rather than being silently edited) — the record needed a fix, so
+here it is.
+
+**I was also wrong, in that same iteration, that "the recovery-phrase
+teardown in SyncSettings deletes the account server-side."** That was an
+unverified assumption. Checked the actual code this time: `disableSync()`
+(implemented identically on
+[web](apps/web/src/lib/sync/sync-settings.ts),
+[mobile](apps/mobile/src/lib/sync/sync-settings.ts), and the extension)
+only forgets the secret **on the local device** — no network call, no
+delete request. Checked the server side too:
+[`apps/web/src/app/api/sync/route.ts`](apps/web/src/app/api/sync/route.ts)
+implements `POST`/`OPTIONS` only, no `DELETE`, and
+[`sync-store.ts`](apps/web/src/app/api/sync/sync-store.ts) sets no TTL on
+stored entries. **There is genuinely no way — no UI, no API route — for a
+user to get their synced ciphertext removed from the server.** It sits
+there indefinitely under the anonymous `accountId`, unreadable but
+undeletable.
+
+**With that corrected understanding, fixed the actual gap the perspective
+was after: the privacy policy's own text was stale relative to the sync
+feature it never mentioned.** `PRIVACY_UPDATED` was "16 June 2026" — a
+week *before* ADR 0033 (sync) was even accepted (2026-06-23) — and the
+"Your data stays on your device" section flatly claimed "that data is
+never sent to us and we cannot see it," which stopped being true the
+moment sync shipped as an opt-in feature. Added a new "Cross-device sync
+(optional)" section to
+[`packages/core/src/privacy.ts`](packages/core/src/privacy.ts) (shared by
+web and mobile, so both platforms' policy pages update from one place)
+describing what actually happens: E2EE, the recovery phrase, what
+`MANAGED_KEYS` can sync (explicitly naming the qaḍāʾ/ḥayḍ logs, matching
+what iteration 34 verified), and — accurately, not overpromising a
+support process that doesn't exist in code — that disabling sync doesn't
+currently delete server-side data. Softened the earlier section's
+"never sent to us" claim to "by default" with a pointer to the new
+section, so the two don't flatly contradict each other.
+
+**Live-verified** via the browser preview: navigated to the mobile
+`Privacy` screen and confirmed the new section renders correctly —
+bold emphasis, bullet list, and the updated date all correct — using the
+exact same shared content the web `/privacy` page will render.
+
+**Logged, not fixed (architectural, out of scope for this loop — needs
+the project owner's decision):** the missing account-deletion capability
+found above. Building it means a new authenticated `DELETE` (or similar)
+`/api/sync` capability, a new `SyncBackend` port method, and UI on all
+three platforms to trigger it — a real new capability surface that
+deserves its own ADR per `AGENTS.md` rule 6, not something to bolt on
+inside a QA-loop iteration. Options for the owner: build real deletion,
+or document/commit to a manual support-request process and reflect that
+honestly in the policy instead of silence. Left the policy's current
+wording accurate to what exists today rather than promising either.
+
+**Verification:** `pnpm lint` and `pnpm typecheck` clean full-workspace,
+`pnpm --filter @ummahlibrary/core test` 508/508,
+`pnpm --filter @ummahlibrary/mobile test` 117/117, plus the live
+browser-preview render check above.
+
+**Commit:** `packages/core/src/privacy.ts`.
+
+## Iteration 36 — Empty and loading states on every screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** every screen that fetches data or holds a possibly-empty
+collection, for three states: the loading flash (slow network), the
+error/offline state (failed network), and the zero-data empty state
+(first run or a cleared collection).
+
+**Clean — traced every data-touching screen individually rather than
+spot-checking, and this app is genuinely well-built here.** Grepped for
+every screen calling `api.*` with no `ActivityIndicator` anywhere in the
+file (a cheap first pass to catch an obvious blank-flash bug) — only
+`HomeScreen` and `RamadanScreen` matched, and both are legitimate: they
+treat their network data as progressive enhancement over an already-useful
+screen (`HomeScreen`'s "Continue reading" card simply omits itself with no
+last-read surah; `RamadanScreen` shows "Loading today's times…" text and a
+"Set location" CTA instead of a spinner, which reads better for a
+countdown widget than a bare spinner would).
+
+Then read the full source of every screen most likely to have a gap:
+- **`SurahListScreen`** (the very first screen a new install's user sees,
+  before any network round-trip completes): spinner while loading, a
+  proper error row with a **"Try again" retry button** on failure, and an
+  empty state for a no-match search — the most first-run-critical screen
+  in the app is fully covered, including offline recovery.
+- **`CollectionsScreen`**, **`PlansScreen`**: real, designed empty states
+  (icon + heading + body copy + a CTA), not just a blank list.
+- **`SearchScreen`**: "Nothing found" for zero results.
+- **`HadithScreen`**: traced end-to-end through the REST layer — a
+  past-the-end/unknown section correctly 404s server-side
+  ([`route.ts`](apps/web/src/app/api/v1/hadith/[collection]/sections/[section]/route.ts))
+  and the client's retry-aware `getJson` throws on a non-2xx response, so
+  it surfaces as the screen's existing error state ("You may have reached
+  the end of the collection"), not a silent blank screen — traced this
+  fully rather than assuming, since a `null`-returning repository method
+  feeding straight into `data?.hadiths.map()` looked at first glance like
+  it could render nothing with zero feedback.
+- **`TafsirScreen`**: all three states present, including
+  `FlatList`'s `ListEmptyComponent` for a surah with no tafsir in the
+  selected edition.
+- **`MosqueFinderScreen`**, **`AdhkarScreen`**, **`DuasScreen`**,
+  **`NamesScreen`**, **`DownloadsScreen`**, **`MushafPageScreen`**,
+  **`JuzReaderScreen`**, **`SurahReaderScreen`**: all have the relevant
+  loading indicator and/or empty-state message for their data shape.
+
+No fix needed this iteration — a genuinely clean perspective after
+verifying it properly, not skimming it.
+
+**Verification:** read-only iteration, no code changed; full test/lint
+gate from iteration 35 still holds.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 37 — Copy/microcopy consistency and correctness vs web
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** shared-feature copy between mobile and web for wording
+drift — Zakat, mosque finder, prayer times, Qibla, location-permission
+messaging, and the previously-fixed "āyahāt"/"āyāt" typo (regression
+check, still clean).
+
+**Mostly consistent, with good platform-appropriate adaptation where it
+should differ.** "Location permission was denied" messaging matches
+verbatim across `MosqueFinderScreen`, `PrayerTimesScreen`, `QiblaScreen`
+and their web equivalents, correctly adapted for the platform ("Enable it
+in **Settings**" on mobile vs "Enable it in **your browser**" on web) —
+that's the right kind of difference, not a bug. Zakat's "Reset amounts"
+copy and behavior match exactly (same shared comment in both files).
+
+**Found and fixed one small, real wording drift.**
+`MosqueFinderScreen`'s generic network-error message read "Couldn't load
+nearby mosques. Check your connection." — missing web's trailing "**and
+retry**" (`MosqueFinder.tsx`: "Check your connection and retry."). Synced
+the wording.
+
+**Noted, not fixed (a capability gap, not a copy bug — out of scope for
+this perspective):** web's `MosqueFinder` has a distinct `"offline"`
+status with its own message ("You're offline. Mosque search needs an
+internet connection...") detected via a browser-only API
+(`navigator.onLine`); mobile has no equivalent (`@react-native-community/netinfo`
+isn't installed) and collapses every network failure into the generic
+`"error"` state. The existing message already says "check your
+connection," which substantially covers the same need, so this isn't
+urgent — but building real offline detection would mean adding a new
+native dependency, which is a feature addition, not a text fix. Logging
+for a future iteration if it's judged worth the dependency.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 117/117.
+
+**Commit:** `apps/mobile/src/screens/MosqueFinderScreen.tsx`.
+
+## Iteration 38 — Push notification content correctness
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** the actual title/body text of every reminder type (prayer,
+adhkar, reading plan, Sunnah fast, Islamic event) for correctness,
+consistency, and truncation risk.
+
+**Clean.** All five reminder families build their content in one shared,
+platform-neutral module —
+[`packages/core/src/reminders.ts`](packages/core/src/reminders.ts) (plus
+[`planReminderContent`](packages/core/src/reading-plans.ts) for the plan
+reminder's progress-aware copy) — so web and mobile schedule byte-identical
+notification text; there's no mobile-only copy to drift from web's.
+
+- **Prayer:** `${PRAYER_LABELS[prayer]} — time to pray`, correct label per
+  prayer.
+- **Adhkar:** `Time for ${morning|evening} adhkar` with the matching
+  emoji, correctly keyed per occasion.
+- **Reading plan:** three distinct, well-designed states (today's portion
+  done, behind schedule, still due) with correct singular/plural handling
+  via `unitWord()` (checked the switch: `page`/`sūrah`/`ayah` pluralize in
+  English correctly; `juzʾ`/`ḥizb` are invariant transliterations, which
+  is linguistically correct — they don't take an English "-s").
+- **Sunnah fast / Islamic event:** both include the specific fast/event
+  name, not a generic placeholder.
+- **Truncation risk:** checked every bundled plan template's `name` (the
+  only unbounded-length input feeding a title) — all six are short
+  (≤20 chars; plans aren't user-authored per AGENTS.md, so there's no
+  arbitrary-length user input here at all).
+
+All four non-plan reminder types already have direct content assertions
+in [`reminders.test.ts`](packages/core/src/reminders.test.ts) (exact
+title/body string checks, not just scheduling-logic checks), and the plan
+reminder's three states are covered in
+[`reading-plans.test.ts`](packages/core/src/reading-plans.test.ts) — this
+perspective already had real regression protection before this iteration,
+not just correct-by-luck code.
+
+No fix needed.
+
+**Verification:** read-only iteration, no code changed; prior gate holds.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 39 — Mosque finder live-location accuracy and permission-denied fallback
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** the distance/sorting math, location-permission-denied
+recovery flow, and how a backend/network failure is actually represented
+to the user (does "no results" always mean "genuinely no results"?).
+
+**Distance math and permission fallback are solid.**
+`distanceKm`/`sortByDistance` use a correct, tested Haversine
+implementation shared with web (11 existing tests). `Location.Accuracy.Low`
+is used consistently across `MosqueFinderScreen`, `PrayerTimesScreen`, and
+`QiblaScreen` — a deliberate, uniform tradeoff (network-location accuracy
+is entirely adequate at km-scale radii; no reason to burn battery/prompt
+for GPS precision here). The permission-denied state already has both
+"Try again" and "Open Settings" — correctly anticipates Android's silent
+re-denial after "Don't ask again" (a repeat `requestForegroundPermissionsAsync()`
+call there returns denied with no dialog at all, so a settings deep-link
+is the only real recovery path — already present).
+
+**Found a real accuracy concern, deliberately not code-fixed — it's a
+tested, intentional tradeoff, not an oversight.** Traced the request path
+end to end:
+[`OverpassPlacesProvider.nearbyMosques`](packages/adapters/src/places.ts)
+has `if (!res.ok) return [];` — a non-OK Overpass response (rate-limited,
+timeout, 5xx) is indistinguishable from a genuine "no mosques here."
+Confirmed via [`places.test.ts`](packages/adapters/src/places.test.ts)
+line 107 — `"degrades to [] on a non-OK response rather than throwing"`,
+fixtured explicitly with `{ error: "rate limited" }` — this was a
+**deliberate, tested design choice**, not a bug slipping through. The
+same shape exists in
+[`hadith.ts`](packages/adapters/src/hadith.ts)`.getSection` (`if
+(!response.ok) return null`, surfacing as "you may have reached the end
+of the collection" even on a transient CDN blip) and
+[`translation-catalog.ts`](packages/adapters/src/translation-catalog.ts).
+Not reversing this pattern — I don't have the operational context that
+motivated it (Overpass's public instance is known to rate-limit
+aggressively under load; the original author may have deliberately traded
+"never show a scary error for a routine Overpass hiccup" against "a false
+'no mosques' is occasionally misleading"), and the loop's own guardrails
+are to fix bugs, not override a tested, intentional decision without that
+context. Flagging for the project owner to weigh: for mosque-finder
+specifically, a false "no mosques within 20km" is a stronger claim than
+"no tafsir available," since a Muslim relying on it to find the nearest
+place to pray could plausibly stop looking on wrong information.
+
+**Fix made in the one place this doesn't require touching that policy:**
+the "No mosques found" branch had **no retry affordance at all** — unlike
+every other terminal state on this screen (`denied`, `error` both have a
+"Try again" chip). Added a "Search again" button there too. This doesn't
+resolve the ambiguity above, but it does mean a user who suspects the
+result might be wrong (or who just wants to double-check) now has a
+one-tap way to re-query, whether the original result was a real empty set
+or a transient Overpass hiccup — strictly additive, no change to the
+degrade-to-empty policy itself.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 117/117.
+Live-verification of the specific empty-results branch wasn't practical
+in the browser preview (it requires either a genuinely mosque-free
+coordinate or mocking Overpass's live response, and stale navigation refs
+in the RN-web preview made reaching the screen unreliable this session) —
+noting the gap honestly rather than claiming a screenshot check that
+didn't happen. The change itself mirrors the file's own existing,
+already-verified `denied`/`error` retry-chip pattern exactly.
+
+**Commit:** `apps/mobile/src/screens/MosqueFinderScreen.tsx`.
+
+## Iteration 40 — Test coverage audit (closes out batch 4)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-04`
+
+**Checked:** which `apps/mobile/src` modules have no matching `.test.ts`
+file, then judged each one on whether that's a real gap or just a
+correctly-thin file whose logic is actually tested elsewhere.
+
+**Most "untested" files are false positives, verified rather than
+assumed.** A dozen store files (`qada-store.ts`, `haid-store.ts`,
+`tasbih-store.ts`, `plan-store.ts`, etc.) have no dedicated test file, but
+each is a 3-line `read`/`write` pass-through to the shared `getJSON`/
+`setJSON` primitives (ADR 0024 port pattern — persistence only, the real
+logic lives in `@ummahlibrary/core`), and
+[`stores-corrupt.test.ts`](apps/mobile/src/stores-corrupt.test.ts)
+already exercises every one of them for the corrupt-value path. A
+dedicated test per store would just re-test `getJSON` under a different
+key name — no real coverage gained.
+
+**Found and fixed the actual gap: the shared primitive underneath every
+one of those stores had zero direct test file.**
+[`storage.ts`](apps/mobile/src/storage.ts) — `getJSON`/`setJSON`/
+`getString`/`setString` plus four validator predicates
+(`isObjectRecord`/`isFiniteNumber`/`isStringArray`/`isBoolean`) used
+throughout the app to guard every read — had never been tested directly.
+`stores-corrupt.test.ts` only exercises the "wrong shape" branch through
+each store's specific key; it never covers **malformed JSON**
+(`JSON.parse` throwing), **a throwing `AsyncStorage.setItem`** (device
+storage full — `setJSON`/`setString` are supposed to swallow this
+silently rather than crash a caller, per the `try/catch` in the source,
+but nothing asserted that), or the validator predicates' own edge cases
+(`NaN`/`Infinity` for `isFiniteNumber`, a mixed-type array for
+`isStringArray`, `null`/array for `isObjectRecord`).
+
+**Added** [`storage.test.ts`](apps/mobile/src/storage.test.ts) (14 new
+tests, same in-memory `AsyncStorage` mock pattern as
+`stores-corrupt.test.ts`): `getJSON`'s three fallback paths (missing key,
+malformed JSON, validator rejection) plus its two success paths,
+`setJSON`/`setString` actually swallowing a write failure (asserted, not
+assumed), `getString`/`setString` round-tripping, and every validator's
+accept/reject boundary.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` — 131/131
+passing (117 prior + 14 new).
+
+**Commit:** `apps/mobile/src/storage.test.ts` (new).
+
+---
+
+## Batch 4 summary (iterations 31–40, branch `mobile-stabilization-04`)
+
+Ten iterations, seven with real fixes, three clean-but-thoroughly-verified:
+
+- **31:** added the app's first-ever error boundary — a render crash
+  anywhere used to blank the whole app with no recovery.
+- **32:** Android release builds had R8 minification and resource
+  shrinking both off; enabled via `expo-build-properties`.
+- **33:** stripped an unused, Play-Store-scrutinized `SYSTEM_ALERT_WINDOW`
+  permission from the release manifest.
+- **34–35:** a genuine correction loop — iteration 34's claims about the
+  privacy policy were wrong (caught and fixed in 35), and along the way
+  found the privacy policy itself was stale relative to the shipped sync
+  feature (fixed) and that there's no server-side sync-data deletion
+  capability anywhere (logged for the owner, not built — architectural).
+- **36:** empty/loading states audited clean across every data-fetching
+  screen.
+- **37:** synced one wording drift between mobile and web.
+- **38:** push notification content audited clean (shared, tested code).
+- **39:** mosque-finder distance math and permission fallback confirmed
+  solid; found (and deliberately did not reverse) a tested tradeoff where
+  a degraded Overpass response reads as "no mosques found," and added a
+  retry affordance either way.
+- **40:** closed a real test-coverage gap in the shared storage primitive
+  every store in the app depends on.
+
+Full detail for each is above, under its own `## Iteration N` heading.
