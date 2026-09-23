@@ -102,13 +102,13 @@ describe("recovery secret canonicalization", () => {
 });
 
 describe("generateRecoveryPhrase", () => {
-  it("emits a 12-word BIP39 phrase", () => {
-    const p = generateRecoveryPhrase();
+  it("emits a 12-word BIP39 phrase", async () => {
+    const p = await generateRecoveryPhrase();
     expect(p).toMatch(/^[a-z]+(?: [a-z]+){11}$/);
   });
 
-  it("is effectively unique across calls", () => {
-    const set = new Set(Array.from({ length: 20 }, () => generateRecoveryPhrase()));
+  it("is effectively unique across calls", async () => {
+    const set = new Set(await Promise.all(Array.from({ length: 20 }, () => generateRecoveryPhrase())));
     expect(set.size).toBe(20);
   });
 });

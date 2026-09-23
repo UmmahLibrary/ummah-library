@@ -1,15 +1,12 @@
 {
-  "iteration": 103,
+  "iteration": 104,
   "cycle": 3,
-  "perspectiveIndex": 21,
+  "perspectiveIndex": 22,
+  "target": 154,
   "batch": "mobile-live-qa-followup",
   "consecutiveCleanIterations": 0,
+  "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro (adb + uiautomator for verification)",
   "history": [
-    {
-      "iteration": 100,
-      "perspective": "Secure storage of the sync recovery secret - the backup-export path, the last unchecked exit",
-      "outcome": "CLEAN, genuinely new angle: traced whether the app's own backup export could leak the plaintext secret into a shared file. Confirmed excluded unconditionally by a shared core predicate, already tested at both layers. Loop's stated 100-iteration ceiling reached; batch 10 closed out here."
-    },
     {
       "iteration": 101,
       "perspective": "Android hardware back-button, live on a real device for the first time (B9 revisited)",
@@ -24,6 +21,11 @@
       "iteration": 103,
       "perspective": "Deep link handling including malformed links, live on a real device (B10 revisited)",
       "outcome": "GAP FOUND AND FIXED: a malformed surah/* deep link left the header showing the previous, successfully-loaded surah's title instead of clearing it, because SurahReaderScreen.tsx's header-setting useLayoutEffect never ran on the error path. Fixed by adding an explicit error branch; live re-verified the exact repro is clean after the fix. Found only because a live screenshot was compared, not just a crash/no-crash check."
+    },
+    {
+      "iteration": 104,
+      "perspective": "Sync engine mobile edge cases, live this time (B23 revisited)",
+      "outcome": "GAP FOUND AND FIXED, a real one: generating a recovery phrase threw an uncaught error unconditionally in every dev-client build with New Architecture enabled, regardless of remote-debugging state, because the CSPRNG guard's detection heuristic (nativeCallSyncHook absence) is always true under New Architecture. Sync was untestable in any dev/QA build before this fix. Switched to expo-crypto's getRandomBytesAsync, which has no such fallback ever, removing both the false positive and the underlying weak-randomness risk it was guarding against. Live re-verified: phrase generation, turning sync on, and a genuine mid-sync-round process kill all clean afterward."
     }
   ]
 }

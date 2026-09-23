@@ -5867,3 +5867,81 @@ consistent with how this loop has treated other header/navigation-only
 fixes). Live-verified on `QA_Pixel6` as detailed above.
 
 **Commit:** `apps/mobile/src/screens/SurahReaderScreen.tsx`.
+
+---
+
+## Iteration 104 — B23 revisited: sync engine edge cases, live this time — found a real crash blocking every dev-mode sync test
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**Checked:** catalogue item 23 (sync engine mobile edge cases —
+backgrounded push, killed mid-sync, conflict merges, incremental
+cursor), previously verified twice by reading `sync-engine.ts` and its
+test suite (iterations 22, 62). This pass tried to actually turn sync
+on and kill the app mid-round on a live device, since that was never
+possible before.
+
+**Found a real, reproducible crash on the very first step** — tapping
+"Generate" on `SyncSection`'s recovery-phrase field threw an uncaught
+`Error: Secure randomness is unavailable under remote JS debugging —
+turn off "Debug Remote JS". Sync requires a CSPRNG.` with no remote
+debugger active at all. Traced to
+[`crypto-random.ts`](apps/mobile/src/lib/sync/crypto-random.ts)'s
+`assertSecureRng()`: it mirrors `expo-crypto`'s own internal guard,
+`!global.nativeCallSyncHook || global.__REMOTEDEV__` — a heuristic
+written for the old bridge architecture, where that global's absence
+reliably meant "remote JS debugging is on." Under the **New
+Architecture** (`newArchEnabled: true` in `app.json`, Expo's default
+for a while now), `nativeCallSyncHook` doesn't exist *at all*,
+debugging or not — so the guard fired unconditionally on every single
+dev-client run, regardless of the actual debugging state. This meant
+**the sync feature has never been testable in any dev/QA build of this
+app** — not a regression from anything this loop touched, just never
+caught before because this loop never had a live device to press
+"Generate" on until now.
+
+**Fix, not a workaround:** `expo-crypto` also exports
+`getRandomBytesAsync`, which has no `__DEV__`/`nativeCallSyncHook`
+fallback path at all in either version of the library — it always
+calls the real native CSPRNG, dev or release. Switched
+`crypto-random.ts`'s `randomBytes()` to that async variant and deleted
+`assertSecureRng()` entirely — not just silencing the throw, since the
+throw was correctly protecting against a real (if now-obsolete)
+weak-randomness fallback; switching to the variant that never has that
+fallback removes the danger *and* the false positive, rather than
+choosing one over the other. Both real call sites adapted cleanly:
+`noble-cipher.ts`'s `encrypt` closure was already `async`, and
+`generateRecoveryPhrase()` itself became `async`, requiring one call
+site update in `SyncSection.tsx` (`onPress={() => void
+generateRecoveryPhrase().then(setPhrase)}`) plus two test call sites in
+`noble-cipher.test.ts` (`await`ed; the existing sync mocks in that file
+and `sync-e2e.test.ts` needed no changes — awaiting a plain
+already-resolved value works identically to awaiting a Promise).
+
+**Live re-verified the fix, then kept going into the actual perspective
+this iteration set out to test:** "Generate" now produces a real
+12-word phrase, "Turn on sync" enables and a live sync round runs
+successfully (exercising the `encrypt` call site too). Backgrounded the
+app and killed it (`adb shell am kill`, confirmed dead via `pidof`)
+**while a sync round's spinner was still visibly active** — relaunched,
+and (after AsyncStorage-backed home cards finished their normal async
+load, which briefly looked like data loss until confirmed otherwise a
+few seconds later) the reading-progress card was intact and,
+critically, `SyncSection` still showed "Sync now" / "Show phrase" /
+"Turn off sync" — both `ul.sync.enabled` and the secure-stored secret
+survived the kill correctly. This is the first *live* confirmation of
+what iteration 22 established from reading `sync-engine.ts`'s
+cursor-advance-after-full-apply ordering: killing mid-round is safe by
+construction, not just by argument.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck`
+clean; `pnpm lint` — 0 errors, same 13 pre-existing warnings; `pnpm
+--filter @ummahlibrary/mobile test` 152/152 passing. Live-verified on
+`QA_Pixel6` as detailed above: the crash repro, the fix, and a genuine
+mid-sync process kill and restore.
+
+**Commit:** `apps/mobile/src/lib/sync/crypto-random.ts`,
+`apps/mobile/src/lib/sync/noble-cipher.ts`,
+`apps/mobile/src/components/SyncSection.tsx`,
+`apps/mobile/src/lib/sync/noble-cipher.test.ts`.
