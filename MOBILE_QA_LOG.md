@@ -498,3 +498,543 @@ hygiene rather than chasing it now.
 
 **Commit:** `feat(mobile): keep the splash screen up until fonts and the
 onboarding check are ready`.
+
+---
+
+## Iteration 11 — App background/foreground transitions (timers, audio, in-flight requests)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether backgrounding/foregrounding the app leaks timers,
+desyncs UI state, or races in-flight work — specifically relevant here
+since `app.json` declares `UIBackgroundModes: ["audio"]`, i.e. reciter audio
+is *meant* to keep playing while backgrounded, not pause.
+
+**Result: clean, and better-engineered for this than I expected.** Three
+independent, purpose-built mechanisms already cover this:
+- [`useSurahAudio.ts:163-168`](apps/mobile/src/audio/useSurahAudio.ts#L163) —
+  an `AppState` listener sets a `resyncRef` on returning to `"active"`,
+  specifically to force-repaint the word-highlight after backgrounding. The
+  comment explains the exact failure mode this fixes: React's `setActiveWord`
+  commits are throttled/suppressed while backgrounded, so without this the
+  highlight would sit stale (right value, nothing painted) until the audio
+  crossed into the next word. No pause-on-background logic anywhere, which
+  is correct given the declared background-audio capability.
+- [`sync-runtime.ts:1-12`](apps/mobile/src/lib/sync/sync-runtime.ts#L1) —
+  explicitly documents and guards against app-launch and the `AppState`
+  "active" trigger firing in the same tick and racing on the shared
+  `ul.sync.meta` sidecar; an in-flight round's promise is reused instead of
+  starting a second one.
+- [`notifier.ts:7-9`](apps/mobile/src/notifier.ts#L7) — reminders re-sync on
+  foreground specifically to roll a fired one-shot notification to the next
+  day.
+- The three UI "live clock" timers (`HomeScreen`, `PrayerTimesScreen`,
+  `RamadanScreen` — `setInterval(() => setNow(new Date()), …)`) all clean up
+  correctly on unmount via `return () => clearInterval(id)`. They don't need
+  explicit background handling: the OS suspends the JS runtime while
+  backgrounded, the interval simply doesn't fire, and because each tick sets
+  `now` to the actual current time (not an incremented counter), resuming
+  produces the correct value immediately — no drift or catch-up logic
+  needed.
+
+**Verification and its limits:** this is native app-lifecycle behavior
+(`AppState` transitions, OS suspension) that `react-native-web` only
+loosely approximates via document visibility, and this environment has no
+Android/iOS device to background for real. Calling this clean based on
+code review — three independent, already-documented mechanisms addressing
+exactly this class of problem is stronger evidence than most of this loop's
+"nothing custom exists to break" findings, but it's still not the same as
+watching it happen on a device. Not claiming otherwise.
+
+**Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 12 — Kill-and-restore state integrity
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether the app survives having its process killed mid-write —
+i.e., whether persisted state can end up as truncated/partial JSON, and
+whether every consumer tolerates that instead of crashing on restart.
+
+**Result: clean, with unusually strong existing coverage.**
+[`storage.ts`](apps/mobile/src/storage.ts)'s `getJSON` wraps every read
+(including `JSON.parse`) in try/catch and falls back to the caller's default
+on any failure, plus an optional shape-validator (`isValid`) to reject
+valid-but-wrong-shaped JSON (e.g. a synced peer payload, or `42` where an
+object was expected) — the exact class of corruption a mid-write kill would
+produce. `setJSON` similarly swallows write failures. Because
+[ADR 0028](docs/adr/0028-persistence-enforcement.md) lint-enforces that
+*nothing* touches `AsyncStorage` directly outside these wrappers, this
+protection is structural, not something an individual screen could bypass.
+[`stores-corrupt.test.ts`](apps/mobile/src/stores-corrupt.test.ts) already
+unit-tests exactly this for essentially every store in the app (library,
+plans, settings, qada, prayer tracker, ḥayḍ, fasting-qaḍāʾ, achievements,
+reading goals, tasbih, reminders, prayer settings) — truncated/wrong-shape
+values all fall back to safe defaults, never a crash.
+
+**Live-verified beyond the unit tests** via `preview_start({name: "mobile"})`:
+wrote genuinely truncated JSON (`'{"fajr":2,"dhu'`, `'{"template":'`), a
+wrong-shape value (`'42'` for `ul.prayerLog`), and an empty string
+(`ul.bookmarks`) directly into `localStorage`, then did a cold reload — Home
+rendered normally (including "Continue reading" from the still-valid
+`ul.lastRead`), no console errors beyond the already-flagged pre-existing
+`validatePath` one, and Prayer Tracker (which reads the two deliberately
+corrupted keys) rendered its normal empty state instead of crashing.
+
+**Not independently verifiable here:** whether `AsyncStorage`'s underlying
+native write (SQLite-backed on both platforms in current versions) is
+itself atomic per key — that's third-party library behavior, not this
+app's code, and not something a device-less environment can confirm either
+way. Given every consumer already tolerates a corrupted read regardless,
+it's not load-bearing for this app's resilience even if a native write
+were ever non-atomic.
+
+**Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 13 — Tablet/iPad layout (`supportsTablet: true` — is it actually usable?)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** `app.json` sets `ios.supportsTablet: true` (iPad runs the app
+un-scaled, not letterboxed), so live-tested several representative screens
+at tablet widths via `resize_window` in the RN-web preview: 768×1024
+(standard tablet preset) and 1024×1366 (iPad Pro portrait-ish).
+
+**Result: functionally fine, one real but low-severity polish gap found —
+logged, not fixed.** Only 5 of ~30 screens reference
+`Dimensions`/`useWindowDimensions`/`maxWidth` at all
+(`CollectionsScreen`, `HifzDashboardScreen`, `OnboardingScreen`,
+`PrayerTrackerScreen`, `QiblaScreen`); everywhere else is plain
+flex-based layout with no tablet-specific treatment, and nothing broke,
+overflowed, or became unreadable at either tested width — `SurahList`,
+`PrayerTracker`, `Home`, and the `SurahReader` verse view all held up fine,
+since per-ayah blocks and card grids don't get meaningfully worse as the
+viewport widens.
+
+**What does look genuinely unpolished:** form screens like
+[`ZakatScreen.tsx`](apps/mobile/src/screens/ZakatScreen.tsx) use a
+label-left/`flex:1`-spacer/input-right `Row` layout
+([`ZakatScreen.tsx:235-247`](apps/mobile/src/screens/ZakatScreen.tsx#L235))
+with no content-width cap. At 1024px wide, the label hugs the left edge and
+the (still `minWidth: 100`-sized) input pins to the far right with a huge
+empty gap between them — functionally fine (still tappable, still typeable,
+values still correct) but visually the kind of "obviously not designed for
+this screen size" rough edge that would stand out on an actual iPad.
+
+**Not fixing this now.** A content-width cap is a cross-cutting visual
+design decision, not a per-screen bug — per `AGENTS.md`, palette/layout
+primitives belong in `packages/ui` (the Noor design system), and something
+like a shared `maxContentWidth` token/wrapper used consistently across
+every screen is a design-system-level change, not a scoped fix for one
+iteration of this loop. Recommending it as a concrete follow-up rather than
+improvising a partial version here: e.g. a `ScreenContainer`/`FormRow`
+primitive in `packages/ui` that caps and centers content past some width,
+adopted screen-by-screen.
+
+**Commit:** none (clean iteration; findings logged, no code changes — this
+one specifically deferred rather than fixed).
+
+---
+
+## Iteration 14 — Safe-area/notch handling on every screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** every screen for whether it can render content under the
+status bar/notch/home-indicator, given `App.tsx` renders headers via
+`headerShown: false` at the **tab-navigator** level but the underlying
+per-tab `Stack.Navigator`s (`HomeStack`, `ReadStack`, `ToolsStack`,
+`HifzStack`, `MoreStack`) each set their own `screenOptions` independently.
+
+**Result: clean, consistent pattern — but had to chase down one apparent
+inconsistency to be sure.** Exactly 5 screens use
+`useSafeAreaInsets`/`SafeAreaView`
+(`HomeScreen`, `SurahListScreen`, `MoreMenuScreen`, `HifzDashboardScreen`,
+`OnboardingScreen`), and cross-checking every stack's `Stack.Screen`
+options confirms this is exactly right:
+
+- 4 of the 5 (`Today`, `SurahList`, `MoreMenu`, `HifzDashboard`) are each
+  the **root** screen of their stack with `headerShown: false` explicitly
+  set, rendering their own custom "big title" instead of the native header
+  — those need, and have, manual `insets.top` padding.
+- `OnboardingScreen` renders entirely outside any navigator (`AppGate`
+  shows it directly before `NavRoot` mounts), so it has no header chrome at
+  all from any library and correctly handles its own insets.
+- Every other screen — including, importantly, `ToolsListScreen` (`Tools`
+  tab's root) and all ~24 pushed sub-screens across every stack — relies on
+  `@react-navigation/native-stack`'s own default header (`headerShown`
+  defaults `true`, not overridden), which has safe-area handling built in
+  by the library itself. These correctly have *no* manual inset code.
+
+**The apparent inconsistency, resolved:** `ToolsListScreen` was the one
+root screen that looked odd — no `headerShown: false`, no manual insets,
+yet the RN-web preview renders its "Tools" title flush at the top-left with
+no visible header bar, looking identical in style to the other four
+screens' *custom* big titles. Checked `ToolsListScreen.tsx` directly: it
+defines no title text of its own anywhere (its only string literals are the
+11 tool-tile labels) — the "Tools" text on screen is the native header's
+`title` from `ToolsStack.tsx`'s `options={{ title: "Tools" }}`. The visual
+similarity is just `react-native-web`'s native-stack header shim rendering
+minimally (no border/shadow) in this preview, not a real header being
+skipped — the actual native header component (and its safe-area handling)
+is still there and is guaranteed by the library on a real device regardless
+of how flat the web shim draws it.
+
+**Verification and its limits:** confirmed via code audit across every
+`navigation/*.tsx` file and `preview_start({name: "mobile"})`. Like
+back-button handling (iteration 8), the actual safe-area *reservation* is
+native-stack/bottom-tabs library behavior this app's code can't uniquely
+break — `react-native-web` has no real notch to observe the difference
+against, so the visual confirmation here is necessarily about *which
+screens have the responsibility* (custom title → needs manual insets, all
+do) rather than pixel-perfect notch clearance, which needs a real device.
+
+**Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 15 — Keyboard-avoiding behavior on every text-input screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** every screen with a `TextInput` for whether the keyboard could
+obscure it, with no way to bring it back into view.
+
+**Found and fixed a real gap on 2 of 5 screens.** Of the 5 screens with a
+`TextInput` (`ZakatScreen`, `SearchScreen`, `SurahListScreen`,
+`CollectionsScreen`, `PlansScreen`), only `ZakatScreen` wrapped its
+`ScrollView` in a `KeyboardAvoidingView`. `SearchScreen` and
+`SurahListScreen` don't need it — their input is a search bar fixed at the
+very top, never at risk of being covered by a keyboard opening from the
+bottom. But:
+
+- **`CollectionsScreen`** — the per-collection rename `TextInput` sits
+  inside a card that can itself be arbitrarily tall (each collection can
+  hold many saved āyāt, each rendered with Arabic text, translation, and
+  notes), and multiple collections stack in one long `ScrollView`. A rename
+  on anything but the first collection could land well below the fold.
+- **`PlansScreen`** — the "Create your own" custom-plan pages-per-day/days-
+  to-finish `TextInput` sits at the very bottom of a `ScrollView` listing
+  every preset plan above it (confirmed live: had to scroll past ~6 preset
+  plan cards to reach it).
+
+Neither had any keyboard-avoiding treatment at all.
+
+**Fix:** wrapped both screens' `ScrollView` in a `KeyboardAvoidingView`
+(`behavior={Platform.OS === "ios" ? "padding" : undefined}`), copying
+`ZakatScreen`'s exact, already-established pattern rather than inventing a
+new one — this codebase had already solved this problem once; the other
+two screens just hadn't been brought in line with it.
+
+**Live-verified functionally** via `preview_start({name: "mobile"})`:
+created a collection and renamed it via the (now keyboard-avoiding-wrapped)
+input — typed correctly, value updated. Scrolled to `PlansScreen`'s custom
+plan section, changed "Pages a day" from 2 to 5 — value updated, estimated
+duration recalculated (121 days) and finish date recalculated
+(2027-01-20) correctly. Functional correctness confirmed; actual
+on-device keyboard-obscuring behavior itself isn't observable in a desktop
+browser (no virtual keyboard triggers there), same verification-gap caveat
+as other native-only perspectives in this loop — the fix's mechanism
+(`KeyboardAvoidingView`'s `padding` behavior) is the same one already
+shipped and presumably working in `ZakatScreen`, not a new unverified
+pattern.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass; `pnpm lint` (full workspace) — 0 errors, same 13
+pre-existing warnings. Both files re-formatted with `prettier --write`
+after the JSX wrap.
+
+**Commit:** `fix(mobile): wrap Collections and Plans screens in
+KeyboardAvoidingView`.
+
+---
+
+## Iteration 16 — Android permission request flow (location, notifications)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether every location/notification permission request has a
+clear rationale and a real path forward after denial, across
+`QiblaScreen`, `MosqueFinderScreen`, `PrayerTimesScreen` (location) and
+`notifier.ts` + its three reminder-toggle callers (notifications).
+
+**Notifications: clean.** `notifier.ts`'s `schedule()` explicitly checks
+`cachedPermission !== "granted"` before ever touching the OS scheduler —
+denied permission means reminders silently don't fire, never an error.
+`PlanReminderToggle`/`AdhkarReminderToggle`/`SunnahFastReminderToggle` all
+request permission on first toggle-on and — with an explicit comment
+explaining the choice — leave the switch off rather than show "on" for a
+reminder that will never fire. `app.json`'s `expo-location` plugin config
+already has a real rationale string
+(`"Allow Ummah Library to use your location to calculate prayer times and
+find the qibla direction."`) for the OS's own permission dialog.
+
+**Found and fixed a real, consistent gap on the 3 location screens.**
+`QiblaScreen`, `MosqueFinderScreen`, and `PrayerTimesScreen` each had the
+identical denied-state message — "Location permission was denied. Enable
+it in Settings." — with only a "Try again" button that just re-calls
+`requestForegroundPermissionsAsync()`. On a *permanent* denial (Android's
+"Don't ask again", or iOS after a first decline), the OS won't re-show the
+prompt — the button silently re-fails with no visible feedback, and the
+message tells the user to go to Settings without giving them any way to
+get there. `Linking.openSettings()` was never called anywhere in the app.
+
+**Fix:** added a second "Open Settings" button next to "Try again" in all
+three denied-state blocks, calling `Linking.openSettings()` — the standard
+cross-platform API for this exact situation. Kept "Try again" too, since
+it's still the faster path for a non-permanent denial.
+
+**Smaller, related gap logged but not fixed:** the notification-permission
+toggles (`PlanReminderToggle` etc.) give *zero* feedback when denied beyond
+the switch not flipping on — no message explaining why, unlike the location
+screens' full denied-state view. Lower severity (a secondary toggle buried
+in a settings-adjacent surface, not a primary screen's core flow) and would
+need a different UI treatment (inline text or a toast near a switch, not a
+full-screen state), so treating it as a separate, smaller follow-up rather
+than bundling it into this fix.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass; `pnpm lint` — 0 errors, same 13 pre-existing warnings.
+Live-verified via `preview_start({name: "mobile"})` that `QiblaScreen`
+still renders its normal initial state after the change. **Not verified
+live:** the actual denied-state render with both buttons — inducing a real
+permission denial isn't reliably scriptable against a desktop browser's
+geolocation prompt in this environment. The change itself is a small,
+purely additive JSX addition (one more `Pressable` in an existing row),
+already confirmed syntactically and structurally sound by typecheck, lint,
+and `prettier`.
+
+**Commit:** `fix(mobile): add an Open Settings shortcut when location
+permission is denied`.
+
+---
+
+## Iteration 17 — Audio playback interruption (calls, other apps, headphone unplug)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether reciter audio handles an OS-level interruption
+(incoming call, another app taking audio focus, headphone route change)
+gracefully instead of desyncing the queue, skipping āyāt, or leaving the
+UI stuck on "playing" while actually silent.
+
+**Result: clean — this is the most deliberately-engineered perspective
+I've audited yet.** [`useSurahAudio.ts:382-401`](apps/mobile/src/audio/useSurahAudio.ts#L382)'s
+`playbackStatusUpdate` listener explicitly distinguishes "paused because
+buffering" from "paused after having genuinely played" and names the exact
+scenario this loop's perspective is asking about, verbatim, in its own
+comment: *"the screen went off, a call came in, or the system took audio
+focus. Freeze the stall watchdog so we hold on this āyah and its highlight
+instead of skipping ahead; playback (and the poll below) resumes us when
+audio comes back."* Concretely: the stall-detection timer (which would
+otherwise skip a hung āyah after `STALL_MS`) is deliberately cleared during
+an external pause so the queue doesn't advance or skip while genuinely
+interrupted, and the word-highlight poll (which drives `resyncRef`, see
+[iteration 11](#iteration-11--app-backgroundforeground-transitions-timers-audio-in-flight-requests))
+naturally re-syncs once playback resumes.
+
+Also relevant and already in place: `setAudioModeAsync({ playsInSilentMode:
+true, shouldPlayInBackground: true })` keeps the audio session alive
+through backgrounding rather than fighting `expo-audio`'s own auto-pause,
+and lock-screen/notification media controls (`setActiveForLockScreen`) are
+armed once per session — the comment there notes "an external pause is
+handled by the pause-aware watchdog below," i.e. the lock-screen pause
+button and a genuine OS interruption both flow through the exact same,
+already-audited path.
+
+**Verification and its limits:** this is native OS behavior (telephony
+interruption, audio-focus arbitration, headphone route change) that
+`react-native-web` has no equivalent for and this environment has no real
+device to phone-call-interrupt. Calling this clean based on the code: the
+comment doesn't just claim generic robustness, it names this exact
+perspective's three scenarios (call, other-app audio focus, "screen went
+off") as the specific case being handled, which is stronger evidence than
+most "nothing custom exists to break" findings elsewhere in this loop —
+but it's still reasoning from source, not a watched device.
+
+**Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 18 — Offline/airplane-mode behavior on every network-touching screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether losing network access mid-session produces a graceful
+error instead of a crash, blank screen, or infinite spinner — across both
+never-fetched and previously-fetched content.
+
+**Result: clean, and unusually thoroughly live-verified.** `api.ts` wraps
+essentially every content call — surahs, translations, tafsir, hadith
+sections, 99 names, adhkar, search corpus — in `readThrough`
+([`offlineCache.ts`](apps/mobile/src/offlineCache.ts)): network-first,
+falling back to a disk cache on failure, with age/size-bounded eviction
+(`stores-corrupt.test.ts`'s sibling for this layer). Verified live via
+`preview_start({name: "mobile"})` by overriding `window.fetch` to always
+reject (a true offline simulation, not just a slow/flaky one):
+
+- **Never-fetched content while offline** (`SurahReader` for a fresh
+  surah, `NamesScreen`): each showed a clear, screen-specific error
+  ("Couldn't load this surah.", "Could not load names. Check your
+  connection.") — no crash, no blank screen, no stuck spinner.
+- **Previously-fetched content while offline** (re-opened a surah already
+  loaded earlier in the same session): also showed the "couldn't load"
+  error rather than serving the disk cache.
+
+**Traced the cache-miss to its actual cause rather than reporting it as a
+bug:** `expo-file-system`'s own web implementation
+(`node_modules/expo-file-system/src/ExpoFileSystem.web.ts`) is an explicit,
+official stub — every method just does `console.warn('expo-file-system is
+not supported on web')` and no-ops. `offlineCache.ts` already wraps every
+disk operation in try/catch, so this isn't a crash — it's `readThrough`
+correctly and silently falling back to "network only" on a platform whose
+disk-cache primitive doesn't exist. This is a **verification-environment
+limitation, not an app bug**: on a real Android/iOS device,
+`expo-file-system` is a mature, fully-native module and the disk cache
+should genuinely serve previously-fetched content offline there — the
+RN-web preview simply cannot exercise that specific path, the same class of
+gap as several native-only perspectives earlier in this loop, just traced
+all the way to its root cause this time instead of stopping at "can't
+verify."
+
+**Not fixing anything** — there's nothing broken in this app's own code to
+fix; the graceful-degradation design (try/catch everywhere, no raw
+propagation of a cache failure) is exactly what made the web-only
+cache-unavailability a non-event instead of a crash.
+
+**Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 19 — Notification scheduling correctness (DST, timezone change, reboot, exact-alarm restrictions)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** whether scheduled prayer/adhkar/plan reminders survive a
+device reboot, stay correct across a DST transition or timezone change, and
+account for Android 12+/13+'s exact-alarm restrictions.
+
+**Device reboot: clean.** `expo-notifications`' own bundled native
+`AndroidManifest.xml`
+(`node_modules/expo-notifications/android/src/main/AndroidManifest.xml`)
+declares `RECEIVE_BOOT_COMPLETED` and a receiver listening for
+`BOOT_COMPLETED`/`REBOOT`/`QUICKBOOT_POWERON`/`MY_PACKAGE_REPLACED` — the
+library re-registers scheduled alarms after a reboot itself. Nothing for
+this app to add; Expo's autolinking merges the module's manifest into the
+build automatically regardless of `app.json`'s own `android.permissions`
+list.
+
+**DST / timezone change: reasonably mitigated, one narrow residual edge
+case that's an industry-wide hard problem, not unique to this app.**
+`reminders.ts`'s `now: () => Date` clock and `localDateStr` resolve against
+whatever the *current* system timezone is at call time (plain JS `Date`
+semantics), and `App.tsx` re-syncs every reminder family on every
+foreground (`AppState` → `syncAll()`), which cancels and reschedules each
+notification's next occurrence freshly. Since `expo-notifications` schedules
+a `DATE` trigger as a fixed absolute instant, the one gap this can't
+self-heal is: a DST shift happening **while the app hasn't been
+foregrounded since**, before the reminder fires — the already-scheduled
+instant doesn't move with the new offset (a ~1-hour drift, up to twice a
+year). This is the same limitation any app using one-shot absolute-instant
+OS notifications has (as opposed to `RRULE`-based recurring calendar
+alarms, a different, heavier native API this app doesn't use) — not
+something worth re-architecting notification scheduling to chase.
+
+**Real, Play-Store-policy-sensitive finding — documented, not
+unilaterally fixed.** `expo-notifications`' Android scheduling delegate
+(`ExpoSchedulingDelegate.kt:106`) already degrades gracefully:
+`if (SDK < 31 || alarmManager.canScheduleExactAlarms()) setExactAndAllowWhileIdle(...)
+else setAndAllowWhileIdle(...)` — no crash either way. But neither the
+library's manifest nor this app's `app.json` declares
+`SCHEDULE_EXACT_ALARM` (or the newer, auto-granted-but-category-restricted
+`USE_EXACT_ALARM`), so on Android 13+ `canScheduleExactAlarms()` will be
+`false` and every prayer/adhkar/plan reminder falls back to **inexact**
+delivery — the OS batches it within a window (commonly a few minutes,
+more under Doze) rather than firing at the precise minute. For a prayer-times
+app this is a real, user-visible precision trade-off, not a hypothetical
+one. **Deliberately not adding the permission in this iteration**:
+`SCHEDULE_EXACT_ALARM` is a Google Play–restricted permission as of the
+2024 policy tightening — declaring it requires a Play Console justification
+and apps outside the alarm-clock/calendar category risk rejection or
+removal for using it without qualifying. That's a product/policy decision
+with real Play Store submission consequences, not a pure code-correctness
+call this loop should make unilaterally. Flagging it clearly so the team
+can decide: accept inexact delivery on Android 13+ (current, safe default),
+or pursue `SCHEDULE_EXACT_ALARM` with the Play Console justification that
+requires.
+
+**Commit:** none (clean iteration; the exact-alarm trade-off is a
+documented decision point, not a code change).
+
+---
+
+## Iteration 20 — AsyncStorage/SQLite migration safety and corrupted-store recovery
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-02`
+
+**Checked:** every stored-value-shape migration in the mobile app (distinct
+from [iteration 12](#iteration-12--kill-and-restore-state-integrity)'s
+corrupt-JSON recovery — this is about *old-version-to-new-version* shape
+upgrades). No direct `expo-sqlite` usage exists in `apps/mobile` (SQLite
+usage in the codebase is `packages/adapters`' `SqliteHifzRepository`, a
+different, server-side concern per `ARCHITECTURE.md`) — mobile persistence
+is entirely `AsyncStorage`-backed.
+
+**Found four migrations, three already correct, one fixed to match them.**
+- `tasbih-store.ts` (the per-phrase-progress shape, see
+  [iteration 3](#iteration-3--tasbih-per-phrase-counter-mobiles-opposite-bug-from-web)) —
+  reads the old flat shape, migrates, and `await setJSON(...)`s it back.
+  Tested.
+- `sync-settings.ts`'s `readSyncSecret()` — migrates a pre-hardening
+  plaintext `AsyncStorage` secret into the secure Keychain/Keystore store,
+  then removes the plaintext copy, with a doc comment explicitly promising
+  "an app update never looks like sync silently turned off." Tested
+  (`sync-settings.test.ts`: "migrates a pre-hardening plaintext secret...").
+- `sync-meta.ts`'s `loadMeta()` — migrates the legacy `"millis:counter:node"`
+  string HLC clock format to the structural `{millis, counter, node}` shape.
+  Tested (`sync-meta.test.ts`: "migrates the legacy... string clock").
+- **`theme.tsx`'s `loadTheme()` — migrated the legacy `"dark"`/`"light"`
+  theme keys to the new named-theme keys (`"obsidian"`/`"ivory"`) correctly
+  in memory, every launch, but never wrote the migrated value back to
+  storage** (`setThemeKey(key)` with no matching `setString(KEYS.theme,
+  key)`, unlike every other migration above). Functionally harmless on its
+  own — the map-on-read is deterministic and reapplied every launch, so the
+  displayed theme was always correct — but it meant the legacy value would
+  persist in storage (and whatever a sync round pushes to another device)
+  forever, and the `LEGACY` compatibility table could never be safely
+  removed from the codebase.
+
+**Fix:** [`theme.tsx`](apps/mobile/src/theme.tsx) now calls `setString`
+once, only on an actual legacy-value hit, to persist the migrated key —
+matching the write-back pattern every other migration in this codebase
+already uses.
+
+**Live-verified** via `preview_start({name: "mobile"})`: wrote
+`localStorage.setItem('ul.theme', 'dark')` (simulating a pre-migration
+install), reloaded — before the fix, `ul.theme` stayed `"dark"` after
+launch (correct theme rendered, but storage never updated); after the fix,
+it reads `"obsidian"` post-launch, confirmed by re-checking after the
+reload completed.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass (no test added for this specific change — `theme.tsx`
+is UI-context code outside this repo's store/`.test.ts` convention,
+consistent with earlier iterations' findings on what does and doesn't get
+unit-tested here); `pnpm lint` — 0 errors, same 13 pre-existing warnings.
+
+**Commit:** `fix(mobile): persist the migrated theme key instead of
+re-mapping it every launch`.

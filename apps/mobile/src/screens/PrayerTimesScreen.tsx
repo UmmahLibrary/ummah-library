@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import * as Location from "expo-location";
 import {
   CALCULATION_METHODS,
@@ -26,7 +26,11 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
 import { expoNotifier } from "../notifier";
-import { type PrayerReminderPrefs, readPrayerReminderPrefs, setPrayerReminder } from "../prayer-reminders";
+import {
+  type PrayerReminderPrefs,
+  readPrayerReminderPrefs,
+  setPrayerReminder,
+} from "../prayer-reminders";
 import { onSyncApplied } from "../lib/sync/sync-events";
 
 type Status = "idle" | "locating" | "loading" | "ready" | "error" | "denied";
@@ -125,7 +129,10 @@ export function PrayerTimesScreen() {
   async function locate() {
     setStatus("locating");
     const { status: perm } = await Location.requestForegroundPermissionsAsync();
-    if (perm !== "granted") { setStatus("denied"); return; }
+    if (perm !== "granted") {
+      setStatus("denied");
+      return;
+    }
     try {
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
       const c: Coordinates = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
@@ -168,7 +175,8 @@ export function PrayerTimesScreen() {
 
   const upcoming = timings ? nextPrayer(timings, now) : null;
   const next: { name: PrayerName; at: Date } | null =
-    upcoming ?? (timings ? { name: "fajr", at: new Date(new Date(timings.fajr).getTime() + 86400000) } : null);
+    upcoming ??
+    (timings ? { name: "fajr", at: new Date(new Date(timings.fajr).getTime() + 86400000) } : null);
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
@@ -193,9 +201,14 @@ export function PrayerTimesScreen() {
       {status === "denied" && (
         <View style={styles.cta}>
           <Text style={styles.ctaText}>Location permission was denied. Enable it in Settings.</Text>
-          <Pressable style={styles.chip} onPress={locate}>
-            <Text style={styles.chipText}>Try again</Text>
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <Pressable style={styles.chip} onPress={locate}>
+              <Text style={styles.chipText}>Try again</Text>
+            </Pressable>
+            <Pressable style={styles.chip} onPress={() => void Linking.openSettings()}>
+              <Text style={styles.chipText}>Open Settings</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -245,7 +258,9 @@ export function PrayerTimesScreen() {
                   <Text style={[styles.prayerName, isNext && styles.prayerNameNext]}>
                     {PRAYER_LABELS[name]}
                   </Text>
-                  <Text style={[styles.prayerAr, isNext && styles.prayerArNext]}>{PRAYER_AR[name]}</Text>
+                  <Text style={[styles.prayerAr, isNext && styles.prayerArNext]}>
+                    {PRAYER_AR[name]}
+                  </Text>
                   <Text style={[styles.prayerTime, isNext && styles.prayerTimeNext]}>
                     {fmtPrayerTime(timings[name], coords)}
                   </Text>
@@ -256,7 +271,12 @@ export function PrayerTimesScreen() {
                       accessibilityRole="switch"
                       accessibilityState={{ checked: !!reminders[name] }}
                     >
-                      <Icon name="bell" size={17} color={reminders[name] ? colors.accent : colors.faint} sw={1.8} />
+                      <Icon
+                        name="bell"
+                        size={17}
+                        color={reminders[name] ? colors.accent : colors.faint}
+                        sw={1.8}
+                      />
                     </Pressable>
                   )}
                 </View>
@@ -416,13 +436,25 @@ function makeStyles(c: Palette) {
     prayerNameNext: { color: c.accent, fontFamily: FONT.bold },
     prayerAr: { color: c.faint, fontSize: 17, writingDirection: "rtl", fontFamily: FONT.ar },
     prayerArNext: { color: c.accentHi },
-    prayerTime: { color: c.muted, fontSize: 16, fontFamily: FONT.semibold, width: 78, textAlign: "right" },
+    prayerTime: {
+      color: c.muted,
+      fontSize: 16,
+      fontFamily: FONT.semibold,
+      width: 78,
+      textAlign: "right",
+    },
     prayerTimeNext: { color: c.accent },
     controls: { gap: 16 },
     pickerRow: { gap: 8 },
     label: { color: c.muted, fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
     chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-    chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: c.border },
+    chip: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
     chipOn: { borderColor: c.accent, backgroundColor: c.accentSoft },
     chipText: { color: c.muted, fontSize: 13 },
     chipTextOn: { color: c.accent, fontWeight: "600" },

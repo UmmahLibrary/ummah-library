@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,12 +12,7 @@ import {
   View,
 } from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import {
-  ayahKey,
-  deleteCollection,
-  renameCollection,
-  toggleAyah,
-} from "@ummahlibrary/core";
+import { ayahKey, deleteCollection, renameCollection, toggleAyah } from "@ummahlibrary/core";
 import { Khatam, Icon } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { FONT } from "../fonts";
@@ -44,7 +41,9 @@ export function CollectionsScreen({ navigation }: Props) {
     let active = true;
     void api
       .listSurahs()
-      .then((s) => active && setNames(Object.fromEntries(s.map((x) => [x.number, x.transliteration]))))
+      .then(
+        (s) => active && setNames(Object.fromEntries(s.map((x) => [x.number, x.transliteration]))),
+      )
       .catch(() => undefined);
     return () => {
       active = false;
@@ -96,98 +95,110 @@ export function CollectionsScreen({ navigation }: Props) {
   function confirmDelete(id: string, name: string) {
     Alert.alert("Delete collection", `Delete “${name}”? Saved āyāt in it will be removed.`, [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => updateCollections(deleteCollection(collections, id)) },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => updateCollections(deleteCollection(collections, id)),
+      },
     ]);
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-      <View style={styles.head}>
-        <Text style={styles.h1}>Bookmarks</Text>
-        <Pressable style={styles.newBtn} onPress={addCollection}>
-          <Text style={styles.newText}>＋ New</Text>
-        </Pressable>
-      </View>
-      <Text style={styles.subtitle}>Your saved verses and collections</Text>
-
-      {collections.length === 0 ? (
-        <View style={styles.empty}>
-          <Khatam size={64} color={colors.accent} sw={1.2} opacity={0.5} />
-          <Text style={styles.emptyTitle}>No bookmarks yet</Text>
-          <Text style={styles.emptyBody}>
-            Open any surah, tap <Text style={styles.accentInline}>☆ Save</Text> under an āyah, and
-            group your favourite verses into collections here.
-          </Text>
-          <Pressable style={styles.emptyBtn} onPress={addCollection}>
-            <Text style={styles.emptyBtnText}>Create a collection</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+        <View style={styles.head}>
+          <Text style={styles.h1}>Bookmarks</Text>
+          <Pressable style={styles.newBtn} onPress={addCollection}>
+            <Text style={styles.newText}>＋ New</Text>
           </Pressable>
         </View>
-      ) : (
-        collections.map((c) => (
-          <View key={c.id} style={styles.collection}>
-            <View style={styles.collHead}>
-              <TextInput
-                style={styles.collName}
-                value={c.name}
-                onChangeText={(t) => updateCollections(renameCollection(collections, c.id, t))}
-              />
-              <Text style={styles.collCount}>{c.ayahs.length}</Text>
-              <Pressable onPress={() => confirmDelete(c.id, c.name)} hitSlop={8}>
-                <Text style={styles.delete}>Delete</Text>
-              </Pressable>
-            </View>
+        <Text style={styles.subtitle}>Your saved verses and collections</Text>
 
-            {c.ayahs.length === 0 ? (
-              <Text style={styles.muted}>Empty — save āyāt to it from the reader.</Text>
-            ) : (
-              c.ayahs.map((ref) => {
-                const key = ayahKey(ref);
-                const text = texts[key];
-                const note = notes[key];
-                const label = names[ref.sura] ? `${names[ref.sura]} · ${key}` : key;
-                return (
-                  <View key={key} style={styles.card}>
-                    <View style={styles.cardHead}>
-                      <Text style={styles.ref}>{label}</Text>
+        {collections.length === 0 ? (
+          <View style={styles.empty}>
+            <Khatam size={64} color={colors.accent} sw={1.2} opacity={0.5} />
+            <Text style={styles.emptyTitle}>No bookmarks yet</Text>
+            <Text style={styles.emptyBody}>
+              Open any surah, tap <Text style={styles.accentInline}>☆ Save</Text> under an āyah, and
+              group your favourite verses into collections here.
+            </Text>
+            <Pressable style={styles.emptyBtn} onPress={addCollection}>
+              <Text style={styles.emptyBtnText}>Create a collection</Text>
+            </Pressable>
+          </View>
+        ) : (
+          collections.map((c) => (
+            <View key={c.id} style={styles.collection}>
+              <View style={styles.collHead}>
+                <TextInput
+                  style={styles.collName}
+                  value={c.name}
+                  onChangeText={(t) => updateCollections(renameCollection(collections, c.id, t))}
+                />
+                <Text style={styles.collCount}>{c.ayahs.length}</Text>
+                <Pressable onPress={() => confirmDelete(c.id, c.name)} hitSlop={8}>
+                  <Text style={styles.delete}>Delete</Text>
+                </Pressable>
+              </View>
+
+              {c.ayahs.length === 0 ? (
+                <Text style={styles.muted}>Empty — save āyāt to it from the reader.</Text>
+              ) : (
+                c.ayahs.map((ref) => {
+                  const key = ayahKey(ref);
+                  const text = texts[key];
+                  const note = notes[key];
+                  const label = names[ref.sura] ? `${names[ref.sura]} · ${key}` : key;
+                  return (
+                    <View key={key} style={styles.card}>
+                      <View style={styles.cardHead}>
+                        <Text style={styles.ref}>{label}</Text>
+                        <Pressable
+                          onPress={() => updateCollections(toggleAyah(collections, c.id, ref))}
+                          hitSlop={8}
+                          accessibilityLabel={`Remove ${key}`}
+                        >
+                          <Text style={styles.remove}>✕</Text>
+                        </Pressable>
+                      </View>
+
+                      {!text ? (
+                        <ActivityIndicator color={colors.accent} style={styles.loading} />
+                      ) : (
+                        <>
+                          {text.ar ? <Text style={styles.arabic}>{text.ar}</Text> : null}
+                          {text.tr ? <Text style={styles.translation}>{text.tr}</Text> : null}
+                        </>
+                      )}
+
+                      {note ? <Text style={styles.note}>{note}</Text> : null}
+
                       <Pressable
-                        onPress={() => updateCollections(toggleAyah(collections, c.id, ref))}
-                        hitSlop={8}
-                        accessibilityLabel={`Remove ${key}`}
+                        style={styles.open}
+                        onPress={() =>
+                          navigation
+                            .getParent()
+                            ?.navigate("Read", {
+                              screen: "SurahReader",
+                              params: { surah: ref.sura },
+                            } as never)
+                        }
                       >
-                        <Text style={styles.remove}>✕</Text>
+                        <Text style={styles.openText}>Open in reader</Text>
+                        <Icon name="arrowR" size={15} color={colors.accent} sw={1.8} />
                       </Pressable>
                     </View>
-
-                    {!text ? (
-                      <ActivityIndicator color={colors.accent} style={styles.loading} />
-                    ) : (
-                      <>
-                        {text.ar ? <Text style={styles.arabic}>{text.ar}</Text> : null}
-                        {text.tr ? <Text style={styles.translation}>{text.tr}</Text> : null}
-                      </>
-                    )}
-
-                    {note ? <Text style={styles.note}>{note}</Text> : null}
-
-                    <Pressable
-                      style={styles.open}
-                      onPress={() =>
-                        navigation
-                          .getParent()
-                          ?.navigate("Read", { screen: "SurahReader", params: { surah: ref.sura } } as never)
-                      }
-                    >
-                      <Text style={styles.openText}>Open in reader</Text>
-                      <Icon name="arrowR" size={15} color={colors.accent} sw={1.8} />
-                    </Pressable>
-                  </View>
-                );
-              })
-            )}
-          </View>
-        ))
-      )}
-    </ScrollView>
+                  );
+                })
+              )}
+            </View>
+          ))
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -208,7 +219,13 @@ function makeStyles(c: Palette) {
     subtitle: { color: c.muted, fontSize: 14, marginBottom: 10 },
     empty: { alignItems: "center", paddingVertical: 44, gap: 14 },
     emptyTitle: { color: c.fg, fontSize: 18, fontWeight: "700" },
-    emptyBody: { color: c.muted, fontSize: 14.5, lineHeight: 23, textAlign: "center", maxWidth: 360 },
+    emptyBody: {
+      color: c.muted,
+      fontSize: 14.5,
+      lineHeight: 23,
+      textAlign: "center",
+      maxWidth: 360,
+    },
     accentInline: { color: c.accent, fontWeight: "700" },
     emptyBtn: {
       marginTop: 6,

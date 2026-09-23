@@ -67,7 +67,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const saved = await getString(KEYS.theme);
     if (!saved) return;
     const key = VALID.has(saved) ? (saved as ThemeKey) : LEGACY[saved];
-    if (key) setThemeKey(key);
+    if (key) {
+      setThemeKey(key);
+      // Unlike the other legacy migrations in this codebase (tasbih-store,
+      // sync-settings), a mapped legacy value was never written back — every
+      // launch re-read "dark"/"light" and re-mapped it in memory, correct but
+      // silently perpetuating the legacy value in storage (and in whatever a
+      // sync round pushes) forever. Persist the migrated key once, same as
+      // the others.
+      if (!VALID.has(saved)) void setString(KEYS.theme, key);
+    }
   }, []);
 
   // Load on mount, and re-apply when a sync round pulls a theme from another device.
