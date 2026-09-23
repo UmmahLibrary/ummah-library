@@ -5263,3 +5263,46 @@ changed, so the lint/typecheck/test gate wasn't re-run (nothing to
 regress; tree was green from iteration 92 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 94 — B15, cycle 3: safe-area/notch handling, the perspective iteration 54's mislabeling actually covers — re-verified under its correct number
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-10`
+
+**Checked:** [iteration 14](#iteration-14--safe-areanotch-handling-on-every-screen)
+found exactly 5 screens with manual `useSafeAreaInsets`/`SafeAreaView`
+handling (the 4 stack-root screens with `headerShown: false`, plus
+`OnboardingScreen` outside any navigator), every other screen
+correctly relying on native-stack's built-in handling.
+[Iteration 54](#iteration-54--b14-revisited-the-errorboundarys-own-fallback-has-no-safe-area-awareness) —
+mislabeled "B14" per iteration 93's correction, but genuinely this
+perspective's cycle-2 deepening — found and fixed the `ErrorBoundary`
+fallback rendering with zero safe-area context because `App.tsx`
+mounted it **outside** `SafeAreaProvider`, and reordered the providers.
+This pass re-ran both checks fresh against everything batches 4–10
+added, rather than assuming either still held.
+
+**Both invariants confirmed unchanged, precisely.** Re-grepped
+`useSafeAreaInsets`/`SafeAreaView` app-wide: still exactly the same 6
+files — the original 5 screens plus `ErrorBoundary.tsx` from iteration
+54's fix, no new manual-inset screen added or removed. Re-grepped
+every navigation stack for `headerShown: false`: still exactly the
+same 4 stack-root screens (`Today`, `SurahList`, `MoreMenu`,
+`HifzDashboard`) — no new custom-header root screen was added in the
+~40 iterations since that would need manual insets but might have been
+missed. Re-read `App.tsx`'s provider order directly: `SafeAreaProvider`
+still wraps `ErrorBoundary`, not the reverse — iteration 54's fix is
+still in place.
+
+**Clean — both findings hold exactly as before, confirmed fresh rather
+than assumed from the historical record.** No code change.
+
+**Verification:** targeted grep audit
+(`useSafeAreaInsets`/`SafeAreaView` app-wide, `headerShown` across
+every `navigation/*.tsx`, `App.tsx`'s provider nesting); no source
+changed, so the lint/typecheck/test gate wasn't re-run (nothing to
+regress; tree was green from iteration 93 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).

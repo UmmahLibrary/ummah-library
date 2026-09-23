@@ -1,15 +1,10 @@
 {
-  "iteration": 93,
+  "iteration": 94,
   "cycle": 3,
-  "perspectiveIndex": 14,
+  "perspectiveIndex": 15,
   "batch": "mobile-stabilization-10",
-  "consecutiveCleanIterations": 2,
+  "consecutiveCleanIterations": 3,
   "history": [
-    {
-      "iteration": 90,
-      "perspective": "B12, cycle 3 - the sync-reload race found again in theme.tsx and HijriCalendarScreen, a third confirmed in RamadanScreen and deferred",
-      "outcome": "GAP FOUND AND FIXED x2: theme.tsx and HijriCalendarScreen. Third instance confirmed and deferred."
-    },
     {
       "iteration": 91,
       "perspective": "B12 continued - the RamadanScreen fix, plus closing out the full onSyncApplied sweep",
@@ -23,7 +18,12 @@
     {
       "iteration": 93,
       "perspective": "B14, cycle 3 - tablet layout, actually revisited for the first time since cycle 1 (a record-keeping gap, not a code one)",
-      "outcome": "PROCESS CORRECTION: iteration 54's 'B14 revisited' heading was mislabeled - its content matches item 15 (safe-area), not item 14 (tablet), so cycle 2 silently never covered tablet layout. Did the deepening now: re-verified+refined iteration 13's ZakatScreen finding with precise measurement (12px gap, not 'huge' - the real mechanism is a 754px-wide mostly-empty flex:1 label container), and found a materially worse NEW instance in PlansScreen's custom-plan form (a numeric input 939px wide on a 1024px viewport). Still deferred to a packages/ui design-system primitive, per iteration 13's own reasoning, now with concrete numbers."
+      "outcome": "PROCESS CORRECTION + finding: iteration 54's 'B14' heading was mislabeled (actually item 15). Refined the ZakatScreen finding with precise measurement and found a materially worse new instance in PlansScreen (939px-wide numeric input). Deferred to a packages/ui primitive per the original reasoning."
+    },
+    {
+      "iteration": 94,
+      "perspective": "B15, cycle 3 - safe-area/notch handling, the perspective iteration 54's mislabeling actually covers",
+      "outcome": "CLEAN, re-verified: both the 6-file manual-inset invariant and the SafeAreaProvider-wraps-ErrorBoundary provider order confirmed unchanged after 40+ iterations of other changes."
     }
   ]
 }
