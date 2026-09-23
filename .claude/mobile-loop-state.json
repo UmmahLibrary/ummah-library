@@ -1,15 +1,10 @@
 {
-  "iteration": 94,
+  "iteration": 95,
   "cycle": 3,
-  "perspectiveIndex": 15,
+  "perspectiveIndex": 16,
   "batch": "mobile-stabilization-10",
-  "consecutiveCleanIterations": 3,
+  "consecutiveCleanIterations": 4,
   "history": [
-    {
-      "iteration": 91,
-      "perspective": "B12 continued - the RamadanScreen fix, plus closing out the full onSyncApplied sweep",
-      "outcome": "GAP FOUND AND FIXED: RamadanScreen. CLOSES the multi-iteration onSyncApplied sweep: 6 real instances found/fixed total."
-    },
     {
       "iteration": 92,
       "perspective": "B13, cycle 3 - kill-and-restore, re-run against the three new writeGen guards added this cycle",
@@ -17,13 +12,18 @@
     },
     {
       "iteration": 93,
-      "perspective": "B14, cycle 3 - tablet layout, actually revisited for the first time since cycle 1 (a record-keeping gap, not a code one)",
-      "outcome": "PROCESS CORRECTION + finding: iteration 54's 'B14' heading was mislabeled (actually item 15). Refined the ZakatScreen finding with precise measurement and found a materially worse new instance in PlansScreen (939px-wide numeric input). Deferred to a packages/ui primitive per the original reasoning."
+      "perspective": "B14, cycle 3 - tablet layout, actually revisited for the first time since cycle 1",
+      "outcome": "PROCESS CORRECTION + finding: refined the ZakatScreen finding with precise measurement, found a materially worse new instance in PlansScreen (939px-wide numeric input). Deferred to a packages/ui primitive."
     },
     {
       "iteration": 94,
       "perspective": "B15, cycle 3 - safe-area/notch handling, the perspective iteration 54's mislabeling actually covers",
-      "outcome": "CLEAN, re-verified: both the 6-file manual-inset invariant and the SafeAreaProvider-wraps-ErrorBoundary provider order confirmed unchanged after 40+ iterations of other changes."
+      "outcome": "CLEAN, re-verified: both the 6-file manual-inset invariant and provider order confirmed unchanged after 40+ iterations."
+    },
+    {
+      "iteration": 95,
+      "perspective": "B17 (Android permission request flow), plus a note refining iteration 93's numbering diagnosis",
+      "outcome": "PROCESS NOTE: this log's B<N> labels don't consistently mean catalogue item N (a longer-than-one-iteration convention drift around iterations 54-65) - established going forward to always search by title text, never trust B<N> labels. CLEAN finding: traced a stale-notification-permission-cache hypothesis and ruled it out - the flow self-heals via requestPermission()'s own fresh OS query."
     }
   ]
 }

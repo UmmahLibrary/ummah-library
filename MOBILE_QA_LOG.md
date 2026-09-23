@@ -5306,3 +5306,74 @@ changed, so the lint/typecheck/test gate wasn't re-run (nothing to
 regress; tree was green from iteration 93 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 95 — B17, cycle 3: permission request flow — a note on this log's own numbering, then a stale-cache hypothesis traced and ruled out
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-10`
+
+**A brief, necessary correction to iteration 93's own diagnosis.**
+Tracing this perspective's history surfaced why iteration 54's
+heading read "B14" while its content was safe-area (catalogue item
+15): this log's "B<N>" labels don't consistently mean "catalogue item
+N" — in the stretch around iterations 54–65 they instead track "the
+same perspective **cycle 1's own iteration N** covered" (e.g. "B25"
+= whatever cycle-1's *iteration 25* was about, not catalogue item 25),
+and because cycle 1's iteration numbers run one behind the catalogue
+item numbers from iteration 8 onward (iteration 7 combined catalogue
+items 7 and 8), that convention *looks* like a simple off-by-one from
+outside. Iteration 93's actual load-bearing claim — that no entry
+anywhere in cycle 2 covers "Tablet/iPad layout" by content — is still
+correct and was verified by full-text search, not by trusting a label;
+nothing there needs retracting. But "mislabeled by one" undersold what
+turned out to be a longer stretch of inconsistent numbering
+convention, not a single isolated error. Noting this plainly rather
+than let a future iteration re-discover the same confusion: **from
+here on, find each perspective's cycle-1/cycle-2 entries by searching
+for the catalogue item's own title text, never by trusting a "B<N>"
+label.**
+
+**Checked:** [iteration 16](#iteration-16--android-permission-request-flow-location-notifications)
+added "Open Settings" to the three location-permission screens;
+[iteration 56](#iteration-56--b16-revisited-closing-the-notification-permission-feedback-gap-logged-in-iteration-16)
+closed the notification-permission-toggle feedback gap at all 5 call
+sites via the shared `notification-permission-alert.ts` iteration 78
+(this same cycle) later hardened with a `.catch()`. Re-confirmed the
+sweep is still complete: re-grepped every `expoNotifier.permission()`/
+`requestForegroundPermissionsAsync()` call site app-wide — still
+exactly the same 5 notification sites + 3 location sites, no new
+permission-requiring feature added since.
+
+**Investigated a genuinely new question this cycle: does the cached
+notification-permission status ever go stale after the user grants
+permission in OS Settings and returns to the app?**
+`notifier.ts`'s `cachedPermission` is refreshed only by `initNotifier()`
+(once, at cold start) and `requestPermission()` — there's no
+`AppState`-foreground refresh for it at all, unlike the sync/reminder
+re-sync this loop already confirmed elsewhere this cycle. Traced the
+exact call shape at all 5 toggle sites rather than assuming this
+matters: `if (next && permission() !== "granted") { await
+requestPermission(); if (permission() !== "granted") { notifyDenied();
+return; } }`. The first, possibly-stale read is only a **gate**
+deciding whether to call `requestPermission()` at all — and
+`requestPermission()` itself always makes a real, fresh
+`Notifications.requestPermissionsAsync()` call to the OS (which
+resolves immediately with the current status, no dialog, when
+permission is already granted or permanently denied), refreshing the
+cache from ground truth before the second check ever reads it. A user
+who denies, grants in Settings, and returns to re-tap the same toggle
+gets the correct, fresh result on that very next attempt — the
+staleness is real but harmless by construction, not a persisting bug.
+
+**Clean — ruled out with precise tracing, not assumed safe.** No code
+change.
+
+**Verification:** targeted code-reading audit (`notifier.ts`, all 5
+toggle call sites, a fresh grep for every permission call site
+app-wide); no source changed, so the lint/typecheck/test gate wasn't
+re-run (nothing to regress; tree was green from iteration 94
+immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
