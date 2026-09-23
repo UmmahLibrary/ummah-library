@@ -5,6 +5,7 @@ import { type UpcomingSunnahFast, upcomingSunnahFasts } from "@ummahlibrary/core
 import { useTheme } from "../theme";
 import { FONT } from "../fonts";
 import { expoNotifier } from "../notifier";
+import { notifyNotificationPermissionDenied } from "../notification-permission-alert";
 import { readSunnahFastReminderOn, setSunnahFastReminderOn } from "../sunnah-fast-reminders";
 
 const GLYPH: Record<UpcomingSunnahFast["kind"], string> = {
@@ -64,7 +65,10 @@ export function SunnahFastReminderToggle({ adjust = 0 }: { adjust?: number }) {
     // switch off rather than showing "on" for a reminder that will never fire.
     if (nextOn && expoNotifier.permission() !== "granted") {
       await expoNotifier.requestPermission();
-      if (expoNotifier.permission() !== "granted") return;
+      if (expoNotifier.permission() !== "granted") {
+        notifyNotificationPermissionDenied("Sunnah fast reminder");
+        return;
+      }
     }
     setOn(nextOn);
     await setSunnahFastReminderOn(nextOn);

@@ -197,8 +197,15 @@ export default function App() {
 
   if (!fontsLoaded && !fontError) return null;
   return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
+    // SafeAreaProvider wraps ErrorBoundary, not the other way around: it's a
+    // stable, well-established layout primitive (not app logic that could
+    // itself be the thing crashing — same reasoning as importing
+    // expo-splash-screen into ErrorBoundary), and the boundary's own
+    // fallback UI needs real inset values to clear a notch/home-indicator
+    // when it renders — a class component can't call useSafeAreaInsets(),
+    // but it can still use the SafeAreaView it exposes.
+    <SafeAreaProvider>
+      <ErrorBoundary>
         <ThemeProvider>
           <I18nProvider>
             <SettingsProvider>
@@ -208,7 +215,7 @@ export default function App() {
             </SettingsProvider>
           </I18nProvider>
         </ThemeProvider>
-      </SafeAreaProvider>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }

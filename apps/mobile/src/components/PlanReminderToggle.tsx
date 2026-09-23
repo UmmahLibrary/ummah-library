@@ -6,6 +6,7 @@ import { DEFAULT_PLAN_REMINDER_TIME } from "@ummahlibrary/core";
 import { useTheme } from "../theme";
 import { FONT } from "../fonts";
 import { expoNotifier } from "../notifier";
+import { notifyNotificationPermissionDenied } from "../notification-permission-alert";
 import { readPlanReminderPref, setPlanReminderPref } from "../plan-reminders";
 
 /** `"20:00"` → `"8:00 PM"`. */
@@ -53,7 +54,10 @@ export function PlanReminderToggle() {
     // switch off rather than showing "on" for a reminder that will never fire.
     if (next && expoNotifier.permission() !== "granted") {
       await expoNotifier.requestPermission();
-      if (expoNotifier.permission() !== "granted") return;
+      if (expoNotifier.permission() !== "granted") {
+        notifyNotificationPermissionDenied("daily reading reminder");
+        return;
+      }
     }
     setOn(next);
     await setPlanReminderPref({ on: next, time });

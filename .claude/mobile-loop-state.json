@@ -1,29 +1,29 @@
 {
-  "iteration": 50,
+  "iteration": 60,
   "cycle": 2,
-  "perspectiveIndex": 10,
-  "batch": "mobile-stabilization-05",
+  "perspectiveIndex": 20,
+  "batch": "mobile-stabilization-06",
   "consecutiveCleanIterations": 0,
   "history": [
     {
-      "iteration": 47,
-      "perspective": "Cycle 2, A7/A8 - Zakat reset scope and negative-amount defense in depth",
-      "outcome": "GAP FOUND AND FIXED: extended the currency-only load-time self-heal to every decimal field."
+      "iteration": 57,
+      "perspective": "Cycle 2, B17 - audio interruption handling",
+      "outcome": "clean - shared hook covers both reader screens."
     },
     {
-      "iteration": 48,
-      "perspective": "Cycle 2, B9 - back-button handling re-checked, ErrorBoundary interaction",
-      "outcome": "clean - re-confirmed invariant still holds, checked ErrorBoundary's navigation-reset behavior is deliberate."
+      "iteration": 58,
+      "perspective": "Cycle 2, B18 - offline behavior, mosque search and sync",
+      "outcome": "clean - deliberate, documented design."
     },
     {
-      "iteration": 49,
-      "perspective": "Cycle 2, B10 - deep-link handling, closing the cosmetic gap left open",
-      "outcome": "GAP FOUND AND FIXED: fixed the 'Page NaN' title-bar flash on a malformed deep link."
+      "iteration": 59,
+      "perspective": "Cycle 2, B19 - reminder re-sync race safety",
+      "outcome": "clean - idempotent by construction, different shape from the state-race class."
     },
     {
-      "iteration": 50,
-      "perspective": "Cycle 2, B11 - splash screen timing, ErrorBoundary interaction",
-      "outcome": "GAP FOUND AND FIXED (serious): a crash before AppGate mounts never called hideAsync(), leaving the native splash covering the ErrorBoundary's recovery UI forever. Added hideAsync() to ErrorBoundary.componentDidCatch, guaranteed regardless of where the crash happened. Live-verified the mechanism still works via iteration 31's crash-test method. Batch 5 complete."
+      "iteration": 60,
+      "perspective": "Cycle 2, B20 - migration write-back census",
+      "outcome": "GAP FOUND AND FIXED: this loop's own iteration 47 fix (ZakatScreen decimal self-heal) had the exact never-written-back bug iteration 20 found and fixed in theme.tsx. Fixed with the identical write-back-once pattern, live-verified. Batch 6 complete - ready to push and open PR."
     }
   ]
 }

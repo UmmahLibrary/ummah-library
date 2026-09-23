@@ -2714,3 +2714,511 @@ Ten iterations, six with real fixes:
   hiding the recovery UI it exists to show.
 
 Full detail for each is above, under its own `## Iteration N` heading.
+
+## Iteration 51 — B12 revisited: the exact race fixed in PrayerTracker was also live in LibraryContext, app-wide
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 11 confirmed app background/foreground handling
+was clean via three purpose-built mechanisms, with an honest note that it
+couldn't be tested on a real device. This pass took a different angle:
+having just fixed a sync-reload-vs-local-write race in `PrayerTrackerScreen`
+(iteration 44), and confirmed here that `AppState` foregrounding and a
+sync round both funnel through the same `onSyncApplied` signal
+(`App.tsx`'s foreground listener → `syncIfEnabled()` →
+`emitSyncApplied()`), the natural question was: does any *other*
+`onSyncApplied` consumer have local writes that could race the exact same
+way?
+
+**Found the same bug, at much higher stakes.**
+[`LibraryContext.tsx`](apps/mobile/src/state/LibraryContext.tsx) — a
+provider mounted for the app's **entire lifetime**, wrapping every screen
+— has a `load()` that unconditionally overwrites 7 pieces of state
+(`bookmarks`, `lastRead`, `hifz`, `streak`, `reviewLog`, `collections`,
+`notes`) on every `onSyncApplied` event, and **8 separate writer
+functions** (`toggleBookmark`, `setLastRead`, `setHifzCard`,
+`removeHifzCard`, `touchStreak`, `recordReview`, `updateCollections`,
+`setNote`) that could each race it exactly the way `PrayerTrackerScreen`
+did — a reload's read starting before a tap's write lands, resolving
+after, silently reverting it. Unlike the prayer tracker (a single
+screen), this is the app's most heavily-used shared state: **hifz review
+progress, a bookmark toggle, a saved note, or a new collection could all
+be silently reverted** by an ill-timed sync or foreground event — a
+correctness bug in the app's core memorization-tracking feature, not a
+cosmetic one.
+
+**Fix:** applied the identical `writeGen`/`ignoreStale` pattern from
+iteration 44 — a generation counter bumped by all 8 writers, with
+`load()`'s 7 reads each discarding their result if a newer local write
+landed since they were dispatched. No new abstraction needed: `ignoreStale`
+(added to [`utils.ts`](apps/mobile/src/utils.ts) in iteration 44) is
+already generic and directly reusable here.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136 (the
+mechanism itself is already covered by iteration 44's 3 deterministic
+`ignoreStale` tests — this iteration is a new *consumer* of an
+already-tested guard, not new logic needing its own test). Live-verified
+the normal, non-racing paths still work in the browser preview:
+navigating to a surah correctly wrote `ul.lastRead`, and triggering a
+collection save correctly persisted to `ul.collections` — no new console
+errors, only pre-existing unrelated noise already documented earlier in
+this log.
+
+**Commit:** `apps/mobile/src/state/LibraryContext.tsx`.
+
+## Iteration 52 — B12 continued: the same race, a third time, in SettingsContext
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** having found the sync-reload-vs-local-write race in two
+places now (`PrayerTrackerScreen`, `LibraryContext`), checked every
+remaining `onSyncApplied` consumer for the same shape. Of the 11
+consumers, most are pure read/refresh screens (Home, mosque finder,
+names, prayer times, Qibla — no local writes to race). One more had it.
+
+**Found and fixed the same bug a third time.**
+[`SettingsContext.tsx`](apps/mobile/src/state/SettingsContext.tsx) —
+another app-lifetime provider — has `loadPrefs()` conditionally
+overwriting 9 preference fields on every `onSyncApplied` event, and 10 of
+its 11 writer functions (every one except `setTafsirCompare`, which
+isn't reloaded on sync at all — confirmed `ul.tafsirCompare` isn't a
+`MANAGED_KEYS` entry, so there's nothing for it to race) could each have
+their tap silently reverted by a reload that started before the tap's
+write landed. Lower stakes than `LibraryContext` (a reverted preference
+toggle, not lost hifz progress), but the same real bug, and by now a
+recognizable pattern worth closing everywhere it appears rather than
+leaving it half-fixed.
+
+**Fix:** the same `writeGen`/`ignoreStale` pattern, applied precisely —
+guarded every setter `loadPrefs` touches, left `setTafsirCompare`
+unguarded since it genuinely has nothing to race.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136.
+Live-verified in the browser preview that the app still boots and
+renders correctly with `SettingsProvider` (which wraps the entire app)
+initializing without error — no new console errors beyond the same
+pre-existing, already-documented noise. Couldn't complete a full toggle-
+by-toggle click-through this session (the RN-web preview's navigation
+state has been unreliable for click-based navigation throughout this
+session, documented honestly rather than claiming a check that didn't
+finish) — the mechanism itself is the same one already proven correct by
+iteration 44's deterministic tests and this iteration's own static
+verification.
+
+**Commit:** `apps/mobile/src/state/SettingsContext.tsx`.
+
+## Iteration 53 — B13 revisited: kill-and-restore, re-verified through the race-guard changes just made
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 12 found strong, structural corruption protection
+(every read goes through `getJSON`'s try/catch + shape-validator, lint-
+enforced by ADR 0028) and live-verified it by writing truncated/wrong-
+shape JSON and cold-reloading. This pass asked whether the `writeGen`/
+`ignoreStale` guard just added to `LibraryContext` and `SettingsContext`
+(iterations 51-52) could have disturbed that — a legitimate question,
+since `stores-corrupt.test.ts` tests the *store* layer
+(`library-store.ts`) directly, not the *React context* layer where the
+new wrapping code actually lives, so nothing in the existing test suite
+directly exercises `load()`'s corruption handling through the new guard.
+
+**Reasoned through it first, then verified live rather than trusting the
+reasoning alone.** `writeGen` is an in-memory `useRef`, always `0` on a
+fresh mount; `ignoreStale`'s check (`currentGen() === gen`) is trivially
+true on the very first `load()` call since nothing could have written
+locally yet — so the guard is a no-op for a cold start by construction,
+and the existing corruption-fallback behavior should flow through
+untouched. Confirmed this live: wrote the same class of corruption
+iteration 12 used, through the exact fields the new guard now wraps
+(truncated `ul.hifz`, wrong-shape `ul.bookmarks`, empty `ul.editions`,
+wrong-type `ul.scale`), cold-reloaded, and got the same clean result —
+Home rendered fully and correctly, including "Continue reading" from the
+still-valid `ul.lastRead`, no new console errors.
+
+No fix needed; the two recent changes don't interact badly.
+
+**Verification:** live corrupted-storage check above; no code changed
+this iteration, prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 54 — B14 revisited: the ErrorBoundary's own fallback has no safe-area awareness
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 14 confirmed every screen's safe-area handling is
+correct — 5 screens with custom headers manage their own insets, every
+other screen relies on native-stack's built-in handling. This pass asked
+about a component that didn't exist yet at the time: the `ErrorBoundary`
+(added iteration 31). Its fallback is raw `View`/`Text`/`Pressable` with
+hardcoded `padding: 28` — no safe-area awareness at all.
+
+**Found a real gap, structural not cosmetic.** `App.tsx` mounts
+`ErrorBoundary` **outside** `SafeAreaProvider`
+(`<ErrorBoundary><SafeAreaProvider>...`). When the boundary catches a
+crash anywhere in the tree, its fallback renders with **zero safe-area
+context available at all** — not just unstyled, but structurally cut off
+from ever getting real inset values, since `useSafeAreaInsets()`/
+`SafeAreaView` need to be inside the Provider to work. On a real device,
+the "Something went wrong" title could render under a notch/status bar,
+and the "Try again" button could sit under the home indicator/gesture
+bar — exactly when the user most needs to reliably tap it.
+
+**Fix, two parts:**
+1. **Reordered `App.tsx`** so `SafeAreaProvider` wraps `ErrorBoundary`,
+   not the other way around. Same reasoning as importing
+   `expo-splash-screen` into the boundary (iteration 50):
+   `react-native-safe-area-context` is a stable, widely-used third-party
+   layout primitive, not app logic that could itself be the thing
+   crashing, so it's safe to keep it outside the boundary's protection
+   scope, and doing so is what actually lets the fallback use it.
+2. **`ErrorBoundary.tsx`** now renders its container as `SafeAreaView`
+   (from `react-native-safe-area-context`, matching every other screen in
+   this app) instead of a plain `View` — usable directly in a class
+   component's `render()` without needing the `useSafeAreaInsets` hook,
+   which a class component can't call anyway.
+
+**Live-verified** via the browser preview, reusing the established crash-
+test method: forced a real crash, confirmed the fallback still renders
+correctly with the reordered providers and `SafeAreaView` in place (no
+new errors — specifically no "used outside a Provider" failure, which
+would have been the direct evidence a reordering mistake produces), then
+reverted the temporary throw and confirmed normal app boot still works
+unchanged.
+
+**Verification:** `pnpm lint` clean (after removing the now-unused
+`View` import), `pnpm --filter @ummahlibrary/mobile typecheck` clean,
+`pnpm --filter @ummahlibrary/mobile test` 136/136, plus the live
+crash/recovery and normal-boot checks above.
+
+**Commit:** `apps/mobile/App.tsx`, `apps/mobile/src/ErrorBoundary.tsx`.
+
+## Iteration 55 — B15 revisited: two more keyboard-avoiding gaps, and a correction to iterations 8/48
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Correction to iterations 8 and 48: "zero `Modal` usage" was wrong,
+found while re-grepping `TextInput` sites for this pass.** Both searched
+for a direct `from "react-native"` import or a literal `"Modal }"`
+substring — neither matches how this app actually imports RN components:
+through [`Type.tsx`](apps/mobile/src/Type.tsx)'s `export * from
+"react-native"` wildcard, `import { Modal, ... } from "../Type"`. Two
+components genuinely use `Modal`:
+[`SaveToCollection.tsx`](apps/mobile/src/components/SaveToCollection.tsx)
+and
+[`TranslationManager.tsx`](apps/mobile/src/components/TranslationManager.tsx).
+Checked whether this actually matters for the back-button conclusion
+those iterations drew: it doesn't — both already pass `onRequestClose`
+(`SaveToCollection`: `() => setOpen(false)`; `TranslationManager`:
+`onClose`), which is what Android's hardware back needs to close a
+`Modal` at all. The underlying finding (back-button handling is fine)
+turns out to still hold, but the search that was supposed to prove it
+had a real blind spot — noting this here rather than letting a wrong
+"zero usage" claim stand uncorrected in two separate entries.
+
+**Checked those same two `Modal`s — plus `SyncSection`'s `TextInput`,
+also missed by iteration 15's original 5-screen list — for the keyboard-
+avoiding question this perspective is actually about.**
+
+- **`TranslationManager`**: search field sits at the very top of the
+  modal panel, above its `ScrollView` — same "search bar can't be
+  obscured" exemption iteration 15 already established for
+  `SearchScreen`/`SurahListScreen`. No fix needed.
+- **`SaveToCollection`**: found a real gap. Its "New collection…" input
+  sits near the *bottom* of a bottom-sheet modal
+  (`justifyContent: "flex-end"` — pinned to the screen's bottom edge,
+  where an opening keyboard would land directly on top of it), with zero
+  keyboard-avoiding treatment. This is the exact risk shape iteration 15
+  already fixed for `CollectionsScreen`/`PlansScreen`.
+- **`SyncSection`**: found a second real gap. It's a plain component
+  rendered inside `SettingsScreen`'s `ScrollView`, past the halfway point
+  of a 519-line screen (theme, language, reading, then sync, then data —
+  confirmed by reading the render order) — same shape, and
+  `SettingsScreen` itself had no `KeyboardAvoidingView` at all.
+
+**Fix:** wrapped `SaveToCollection`'s modal sheet, and `SettingsScreen`'s
+top-level `ScrollView`, in `KeyboardAvoidingView` — the identical,
+already-established `behavior={Platform.OS === "ios" ? "padding" :
+undefined}` pattern from every prior fix of this exact class.
+
+**Process note, caught before it did damage:** ran `pnpm format`
+(workspace-wide `prettier --write`) intending to format just these two
+edited files, and it reformatted **~285 files across the entire
+monorepo** — the shared prettier config apparently differs from what's
+currently checked in for a large swath of the repo, unrelated to this
+change. Caught it via `git status` before committing, reverted every file
+except the two actually touched (`git checkout -- <explicit file list>`,
+excluding the two intended ones), and re-verified the gate afterward.
+Noting this as a real trap for a mobile-scoped loop to watch for:
+`pnpm format`/`prettier --write` with no path argument formats
+everything, not just what changed.
+
+**Live verification:** typecheck/lint/tests all pass and the diffs were
+confirmed to be exactly the intended change (the large line count in
+`SettingsScreen.tsx`'s diff is the expected, unavoidable re-indentation
+cascade from wrapping the top-level returned JSX, not stray
+reformatting). Couldn't complete a click-through of the actual modal in
+the browser preview this session — the same stale-navigation-ref
+unreliability documented in iterations 44 and 52 recurred — so this
+one rests on strong static verification rather than an in-browser
+click-test; noting the gap honestly rather than claiming a check that
+didn't finish.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136.
+
+**Commit:** `apps/mobile/src/components/SaveToCollection.tsx`,
+`apps/mobile/src/screens/SettingsScreen.tsx`.
+
+## Iteration 56 — B16 revisited: closing the notification-permission feedback gap logged in iteration 16
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 16 found and fixed the location-permission gap
+(added "Open Settings"), and explicitly logged a smaller, related gap as
+a deliberate follow-up rather than bundling it in: notification-permission
+denial gives *zero* feedback beyond a switch silently not flipping on.
+This pass closed that follow-up.
+
+**Scope was bigger than the original note implied — same silent-failure
+shape at 5 call sites, not the "one smaller gap" it read as.** Grepped
+every `expoNotifier.permission()` check app-wide:
+`PlanReminderToggle`, `AdhkarReminderToggle`, `SunnahFastReminderToggle`,
+and per-toggle handlers in `HijriCalendarScreen` and `PrayerTimesScreen`
+all have the identical `if (... !== "granted") return;` — permission
+denied, switch snaps back off, nothing explains why or what to do about
+it.
+
+**Fix:** added
+[`notification-permission-alert.ts`](apps/mobile/src/notification-permission-alert.ts)
+— a small shared `Alert.alert` with an "Open Settings" action
+(`Linking.openSettings()`, same mechanism iteration 16 already
+established for the location screens), parameterized by a short reminder
+label so each of the 5 call sites keeps its own accurate copy ("daily
+reading reminder", "adhkar reminder", "Sunnah fast reminder", "event
+reminder", `` `${PRAYER_LABELS[name]} reminder` `` for the per-prayer
+case) instead of one generic message. Kept this out of `notifier.ts`
+deliberately — that file is a clean `Notifier` port adapter with no UI
+concerns, and mixing in `Alert`/`Linking` would cross that layering on
+purpose for no real gain.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136.
+Live-verified the app still boots normally with the new imports across
+all 5 touched files — no new console errors. **Not verified live:** the
+actual Alert dialog itself, for the same reason iteration 16 couldn't —
+inducing a real permission denial isn't reliably scriptable against a
+desktop browser. Confirmed `git status` shows only the intended files
+before committing, after the accidental workspace-wide format in the
+previous iteration.
+
+**Commit:** `apps/mobile/src/notification-permission-alert.ts` (new),
+`apps/mobile/src/components/PlanReminderToggle.tsx`,
+`apps/mobile/src/components/AdhkarReminderToggle.tsx`,
+`apps/mobile/src/components/SunnahFastReminderToggle.tsx`,
+`apps/mobile/src/screens/HijriCalendarScreen.tsx`,
+`apps/mobile/src/screens/PrayerTimesScreen.tsx`.
+
+## Iteration 57 — B17 revisited: audio interruption handling confirmed uniform across both reader screens and both audio sources
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 17 found `useSurahAudio.ts`'s interruption
+handling (pausing the stall watchdog during a call/audio-focus loss
+instead of skipping ahead) to be unusually well-engineered, verified
+against `SurahReaderScreen` specifically. This pass checked two things
+that finding didn't explicitly rule out: does `JuzReaderScreen` (the
+other audio-playing screen) share the same protection, or does it have
+its own, separately-implemented audio logic that could have its own
+gaps? And does the interruption handling apply the same way to offline
+(downloaded) playback as it does to streaming — iteration 29 fixed a
+corrupted-download bug in the same audio subsystem since this perspective
+was last checked, so it's worth confirming that later work didn't
+introduce a divergent code path.
+
+**Both confirmed clean, by construction rather than by inspecting two
+separate implementations.** `JuzReaderScreen` and `SurahReaderScreen`
+both call the exact same `useSurahAudio(reciter)` hook — not a duplicated
+or screen-specific copy — so iteration 17's finding covers both screens
+automatically; there's only one interruption-handling implementation to
+have a bug in, and it's already been audited. For the offline-vs-
+streaming question: traced the source resolution directly —
+`const src = local ?? timing.url` picks between a downloaded file:// path
+and a remote https:// stream URL, but both feed into the same
+`ensurePlayer(src)` call and the same `playbackStatusUpdate` listener
+downstream. The interruption-handling code operates on player *status
+events*, not the source URL, so there's no branch point where offline
+playback could have ended up with weaker protection than streaming.
+
+No fix needed.
+
+**Verification:** read-only iteration; prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 58 — B18 revisited: mosque search and sync's offline behavior
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** iteration 18 traced `readThrough`'s graceful-degradation
+design across content screens (surahs, tafsir, hadith, names). This pass
+checked two things outside that scope: `getNearbyMosques` (deliberately
+audited for accuracy, not offline behavior, back in iteration 39), and
+the sync feature (added well after iteration 18's original check, and
+the subject of three of this loop's own recent fixes).
+
+**Both clean, and both by deliberate design already documented
+elsewhere.** `getNearbyMosques` calls `getJson` directly, not
+`readThrough` — same as `getPrayerTimes`, and for the same reason
+`api.ts`'s own header comment states for prayer times: this is live,
+location-dependent data, not stable content a reader "opened," so caching
+it risks silently serving a stale/wrong result rather than a clear
+"unavailable." Going offline surfaces through the same already-audited
+`getJson` retry/error path iteration 39 confirmed `MosqueFinderScreen`
+handles cleanly (with a retry option on every terminal state, iteration
+39's own fix).
+
+For sync: **background auto-sync** (`App.tsx`'s foreground trigger)
+swallows a network failure completely silently
+(`.catch(() => {})`) — deliberate, matching ADR 0033's documented intent
+("failures are swallowed"), and correct for a non-blocking background
+operation the user never explicitly triggered. **Manual "Sync now"**
+(`SyncSection.tsx`) is the opposite, correctly: wrapped in try/catch,
+sets an explicit `SERVER_DOWN` status message on failure — the right
+distinction, since a user-initiated action needs feedback a silent
+background one doesn't.
+
+No fix needed.
+
+**Verification:** read-only iteration; prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 59 — B19 revisited: reminder re-sync race safety and the ErrorBoundary's effect-execution question
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** two things downstream of this cycle's own earlier fixes.
+First: `App.tsx`'s `syncAll()` re-runs every reminder family's sync on
+every `AppState` foreground event — the exact same trigger shape as the
+`onSyncApplied`-driven reload race iterations 44/51/52 found and fixed
+elsewhere. Does `syncPrayerReminders`/`syncAdhkarReminder`/
+`syncPlanReminder` have the same vulnerability if foreground events fire
+in quick succession (a rapid app-switch-away-and-back)? Second: does the
+`ErrorBoundary` (added iteration 31, wraps everything *below* `App()`'s
+own top-level `useEffect`) risk re-running that effect — and re-triggering
+`syncAll()` redundantly — every time its "Try again" resets state?
+
+**Both confirmed clean, for different reasons than the state-race
+fixes.** The reminder-sync functions are **idempotent by construction**,
+not merely lucky: each does `notifier.cancel(id)` then conditionally
+`notifier.schedule({ id, ... })`, and `notifier.ts`'s `schedule()` always
+replaces any existing notification under that same stable `id`
+(`identifier: n.id`). Two overlapping calls converge to whichever
+prefs-read resolved last — never a duplicate, never a crash, unlike the
+React-state race class this cycle found (which specifically caused **data
+loss** by clobbering fresher in-memory state with a stale reload). This
+is a fundamentally different shape: no in-memory state to clobber, since
+each call reads storage fresh and the notifier's own replace-by-id
+semantics absorb any interleaving harmlessly.
+
+For the `ErrorBoundary` question: re-traced the actual component tree.
+`App()`'s top-level `useEffect` (which calls `syncAll()`) belongs to
+`App()` itself, which sits *outside* what the boundary wraps — the
+boundary's `render()` swapping to its fallback and back only re-renders
+`this.props.children`, never `App()` itself, so `App()`'s effects run
+once per real app mount, not once per boundary reset. No redundant
+`syncAll()` risk from the recovery flow.
+
+**Verification:** read-only iteration; prior gate (136/136) holds.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 60 — B20 revisited: my own iteration 47 fix had the exact bug iteration 20 fixed (closes out batch 6)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-06`
+
+**Checked:** re-confirmed the migration-file census (`tasbih-store.ts`,
+`sync-settings.ts`, `sync-meta.ts`, `theme.tsx`) is still exhaustive — no
+new migration exists in the codebase. Then checked this loop's own recent
+work for the same shape of bug iteration 20 found in `theme.tsx`: a
+read-time correction that updates in-memory state but is never written
+back to storage.
+
+**Found it, in code I wrote myself two batches ago.**
+[`ZakatScreen.tsx`](apps/mobile/src/screens/ZakatScreen.tsx)'s decimal
+self-heal (iteration 47) called `setState(healed)` but never `setJSON`
+— the exact same gap `theme.tsx` had before iteration 20's fix, down to
+the mechanism: correct on screen every launch (the heal re-runs
+deterministically), but the raw, uncorrected value sits in storage
+indefinitely, including whatever a sync round pushes to another device.
+Slightly narrower in practice than the original `theme.tsx` case, since
+`update()` here spreads the *entire* current state on any field edit
+(so touching any other field on the screen incidentally persists the
+healed values too) — but opening Zakat, seeing already-corrected values,
+and leaving without touching anything would leave the raw value in
+storage forever, same as before.
+
+**Fix:** write back once, only when healing actually changed something
+— identical pattern to `theme.tsx`'s fix (`if (!VALID.has(saved)) void
+setString(...)`), adapted with a `JSON.stringify` comparison since this
+is a multi-field object rather than a single key.
+
+**Live-verified**, same method as iteration 47's original check: wrote a
+corrupted `ul.zakat` value directly to storage (`"75.5.2"`, `"-500"`,
+`"-50"`), navigated to the screen fresh, and confirmed `localStorage`
+now holds the *healed* values (`"75.52"`, `"500"`, `"50"`) — the raw
+corrupted value is gone, not just displayed-over.
+
+**Verification:** `pnpm lint` clean, `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm --filter @ummahlibrary/mobile test` 136/136,
+plus the live write-back check above.
+
+**Commit:** `apps/mobile/src/screens/ZakatScreen.tsx`.
+
+---
+
+## Batch 6 summary (iterations 51–60, branch `mobile-stabilization-06`)
+
+Cycle 2, continued. Ten iterations, six with real fixes — several of
+real consequence:
+
+- **51:** found the exact sync-reload race iteration 44 fixed in
+  `PrayerTrackerScreen` also live in `LibraryContext` — the app's global
+  state for bookmarks, hifz progress, notes, and collections. Fixed with
+  the same `writeGen`/`ignoreStale` pattern.
+- **52:** found and fixed the same race a third time, in
+  `SettingsContext`; closed the sweep — every other `onSyncApplied`
+  consumer confirmed clean.
+- **53:** re-verified kill-and-restore integrity through the new
+  race-guard code — no regression.
+- **54:** found the `ErrorBoundary`'s fallback UI had zero safe-area
+  context, structurally — reordered `App.tsx`'s providers and switched
+  to `SafeAreaView`.
+- **55:** closed two more keyboard-obscured-input gaps iteration 15's
+  original sweep missed, and corrected a wrong "zero `Modal` usage"
+  claim standing in two earlier entries.
+- **56:** closed a notification-permission-denial feedback gap at all 5
+  places it existed, not just the one iteration 16 had logged.
+- **57–58:** audio interruption handling and offline behavior confirmed
+  clean across newer code (JuzReader, sync) this loop has since touched.
+- **59:** confirmed the reminder-sync functions are idempotent by
+  construction, immune to the state-race class found elsewhere this
+  cycle.
+- **60:** found this loop's own iteration-47 fix was missing the exact
+  write-back iteration 20 had already established as the correct
+  pattern — fixed for consistency.
+
+Full detail for each is above, under its own `## Iteration N` heading.

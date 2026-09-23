@@ -9,10 +9,16 @@
  * Deliberately uses raw `react-native` primitives and hardcoded colors
  * instead of this app's own `Type`/theme layer: whatever crashed could in
  * principle be *inside* that layer, so the fallback stays independent of
- * everything it exists to catch failures in.
+ * everything it exists to catch failures in. `SafeAreaView` is the one
+ * exception, for the same reason `expo-splash-screen` is: a stable, widely
+ * -used third-party layout primitive, not app logic — `App.tsx` mounts
+ * `SafeAreaProvider` *outside* this boundary specifically so it survives a
+ * crash anywhere inside and this fallback can still clear a notch/home
+ * indicator instead of rendering flush against the edges.
  */
 import { Component, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 
 interface Props {
@@ -45,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
           <Text style={styles.title}>Something went wrong</Text>
           <Text style={styles.message}>
             The app hit an unexpected error. Your data stays on this device either way —
@@ -54,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <Pressable style={styles.button} onPress={this.reset} accessibilityRole="button">
             <Text style={styles.buttonText}>Try again</Text>
           </Pressable>
-        </View>
+        </SafeAreaView>
       );
     }
     return this.props.children;

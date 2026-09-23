@@ -58,7 +58,7 @@ export function ZakatScreen() {
 
   useEffect(() => {
     void getJSON<Partial<ZakatState>>(KEYS.zakat, {}, isObjectRecord).then((saved) => {
-      setState({
+      const healed: ZakatState = {
         ...DEFAULT,
         ...saved,
         // Self-heal a currency value saved before sanitizeCurrency existed —
@@ -81,7 +81,18 @@ export function ZakatScreen() {
             sanitizeDecimal(v),
           ]),
         ),
-      });
+      };
+      setState(healed);
+      // Unlike the currency self-heal above (already re-sanitized on every
+      // change), a healed value was never written back on its own — every
+      // launch re-read the same raw value and re-healed it in memory,
+      // correct on screen but silently perpetuating the raw value in
+      // storage (and in whatever a sync round pushes) forever, the same gap
+      // iteration 20 found and fixed for theme.tsx. Persist once, only when
+      // healing actually changed something.
+      if (JSON.stringify(healed) !== JSON.stringify({ ...DEFAULT, ...saved })) {
+        void setJSON(KEYS.zakat, healed);
+      }
     });
   }, []);
 

@@ -26,6 +26,7 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
 import { expoNotifier } from "../notifier";
+import { notifyNotificationPermissionDenied } from "../notification-permission-alert";
 import {
   type PrayerReminderPrefs,
   readPrayerReminderPrefs,
@@ -168,7 +169,10 @@ export function PrayerTimesScreen() {
     // reminder off rather than showing "on" for one that will never fire.
     if (turningOn && expoNotifier.permission() !== "granted") {
       await expoNotifier.requestPermission();
-      if (expoNotifier.permission() !== "granted") return;
+      if (expoNotifier.permission() !== "granted") {
+        notifyNotificationPermissionDenied(`${PRAYER_LABELS[name]} reminder`);
+        return;
+      }
     }
     setReminders(await setPrayerReminder(name, turningOn));
   }
