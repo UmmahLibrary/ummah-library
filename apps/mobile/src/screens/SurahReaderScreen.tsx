@@ -144,9 +144,12 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     });
   }, [navigation, meta, colors, openMushaf]);
 
-  // Mark continue-reading and stop audio when leaving the surah.
+  // Mark continue-reading and stop audio when leaving the surah. Guarded the
+  // same way as the fetch effect below — an out-of-range `n` (a malformed
+  // deep link, e.g. ummahlibrary://surah/9999) must not poison the stored
+  // "continue reading" surah with a number no surah list will ever match.
   useEffect(() => {
-    setLastRead(n);
+    if (Number.isInteger(n) && n >= 1 && n <= TOTAL_SURAHS) setLastRead(n);
     return () => audio.stop();
   }, [n]);
 

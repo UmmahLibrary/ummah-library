@@ -15,14 +15,6 @@ export function adhkarToday(d = new Date()): string {
   return localISODate(d);
 }
 
-/** Format an ISO timestamp or Date as a short locale time (e.g. "5:32 AM"). */
-export function fmtTime(src: string | Date): string {
-  const d = typeof src === "string" ? new Date(src) : src;
-  // A polar-invalid prayer time arrives as "" (→ Invalid Date); show a dash, not "Invalid Date".
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
 /** The IANA timezone for a location, or `undefined` if none is known/valid. */
 export function timeZoneFor(coords: Coordinates | null | undefined): string | undefined {
   if (!coords) return undefined;
