@@ -3,6 +3,7 @@ import {
   adhkarToday,
   fmtCountdown,
   fmtPrayerTime,
+  ignoreStale,
   localISODate,
   weekdayOfGregorian,
 } from "./utils";
@@ -61,6 +62,32 @@ describe("fmtPrayerTime", () => {
     expect(fmtPrayerTime(instant, london)).toBe(expected);
   });
 
+  it("renders correctly for a Southern Hemisphere, DST-observing location", () => {
+    // Sydney observes its own (opposite-season) DST — a distinct code path
+    // from London's northern-hemisphere summer time above.
+    const sydney = { latitude: -33.8688, longitude: 151.2093 };
+    const instant = "2026-06-21T12:00:00Z";
+    const expected = new Date(instant).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Australia/Sydney",
+    });
+    expect(fmtPrayerTime(instant, sydney)).toBe(expected);
+  });
+
+  it("renders correctly for a half-hour UTC-offset timezone", () => {
+    // India Standard Time is UTC+5:30 — a distinct code path from the
+    // whole-hour offsets covered above, in case of any truncation bug.
+    const mumbai = { latitude: 19.076, longitude: 72.8777 };
+    const instant = "2026-06-21T12:00:00Z";
+    const expected = new Date(instant).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Kolkata",
+    });
+    expect(fmtPrayerTime(instant, mumbai)).toBe(expected);
+  });
+
   it("falls back to the device timezone when coordinates are unknown", () => {
     const instant = "2026-06-21T12:00:00Z";
     const expected = new Date(instant).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -85,5 +112,39 @@ describe("weekdayOfGregorian", () => {
   it("is consistent across DST boundaries", () => {
     // Uses UTC internally, so it never drifts at clock-change midnight
     expect(weekdayOfGregorian(2025, 3, 30)).toBe(0); // 30 Mar 2025 is Sunday (EU DST start)
+  });
+});
+
+describe("ignoreStale", () => {
+  it("applies the value when no write landed since dispatch", () => {
+    const gen = 0;
+    const seen: number[] = [];
+    const wrapped = ignoreStale(() => gen, gen, (v: number) => seen.push(v));
+    wrapped(5);
+    expect(seen).toEqual([5]);
+  });
+
+  it("discards the value when a newer write landed before it resolved", () => {
+    // Simulates the exact race: a reload is dispatched (captures gen=0),
+    // a local write lands before the reload resolves (bumps gen to 1),
+    // then the reload's now-stale result arrives.
+    let gen = 0;
+    const dispatchGen = gen; // captured when the async read was dispatched
+    const seen: number[] = [];
+    const wrapped = ignoreStale(() => gen, dispatchGen, (v: number) => seen.push(v));
+
+    gen++; // a local write happens before the reload resolves
+    wrapped(999); // the reload's stale result arrives
+
+    expect(seen).toEqual([]); // discarded, not applied — the local write wins
+  });
+
+  it("a second reload dispatched after the write still applies normally", () => {
+    let gen = 0;
+    const seen: number[] = [];
+    gen++; // local write
+    const wrapped = ignoreStale(() => gen, gen, (v: number) => seen.push(v)); // fresh reload, current gen
+    wrapped(42);
+    expect(seen).toEqual([42]);
   });
 });

@@ -13,6 +13,7 @@
  */
 import { Component, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import * as SplashScreen from "expo-splash-screen";
 
 interface Props {
   children: ReactNode;
@@ -31,6 +32,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: { componentStack?: string | null }) {
     console.error("Uncaught render error:", error, info.componentStack);
+    // A crash during startup (e.g. a provider reading corrupted persisted
+    // state before AppGate ever mounts) means AppGate's own hideAsync()
+    // never fires — the native splash stays up, covering this fallback,
+    // forever. Guaranteed here regardless of where the crash happened;
+    // a no-op if the splash is already hidden.
+    void SplashScreen.hideAsync().catch(() => {});
   }
 
   private reset = () => this.setState({ error: null });

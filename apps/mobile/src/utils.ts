@@ -56,3 +56,22 @@ export function fmtCountdown(target: Date, now: Date): string {
 export function weekdayOfGregorian(year: number, month: number, day: number): number {
   return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
 }
+
+/**
+ * Wraps a state setter so a stale async result is silently discarded
+ * instead of clobbering fresher state — guards a reload (e.g. a
+ * sync-triggered `store.read()`) that raced an in-flight local write and
+ * would otherwise revert it. `currentGen` reads the live generation
+ * counter; `gen` is the value it held when the async call this wraps was
+ * dispatched. Bump the counter on every local write; the wrapped setter
+ * only fires if no write landed between dispatch and resolution.
+ */
+export function ignoreStale<T>(
+  currentGen: () => number,
+  gen: number,
+  setter: (v: T) => void,
+): (v: T) => void {
+  return (v) => {
+    if (currentGen() === gen) setter(v);
+  };
+}

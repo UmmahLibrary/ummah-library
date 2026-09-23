@@ -38,7 +38,7 @@ export function MushafPageScreen({ navigation, route }: Props) {
   const [error, setError] = useState(false);
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: `Page ${n}` });
+    navigation.setOptions({ title: isValidPageNumber(n) ? `Page ${n}` : "Page" });
   }, [navigation, n]);
 
   useEffect(() => {
