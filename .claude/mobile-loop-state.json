@@ -1,29 +1,29 @@
 {
-  "iteration": 90,
+  "iteration": 100,
   "cycle": 3,
-  "perspectiveIndex": 11,
-  "batch": "mobile-stabilization-09",
-  "consecutiveCleanIterations": 0,
+  "perspectiveIndex": 21,
+  "batch": "mobile-stabilization-10",
+  "consecutiveCleanIterations": 2,
   "history": [
     {
-      "iteration": 87,
-      "perspective": "B9, cycle 3 - back-button handling re-verified after batches 6-9, plus a pseudo-modal check",
-      "outcome": "CLEAN: zero-custom-back-handling invariant re-confirmed. New check: pseudo-modal overlay pattern search, none found."
+      "iteration": 97,
+      "perspective": "Offline/airplane-mode behavior, extended to SyncSection's turnOn() flow",
+      "outcome": "CLEAN, real gap in the sweep closed: turnOn()'s ordering investigated and ruled safe."
     },
     {
-      "iteration": 88,
-      "perspective": "B10, cycle 3 - deep links, chasing down the plans/:id question iteration 9 deferred",
-      "outcome": "OUT OF SCOPE, precisely characterized: plans/:id ignores the id on mobile, a real feature-parity gap vs web. Logged for a product decision."
+      "iteration": 98,
+      "perspective": "Notification scheduling correctness - the standing exact-alarm policy decision re-verified",
+      "outcome": "CLEAN, re-verified unchanged. Consolidated the list of standing owner-decisions for the eventual Play Store readiness summary near iteration 100."
     },
     {
-      "iteration": 89,
-      "perspective": "B11, cycle 3 - cold start/splash, a rejected-promise hypothesis ruled out, a splash/theme mismatch found",
-      "outcome": "HYPOTHESIS RULED OUT + OUT OF SCOPE finding: splash color has no light-mode variant despite theme.tsx defaulting to light Ivory on light-mode devices. Needs an asset this loop can't generate. Logged precisely."
+      "iteration": 99,
+      "perspective": "AsyncStorage migration safety, the write-back bug found a third and fourth time",
+      "outcome": "GAP FOUND AND FIXED x2: HijriCalendarScreen.tsx and RamadanScreen.tsx both independently clamp an out-of-range ul.hijriAdjust value into local state with no write-back, the same bug class iterations 20/60 already fixed twice elsewhere. Found by reasoning from the bug's shape, not keyword grep. Fixed both, live-verified."
     },
     {
-      "iteration": 90,
-      "perspective": "B12, cycle 3 - the sync-reload race found again in theme.tsx and HijriCalendarScreen, a third confirmed in RamadanScreen and deferred",
-      "outcome": "GAP FOUND AND FIXED x2: theme.tsx (setTheme/loadTheme + the legacy-migration write-back) and HijriCalendarScreen (changeAdjust/loadAdjust) both had the exact race iterations 44/51/52 already fixed elsewhere. Fixed both with writeGen/ignoreStale. Found and DEFERRED a third confirmed instance in RamadanScreen.tsx (loadRamadanData/toggleFast/toggleWorship) - logged with full detail for iteration 91 to fix immediately. ProfileScreen still unchecked. Batch 9 boundary - pushing and opening PR against mobile-stabilization-08."
+      "iteration": 100,
+      "perspective": "Secure storage of the sync recovery secret - the backup-export path, the last unchecked exit",
+      "outcome": "CLEAN, genuinely new angle: traced whether the app's own backup export could leak the plaintext secret into a shared file. Confirmed excluded unconditionally by a shared core predicate, already tested at both layers. Loop's stated 100-iteration ceiling reached; batch 10 and this run close out here (cycle 3 was not 100% clean, so this is the numeric ceiling, not the early-stop criterion)."
     }
   ]
 }
