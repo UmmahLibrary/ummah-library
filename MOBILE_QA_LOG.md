@@ -5377,3 +5377,54 @@ re-run (nothing to regress; tree was green from iteration 94
 immediately prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 96 — Audio playback interruption, cross-checked against this cycle's own error-handling fix to the same function
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-10`
+
+**Checked:** [iteration 17](#iteration-17--audio-playback-interruption-calls-other-apps-headphone-unplug)
+found `useSurahAudio.ts`'s per-āyah `playbackStatusUpdate` listener
+deliberately freezes the stall watchdog on a genuine external pause
+(call, audio-focus loss) instead of skipping ahead, naming the exact
+scenario in its own source comment. [Iteration 57](#iteration-57--b17-revisited-audio-interruption-handling-confirmed-uniform-across-both-reader-screens-and-both-audio-sources)
+confirmed this is shared by construction across `JuzReaderScreen`/
+`SurahReaderScreen` (one hook, not two copies) and across streaming vs.
+downloaded playback (same status-event path regardless of source URL).
+Neither pass could have checked something that happened since: **this
+same cycle's own iteration 69** wrapped the entire `startSession`
+function — including the exact block this interruption logic lives
+in — in a new top-level `try/catch`, to fix a genuine stuck-"Loading…"
+bug. Worth directly confirming that fix didn't quietly change how a
+real interruption behaves, rather than assuming two fixes to the same
+function can't interact.
+
+**Confirmed no interaction, by reading the current merged code
+directly rather than reasoning about it in the abstract.** The
+`playbackStatusUpdate` listener (the exact comment iteration 17 quoted
+— "the screen went off, a call came in, or the system took audio
+focus") is byte-for-byte unchanged; iteration 69's `try/catch` wraps
+*around* this block, not into it. More importantly: nothing in the
+listener's own body (`done()`, `arm()`, the `started`/`isBuffering`
+branching) throws — it's plain synchronous state mutation and timer
+calls — so iteration 69's `catch` clause can never engage during a
+genuine interruption; it only fires for the class of error it was
+built for (e.g. a storage read failing). The two fixes are provably
+orthogonal, not just probably. Also re-confirmed
+`setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground:
+true })` and every `setActiveForLockScreen` call are still present and
+unchanged.
+
+**Clean — this perspective's finding still holds after the one
+functional change to the file this loop has made.** No code change.
+
+**Verification:** targeted code-reading audit
+(`useSurahAudio.ts`'s current `playbackStatusUpdate` listener and audio-
+session config, cross-referenced against iteration 69's diff via `git
+log`); no source changed, so the lint/typecheck/test gate wasn't re-run
+(nothing to regress; tree was green from iteration 95 immediately
+prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
