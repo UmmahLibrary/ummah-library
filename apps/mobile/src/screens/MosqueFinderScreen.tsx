@@ -244,7 +244,7 @@ function makeStyles(c: Palette) {
       paddingVertical: 12,
       paddingHorizontal: 24,
     },
-    ctaBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+    ctaBtnText: { color: c.ink, fontSize: 15, fontWeight: "700" },
     radiusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
     chip: {
       paddingVertical: 8,

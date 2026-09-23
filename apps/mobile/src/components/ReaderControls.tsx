@@ -72,6 +72,10 @@ export function ReaderControls({
           <Pressable
             style={[styles.toggle, transliteration && styles.toggleOn]}
             onPress={() => onTransliteration(!transliteration)}
+            // paddingVertical: 6 + text line-height is a ~31px-tall tap
+            // target, short of the 44dp minimum — hitSlop closes the gap
+            // without changing the chip's visual size.
+            hitSlop={7}
             accessibilityRole="switch"
             accessibilityState={{ checked: transliteration }}
             accessibilityLabel="Transliteration"
@@ -81,6 +85,7 @@ export function ReaderControls({
           <Pressable
             style={[styles.toggle, wordTransliteration && styles.toggleOn]}
             onPress={() => onWordTransliteration(!wordTransliteration)}
+            hitSlop={7}
             accessibilityRole="switch"
             accessibilityState={{ checked: wordTransliteration }}
             accessibilityLabel="Word transliteration"
@@ -92,6 +97,7 @@ export function ReaderControls({
           <Pressable
             style={[styles.toggle, tapToHear && styles.toggleOn]}
             onPress={() => onTapToHear(!tapToHear)}
+            hitSlop={7}
             accessibilityRole="switch"
             accessibilityState={{ checked: tapToHear }}
             accessibilityLabel="Tap a word to hear"

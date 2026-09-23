@@ -1038,3 +1038,564 @@ unit-tested here); `pnpm lint` — 0 errors, same 13 pre-existing warnings.
 
 **Commit:** `fix(mobile): persist the migrated theme key instead of
 re-mapping it every launch`.
+
+---
+
+## Iteration 21 — Secure storage of the sync recovery secret (parity with web's hardening)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** whether mobile's recovery secret is stored at rest the same
+way web's was hardened to (per the recent `feat(sync): harden the recovery
+secret at rest (#275)` commit already on `main`).
+
+**Result: clean — this was never a mobile-lagging-behind-web gap in the
+first place.** `git show --stat 8da793c` (the hardening commit itself)
+covers **both** platforms in one PR: *"Mobile: moves it from plain
+AsyncStorage into expo-secure-store (iOS Keychain / Android Keystore). A
+pre-hardening install's plaintext copy is migrated in, in place, on first
+read. Web + extension: wraps it with a non-extractable AES-256-GCM key...
+before it touches localStorage."* — the platform-appropriate primitive for
+each (mobile gets real OS-level secure storage; web doesn't have that, so
+it gets a non-extractable wrapping key instead). Confirmed in
+[`sync-settings.ts`](apps/mobile/src/lib/sync/sync-settings.ts) (already
+reviewed in [iteration 20](#iteration-20--asyncstoragesqlite-migration-safety-and-corrupted-store-recovery)
+for its migration logic): `enableSync()` writes a **new** secret straight
+to `expo-secure-store`, never touching plaintext `AsyncStorage`; `readSyncSecret()`
+migrates a pre-hardening plaintext copy in on first read; `disableSync()`
+clears both the secure entry and any leftover legacy plaintext copy
+defensively. `expo-secure-store` is correctly listed in `app.json`'s
+`plugins`.
+
+**Bonus: closed out iteration 10's unexplained pre-existing console
+error.** While checking whether `expo-secure-store` has a web
+implementation (it does, but a real no-op one — its own `.web.ts` is a bare
+`export default {}`, so `SecureStore.getItemAsync`/`setItemAsync` correctly
+*throw* on web, which `sync-settings.ts`'s try/catch already anticipates
+with an explicit "SecureStore unavailable" comment), I checked its sibling
+stub, `expo-file-system`, for the same pattern — and found the exact source
+of the `TypeError: this.validatePath is not a function` error that's
+appeared in every single preview session this entire loop
+(first noted, unexplained, in [iteration 10](#iteration-10--cold-start-time-and-splash-screen-timing)).
+`expo-file-system/src/FileSystem.ts`'s `File`/`Directory` constructors both
+call `this.validatePath()` right after `super()`
+(`node_modules/expo-file-system/src/FileSystem.ts:84,170`) — but the web
+platform's `ExpoFileSystem.FileSystemFile`/`FileSystemDirectory` (confirmed
+in [iteration 18](#iteration-18--offlineairplane-mode-behavior-on-every-network-touching-screen))
+are bare stub classes with no prototype methods at all, so the method
+doesn't exist. `offlineCache.ts`'s `cacheDir()`/`ensureDir()` construct a
+`Directory` on essentially every API call, which is why this fires
+constantly. **Confirmed this is purely a web-preview artifact with zero
+functional impact** (the app has worked correctly through every offline,
+corruption, and migration test in this entire loop despite it) **and not
+worth fixing** — silencing it would mean either skipping the offline-cache
+layer on web (defeating the point of using this preview as a QA tool) or
+patching around a third-party stub, for a console line nobody using the
+real Android/iOS app will ever see. Recording the root cause here so no
+future iteration re-flags it as a mystery.
+
+**Commit:** none (clean iteration; no code changes — both findings are
+confirmations, not bugs).
+
+---
+
+## Iteration 22 — Sync engine mobile edge cases (killed mid-sync, incremental cursor, conflict merges, and the deferred backgrounded-push race)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** the four sync edge cases named in the catalogue, including
+closing out the race [deferred from iteration 4](#iteration-4--qada-stepper-race-condition-under-rapid-taps)
+(`onSyncApplied(load)` re-reading stores wholesale could clobber an
+in-flight optimistic local tap).
+
+**Killed mid-sync: clean, safe by design.**
+[`sync-engine.ts:79-125`](packages/core/src/sync-engine.ts#L79) only
+advances the persisted cursor (`state.setCursor?.(cursor)`) **once, after**
+the full push/pull exchange loop completes — every page's entries are
+applied and durably persisted (`state.apply(...)`, awaited) *inside* the
+loop, strictly before the cursor that would let a future round skip past
+them. Kill the app mid-round and the next launch's round starts from the
+same old cursor and safely re-pulls/re-applies whatever didn't get a
+chance to advance the cursor — redundant work, not data loss, since
+`state.apply` is LWW/clock-keyed and re-applying an already-applied entry
+at the same HLC is a no-op. This is the textbook-correct way to make an
+interruptible sync protocol interruption-safe.
+
+**Incremental cursor and conflict merges: clean, already thoroughly
+tested.** `mobile-sync-state-store.test.ts` explicitly covers "persists and
+reports the incremental-pull cursor (ADR 0035)" and the dirty/markPushed
+bounded-push bookkeeping; `sync-runtime.test.ts` covers round coalescing
+("coalesces concurrent calls into a single in-flight round") and recovery
+from a stuck state ("resetSyncRuntime breaks coalescing so 'turn on' isn't
+stuck on a stale OFF round"); `sync-e2e.test.ts`'s two-device round-trip
+exercises the actual conflict-merge path end to end.
+
+**The deferred backgrounded-push race: real, narrow, and — after
+deeper analysis — deliberately left as a documented recommendation rather
+than a speculative fix.** 9 screens subscribe to `onSyncApplied`; of
+those, `PrayerTrackerScreen` is the clearest one with both local optimistic
+mutations (qada/prayer-log/ḥayḍ taps, all otherwise race-safe per
+[iteration 4](#iteration-4--qada-stepper-race-condition-under-rapid-taps))
+*and* a wholesale `load()` reload triggered by the same event. The exact
+failure mode: `qadaStore.read().then(setQadaLog)` is a plain (non-merging)
+assignment; if that read resolves between two rapid local taps — i.e. a
+remote sync round completes at almost the same instant as an in-progress
+local interaction — the second tap's functional updater would derive its
+`next` from the just-reloaded (and possibly stale-relative-to-the-first-tap)
+value instead of the true latest local state.
+
+Not fixing this speculatively: reproducing the actual race needs real
+multi-device sync timing (a remote push landing within milliseconds of a
+local tap), which this environment can't simulate reliably enough to
+verify a fix actually closes the window without introducing a *different*
+regression in genuinely complex async coordination code. Recommending a
+concrete direction instead of guessing: track a short-lived
+"just-wrote-locally" flag per store (e.g. skip/defer a sync-triggered
+reload for a store with a write inside the last ~500ms, or merge the
+freshly-read value against current state instead of overwriting outright).
+This is a UI-layer refinement on top of an already-correct core sync
+protocol, not a data-integrity bug — worth doing, not urgent enough to ship
+unverified.
+
+**Commit:** none (clean iteration; the backgrounded-push race is a
+documented recommendation, not a code change).
+
+---
+
+## Iteration 23 — RTL/Arabic rendering correctness (Indopak script, word-level highlighting, mixed-direction layout)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** Arabic text direction, the IndoPak script variant, word-by-word
+transliteration alignment, and mixed RTL/LTR layout (Arabic word row above
+an English translation line) — live, not just by code reading.
+
+**Result: clean, thoroughly live-verified.** Via
+`preview_start({name: "mobile"})`: switched **Settings → Arabic Script**
+from Uthmani to **IndoPak**, then opened Al-Kahf in both reading modes:
+
+- **Verse-by-verse view, word-by-word on:** IndoPak glyphs render correctly
+  (visually distinct from Uthmani, as expected), the verse reads
+  right-to-left with correct word order, and tapping a word triggers
+  tap-to-hear audio. The transliteration row beneath each āyah is
+  **RTL-ordered to match** — e.g. for āyah 1, the transliteration reads
+  (left→right) "…walam yaj'al lahu 'iwaja" with "**al-ḥamdu**" (the first
+  word) rightmost, directly under the rightmost (first) Arabic word,
+  exactly mirroring the Arabic line above it word-for-word rather than
+  reading in a fixed LTR order that would misalign under RTL text.
+- **Continuous "Reading" (Mushaf-style) view:** paragraph-flow RTL text
+  renders correctly across multiple āyāt with ayah-end ornament markers
+  correctly inline, no reversed flow, no overlap.
+- **Mixed-direction layout:** the RTL Arabic + transliteration block sits
+  above an LTR English translation line with no direction bleed or bidi
+  glitches in either script mode.
+
+No code changes — this perspective checked out clean on live inspection
+across both reading modes and both scripts.
+
+**Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 24 — Font loading fallback and flash-of-unstyled-text
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** whether every font used anywhere in the app is covered by the
+startup loading gate (no flash-of-unstyled-text risk from a font that
+loads outside it), and what happens if font loading fails outright.
+
+**No FOUT risk — clean.** [`fonts.ts`](apps/mobile/src/fonts.ts)'s single
+`fontMap` (passed to the one `useFonts()` call in `App.tsx`) includes
+*every* typeface the app uses: all 5 Hanken Grotesk (Latin UI) weights, all
+4 IBM Plex Sans Arabic weights, and the IndoPak Nastaʿlīq face (checked
+live in [iteration 23](#iteration-23--rtlarabic-rendering-correctness-indopak-script-word-level-highlighting-mixed-direction-layout)).
+Nothing loads a font lazily or outside this gate, so there's no path to a
+flash of system-default text anywhere in the app.
+
+**Found and fixed a real, severe failure mode: a single bad font asset
+could freeze the app forever.** `expo-font`'s own `useFonts` implementation
+([`node_modules/expo-font/src/FontHooks.ts`](node_modules/expo-font/src/FontHooks.ts))
+returns `[loaded, error]` — and critically, **if the load ever rejects,
+`loaded` never becomes `true` on its own**; only a successful load sets it.
+`App.tsx` destructured only the first element
+(`const [fontsLoaded] = useFonts(fontMap)`), silently discarding `error`.
+Combined with `if (!fontsLoaded) return null` gating literally the entire
+app, **and** [iteration 10](#iteration-10--cold-start-time-and-splash-screen-timing)'s
+`SplashScreen.hideAsync()` only firing once that gate clears: a single
+corrupted, missing, or unparseable font asset — the custom
+converted-from-`.woff2` IndoPak `.ttf` being the most exposed candidate,
+being the one non-Google-Fonts-package asset in the map — would leave the
+user staring at a **permanently frozen native splash screen**, with no
+error surfaced, no fallback, and no way to proceed. Not a hypothetical:
+`loadAsync` loads local bundled assets, so this needs a bad *build*, not a
+bad network condition, but corrupted asset bundling and per-device font-
+parsing quirks are real, non-zero-probability failure classes — and the
+consequence (total, silent, unrecoverable app-startup failure) is about as
+severe as this loop has found.
+
+**Fix:** [`App.tsx`](apps/mobile/App.tsx) now destructures `fontError` too
+and gates on `if (!fontsLoaded && !fontError) return null` — proceeding
+past the splash screen with the OS default typeface on a font-load error
+instead of hanging forever. A screen that looks slightly off-brand is
+categorically better than an app that never starts.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass; `pnpm lint` — 0 errors, same 13 pre-existing warnings.
+Live-verified the normal (fonts-load-successfully) path still boots and
+renders identically via `preview_start({name: "mobile"})` — no regression.
+**Not verified live:** the actual error path itself, since the RN-web
+preview's fonts load successfully and deliberately corrupting a real font
+asset to force the failure would be a messier, riskier way to test a
+two-line, directly-sourced-from-the-library's-own-documented-return-type
+fix than the risk warrants.
+
+**Commit:** `fix(mobile): don't let a failed font load freeze the app on
+the splash screen forever`.
+
+---
+
+## Iteration 25 — Large accessibility text scaling (Android font scale up to 200%) without layout breakage
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** whether the app's layout survives the OS's large-text
+accessibility setting, and whether text scaling is disabled anywhere (the
+more common, worse mistake).
+
+**Baseline is good:** no screen sets `allowFontScaling={false}` anywhere —
+confirmed by grep across `apps/mobile/src`. Every screen respects the
+user's OS text-scale setting by default, which is the right starting
+point; the risk with this perspective is layout breakage *because* scaling
+is respected, not text being frozen.
+
+**Found and fixed real breakage, with a genuine live simulation, not just
+code reading.** This environment has no way to change a real OS
+accessibility font-scale setting, but I could still get a real visual
+signal: injected a script into the running RN-web preview that scales
+every rendered leaf text node's *computed* font-size (via
+`!important`, since react-native-web's atomic CSS beats a plain inline
+style) by 2x — the same 200% Android supports — and screenshotted the
+result on `HomeScreen` and `SurahListScreen`. **The Noon `AyahBadge`
+component** (`apps/mobile/src/components/AyahBadge.tsx` — the gold khatam-
+star badge showing a surah/āyah number, used on `HomeScreen`,
+`SurahListScreen`, `HifzDashboardScreen`, and `AyahView`) **visibly
+overflows its fixed 40×40 container at 2x scale** — the number spills
+outside the star outline, confirmed on both the Home "Continue reading"
+card's surah badge and the surah-list row badges (65–69 tested).
+Everything else observed (card text, translation lines, tab bar labels)
+reflowed acceptably — wrapping to extra lines or growing card height
+rather than clipping — which is the correct, expected behavior for
+non-fixed-size containers.
+
+**Fix:** capped `AyahBadge`'s number specifically with
+`maxFontSizeMultiplier={1.3}` — the number still grows somewhat with the
+user's accessibility setting (unlike disabling scaling outright, which
+would be a worse regression), just not far enough to break its
+40×40 decorative badge. The badge's number is a secondary ordinal marker;
+the surah's actual name/text next to it is unaffected and continues to
+scale fully.
+
+**Verification, and an honest caveat on the test method:** `pnpm --filter
+@ummahlibrary/mobile typecheck` clean (confirms `maxFontSizeMultiplier` is
+a recognized `Text` prop); `test` 116/116 pass; `pnpm lint` — 0 errors,
+same 13 pre-existing warnings. Confirmed no regression at normal scale via
+`preview_start({name: "mobile"})`. **What the DOM-scaling simulation
+can't verify**: `maxFontSizeMultiplier` is an RN-native concept keyed off
+`PixelRatio.getFontScale()`, which my test method bypasses entirely (it
+sets raw CSS `font-size` on every node, including the capped one) — so I
+could use it to *find* the bug, but not to confirm the *fix* takes effect
+through the real mechanism. That needs a real device (or Android's font-
+scale accessibility setting via an emulator), which isn't available here.
+
+**Commit:** `fix(mobile): cap AyahBadge's number so it doesn't overflow at
+large accessibility text scale`.
+
+---
+
+## Iteration 26 — Screen-reader labels and focus order on every screen
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** every icon-only interactive element across every screen and
+component for a missing `accessibilityLabel` — the pattern that leaves a
+button meaningless (or silently unannounced) to TalkBack/VoiceOver.
+Delegated the sweep to a research agent covering all 30 screens + 12
+components, since exhaustively reading every `Pressable` by hand doesn't
+scale well to a file count this size; verified its findings directly rather
+than trusting the summary blind.
+
+**Result: the codebase is already largely accessible — only 3 genuine
+gaps found, all fixed and live-verified through the real accessibility
+tree.**
+
+- **`PrayerTimesScreen.tsx`** — the per-prayer reminder bell (×5,
+  Fajr/Dhuhr/Asr/Maghrib/Isha) had `accessibilityRole="switch"` and
+  `accessibilityState` but no `accessibilityLabel`, so TalkBack would
+  announce just "bell, switch, on/off" with no indication of *which*
+  prayer. The near-identical toggle in `HijriCalendarScreen.tsx` already
+  had the correct pattern — this one just hadn't been brought in line.
+  Fixed to match:
+  `` `${reminders[name] ? "Turn off" : "Turn on"} reminder for ${PRAYER_LABELS[name]}` ``.
+- **`TranslationManager.tsx`** and **`SearchScreen.tsx`** — both use a
+  bare `"✕"` `Text` glyph (not the `Icon` component, so technically outside
+  the agent's original search scope, but the same underlying gap) as the
+  sole content of a `Pressable` — the modal-close button and the search-
+  clear button. Added `accessibilityLabel="Close"` and `accessibilityLabel="Clear search"`
+  respectively. Checked for more of the same bare-glyph pattern
+  (`grep '>✕<'`) — one more hit in `CollectionsScreen.tsx`, already
+  correctly labelled (`` `Remove ${key}` ``), so not a gap.
+
+**Live-verified through the actual accessibility tree**, not just visually,
+via `preview_start({name: "mobile"})` and `read_page`: after injecting
+`ul.prayerCoords` directly into storage to reach the live prayer list
+(this sandbox can't grant a real geolocation permission), the tree now
+reports `switch "Turn on reminder for Fajr"`,
+`switch "Turn on reminder for Dhuhr"`, etc. for all five prayers;
+`generic "Clear search"` appears on `SearchScreen` once a query is typed;
+`generic "Close"` appears on the Translations modal. This is the strongest
+verification available short of a real screen reader — the accessibility
+tree is exactly what TalkBack/VoiceOver read from.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass; `pnpm lint` — 0 errors, same 13 pre-existing warnings.
+
+**Commit:** `fix(mobile): add missing accessibilityLabels to 3 icon/glyph-only buttons`.
+
+---
+
+## Iteration 27 — Touch target sizing (≥44×44dp) on icon buttons, steppers, tab bar
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** whether icon-only buttons and small controls meet the
+44×44dp minimum touch-target guideline (Android accessibility / Material
+Design), live-measuring real DOM bounding boxes in the running preview
+rather than guessing from styles alone.
+
+**Found and fixed two real, high-leverage gaps.** A first broad
+measurement pass over every `role="button"/"switch"/"tab"` element
+produced a huge, noisy result (~400 near-duplicate entries, almost
+certainly per-āyah elements and other screens' DOM still mounted off-
+screen by React Navigation) — not a useful way to work, and I didn't try to
+salvage it; I went back to source instead, using the two genuinely small
+measurements from that pass (a 40×20-ish "switch" and 68–79×31 toggle
+chips) as leads to chase down directly in code:
+
+- **`SaveToCollection.tsx`'s icon-only bookmark toggle** — an 18×18 `Icon`
+  in a `Pressable` with `hitSlop={8}`, a 34×34 effective tap target. This
+  component renders **once per āyah** via `AyahView.tsx` (i.e. constantly,
+  throughout the entire reading experience) plus once on `HomeScreen`'s
+  "Verse of the day" card — plausibly the single most-tapped icon-only
+  control in the app. Bumped `hitSlop` to `13` (18 + 13 + 13 = 44, exactly
+  at the guideline).
+- **`ReaderControls.tsx`'s three reading-settings toggle chips**
+  ("Transliteration", "Word transliteration", "Tap a word to hear") — text-
+  labelled (not icon-only, so not an iteration-26-style gap), but only
+  ~31px tall (`paddingVertical: 6` + text line-height) with no `hitSlop` at
+  all. Added `hitSlop={7}` to each (31 + 7 + 7 = 45).
+
+**Not attempting an exhaustive sweep of every icon button in the app** —
+`hitSlop` fixes are low-risk (purely additive, no visual change) but the
+codebase has dozens of icon-only `Pressable`s with varying `hitSlop`
+values; auditing every one precisely would need the same kind of careful,
+per-component measurement as these two, not a blind find-and-replace.
+Fixed the two clearest, highest-reach instances found this iteration;
+future iterations revisiting this catalogue entry on a later cycle should
+continue the sweep rather than treating it as fully closed.
+
+**Verification, with an honest gap:** `pnpm --filter @ummahlibrary/mobile
+typecheck` clean; `test` 116/116 pass; `pnpm lint` — 0 errors, same 13
+pre-existing warnings. Confirmed no regression — the bookmark button still
+opens its modal on a normal click, verified live via
+`preview_start({name: "mobile"})`. **What I could not reliably verify**:
+clicking *just outside* the old 8px boundary but *inside* the new 13px one
+to directly prove the expanded hit zone — `hitSlop` in `react-native-web`
+isn't reflected in `getBoundingClientRect()` (it's implemented via JS-level
+hit-testing, not a DOM size change), and the coordinate space my
+measurement script read (`1024`-wide, from `read_page`'s reported viewport)
+didn't line up cleanly with the `computer` tool's screenshot-pixel click
+coordinates in this session, making a precise boundary-pixel test
+unreliable rather than just re-confirming what regular clicks already
+show. `hitSlop` itself is a standard, heavily-precedented RN API already
+used successfully throughout this exact codebase — the change is a
+well-understood, low-risk application of it, not a novel mechanism.
+
+**Commit:** `fix(mobile): widen hitSlop on the per-āyah bookmark toggle and
+reader-settings chips to meet the 44dp touch-target minimum`.
+
+---
+
+## Iteration 28 — Noor theme switching consistency across all 8 palettes, every screen, light+dark
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** every hardcoded color literal across `apps/mobile/src`
+(bypassing the theme system is the main way a screen can look fine in the
+one theme it was built/tested against and break in the other seven), then
+live-verified the worst case.
+
+**Found and fixed a real, calculated contrast failure affecting the
+majority of themes.** `QiblaScreen.tsx`, `PrayerTimesScreen.tsx`, and
+`MosqueFinderScreen.tsx` all hardcode their "Use my location" CTA button's
+text as `color: "#fff"`, with the button's background set to `c.accent`
+(which varies per theme). `packages/ui/src/themes.ts` already has a
+purpose-built token for exactly this — `ink: string; // text colour on top
+of the accent/gold surface` — calibrated per theme (dark, near-black `ink`
+values for the light/vibrant-accent dark-mode themes; light, near-white
+`ink` values for the dark-accent light-mode themes) and already used
+correctly elsewhere (e.g. `CollectionsScreen.tsx`'s `emptyBtnText`). These
+three files bypassed it.
+
+Computed WCAG contrast ratios for white text against each theme's `accent`
+to confirm this wasn't cosmetic nitpicking: **obsidian** (`#e6b855`) ≈
+1.8:1, **midnight** (`#f0c868`) ≈ 1.6:1, **emerald** (`#e3b756`) ≈ 1.8:1,
+**ocean** (`#45c7bd`) ≈ 2.1:1 — all badly fail even the minimum 3:1
+large-text threshold, let alone the 4.5:1 normal-text one (this 15px bold
+label doesn't qualify as WCAG "large text"). The four light-mode themes
+(ivory/sepia/mint/rose) happen to have dark accents, so white text
+accidentally looked fine there — which is exactly how this kind of bug
+hides: correct in the themes someone tested, broken in the others. Since
+the app defaults to `obsidian` on a dark-mode device, this plausibly
+affected the majority of real users, not an edge case.
+
+**Fix:** changed all three to `color: c.ink`.
+
+**Live-verified in the actual worst-case theme**, not just calculated: via
+`preview_start({name: "mobile"})`, switched to **Midnight** (the theme
+with the lightest accent) in Settings, cleared `ul.prayerCoords` to reach
+`QiblaScreen`'s "Use my location" CTA (its initial, coords-less state),
+and confirmed the button text now renders dark and clearly legible against
+the light-gold background — screenshotted before relying on the
+calculation alone.
+
+**Also checked and intentionally left alone**, confirmed correct: `shadowColor: "#000"` in `SurahReaderScreen.tsx` (shadows are conventionally dark
+regardless of theme); `GRADE_GOOD`/`LATE` semantic status colors in
+`HadithScreen.tsx`/`PrayerTrackerScreen.tsx` (intentionally
+theme-independent semantic colors, not surface/text pairings).
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 116/116 pass; `pnpm lint` — 0 errors, same 13 pre-existing warnings.
+
+**Commit:** `fix(mobile): use the theme's ink token instead of hardcoded
+white for CTA button text`.
+
+---
+
+## Iteration 29 — Asset loading fallback (icons, interrupted offline audio downloads)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** app icon/image loading (already covered by
+[iteration 24](#iteration-24--font-loading-fallback-and-flash-of-unstyled-text)'s
+asset-loading audit — nothing new there) and, the perspective's other
+named concern, what happens to an offline reciter-audio download that gets
+interrupted partway through.
+
+**Found and fixed a real bug in the offline-audio download path.**
+[`audio-store.ts`](apps/mobile/src/audio/audio-store.ts)'s `save()` calls
+`File.downloadFileAsync(remoteUrl, dest, …)`. Traced the native Android
+implementation
+(`node_modules/expo-file-system/android/.../FileSystemModule.kt`): it
+streams the response body **directly to the final destination path**
+(`FileOutputStream(destination).use { input.copyTo(it) }`) — there's no
+temp-file-then-atomic-rename, and this version of `expo-file-system`'s
+`File` API has **no `move`/`rename` method at all** (checked both the TS
+wrapper and native Android/iOS sources), so implementing that pattern
+myself isn't cleanly possible with what's installed. A download interrupted
+by a network drop or cancellation mid-transfer leaves a **truncated file
+sitting at the final path**. `has()`/`localUrl()` only check
+`file.exists`, never validity, so:
+- a retry's `has()` check would see the corrupt file and **skip
+  re-downloading it**, believing it already succeeded;
+- `isSurahDownloaded()` would eventually report the surah "complete" once
+  the ayah count matches, corrupt file included;
+- playback would hand the corrupt file to the audio player and fail, with
+  nothing in the UI telling the user *why* — the app still thinks that
+  ayah is safely downloaded for offline use.
+
+**Fix:** wrapped the download in try/catch; on failure, delete `dest` if
+it exists before re-throwing, so a failed/interrupted download never
+leaves a phantom "looks downloaded" file behind, and a retry actually
+retries.
+
+**Added a regression test** distinct from the existing "fails cleanly
+before writing anything" test (which doesn't exercise this path — its fake
+throws *before* any file exists): `audio-store.test.ts` now also covers a
+fetch that writes a partial file (`fsState.files.set(dest, 3)`) and *then*
+throws, mimicking a connection dropping mid-transfer, and asserts the
+partial file is gone afterward.
+
+**Honest residual gap, not fixed:** this only catches failures the JS
+runtime can actually observe (network errors, cancellation) — a hard OS-
+level process kill mid-write can't be caught by any `try/catch`, so a
+corrupt file from *that* specific scenario (or one left over from before
+this fix existed) would still be silently trusted by `has()`. Closing that
+completely would need either a real atomic-rename primitive (unavailable
+in this `expo-file-system` version) or validating file size/integrity on
+every `has()` check (a bigger, slower change affecting every read, not
+just downloads) — flagging as a known limitation rather than
+over-engineering a partial fix for it now.
+
+**Related, out of scope:** `useSurahAudio.ts`'s bulk-download IIFE
+(`void (async () => { try {...} finally {...} })()`) has no `.catch()`, so
+*any* download failure — pre-existing, not something this iteration
+introduced — produces an unhandled promise rejection with zero user-facing
+error message. Surfacing a real "download failed" message is a UI addition,
+a different scope than this iteration's storage-layer fix; noting it for a
+future iteration.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck` clean;
+`test` 117/117 pass (116 + 1 new); `pnpm lint` — 0 errors, same 13
+pre-existing warnings.
+
+**Commit:** `fix(mobile): clean up a partially-downloaded audio file
+instead of leaving it looking saved`.
+
+---
+
+## Iteration 30 — Navigation stack edge cases (deep back stacks, tab switch mid-flow, duplicate pushes)
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-03`
+
+**Checked:** whether rapid double/triple-tapping a navigation link
+duplicates a screen on the stack, whether switching tabs mid-flow loses a
+nested stack's position, and (structurally) whether deep back stacks have
+anything app-specific that could break them.
+
+**Clean, on strong structural evidence plus direct live testing.**
+`grep -rn "navigation.push(\|nav.push("` across all of `apps/mobile/src`
+returns nothing — every navigation call uses `navigate()`, not `push()`,
+which is the duplicate-safe default in React Navigation (navigating to a
+route already in the stack focuses the existing instance rather than
+stacking a second one). Combined with [iteration 8](#iteration-8--android-hardware-back-button-handling-on-every-screenmodal)'s
+finding that nothing in this codebase does any custom stack manipulation,
+there's no app-specific mechanism that could produce a duplicate push or
+corrupt a deep stack — the library's own well-established default handles
+all three named scenarios.
+
+**Live-verified via `preview_start({name: "mobile"})`, not just inferred
+from the grep:**
+- **Duplicate pushes:** triple-clicked the same surah row on `SurahList`
+  with no delay between clicks — landed on that surah once, and a single
+  tap on the back arrow returned directly to `SurahList` (not to another
+  instance of the same surah, which is what a duplicate push would have
+  produced).
+- **Tab switch mid-flow:** opened `Al-Baqara` in the Read tab, switched to
+  the Tools tab, switched back to Read — landed exactly back on
+  `Al-Baqara`'s reader, in the same reading mode ("Reading" view, word
+  transliteration still on) it was left in, confirming React Navigation's
+  per-tab state preservation works correctly here with nothing overriding
+  it.
+
+**Commit:** none (clean iteration; no code changes).

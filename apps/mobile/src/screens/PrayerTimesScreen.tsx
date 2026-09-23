@@ -270,6 +270,7 @@ export function PrayerTimesScreen() {
                       hitSlop={10}
                       accessibilityRole="switch"
                       accessibilityState={{ checked: !!reminders[name] }}
+                      accessibilityLabel={`${reminders[name] ? "Turn off" : "Turn on"} reminder for ${PRAYER_LABELS[name]}`}
                     >
                       <Icon
                         name="bell"
@@ -384,7 +385,7 @@ function makeStyles(c: Palette) {
       paddingVertical: 12,
       paddingHorizontal: 24,
     },
-    ctaBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+    ctaBtnText: { color: c.ink, fontSize: 15, fontWeight: "700" },
     hero: {
       backgroundColor: c.bgElev,
       borderRadius: 16,

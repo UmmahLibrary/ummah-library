@@ -1,29 +1,29 @@
 {
-  "iteration": 20,
+  "iteration": 30,
   "cycle": 1,
-  "perspectiveIndex": 21,
-  "batch": "mobile-stabilization-02",
-  "consecutiveCleanIterations": 0,
+  "perspectiveIndex": 31,
+  "batch": "mobile-stabilization-03",
+  "consecutiveCleanIterations": 1,
   "history": [
     {
-      "iteration": 17,
-      "perspective": "B18 - Audio playback interruption",
-      "outcome": "clean, exceptionally well-engineered already"
+      "iteration": 27,
+      "perspective": "B28 - Touch target sizing (44dp)",
+      "outcome": "GAPS FOUND AND FIXED"
     },
     {
-      "iteration": 18,
-      "perspective": "B19 - Offline/airplane-mode behavior",
-      "outcome": "clean, live-verified"
+      "iteration": 28,
+      "perspective": "B29 - Noor theme switching consistency",
+      "outcome": "GAP FOUND AND FIXED: WCAG contrast failure"
     },
     {
-      "iteration": 19,
-      "perspective": "B20 - Notification scheduling correctness",
-      "outcome": "reboot/DST clean, exact-alarm trade-off documented (Play Store policy sensitive, not fixed)"
+      "iteration": 29,
+      "perspective": "B30 - Asset loading fallback (interrupted audio downloads)",
+      "outcome": "GAP FOUND AND FIXED: corrupt-file cleanup on interrupted download"
     },
     {
-      "iteration": 20,
-      "perspective": "B21 - AsyncStorage/SQLite migration safety and corrupted-store recovery",
-      "outcome": "GAP FOUND AND FIXED: theme.tsx's legacy dark/light migration never wrote the migrated value back to storage (unlike tasbih-store, sync-settings, sync-meta's migrations, which all do). Fixed to persist on migration, matching the established pattern. Live-verified via localStorage injection + reload."
+      "iteration": 30,
+      "perspective": "B31 - Navigation stack edge cases (deep stacks, tab switch mid-flow, duplicate pushes)",
+      "outcome": "clean - zero navigation.push() usage anywhere (all navigate(), the duplicate-safe default), combined with iteration 8's no-custom-stack-manipulation finding. Live-verified: rapid triple-tap didn't duplicate-push, tab switch mid-flow correctly preserved and restored reader state."
     }
   ]
 }

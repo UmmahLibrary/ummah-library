@@ -160,7 +160,14 @@ function AppGate() {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts(fontMap);
+  // useFonts resolves `loaded: false` forever if the load ever rejects (a
+  // corrupted/missing font asset) — it never becomes `true` on its own after
+  // an error. Proceed on `fontError` too so one bad font asset can't freeze
+  // the app on the splash screen (SplashScreen.hideAsync() only fires once
+  // AppGate mounts, which is gated on this) with no fallback and no way for
+  // the user to get past it. A screen falling back to the OS default
+  // typeface is far better than an app that never starts.
+  const [fontsLoaded, fontError] = useFonts(fontMap);
 
   // Prime the notifier, then keep every reminder family scheduled — re-syncing on
   // foreground so the schedule rolls to the next day after one fires (#71). Also
@@ -187,7 +194,7 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded && !fontError) return null;
   return (
     <SafeAreaProvider>
       <ThemeProvider>

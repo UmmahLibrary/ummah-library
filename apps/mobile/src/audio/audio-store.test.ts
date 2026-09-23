@@ -136,6 +136,31 @@ describe("mobileAudioStore", () => {
     vi.unstubAllGlobals();
   });
 
+  it("save() cleans up a file left partially written by an interrupted download", async () => {
+    const store = await loadStore();
+    const dest = "file:///document/ul-audio/mishary/6/1.mp3";
+    // expo-file-system streams straight to the destination path (no temp
+    // file — see the doc comment in audio-store.ts), so simulate the OS
+    // having already written some bytes before the connection drops
+    // mid-transfer, the same shape a real interrupted download leaves.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        text: async () => {
+          fsState.files.set(dest, 3);
+          throw new Error("Network request failed");
+        },
+      })),
+    );
+
+    await expect(
+      store.save("mishary", ref(6, 1), "https://example.com/6-1.mp3"),
+    ).rejects.toThrow(/Network request failed/);
+    expect(await store.has("mishary", ref(6, 1))).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
   it("localUrl() returns a file:// URI once saved, null otherwise", async () => {
     const store = await loadStore();
     expect(await store.localUrl("mishary", ref(3, 1))).toBeNull();
