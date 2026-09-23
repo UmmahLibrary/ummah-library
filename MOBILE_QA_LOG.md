@@ -5428,3 +5428,47 @@ log`); no source changed, so the lint/typecheck/test gate wasn't re-run
 prior).
 
 **Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Iteration 97 — Offline/airplane-mode behavior, extended to the one sync action iteration 58 didn't examine
+
+**Date:** 2026-09-22
+**Branch:** `mobile-stabilization-10`
+
+**Checked:** [iteration 18](#iteration-18--offlineairplane-mode-behavior-on-every-network-touching-screen)
+verified `readThrough`'s graceful degradation across content screens
+with a real fetch-override offline simulation; [iteration 58](#iteration-58--b18-revisited-mosque-search-and-syncs-offline-behavior)
+extended that to `getNearbyMosques`/`getPrayerTimes` (deliberately
+uncached, by design) and two of sync's network actions — background
+auto-sync (silently swallows failure, correct for a non-blocking
+operation) and manual "Sync now" (surfaces `SERVER_DOWN`, correct for
+a user-initiated one). Neither pass checked **`SyncSection.tsx`'s
+`turnOn()`** — the "enable sync" flow a user runs once, entering a
+recovery phrase for the first time — which has a structurally
+different shape from `syncNow()`: it calls `enableSync(s)` *before*
+its own `try/catch` block, not inside it.
+
+**Investigated whether that ordering is a real gap, and ruled it out
+by reading `enableSync`'s actual implementation rather than assuming
+from its position in the function.** `sync-settings.ts`'s `enableSync`
+does exactly two things: `writeSecureSecret(secret)` (an
+`expo-secure-store` write — on-device Keychain/Keystore, no network
+by design) and `setItem(ENABLED_KEY, "1")` (local `AsyncStorage`).
+Neither can fail due to being offline; only local storage/keychain
+issues could reach them, a different perspective this loop already
+covers elsewhere (kill-and-restore). The **one** actual network call
+in `turnOn()` — `syncIfEnabled()` — is correctly inside the
+`try/catch`, the same `SERVER_DOWN`-on-failure pattern `syncNow()`
+already uses. The unusual ordering isn't a bug; it's just that
+`enableSync` genuinely has nothing to guard against here.
+
+**Clean — a real, previously-unchecked gap in the sweep, closed by
+evidence rather than left as an assumption.** No code change.
+
+**Verification:** targeted code-reading audit (`SyncSection.tsx`'s
+`turnOn()`, `sync-settings.ts`'s `enableSync`/`writeSecureSecret`); no
+source changed, so the lint/typecheck/test gate wasn't re-run (nothing
+to regress; tree was green from iteration 96 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
