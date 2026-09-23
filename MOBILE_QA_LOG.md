@@ -5596,3 +5596,134 @@ documented, harmless `Linking.openSettings` artifact.
 
 **Commit:** `apps/mobile/src/screens/HijriCalendarScreen.tsx`,
 `apps/mobile/src/screens/RamadanScreen.tsx`.
+
+---
+
+## Iteration 100 — B22 revisited: the recovery secret's last unchecked exit, the backup-export path
+
+**Date:** 2026-09-23
+**Branch:** `mobile-stabilization-10`
+
+**Checked:** [iteration 21](#iteration-21--secure-storage-of-the-sync-recovery-secret-parity-with-webs-hardening)
+confirmed the secret's at-rest storage matches web's hardening
+(`expo-secure-store`, plaintext-legacy migration, clean removal on
+disable). [Iteration 61](#iteration-61--b21-revisited-sync-secret-storage-checked-for-the-race-classes-found-elsewhere-this-cycle)
+checked `SyncSection.tsx`'s in-memory handling of the secret for the
+two race classes this cycle had found elsewhere — both ruled out.
+Neither pass had checked the one other place the secret's plaintext
+value provably leaves the device: `SyncSection`'s own warning text
+tells the user their "exported backup file is a good place" to keep a
+copy of the phrase — which only makes sense, and is only safe, if the
+*app's own* backup export never independently writes the live secret
+into that same file in plaintext.
+
+**Traced the export path end to end: clean, and already safe by
+construction, not by accident.** `backup.ts`'s `exportBackup()` calls
+`backup-store.ts`'s `snapshot()`, which enumerates every AsyncStorage
+key via `isBackupKey()` — a **shared `core`** predicate
+(`packages/core/src/backup.ts`) that explicitly excludes the whole
+`ul.sync.*` prefix, with a doc comment naming the exact risk: "`ul.sync.secret`
+is the E2EE account root (exporting it would leak the key into a
+plaintext file)". This means the exported JSON can never contain the
+secret regardless of whether a pre-hardening legacy plaintext copy is
+still sitting in AsyncStorage at export time (i.e. the exclusion isn't
+timing-dependent on iteration 21's migration having already run) —
+the prefix filter drops it unconditionally, before migration state
+even enters into it. Confirmed this isn't a paper guarantee: both
+`packages/core/src/backup.test.ts` ("excludes the device-local sync
+sidecar... the E2EE account root") and `apps/mobile/src/backup-store.test.ts`
+("snapshot returns only ul.\* keys and excludes the sync sidecar";
+"restore never plants foreign or sync keys from a crafted payload")
+directly assert `ul.sync.secret` can neither leave via export nor be
+smuggled back in via a crafted import.
+
+**Also checked for accidental logging.** No `console.*` calls exist
+anywhere in `apps/mobile/src/lib/sync/` — the secret and its derived
+key material have no code path that could print them, intentionally
+or otherwise.
+
+**Out of scope, logged not built:** Android `FLAG_SECURE` /
+`expo-screen-capture`-style screenshot prevention while the phrase is
+on-screen (the "Show phrase" reveal). This is a *new* hardening
+feature beyond parity — web has no equivalent either (a browser can
+be screenshotted the same way), so this isn't a mobile regression
+against web's own hardening pass, just a mobile-only capability the
+web platform doesn't offer. Noted as a possible future enhancement,
+not a bug in scope for this loop.
+
+**Clean — a genuinely new angle, not a re-check of the same ground.**
+No code change.
+
+**Verification:** direct source trace (`backup.ts`, `backup-store.ts`,
+`packages/core/src/backup.ts`) plus the two existing test files cited
+above, already exercising exactly this exclusion; both already pass.
+No source changed, so the full gate wasn't re-run (tree was green from
+iteration 99 immediately prior).
+
+**Commit:** none (clean iteration; only this log entry and state).
+
+---
+
+## Loop status at iteration 100 — the stated ceiling reached
+
+This loop's own stopping rule (`.claude/MOBILE_STABILIZATION_LOOP.md`,
+step 8) allows an early stop only after "at least two full cycles of
+the catalogue with the last full cycle 100% clean." That condition is
+**not met** — cycle 3 made real fixes as recently as iteration 99 (a
+missing write-back bug, found for the third and fourth time), so this
+is not a "ready without reservation, nothing left to check" close-out.
+It *is*, however, iteration 100 — the loop's explicit numeric ceiling
+("over up to 100 iterations") — so this is where batch 10 and this
+run of the loop close out, per the Git policy in the same file.
+
+**What changed across all 100 iterations, at a glance:** parity gaps
+and real bugs were found and fixed across three full-plus passes of
+the 40-item perspective catalogue — sync-reload-vs-local-write races
+(4 independent files: `theme.tsx`, `ZakatScreen`, `HijriCalendarScreen`,
+`RamadanScreen`), a Zakat cross-field race, an audio-session error
+path with no user feedback, several missing rationale/denial
+affordances for permissions, a splash/system-UI config gap, an
+under-tested legacy-migration path, and more — every one logged with
+its own dated entry above, each with a live or code-traced
+verification and a regression test where the fix warranted one.
+
+**Standing owner-decisions — consolidated so they aren't lost among
+100 iterations of log entries** (first gathered in
+[iteration 98](#iteration-98--notification-scheduling-correctness-the-standing-exact-alarm-policy-decision-re-verified)):
+
+1. **`SCHEDULE_EXACT_ALARM` Play-Console-policy tradeoff** (iteration
+   19) — the exact-alarm permission triggers extra Play Console policy
+   review; the app already degrades to inexact scheduling gracefully
+   if it's ever revoked, so keeping vs. dropping the permission is a
+   product/store-listing call, not a bug.
+2. **No server-side sync-data deletion capability** (iteration 35) —
+   turning off sync forgets the secret on-device but the encrypted
+   blobs already pushed to the sync server have no deletion path from
+   the client; needs a decision on whether/how to offer that.
+3. **`plans/:id` deep-link feature-parity gap vs. web** (iteration 88)
+   — a real, confirmed gap, not an unexplored nuance; needs a product
+   decision on whether mobile should gain this route.
+4. **Missing light-mode splash asset** (iteration 89) — a cosmetic
+   splash/theme mismatch that's technically fixable but needs a design
+   asset this loop has no business generating.
+5. **Tablet-width content-cap `packages/ui` design-system primitive**
+   (iterations 13/93) — the custom reading-plan numeric input measured
+   939px wide on a 1024px tablet viewport; fixing it properly means a
+   new shared-width-cap primitive in `packages/ui`, an ADR-worthy
+   design-system change, not a mobile-only patch.
+
+None of these are crashes, data-corruption, or silently-wrong
+religious-obligation calculations — the mission's hard bar. All five
+are legitimate, scoped decisions for the project owner, not gaps in
+this loop's own diligence.
+
+**Recommendation:** the app is materially more stable than it was at
+iteration 1 — every known crash/race/silent-corruption bug this loop
+found was fixed and regression-tested, not just logged. It is not
+"two-cycles-clean," so a future batch (11+) re-walking the catalogue
+once more, focused specifically on re-verifying every fix made across
+all three cycles still holds together under a full fourth pass, would
+be the honest way to earn the "two full clean cycles" bar this file's
+own rule sets for an unreserved "ready" claim. Submission readiness
+beyond that is gated on the five owner-decisions above, not on
+further autonomous iteration.
