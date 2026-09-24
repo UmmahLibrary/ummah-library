@@ -154,6 +154,8 @@ export function SearchScreen({ navigation }: Props) {
   const [filter, setFilter] = useState<"all" | ResultType>("all");
   const [results, setResults] = useState<(SearchItem & { score: number })[]>([]);
   const [indexReady, setIndexReady] = useState(false);
+  const [indexError, setIndexError] = useState(false);
+  const [indexAttempt, setIndexAttempt] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
   const indexRef = useRef<SearchItem[] | null>(null);
   const queryRef = useRef("");
@@ -178,18 +180,31 @@ export function SearchScreen({ navigation }: Props) {
         if (!complete) indexCache = null; // partial build — retry next time, not this session forever
         if (!active) return;
         indexRef.current = items;
+        setIndexError(false);
         setIndexReady(true);
         // The user may have typed before the index finished — search now.
         const pending = queryRef.current.trim();
         if (pending.length >= 2) setResults(searchText(items, pending, 60));
       })
       .catch(() => {
-        if (active) setIndexReady(true);
+        if (active) {
+          setIndexError(true);
+          setIndexReady(true);
+        }
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [indexAttempt]);
+
+  function retryIndex() {
+    indexCache = null;
+    indexRef.current = null;
+    setResults([]);
+    setIndexError(false);
+    setIndexReady(false);
+    setIndexAttempt((attempt) => attempt + 1);
+  }
 
   const q = query.trim();
 
@@ -258,7 +273,7 @@ export function SearchScreen({ navigation }: Props) {
         )}
       </View>
 
-      {q.length >= 2 && (
+      {q.length >= 2 && indexReady && !indexError && (
         <View style={styles.filters}>
           {FILTERS.map((f) => {
             const count = counts[f.key] ?? 0;
@@ -307,13 +322,24 @@ export function SearchScreen({ navigation }: Props) {
               <Text style={styles.muted}>Building search index…</Text>
             </View>
           )}
+          {indexError && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>Search unavailable</Text>
+              <Text style={styles.muted}>Couldn't load search content. Check your connection and retry.</Text>
+              <Pressable style={styles.chip} onPress={retryIndex} accessibilityRole="button">
+                <Text style={styles.chipText}>Retry</Text>
+              </Pressable>
+            </View>
+          )}
         </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <Text style={styles.resultMeta}>
             {!indexReady
               ? "Searching…"
-              : `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for “${q}”`}
+              : indexError
+                ? "Search unavailable"
+                : `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for “${q}”`}
           </Text>
           {filtered.map((r, i) => (
             <Pressable key={`${r.type}:${r.ref}:${i}`} style={styles.card} onPress={() => openResult(r)}>
@@ -332,10 +358,19 @@ export function SearchScreen({ navigation }: Props) {
               {r.sub ? <Text style={styles.cardSub}>{highlight(r.sub, q, styles.hl)}</Text> : null}
             </Pressable>
           ))}
-          {indexReady && filtered.length === 0 && (
+          {indexReady && !indexError && filtered.length === 0 && (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>Nothing found</Text>
               <Text style={styles.muted}>Try another word, or a topic like “mercy”.</Text>
+            </View>
+          )}
+          {indexError && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>Search unavailable</Text>
+              <Text style={styles.muted}>Couldn't load search content. Check your connection and retry.</Text>
+              <Pressable style={styles.chip} onPress={retryIndex} accessibilityRole="button">
+                <Text style={styles.chipText}>Retry</Text>
+              </Pressable>
             </View>
           )}
         </ScrollView>

@@ -7391,3 +7391,115 @@ batch's close-out above for the code changes merged in PR #289).
 
 Mobile-scoped gate (the actually relevant one for this QA loop) is
 fully green. No code changes were made in this close-out.
+
+## Iterations 156–170 — fresh live QA continuation
+
+The follow-up request asked for a new ten-pass run from different
+perspectives. Unlike the previous session, this continuation used the
+connected Android emulator directly (`emulator-5554`, Expo app
+`org.ummahlibrary.app`) with live screenshots and accessibility-tree
+inspection. Two actionable issues were found and fixed; the clean
+streak restarted after each fix.
+
+**Iteration 156 — location permission request rejection**
+
+Code review found that Prayer Times, Qibla, and Nearby Mosques placed
+`requestForegroundPermissionsAsync()` outside their `try` blocks. If
+the permission API rejected, each screen stayed at “Getting your
+location…” with no recovery. Moved the permission request into each
+existing error boundary. A later live denial pass confirmed all three
+screens reach the intended denied state and recovery actions.
+
+**Iterations 157–159 — preliminary clean checks**
+
+- Prayer Tracker: cycled Fajr On time → Late → Not yet → On time;
+  5/5, 4/5, and 5/5 totals and the 100% → 80% → 100% on-time figure
+  matched each state. Restored its original saved status.
+- Navigation: More restored the prior Privacy route and Back returned
+  to the More menu. Read opened Al-Faatiha; Open in Mushaf displayed
+  Page 1 and Next displayed Page 2.
+
+**Iteration 160 — search cold-start failure**
+
+The first live “mercy” search showed “0 results / Nothing found”; a
+remount then loaded 60 results for that same query. This was an index
+load failure presented as a genuine empty result, with no retry action.
+Added a distinct “Search unavailable” state and Retry action, and hid
+result filters until the index is ready. Genuine empty results continue
+to use “Nothing found.”
+
+**Iterations 161–170 — 10 consecutive clean live passes**
+
+1. Search returned 60 “mercy” results after the recovery-state change.
+2. Quran filtering retained the right count; an unmatched query showed
+   a genuine 0-results state.
+3. 99 Names displayed the saved 2/99 progress without changing it.
+4. Tools restored its Prayer Tracker stack and Back returned to Tools.
+5. Prayer Times denial displayed its recovery actions.
+6. Qibla denial displayed its recovery actions.
+7. Nearby Mosques denial displayed its recovery actions and attribution.
+8. Settings font scale changed 100% → 110% → 100%; original setting
+   restored.
+9. Reading Goals reflected the two pages visited and retained the
+   existing streak/khatma state.
+10. Sahih al-Bukhari Book 1 loaded Arabic and English; Next showed
+    Book 2 and Previous restored Book 1.
+
+No location permission was granted during QA. No actionable bug was
+found in iterations 161–170. The emulator was left on Hadith Book 1.
+
+**Post-fix checks:** mobile typecheck passed; mobile suite passed 164/164.
+`git diff --check` passed. The full live UI suite ran on Android; search
+load-error recovery itself was validated by reproducing the cold-start
+failure and then verifying successful search and genuine no-result
+states after the fix.
+
+**Full-surface QA extension — 2026-09-24**
+
+- Expanded live checks across Home actions, the complete Read/Tools/More
+  route sets, Juz reader, Duʿās, Tasbih, Adhkar, Ramadan, Hijri Calendar,
+  Zakat, Profile, Tafsir, Collections, Reading Plans, Settings, Privacy,
+  and Not Found deep-link recovery.
+- Found a new destructive-action bug: Downloads removed the selected audio
+  immediately. Restored the original Al-Faatiha recitation (7/7, 778 KB),
+  added a Cancel/Delete confirmation, and verified Cancel preserves it.
+- Verified temporary Reading Plan start/pause/resume/extend/re-pace/abandon
+  flows, then cleared it and confirmed there is no active plan. Created and
+  deleted only an empty QA collection; the existing Favorites verse remains.
+- Exercised Settings theme, language, script, font, backup export/import
+  chooser, and destructive confirmation paths. Existing-data dialogs were
+  canceled; no backup was imported or shared.
+- Tried a synthetic emulator location for calculations. Android accepted the
+  mock provider, but Expo did not deliver a current fix and the location flow
+  returned to its recoverable error state. Revoked the temporary location
+  grant and removed the mock providers afterward. Existing denied-permission
+  tests still cover Prayer Times, Qibla, and Nearby Mosques.
+- Hifz review has no saved verses to review; its dashboard empty state was
+  verified. Location-based calculations could not obtain a live fix from the
+  emulator after granting a synthetic coordinate, so those success states
+  remain unverified. Fresh-install onboarding, sync mutation/recovery,
+  reminder scheduling, actual audio playback, some per-ayah/collection
+  actions, and several input-validation paths remain unverified.
+- Zakat gold and silver price entry and the Gold/Silver niṣāb switch were
+  exercised end to end. Temporary values were cleared and the original Silver
+  threshold was restored.
+- Verified the English text below Arabic for Sahih Muslim Book 1 after
+  scrolling its long first narration; restored Bukhari Book 1 afterward.
+
+**Post-download-fix regression streak — 10 consecutive clean checkpoints**
+
+After adding the Downloads confirmation, the following distinct live checks
+completed without another actionable bug: (1) canceling download deletion,
+(2) prayer-tracker state cycle and restoration, (3) Home navigation and verse
+save toggle, (4) Search positive/filtered/empty results, (5) reader view and
+ayah-control changes/restoration, (6) Juz content and control rendering,
+(7) Duas and Tasbih counter restoration, (8) Adhkar and Ramadan control
+round-trips, (9) Hijri navigation plus Zakat price/threshold input and
+restoration, and (10) Muslim Hadith Arabic/English rendering and return to
+Bukhari Book 1. Broader screen-level checks are recorded in
+`MOBILE_QA_ACTION_COVERAGE.md`; the outstanding prerequisites there mean this
+does not certify every possible action or fresh-install state.
+
+Post-change validation: mobile typecheck passed, mobile suite passed 164/164,
+and `git diff --check` passed. See `MOBILE_QA_ACTION_COVERAGE.md` for the
+screen/action-level checklist and exact remaining gaps.

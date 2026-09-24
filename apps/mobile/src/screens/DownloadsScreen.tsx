@@ -5,7 +5,7 @@
  * the web adapter.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import { useFocusEffect } from "@react-navigation/native";
 import { ayahCountOf, type DownloadedSurah } from "@ummahlibrary/core";
 import { Icon } from "@ummahlibrary/ui";
@@ -92,9 +92,22 @@ export function DownloadsScreen() {
             </View>
             <Pressable
               style={styles.deleteBtn}
-              onPress={async () => {
-                await mobileAudioStore.removeSurah(it.reciterId, it.surah);
-                refresh();
+              onPress={() => {
+                Alert.alert(
+                  "Delete download",
+                  `Remove ${surahNames[it.surah] ?? `Surah ${it.surah}`} from this device?`,
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Delete",
+                      style: "destructive",
+                      onPress: async () => {
+                        await mobileAudioStore.removeSurah(it.reciterId, it.surah);
+                        refresh();
+                      },
+                    },
+                  ],
+                );
               }}
               accessibilityLabel={`Delete ${surahNames[it.surah] ?? `Surah ${it.surah}`} download`}
               hitSlop={8}

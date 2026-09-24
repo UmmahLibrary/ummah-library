@@ -147,12 +147,12 @@ export function PrayerTimesScreen() {
 
   async function locate() {
     setStatus("locating");
-    const { status: perm } = await Location.requestForegroundPermissionsAsync();
-    if (perm !== "granted") {
-      setStatus("denied");
-      return;
-    }
     try {
+      const { status: perm } = await Location.requestForegroundPermissionsAsync();
+      if (perm !== "granted") {
+        setStatus("denied");
+        return;
+      }
       const pos = await withTimeout(
         Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
         15000,
