@@ -7301,3 +7301,93 @@ after state checked at each step.
 **Commit:** none (no code changes).
 
 **Consecutive clean count: 9/10.**
+
+## Iteration 155 — Prayer Tracker, live device
+
+First live test this session of the Prayer Tracker with real
+interaction across its full state cycle.
+
+**Flow exercised on-device (`QA_Pixel6`)**:
+1. Initial state: 0/5 prayed, 0 day streak, 0% on-time, all 5 prayer
+   cards "Not yet", empty 7-day history grid.
+2. Logged Fajr — correctly became 1/5, "On time", 100% on-time (1/1),
+   today's Fajr cell in the 7-day grid filled gold ("On time").
+3. Logged the remaining 4 prayers — 5/5, day streak correctly
+   advanced 0→1 (only once the full day was complete), best streak
+   matched at 1, all 5 grid cells for today filled.
+4. Tapped the already-"On time" Fajr card again — discovered a real
+   3-state cycle (Not yet → On time → Late → Not yet), not a simple
+   toggle: state became "Late", 30-day on-time % correctly recomputed
+   4/5 = 80%, grid cell recolored to the "Late" swatch.
+5. Tapped Fajr again — cycled to "Not yet": 4/5 prayed, on-time back
+   to 100% (denominator now excludes the unlogged prayer), day streak
+   and best streak both correctly reset to 0 together — verified this
+   is correct rather than a bug: with no prior day's history yet (a
+   fresh install, empty grid before this iteration), there is no
+   separate completed day for "best streak" to preserve independently
+   of "today," so both figures being derived from the same in-progress
+   day resetting together is mathematically correct, not a
+   best-streak-history bug.
+6. Tapped Fajr a third time — cycled back to "On time": 5/5, day
+   streak and best streak both correctly restored to 1.
+
+**Conclusion**: Prayer Tracker's 3-state log cycle, day-streak-only-
+on-full-completion logic, 30-day on-time percentage, and 7-day
+history grid all compute correctly and consistently across every
+transition tested, including the edge case of un-completing a
+previously-complete day. No bug found.
+
+**Verification:** live device (`QA_Pixel6`), cycled one prayer's
+status through all three states twice and hand-checked every derived
+stat (count, streak, best streak, percentage) at each step.
+
+**Commit:** none (no code changes).
+
+**Consecutive clean count: 10/10 — TARGET REACHED.**
+
+## Close-out — 10 consecutive clean iterations reached (146-155)
+
+Per the user's directive to keep iterating "until 10 consecutive
+iterations find no bugs," iterations 146-155 (10 iterations) ran on
+live device (`QA_Pixel6`, `expo run:android` via Metro) covering ten
+previously-live-untested areas: Hifz review flow, Search retry
+behavior, Collections/bookmarks, Reading Goals + khatma, Hadith
+runtime-plugin content, Settings theme switching, 99 Names, Your
+journey stats/achievements, Privacy policy + Hijri Calendar, and
+Prayer Tracker. Every iteration investigated at least one initially-
+ambiguous signal (a scroll-position confound, a toggle-vs-double-count
+question, a best-streak-reset question) before concluding "no bug" —
+none were rubber-stamped clean without a genuine check.
+
+**Zero actionable bugs found across this 10-iteration run.** All
+findings were either confirmed working-as-designed behavior or
+attributable to this session's already-documented emulator network
+flakiness. No code changes were made in iterations 146-155 (the prior
+41-iteration batch, 105-145, found and fixed 8 real bugs — see that
+batch's close-out above for the code changes merged in PR #289).
+
+**Full gate:** re-run below before closing out this branch.
+
+**Full gate results (re-run at close-out):**
+- `pnpm lint` — PASS (0 errors, only pre-existing react-hooks/exhaustive-deps warnings).
+- `pnpm typecheck` — PASS (all 8 workspace packages).
+- `pnpm test` — mobile 164/164, data 25/25, core and adapters all
+  green. `@ummahlibrary/web` and `@ummahlibrary/extension` have 7
+  pre-existing test failures, root-caused to a React/React-DOM
+  version mismatch in those packages' own dependency trees
+  (`react@19.1.0` at the workspace root vs `react-dom@19.2.7` /
+  `react@19.2.7` resolved under `apps/web` and `apps/extension`,
+  `TypeError: Cannot read properties of null (reading 'useState')`).
+  Confirmed via `git stash` + diffing against `origin/main` (this
+  branch's merge-base) that the failure exists on `main` itself,
+  unrelated to any change in this branch. Mobile is unaffected —
+  its own `react-dom` (19.1.0) matches the root `react` version.
+- `pnpm build` — extension PASS; web FAILS with the same pre-existing
+  `/404` prerender `TypeError: Cannot read properties of null
+  (reading 'useRef')`, same root cause as above, already documented
+  earlier this session and reconfirmed now unchanged. Not fixed —
+  out of scope for mobile QA, a workspace dependency-resolution issue
+  affecting only the web/extension packages.
+
+Mobile-scoped gate (the actually relevant one for this QA loop) is
+fully green. No code changes were made in this close-out.
