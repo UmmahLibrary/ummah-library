@@ -6394,3 +6394,48 @@ fix itself, only of the original bug and the no-regression check.
 
 **Commit:** `apps/mobile/src/screens/PrayerTimesScreen.tsx`,
 `apps/mobile/src/screens/HomeScreen.tsx`.
+
+---
+
+## Iterations 123-128 — A3-A8 re-verified live/via code, all clean
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+Fast pass through the remaining "parity with web" catalogue items,
+live where a live check adds real signal over the earlier code-only
+verification, code-confirmed where it doesn't (all six were already
+fixed in much earlier cycles; this is a "still holds" re-check, not a
+first pass).
+
+- **123 (tasbih per-phrase counter):** live-verified — 5 taps on
+  SubḥānAllāh, switched to Alḥamdulillāh (correctly showed 0, no
+  carry-over), switched back (correctly restored 5). **Clean.**
+- **124 (qada stepper race):** live-verified with a genuine stress
+  test — 10 rapid-fire taps on Fajr's `+` stepper landed exactly 10,
+  no drops, no double-counts, no cross-row contamination into
+  Dhuhr/Asr/Maghrib/Isha (all stayed 0). **Clean.**
+- **125 (hifz pluralization):** re-grepped all 8 "āyāt" sites across
+  mobile — every one correctly uses "āyāt", none regressed to the
+  wrong "āyahāt". **Clean.**
+- **126 (khatm 604/604 completion):** code-confirmed the completion
+  message (`ReadingGoalsScreen.tsx:189`, "Alhamdulillah — khatm
+  complete! 🎉") is still present and unchanged. Not re-driven live
+  this pass (would need actually completing a 604-page khatma to
+  trigger, not a quick repro) — flagging the lighter verification
+  honestly rather than claiming a live click-through that didn't
+  happen.
+- **127 (zakat reset scope):** code-confirmed `reset()` still only
+  clears `assets`/`liabilities`, explicitly leaves currency and
+  gold/silver prices untouched (own comment states the reasoning).
+  **Clean.**
+- **128 (negative zakat amounts):** code-confirmed
+  `packages/core/src/zakat.ts`'s `sumValues()` still explicitly
+  filters `v > 0`, so a negative entry is excluded from the total
+  rather than corrupting it. **Clean.**
+
+**Verification:** live device for 123-124 (`QA_Pixel6`), direct source
+re-check for 125-128 (no source changed, so the gate wasn't re-run —
+nothing to regress).
+
+**Commit:** none (all six re-confirmed clean; no code changes).

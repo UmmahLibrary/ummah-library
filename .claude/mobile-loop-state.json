@@ -1,17 +1,42 @@
 {
-  "iteration": 122,
+  "iteration": 128,
   "cycle": 4,
-  "perspectiveIndex": 1,
+  "perspectiveIndex": 7,
   "batchTarget": "synchronous batch of 41 iterations, 105 through 145",
   "target": 145,
   "batch": "mobile-live-qa-followup",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 6,
   "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro (adb + uiautomator for verification)",
   "history": [
     {
-      "iteration": 122,
-      "perspective": "Prayer-time timezone-of-location vs device-timezone (A1, cycle 4 first live pass)",
-      "outcome": "GAP FOUND AND FIXED, significant: PrayerTimesScreen and HomeScreen both fetch prayer timings once on mount with no re-trigger on day rollover while mounted. Combined with fmtCountdown's past-target clamp, this silently gets stuck at 0m forever once nextPrayer's one-day fallback is exhausted. Live-reproduced via mock GPS (Tokyo) + forced device timezone (America/New_York), simulating a realistic traveler scenario. Fixed both screens by extending their existing per-tick intervals to detect date rollover and refetch. Ruled out a third occurrence (prayer-timings-provider.ts) by reading - it's architecturally immune (recomputes date fresh every call, cache-keyed)."
+      "iteration": 123,
+      "perspective": "Tasbih per-phrase counter (A3 revisited, live)",
+      "outcome": "CLEAN, live-verified: per-phrase counts correctly isolated across switches."
+    },
+    {
+      "iteration": 124,
+      "perspective": "Qada stepper race condition (A4 revisited, live stress test)",
+      "outcome": "CLEAN, live-verified: 10 rapid-fire taps landed exactly 10, no drops/double-counts/cross-row contamination."
+    },
+    {
+      "iteration": 125,
+      "perspective": "Hifz pluralization copy (A5 revisited)",
+      "outcome": "CLEAN, re-grepped: all 8 sites correctly use aayaat, none regressed."
+    },
+    {
+      "iteration": 126,
+      "perspective": "Khatm 604/604 completion UX (A6 revisited)",
+      "outcome": "CLEAN via code re-check only (not live-driven this pass - would need completing a full khatma to repro live)."
+    },
+    {
+      "iteration": 127,
+      "perspective": "Zakat reset amounts scope (A7 revisited)",
+      "outcome": "CLEAN, code-confirmed reset() still scoped to assets/liabilities only."
+    },
+    {
+      "iteration": 128,
+      "perspective": "Negative Zakat asset amounts (A8 revisited) - all cycle-1 parity items now re-confirmed",
+      "outcome": "CLEAN, code-confirmed sumValues() still filters v > 0. All of catalogue section A (parity with web, items 1-8) now re-verified this cycle-4 pass."
     }
   ]
 }
