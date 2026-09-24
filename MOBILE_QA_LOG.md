@@ -7110,3 +7110,38 @@ checked by hand at each step.
 **Commit:** none (no code changes).
 
 **Consecutive clean count: 4/10.**
+
+## Iteration 150 — Hadith collections (runtime plugin content), live device
+
+First live test this session of the Hadith screen. Per AGENTS.md,
+hadith content is a runtime plugin, not bundled — this exercises that
+delivery path for real on-device, not just the manifest format.
+
+**Flow exercised on-device (`QA_Pixel6`)**:
+1. More → Hadith: Sahih al-Bukhari loaded correctly, Book 1 ·
+   Revelation, showing the hadith of intentions (Bukhari 1) with full
+   Arabic isnad+matn and English translation.
+2. Tapped "Next" — advanced correctly to Book 2 · Belief, hadith 8
+   (the five pillars), confirming book pagination works and content
+   is genuinely per-book rather than static.
+3. Switched to the "Sahih Muslim" tab — correctly reset to Book 1,
+   now showing that collection's own book title ("The Book of Faith",
+   distinct wording from Bukhari's "Belief" for the same topic — real
+   per-source data, not a shared/copy-pasted manifest), loaded Hadith
+   Jibril in full. Initially appeared to be missing an English
+   translation since it's a long multi-paragraph narration — scrolled
+   further and confirmed the translation is present immediately after
+   the (long) Arabic text, not actually missing.
+4. "Prev" correctly disabled/greyed at Book 1 in both collections.
+
+**Conclusion**: Hadith runtime-plugin loading, tab switching between
+collections, per-book pagination, and Arabic+translation rendering
+all work correctly with real network-loaded content. No bug found.
+
+**Verification:** live device (`QA_Pixel6`), both collections loaded
+and paginated for real, content read in full rather than assumed from
+a partial screenshot.
+
+**Commit:** none (no code changes).
+
+**Consecutive clean count: 5/10.**
