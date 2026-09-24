@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   adhkarToday,
   fmtCountdown,
@@ -6,6 +6,7 @@ import {
   ignoreStale,
   localISODate,
   weekdayOfGregorian,
+  withTimeout,
 } from "./utils";
 
 describe("localISODate", () => {
@@ -146,5 +147,25 @@ describe("ignoreStale", () => {
     const wrapped = ignoreStale(() => gen, gen, (v: number) => seen.push(v)); // fresh reload, current gen
     wrapped(42);
     expect(seen).toEqual([42]);
+  });
+});
+
+describe("withTimeout", () => {
+  it("resolves with the wrapped promise's value when it settles in time", async () => {
+    await expect(withTimeout(Promise.resolve("ok"), 1000)).resolves.toBe("ok");
+  });
+
+  it("rejects with the wrapped promise's error when it rejects in time", async () => {
+    await expect(withTimeout(Promise.reject(new Error("boom")), 1000)).rejects.toThrow("boom");
+  });
+
+  it("rejects on its own once the deadline passes, even if the promise never settles", async () => {
+    vi.useFakeTimers();
+    const never = new Promise<string>(() => {});
+    const race = withTimeout(never, 15000);
+    const assertion = expect(race).rejects.toThrow("timed out");
+    await vi.advanceTimersByTimeAsync(15000);
+    await assertion;
+    vi.useRealTimers();
   });
 });

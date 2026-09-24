@@ -11,6 +11,7 @@ import {
 import { Icon } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { KEYS, getJSON, setJSON } from "../storage";
+import { withTimeout } from "../utils";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { onSyncApplied } from "../lib/sync/sync-events";
@@ -97,7 +98,10 @@ export function MosqueFinderScreen() {
       return;
     }
     try {
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+      const pos = await withTimeout(
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
+        15000,
+      );
       const c: Coordinates = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
       setCoords(c);
       void setJSON(KEYS.prayerCoords, c);

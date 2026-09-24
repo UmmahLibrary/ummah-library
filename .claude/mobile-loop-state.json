@@ -1,32 +1,27 @@
 {
-  "iteration": 113,
-  "cycle": 3,
-  "perspectiveIndex": 31,
+  "iteration": 121,
+  "cycle": 4,
+  "perspectiveIndex": 0,
   "batchTarget": "synchronous batch of 41 iterations, 105 through 145",
   "target": 145,
   "batch": "mobile-live-qa-followup",
-  "consecutiveCleanIterations": 4,
+  "consecutiveCleanIterations": 0,
   "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro (adb + uiautomator for verification)",
   "history": [
     {
-      "iteration": 110,
-      "perspective": "Noor theme switching across all 8 palettes (B29 revisited)",
-      "outcome": "CLEAN, live-verified: Ivory -> Obsidian -> Rose -> Ivory, every switch recolored completely and instantly, both directions."
+      "iteration": 118,
+      "perspective": "Copy/microcopy consistency vs web (B37 revisited)",
+      "outcome": "GAP FOUND AND FIXED: mobile's Zakat disclaimer omitted web's explicit exclusions (agricultural produce, livestock, Shia khums). Copied web's exact existing wording for parity, not new interpretation."
     },
     {
-      "iteration": 111,
-      "perspective": "Asset loading fallback, offline (B30 revisited)",
-      "outcome": "CLEAN, live-verified with real airplane-mode-equivalent (svc wifi/data disable): uncached surah fails gracefully, cached surah loads fully offline."
+      "iteration": 120,
+      "perspective": "Mosque finder location accuracy and permission-denied fallback (B39 revisited)",
+      "outcome": "GAP FOUND AND FIXED: getCurrentPositionAsync() had no timeout in MosqueFinderScreen, QiblaScreen, and PrayerTimesScreen - could hang indefinitely with weak/no GPS. Added a shared withTimeout() helper (15s deadline), reusing each screen's existing error state. Live-verified the full permission-revoke-to-native-dialog-to-grant lifecycle."
     },
     {
-      "iteration": 112,
-      "perspective": "Navigation stack edge cases (B31 revisited)",
-      "outcome": "CLEAN, live-verified: rapid duplicate tab taps and tab-switch-mid-flow both preserve state correctly with no crash or duplicate screens."
-    },
-    {
-      "iteration": 113,
-      "perspective": "Error boundaries / crash resilience against malformed data (B32 revisited)",
-      "outcome": "CLEAN, live-verified with genuine SQLite-level corruption injection (adb run-as + sqlite3) into ul.zakat: no crash, graceful default fallback. Architectural note recorded (not fixed): getJSON()'s fallback is read-only by design, a generic shared helper, unlike the narrow per-screen write-back fixes done before - broader decision needed, out of scope for a QA iteration."
+      "iteration": 121,
+      "perspective": "Test coverage audit (B40 revisited) - cycle 3 complete",
+      "outcome": "Added prayer-settings-store.test.ts (9 tests) for the previously-untested validate-or-fall-back branches (method/madhab/high-lat-rule/coords) - directly relevant to the mission's no-silently-wrong-calculation bar. Most of the 28 untested modules are thin adapters or platform glue, low value to test individually. CYCLE 3 COMPLETE: all 40 catalogue items covered, iterations 104-121 all live-verified on QA_Pixel6."
     }
   ]
 }

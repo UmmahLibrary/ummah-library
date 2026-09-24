@@ -75,3 +75,28 @@ export function ignoreStale<T>(
     if (currentGen() === gen) setter(v);
   };
 }
+
+/**
+ * Races a promise against a timeout, rejecting if it doesn't settle in time.
+ * `Location.getCurrentPositionAsync` (Mosque Finder, Qibla, Prayer Times) has
+ * no built-in deadline — with weak/no GPS (common indoors, where these
+ * screens are realistically used) it can hang indefinitely, leaving the UI
+ * stuck on a loading spinner forever with nothing to catch and show the
+ * existing "couldn't get your location" error state. This turns that
+ * silent hang into a normal, already-handled rejection.
+ */
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timed out")), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}

@@ -24,7 +24,7 @@ import { api } from "../api";
 import { KEYS, getJSON, getString, setJSON, setString } from "../storage";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
-import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
+import { fmtCountdown, fmtPrayerTime, localISODate, withTimeout } from "../utils";
 import { expoNotifier } from "../notifier";
 import { notifyNotificationPermissionDenied } from "../notification-permission-alert";
 import {
@@ -135,7 +135,10 @@ export function PrayerTimesScreen() {
       return;
     }
     try {
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+      const pos = await withTimeout(
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
+        15000,
+      );
       const c: Coordinates = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
       setCoords(c);
       void setJSON(KEYS.prayerCoords, c);

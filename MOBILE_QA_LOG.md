@@ -6187,3 +6187,138 @@ WHERE key='ul.zakat'`) before continuing.
 above. No code changes this batch — everything held up.
 
 **Commit:** none (all four iterations clean; no code changes).
+
+---
+
+## Iterations 114-121 — B33-B40 revisited, live: cycle 3 complete
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+### 114 — Bundle/APK size audit
+
+Local debug APK measures 90.4MB, but a debug build is never
+representative of a Play Store submission (unminified, unstripped, all
+ABIs, dev tooling included). Confirmed `enableMinifyInReleaseBuilds`
+and `enableShrinkResourcesInReleaseBuilds` are both set in `app.json`'s
+`expo-build-properties` plugin — the actual release-size lever is
+already correctly configured. No production AAB was available in this
+session to measure directly (would need a real
+`eas build --profile production`, outside this loop's local scope).
+**Config sound; real number unverified, honestly flagged as such.**
+
+### 115 — EAS build config correctness
+
+Unchanged since the earlier review this session: `eas.json`'s
+`production` profile correctly builds an `app-bundle` with
+`autoIncrement`, no iOS profile exists. **Clean, re-confirmed.**
+
+### 116 — Play Store data-safety/permissions accuracy
+
+`app.json`'s permission list (audio, coarse/fine location,
+notifications, exact alarms) matches actual app usage exactly — no
+unexplained or unused permission that would need justifying (or
+couldn't be honestly justified) on the Play Console data-safety form.
+**Clean.**
+
+### 117 — Empty and loading states
+
+Live-checked two: Bookmarks ("No bookmarks yet" with clear
+instructions) and Hifz ("Begin your ḥifẓ journey" with the ornament
+graphic and clear next-step copy). Both well-designed, on-brand, no
+placeholder/debug text. **Clean.**
+
+### 118 — Copy/microcopy consistency vs web
+
+Spot-checked the Zakat disclaimer against web's — **found a real gap**:
+mobile's version omitted web's explicit exclusions (agricultural
+produce, livestock, Shia khums) and the "edge cases vary" caveat.
+Since this is religious-obligation-adjacent disclaimer text, fixed it
+by copying web's exact, already-published wording rather than
+authoring anything new (per `AGENTS.md`'s "don't author original
+religious interpretations" — this is parity, not interpretation).
+Live re-verified the full corrected text renders on device.
+
+### 119 — Push notification content correctness
+
+All four reminder types (adhkar, prayer, sunnah fast, Islamic event)
+build their title/body in **shared `packages/core`**
+(`reminders.ts`), not mobile-specific code — so this is inherently
+parity-safe with web. All four read as clean, sensible, consistently
+formatted strings, no placeholders. **Clean.**
+
+### 120 — Mosque finder location accuracy and permission-denied fallback
+
+Live-verified the full permission lifecycle with real revocation
+(`pm revoke`) and the real native Android permission dialog (not a
+code-reasoning argument): revoke → cached last-known location still
+shown (reasonable — old data isn't erased just because permission was
+later revoked) → tapping "Update" correctly re-triggers Android's own
+permission prompt → granting "Only this time" correctly proceeds to
+`getCurrentPositionAsync()`.
+
+**Found and fixed a real gap along the way**: that
+`getCurrentPositionAsync()` call — here and identically in
+`QiblaScreen.tsx` and `PrayerTimesScreen.tsx` — had no timeout. On this
+emulator (no GPS fix by default) it hung indefinitely on "Getting your
+location…" until a mock location was set via `adb emu geo fix`. A real
+device with weak/no GPS (very plausible for all three of these
+screens, realistically used indoors) could hang the same way with no
+escape but manually leaving the screen — not a crash, but a genuine,
+silent, ungraceful stall the existing `error` state was never reached
+for. Fixed by adding a shared `withTimeout()` helper (`utils.ts`, unit
+tested with fake timers) and wrapping all three call sites with a 15s
+deadline — on timeout, the promise rejects and each screen's *already
+existing* `catch { setStatus("error") }` path fires naturally, reusing
+the UI each screen already had rather than inventing anything new.
+
+### 121 — Test coverage audit
+
+Census: 28 top-level mobile modules have no matching `.test.ts`. Most
+are thin, low-value-to-test adapters (e.g. `qada-store.ts`, 13 lines,
+just `getJSON`/`setJSON` with a key — the real logic is in
+`@ummahlibrary/core`, already tested there) or platform glue
+(`fonts.ts`, `notifier.ts`, `api.ts`). One stood out as genuinely
+undertested relative to its stakes: `prayer-settings-store.ts` (44
+lines) has real validate-or-fall-back branches for the calculation
+method, madhab, high-latitude rule, and coordinates read back from
+storage — exactly the kind of silent-wrong-input path the mission's
+"no silently-wrong religious-obligation calculations" bar cares about,
+and it had zero coverage. Added
+`prayer-settings-store.test.ts` (9 tests): defaults-when-empty,
+valid-values-pass-through, and a fallback case for each of the four
+validated fields independently, plus a coords round-trip covering the
+`null`-write case specifically (the code's own comment flagged this as
+worth getting right).
+
+**Verification (all of 114-121):** `pnpm --filter @ummahlibrary/mobile
+typecheck` clean; `pnpm lint` — 0 errors, same 13 pre-existing
+warnings; `pnpm --filter @ummahlibrary/mobile test` 164/164 passing
+(12 new: 3 for `withTimeout`, 9 for `prayer-settings-store`). Live
+device verification as detailed per item above on `QA_Pixel6`.
+Location permission and network connectivity restored to their normal
+granted/on state afterward.
+
+**Commit:** `apps/mobile/src/screens/ZakatScreen.tsx`,
+`apps/mobile/src/utils.ts`, `apps/mobile/src/utils.test.ts`,
+`apps/mobile/src/screens/MosqueFinderScreen.tsx`,
+`apps/mobile/src/screens/QiblaScreen.tsx`,
+`apps/mobile/src/screens/PrayerTimesScreen.tsx`,
+`apps/mobile/src/prayer-settings-store.test.ts` (new).
+
+---
+
+## Cycle 3 complete — all 40 catalogue items covered, several with live verification for the first time
+
+Cycle 3 started well before this session (iterations 1-100 spanned it
+alongside cycles 1-2's own earlier passes) and closes here at iteration
+121. From iteration 104 onward, a real Android emulator (`QA_Pixel6`)
+was available for the first time in this loop's history, and every
+perspective revisited since has been live-verified via `adb`/
+`uiautomator`/screenshots rather than only web-preview or code-reading
+— catching four real bugs no prior code-only pass had found (the
+CSPRNG dev-build crash blocking all sync testing, the crest breaking
+at 200% text scale, four under-sized touch targets, and the
+unbounded-location-fetch hang), plus one meaningful copy-parity gap.
+Continuing into cycle 4 next, deepening further with the device now
+established as a standing tool for this loop.
