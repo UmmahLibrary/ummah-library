@@ -1,11 +1,11 @@
 {
-  "iteration": 153,
+  "iteration": 154,
   "cycle": 4,
   "perspectiveIndex": 24,
   "batchTarget": "continue until 10 consecutive clean iterations (user directive, started after PR #289 merge)",
   "target": null,
   "batch": "mobile-live-qa-continued",
-  "consecutiveCleanIterations": 8,
+  "consecutiveCleanIterations": 9,
   "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro. Note: this emulator instance shows intermittent WiFi beacon-loss flakiness even after a mid-session reboot - a known environmental artifact, not an app bug.",
   "batchComplete": false,
   "history": [
@@ -48,6 +48,11 @@
       "iteration": 153,
       "perspective": "Your journey (streaks, stats, achievements), live device",
       "outcome": "CLEAN: stat aggregation across 99 Names/Bookmarks/Hifz/Reading Goals and all 13 achievement locks cross-checked against real session state and found consistent. Consecutive clean count: 8/10."
+    },
+    {
+      "iteration": 154,
+      "perspective": "Privacy policy + Hijri Calendar, live device",
+      "outcome": "CLEAN: Privacy page content accurate and complete; Hijri Calendar date-adjustment offset math and Sunnah-fast next-occurrence logic both verified correct against real device date. Consecutive clean count: 9/10."
     }
   ]
 }

@@ -7261,3 +7261,43 @@ continuation rather than assuming correctness from the UI alone.
 **Commit:** none (no code changes).
 
 **Consecutive clean count: 8/10.**
+
+## Iteration 154 — Privacy policy + Hijri Calendar, live device
+
+Two areas not yet tested live this continuation, covered together.
+
+**Privacy (More → Privacy)**:
+Full page read on-device, not skimmed. Content matches the app's
+documented local-first architecture (ADR 0006): data storage,
+opt-in cross-device sync with on-device encryption explained
+correctly, third-party content sources named (quran.com,
+everyayah.com, jsDelivr), no tracking/ads, AGPL-3.0, contact email.
+Scrolled to the end — renders completely, "Last updated 22 September
+2026" (2 days before today's date, plausible), no truncation.
+
+**Hijri Calendar (Tools → Hijri Calendar)**:
+1. Initial load: today correctly highlighted as 11 Rabī' al-Thānī
+   1448 AH = Sep 24 2026 (today's real date), calendar grid maps
+   every Hijri day to the correct Gregorian date.
+2. Tapped "+1" date adjustment — whole month correctly re-anchored:
+   today's Hijri day advanced 11→12, day-1's Gregorian mapping
+   shifted back one day (Sep 14→Sep 13), fully consistent math.
+   Reverted to "0".
+3. Toggled "Sunnah-fast reminders" on — correctly computed
+   "Next: Thursday fast · Today" (today genuinely falls in the
+   Thu column of the visible grid, so "Today" as the next fast
+   is right). Toggled back off — the computed-next-fast line
+   correctly disappeared, no stale state left behind.
+
+**Conclusion**: both screens are correct — Privacy policy content is
+accurate and complete, and the Hijri Calendar's date-adjustment
+offset and Sunnah-fast next-occurrence logic both compute correctly
+against the real device date. No bug found.
+
+**Verification:** live device (`QA_Pixel6`), read Privacy in full,
+exercised Hijri Calendar's adjustment and reminder toggle with before/
+after state checked at each step.
+
+**Commit:** none (no code changes).
+
+**Consecutive clean count: 9/10.**
