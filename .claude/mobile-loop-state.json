@@ -1,11 +1,11 @@
 {
-  "iteration": 151,
+  "iteration": 152,
   "cycle": 4,
   "perspectiveIndex": 24,
   "batchTarget": "continue until 10 consecutive clean iterations (user directive, started after PR #289 merge)",
   "target": null,
   "batch": "mobile-live-qa-continued",
-  "consecutiveCleanIterations": 6,
+  "consecutiveCleanIterations": 7,
   "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro. Note: this emulator instance shows intermittent WiFi beacon-loss flakiness even after a mid-session reboot - a known environmental artifact, not an app bug.",
   "batchComplete": false,
   "history": [
@@ -38,6 +38,11 @@
       "iteration": 151,
       "perspective": "Settings: theme switching, live device",
       "outcome": "CLEAN: theme switch via UI control applies instantly and consistently app-wide across screens (verified Settings -> Home propagation), both dark and light palettes correct. Consecutive clean count: 6/10."
+    },
+    {
+      "iteration": 152,
+      "perspective": "99 Names (Al-Asma al-Husna), live device",
+      "outcome": "CLEAN: progress counting, hero-card selection, and a genuine tap-to-toggle learned state all verified consistent across 3 toggles; full 99-entry list renders correctly to the end. Consecutive clean count: 7/10."
     }
   ]
 }

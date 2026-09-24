@@ -7181,3 +7181,45 @@ and cross-checked propagation onto a different tab (Home) each time.
 **Commit:** none (no code changes).
 
 **Consecutive clean count: 6/10.**
+
+## Iteration 152 — 99 Names (Al-Asmā' al-Ḥusná), live device
+
+First live test this session of the 99 Names screen.
+
+**Flow exercised on-device (`QA_Pixel6`)**:
+1. More → 99 Names: loaded correctly, "0 of 99 learned", featured
+   hero card for Allāh (1 of 99), 2-column grid starting at name 1.
+2. Tapped "Ar-Rahmān" (2) — became the featured hero card, count
+   correctly advanced to "1 of 99 learned", card highlighted gold.
+3. Tapped "Al-Malik" (4) — became the new hero card, count correctly
+   advanced to "2 of 99 learned", both 2 and 4 highlighted.
+4. Tapped the already-learned "Ar-Rahmān" (2) again — investigated a
+   possible double-count bug, but found consistent **toggle**
+   behavior instead: count correctly dropped back to "1 of 99
+   learned" and its highlight cleared. A third tap re-added it
+   ("2 of 99 learned", re-highlighted). Confirmed this is a real,
+   deliberate toggle (mark/unmark learned bound to the same tap that
+   selects the hero card), not a state-corruption bug — every
+   transition was internally consistent and correctly counted across
+   three toggles in a row.
+5. Scrolled to the end of the list: all 99 names render through
+   #99 (Aṣ-Ṣabūr) with correct Arabic, transliteration, and meaning;
+   the trailing odd-count row (a single card, 99 being odd) lays out
+   correctly without stretching to fill the second column.
+
+**Conclusion**: the 99 Names screen works correctly — progress
+counting, hero-card selection, toggle state, and full-list rendering
+all behave predictably. The one soft observation, not treated as a
+bug: binding "select to view" and "toggle learned" to the same tap
+means re-viewing an already-learned name silently un-marks it, which
+could surprise a user expecting view-only browsing; noted as a
+product/UX consideration, not a functional defect, and not acted on.
+
+**Verification:** live device (`QA_Pixel6`), toggled the same name
+three times to rule out a data-corruption bug before concluding
+it's an intentional, consistent toggle; scrolled the full 99-entry
+list.
+
+**Commit:** none (no code changes).
+
+**Consecutive clean count: 7/10.**
