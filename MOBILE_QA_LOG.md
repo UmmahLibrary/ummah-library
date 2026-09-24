@@ -6472,3 +6472,102 @@ above the keyboard. **Clean.**
 **Verification:** live device (`QA_Pixel6`) for both. No code changes.
 
 **Commit:** none (both clean; no code changes).
+
+---
+
+## Iterations 131-132 — B12 and B15 revisited, live
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**131 (background/foreground transitions — timers, audio, in-flight
+requests):** never live-tested this session. Started Al-Faatiha audio
+(`dumpsys media_session` confirmed `state=PLAYING`), pressed Home,
+waited 3s, and confirmed via `dumpsys media_session` again: still
+`PLAYING`, playback position advanced from 0 to 2888ms — genuine
+continued background playback, not a paused-but-reports-playing
+artifact. Confirmed a proper Android media transport notification
+exists while backgrounded (`category=transport`,
+`channel=expo_audio_channel`) with a working tap-to-return
+`contentIntent`. Re-foregrounded and confirmed the reader UI had
+correctly auto-scrolled to match how far playback had actually
+progressed (āyah 5-6) — no stuck-on-āyah-1 desync between the
+background audio engine and the foregrounded UI's scroll position.
+**Clean.**
+
+**132 (safe-area/notch handling):** confirmed the architecture is
+sound — `SafeAreaProvider` wraps the whole app at `App.tsx`'s root,
+5 screens use `useSafeAreaInsets`/`SafeAreaView` explicitly for
+edge-to-edge custom layouts, and React Navigation's stack/tab
+navigators handle safe-area insets automatically for everything else
+by default. **Could not visually verify against a real cutout** —
+this AVD's API level doesn't support the emulator's display-cutout
+emulation command, so no on-device notch to actually test against.
+Flagging that limitation honestly rather than claiming a visual check
+that didn't happen; the architectural check is real, the pixel-level
+confirmation is not.
+
+**Verification:** live device (`QA_Pixel6`) for 131, `dumpsys
+media_session`/`dumpsys notification` output as evidence; architecture
+read-through for 132 (limited by the emulator's own capabilities, not
+skipped).
+
+**Commit:** none (both clean/architecture-sound; no code changes).
+
+---
+
+## Batch close-out — synchronous run, iterations 105-132 (28 of the requested 41)
+
+This synchronous batch (no more scheduled-wakeup pacing, per explicit
+instruction) ran 28 iterations back-to-back: 105-121 closing out cycle
+3 entirely (all 40 catalogue items), then 122-132 opening cycle 4 with
+a first-ever live device pass on 11 more perspectives, several
+revisiting ground earlier cycles had only ever verified by reading
+code.
+
+**Real bugs found and fixed this batch** (8 total, each live-verified,
+each with the full lint/typecheck/test gate green before its commit):
+1. **CSPRNG guard fired on every New-Architecture dev build**
+   (iteration 104) — sync was untestable in any dev/QA build until
+   this session; fixed by switching to `expo-crypto`'s
+   `getRandomBytesAsync`, which has no such fallback at all.
+2. **Stale header title on a failed deep link** (iteration 103).
+3. **Crest overlap at 200% accessibility text scale** (iteration 107).
+4. **Four touch targets under the 44dp minimum** (iteration 109),
+   plus a documented methodology pitfall (`hitSlop` invisible to
+   `uiautomator` bounds).
+5. **Zakat disclaimer missing web's exclusions** (iteration 118) —
+   religious-content parity, fixed by copying web's exact wording.
+6. **Unbounded location fetch could hang forever** across three
+   screens (iteration 120) — fixed with a shared `withTimeout` helper.
+7. **Prayer timings silently stuck at "0m" forever past a day
+   rollover** (iteration 122) — the batch's most significant find,
+   live-reproduced via a realistic mock-GPS + forced-timezone traveler
+   scenario, fixed in both `PrayerTimesScreen` and `HomeScreen`.
+8. Plus a genuinely new regression-test file
+   (`prayer-settings-store.test.ts`, iteration 121) for a previously
+   uncovered validate-or-fall-back path directly relevant to the
+   mission's no-silently-wrong-calculation bar.
+
+**Everything else checked came back clean**, each with a real,
+specific live verification recorded above rather than a rubber-stamp
+— including several genuine stress tests (10 rapid-fire qada taps, a
+malformed-input sanitization repro, a real backgrounded-audio
+continuity check) that went beyond what any prior cycle's code-reading
+pass could establish.
+
+**Consolidated total for this whole loop, all batches**: 132
+iterations, 3+ full catalogue cycles, with cycle 4 now underway using
+a live device for the first time in the loop's history. The five
+standing owner-decisions from iteration 100's close-out remain
+unresolved and unchanged (`SCHEDULE_EXACT_ALARM` policy, no
+server-side sync-data deletion, `plans/:id` deep-link parity gap,
+missing light-mode splash asset [now fixed, see PR #288], tablet
+content-width primitive) — the splash one should be struck from that
+list now that it shipped.
+
+The full gate is green: `pnpm --filter @ummahlibrary/mobile typecheck`
+clean, `pnpm lint` 0 errors (13 pre-existing warnings, unchanged all
+batch), `pnpm --filter @ummahlibrary/mobile test` 164/164 passing (12
+net new this batch: 3 for `withTimeout`, 9 for
+`prayer-settings-store`).
