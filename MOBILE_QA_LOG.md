@@ -6439,3 +6439,36 @@ re-check for 125-128 (no source changed, so the gate wasn't re-run —
 nothing to regress).
 
 **Commit:** none (all six re-confirmed clean; no code changes).
+
+---
+
+## Iterations 129-130 — A2 and B16 revisited, live: precise sanitization repro and keyboard-avoidance confirmed reachable
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**129 (Zakat currency-field sanitization):** the one catalogue-A item
+not yet re-covered this cycle. Live-verified with a precisely chosen
+malformed input on an actual numeric asset field (the first attempt
+mistakenly targeted the currency *symbol* field, which is legitimately
+free text — caught and corrected before drawing any conclusion from
+it): typed `12abc34.56.78` into "Cash & bank balances" and it
+correctly settled to `1234.5678` — letters stripped, the duplicate
+second decimal point stripped too, exactly matching
+`sanitizeDecimal()`. **Clean.**
+
+**130 (keyboard-avoiding behavior):** never live-tested this session.
+Confirmed both halves of the standard RN/Android pairing are correctly
+in place: `ZakatScreen.tsx`'s `KeyboardAvoidingView` uses
+`behavior: Platform.OS === "ios" ? "padding" : undefined` (Android
+intentionally does nothing here, by design — it relies on the native
+layer instead), and the generated `AndroidManifest.xml` has
+`android:windowSoftInputMode="adjustResize"`, which is what actually
+does the work on Android. Live-verified the practical result: with the
+keyboard open, the focused input scrolled below the fold is not stuck
+or unreachable — a manual scroll reveals and keeps it fully editable
+above the keyboard. **Clean.**
+
+**Verification:** live device (`QA_Pixel6`) for both. No code changes.
+
+**Commit:** none (both clean; no code changes).
