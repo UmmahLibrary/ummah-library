@@ -6322,3 +6322,75 @@ at 200% text scale, four under-sized touch targets, and the
 unbounded-location-fetch hang), plus one meaningful copy-parity gap.
 Continuing into cycle 4 next, deepening further with the device now
 established as a standing tool for this loop.
+
+---
+
+## Iteration 122 — Cycle 4, A1: prayer-time timezone-of-location vs device-timezone — found and fixed a real "stuck forever" bug
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**Checked:** catalogue item 1 (prayer-time timezone-of-location vs
+device-timezone), never live-tested this session — only ever verified
+by code-reading in cycles 1/2, many iterations ago.
+
+**Live-reproduced a realistic scenario**: mock-GPS'd the emulator to
+Tokyo (`adb emu geo fix 139.6503 35.6762`) and forced the device's own
+timezone to `America/New_York` (`service call alarm 3 s16
+America/New_York` — `setprop persist.sys.timezone` alone was refused).
+This simulates a traveler whose phone auto-updates timezone on arrival
+while the app still has a stale, pre-travel cached location — exactly
+catalogue item 1's stated concern, via a legitimate (if manually
+forced) real-world equivalent.
+
+**Found**: opening Prayer Times showed "**0m** until Fajr at 4:56 AM"
+while the device clock read 10:18 PM — a ~6.5 hour, silently-wrong
+countdown. Traced the exact mechanism:
+[`fmtCountdown`](apps/mobile/src/utils.ts) is documented to clamp to
+`"0m"` when its target has already passed (correct, sane behavior for
+the instant right at/after a prayer begins) — but
+[`PrayerTimesScreen.tsx`](apps/mobile/src/screens/PrayerTimesScreen.tsx)'s
+`timings` state is fetched **once**, on mount (or an explicit user
+action), for whatever "today" was at that moment, and nothing ever
+re-triggers the fetch if the local calendar day rolls over while the
+screen stays mounted. `nextPrayer`'s own fallback only extends one day
+("tomorrow's fajr" = today's fajr + 24h) — past that, every prayer
+target is permanently behind `now`, and the countdown clamp turns a
+genuine staleness bug into a silent, indefinite "0m" display with no
+indication anything is wrong. **[`HomeScreen.tsx`](apps/mobile/src/screens/HomeScreen.tsx)
+has the identical bug**, on the screen most likely of all to stay
+mounted for long stretches (the app's landing tab).
+
+**Ruled out a third occurrence by reading, not assuming**:
+[`prayer-timings-provider.ts`](apps/mobile/src/prayer-timings-provider.ts)
+(the shared provider behind reminders/Ramadan) is architecturally
+immune — it computes `localISODate(new Date())` fresh on *every* call
+and cache-keys by that date, so it self-heals automatically once the
+day changes, with no captured-once state to go stale. This confirmed
+the bug was specific to these two screens' own local `useState`
+management, not systemic.
+
+**Fix**: both screens already had a per-tick `setInterval` (1s for
+Prayer Times, 30s for Home) updating the live countdown clock — added
+a `timingsDateRef` tracking which local date `timings` was fetched
+for, and extended each existing tick to compare it against the current
+date and trigger a real refetch on mismatch, reusing each screen's own
+`fetchTimings`/`loadTimings` rather than adding a new mechanism.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck`
+clean; `pnpm lint` — 0 errors, same 13 pre-existing warnings (no new
+`exhaustive-deps` warnings from the refactor); `pnpm --filter
+@ummahlibrary/mobile test` 164/164 passing (unchanged — this is a
+timer/effect-driven UI fix with no isolable pure logic to unit test,
+and this codebase's convention is live/manual verification for
+screen-level React state, not component tests). Live-verified no
+regression to normal loading after restoring a real timezone/location
+(`America/Los_Angeles`, San Francisco coords). A live day-boundary
+simulation (advancing the device date forward and watching the tick
+refetch) was judged not worth the fragility given how precisely the
+root cause was traced and how directly the fix addresses it — flagging
+that judgment call explicitly rather than claiming a live repro of the
+fix itself, only of the original bug and the no-regression check.
+
+**Commit:** `apps/mobile/src/screens/PrayerTimesScreen.tsx`,
+`apps/mobile/src/screens/HomeScreen.tsx`.

@@ -1,7 +1,7 @@
 {
-  "iteration": 121,
+  "iteration": 122,
   "cycle": 4,
-  "perspectiveIndex": 0,
+  "perspectiveIndex": 1,
   "batchTarget": "synchronous batch of 41 iterations, 105 through 145",
   "target": 145,
   "batch": "mobile-live-qa-followup",
@@ -9,19 +9,9 @@
   "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro (adb + uiautomator for verification)",
   "history": [
     {
-      "iteration": 118,
-      "perspective": "Copy/microcopy consistency vs web (B37 revisited)",
-      "outcome": "GAP FOUND AND FIXED: mobile's Zakat disclaimer omitted web's explicit exclusions (agricultural produce, livestock, Shia khums). Copied web's exact existing wording for parity, not new interpretation."
-    },
-    {
-      "iteration": 120,
-      "perspective": "Mosque finder location accuracy and permission-denied fallback (B39 revisited)",
-      "outcome": "GAP FOUND AND FIXED: getCurrentPositionAsync() had no timeout in MosqueFinderScreen, QiblaScreen, and PrayerTimesScreen - could hang indefinitely with weak/no GPS. Added a shared withTimeout() helper (15s deadline), reusing each screen's existing error state. Live-verified the full permission-revoke-to-native-dialog-to-grant lifecycle."
-    },
-    {
-      "iteration": 121,
-      "perspective": "Test coverage audit (B40 revisited) - cycle 3 complete",
-      "outcome": "Added prayer-settings-store.test.ts (9 tests) for the previously-untested validate-or-fall-back branches (method/madhab/high-lat-rule/coords) - directly relevant to the mission's no-silently-wrong-calculation bar. Most of the 28 untested modules are thin adapters or platform glue, low value to test individually. CYCLE 3 COMPLETE: all 40 catalogue items covered, iterations 104-121 all live-verified on QA_Pixel6."
+      "iteration": 122,
+      "perspective": "Prayer-time timezone-of-location vs device-timezone (A1, cycle 4 first live pass)",
+      "outcome": "GAP FOUND AND FIXED, significant: PrayerTimesScreen and HomeScreen both fetch prayer timings once on mount with no re-trigger on day rollover while mounted. Combined with fmtCountdown's past-target clamp, this silently gets stuck at 0m forever once nextPrayer's one-day fallback is exhausted. Live-reproduced via mock GPS (Tokyo) + forced device timezone (America/New_York), simulating a realistic traveler scenario. Fixed both screens by extending their existing per-tick intervals to detect date rollover and refetch. Ruled out a third occurrence (prayer-timings-provider.ts) by reading - it's architecturally immune (recomputes date fresh every call, cache-keyed)."
     }
   ]
 }
