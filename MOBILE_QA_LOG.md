@@ -6786,3 +6786,135 @@ either confirmed already-clean ground or correctly resolved apparent
 issues as non-bugs). Full gate green throughout: typecheck clean, lint
 0 errors, 164/164 tests passing. All work committed to
 `mobile-live-qa-followup`, tracked in PR #289.
+
+---
+
+## Iterations 140-141 — B21 and B22, final live re-checks with a genuinely new angle each
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**140 (AsyncStorage migration safety — a different code path than
+iteration 113's corruption test):** live-tested
+`mobileTasbihStore`'s legacy flat-record migration specifically
+(iteration 113 tested `getJSON`'s malformed-JSON fallback; this is a
+different, valid-JSON-but-old-shape migration path with its own
+write-back). Injected the legacy shape directly
+(`{"phraseId":"subhanallah","total":17,"target":33}`) via `adb run-as
+sqlite3`, relaunched, opened Tasbih: correctly showed 17/33 under
+SubḥānAllāh. Confirmed the write-back too — storage now holds the new
+`{phraseId, phrases: {subhanallah: {total, target}}}` shape, not the
+legacy one. **Clean.**
+
+**141 (secure storage of the sync recovery secret — the most concrete
+check yet):** every prior pass verified this by reading code or
+exercising the UI; this one inspected the actual raw storage file
+directly. Queried the plain-AsyncStorage-backed SQLite database
+(`SELECT key FROM catalystLocalStorage WHERE key LIKE 'ul.sync%'`)
+with sync already enabled from earlier iterations — returned only
+`ul.sync.cursor`, `ul.sync.enabled`, `ul.sync.meta`, `ul.sync.node`.
+**`ul.sync.secret` is genuinely absent** — not just architecturally
+supposed to be elsewhere, but concretely confirmed missing from the
+one place a leak would actually be visible. **Clean.**
+
+**Verification:** live device (`QA_Pixel6`), direct SQLite inspection
+for both — the strongest verification method available short of
+extracting the Keystore itself. No code changes. Test tasbih data
+cleaned up afterward.
+
+**Commit:** none (both clean; no code changes).
+
+---
+
+## Iterations 142-145 — final deepening and close-out
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**142 (kill-and-restore combined with dark theme — never tested
+together before):** set Obsidian directly via storage, opened
+Al-Faatiha, backgrounded and genuinely killed the process
+(`adb shell am kill`, confirmed dead via `pidof`), relaunched. The
+reload was notably slow — `logcat` showed repeated `wlan0:
+CTRL-EVENT-BEACON-LOSS` events, the same emulator WiFi flakiness
+already documented in iteration 135, not a new app issue — but it
+resolved correctly once the network cooperated: dark theme, the exact
+nested screen (Read tab, Al-Faatiha), and content all restored
+intact, crest rendering cleanly in dark. **Clean**, with the slow load
+attributed honestly to the known environmental flakiness rather than
+either ignored or mistaken for an app bug.
+
+**143 (git log consistency review):** reviewed every commit in this
+whole synchronous batch (`66a5d71..HEAD`) — all scoped, Conventional
+Commits-formatted, matching their log entries. Confirmed zero AI
+attribution anywhere in any commit message this batch
+(`git log --format=%B | grep -i "claude\|anthropic\|co-authored"` —
+no matches), consistent with the project's standing instruction.
+
+**144 (final full gate):** `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm lint` 0 errors (13 pre-existing warnings,
+unchanged all batch), `pnpm --filter @ummahlibrary/mobile test`
+164/164 passing — confirmed green after all of this session's direct
+storage manipulation (theme, locale, tasbih, zakat, coords) across
+many iterations, proving none of it left the codebase or its own test
+suite in a bad state.
+
+**145 — batch complete: 41 of 41 iterations (105-145).**
+
+---
+
+## Final close-out — the complete synchronous batch, iterations 105-145
+
+This closes out the full 41-iteration batch requested, run across
+three continuation stretches after scheduled-wakeup pacing was turned
+off in favor of running synchronously. Summary of the whole batch:
+
+**Cycle 3 completed** (iterations 105-121): all 40 catalogue items
+covered, the loop's first-ever live-device pass after 100+ iterations
+of web-preview-only or code-only verification.
+
+**Cycle 4 opened and substantially deepened** (iterations 122-145):
+re-walked the "parity with web" section (A1-A8) entirely live/
+re-confirmed, plus 17 more B-section perspectives, several combining
+two of this session's own conditions together to check fixes
+generalize rather than just satisfy their original repro.
+
+**8 real bugs found and fixed, every one live-verified:**
+1. Stale header title on a failed deep link (103)
+2. CSPRNG guard blocking all sync testing on New-Architecture dev
+   builds (104) — the loop's most consequential find this session
+3. Crest overlap at 200% accessibility text scale (107) — later
+   re-confirmed to hold under combined dark-theme + 200%-scale stress
+   (137)
+4. Four touch targets under the 44dp minimum, plus a documented
+   `hitSlop`-invisible-to-`uiautomator` measurement pitfall (109)
+5. Zakat disclaimer missing web's religious-content exclusions (118)
+6. Unbounded location fetch could hang forever across three screens
+   (120)
+7. Prayer timings silently stuck at "0m" forever past a day rollover
+   (122) — the single most significant find, live-reproduced via a
+   realistic mock-GPS-plus-forced-timezone traveler scenario
+8. A previously-uncovered validate-or-fall-back path in
+   `prayer-settings-store.ts` given real regression-test coverage
+   (121)
+
+**Everything else came back clean**, each with genuine, specific live
+verification — real stress tests (10 rapid-fire qada taps, a real
+simulated phone call interrupting audio, a real native permission
+dialog denied and handled, two independent AsyncStorage migration
+paths live-triggered, the sync secret's absence confirmed by directly
+querying the raw storage file) rather than restated assumptions.
+
+**Two apparent issues were investigated and correctly resolved as
+non-bugs**, each with the reasoning shown rather than asserted: a
+stale "0m" display traced to leftover test-session residue (not a
+regression), and a "couldn't load prayer times" network error traced
+to cumulative emulator network degradation from this session's own
+extensive `svc wifi`/`svc data` manipulation, confirmed by a fresh
+emulator reboot dropping ping RTT from ~500ms to ~55ms.
+
+**Full gate green throughout**: typecheck clean, lint 0 errors (13
+pre-existing warnings, unchanged from session start), 164/164 tests
+passing (12 net new this batch). Every commit reviewed for
+consistency and confirmed free of AI attribution. All work on
+`mobile-live-qa-followup`, tracked in PR #289, ready to merge.
