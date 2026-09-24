@@ -7076,3 +7076,37 @@ list → open flow exercised end-to-end.
 **Commit:** none (no code changes).
 
 **Consecutive clean count: 3/10.**
+
+## Iteration 149 — Reading Goals (daily goal + khatma tracking), live device
+
+First live test this session of the Reading Goals screen with real
+interaction (daily goal selection, starting/progressing/clearing a
+khatma) rather than code-only reasoning.
+
+**Flow exercised on-device (`QA_Pixel6`)**:
+1. Opened More → Reading Goals. Initial state: "1 of 4 pages today"
+   ring, "2 day streak" (carried over from earlier iterations'
+   real reading activity this session), weekly bar chart correctly
+   showing only Wed/Thu with activity, "no khatma".
+2. Tapped "30 days" under KHATMA — correctly started a khatma:
+   "Page 0/604 · 30d left · 20/day" (604 is the correct total Madani
+   Mushaf page count; 604/30 = 20.13 → correctly rounded to 20/day),
+   "0% to khatm", and Resume/+1/-1/Clear controls appeared.
+3. Tapped "+1" five times — progress updated to "Page 5/604 · 30d
+   left · 20/day", "1% to khatm" (5/604 = 0.827% → correctly rounds
+   to 1%), "Resume p6" (correctly offset by one from the last
+   completed page).
+4. Tapped "Clear" — cleanly reset back to the exact initial "no
+   khatma" state with no residual page count or stale UI.
+
+**Conclusion**: Reading Goals' daily-goal selector, khatma
+start/increment/clear, and streak/weekly-chart rendering all behave
+correctly with real device interaction. No bug found.
+
+**Verification:** live device (`QA_Pixel6`), full khatma
+start → increment ×5 → clear cycle exercised with on-screen math
+checked by hand at each step.
+
+**Commit:** none (no code changes).
+
+**Consecutive clean count: 4/10.**

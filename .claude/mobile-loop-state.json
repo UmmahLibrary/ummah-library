@@ -1,11 +1,11 @@
 {
-  "iteration": 148,
+  "iteration": 149,
   "cycle": 4,
   "perspectiveIndex": 24,
   "batchTarget": "continue until 10 consecutive clean iterations (user directive, started after PR #289 merge)",
   "target": null,
   "batch": "mobile-live-qa-continued",
-  "consecutiveCleanIterations": 3,
+  "consecutiveCleanIterations": 4,
   "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro. Note: this emulator instance shows intermittent WiFi beacon-loss flakiness even after a mid-session reboot - a known environmental artifact, not an app bug.",
   "batchComplete": false,
   "history": [
@@ -23,6 +23,11 @@
       "iteration": 148,
       "perspective": "Collections/bookmarks with real saved data, live device",
       "outcome": "CLEAN: full create -> save -> list -> open flow for a real collection exercised end-to-end and rendered correctly. One scroll-position observation after 'Open in reader' has a plausible non-bug explanation (audio auto-scroll-to-playing-verse from an already-in-flight autoplay); not reproducible as a clean repro. Consecutive clean count: 3/10."
+    },
+    {
+      "iteration": 149,
+      "perspective": "Reading Goals (daily goal + khatma tracking), live device",
+      "outcome": "CLEAN: khatma start/increment x5/clear cycle all correct (604-page total, 20/day rounding, 1% at 5 pages, Resume p6 offset, clean reset). Consecutive clean count: 4/10."
     }
   ]
 }
