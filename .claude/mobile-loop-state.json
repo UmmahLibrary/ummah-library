@@ -1,32 +1,32 @@
 {
-  "iteration": 109,
+  "iteration": 113,
   "cycle": 3,
-  "perspectiveIndex": 27,
-  "batchTarget": "synchronous batch of 41 iterations, 105 through 145 (user turned off scheduled wakeups, running synchronously now)",
+  "perspectiveIndex": 31,
+  "batchTarget": "synchronous batch of 41 iterations, 105 through 145",
   "target": 145,
   "batch": "mobile-live-qa-followup",
-  "consecutiveCleanIterations": 0,
+  "consecutiveCleanIterations": 4,
   "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro (adb + uiautomator for verification)",
   "history": [
     {
-      "iteration": 106,
-      "perspective": "Font loading fallback / flash-of-unstyled-text (B25 revisited)",
-      "outcome": "CLEAN, live-verified via rapid screenshot burst through cold start; bonus captured cold-start splash frame confirming PR #288's fix visually."
+      "iteration": 110,
+      "perspective": "Noor theme switching across all 8 palettes (B29 revisited)",
+      "outcome": "CLEAN, live-verified: Ivory -> Obsidian -> Rose -> Ivory, every switch recolored completely and instantly, both directions."
     },
     {
-      "iteration": 107,
-      "perspective": "200% accessibility text scaling (B26 revisited)",
-      "outcome": "GAP FOUND AND FIXED: SurahReaderScreen's decorative crest text broke its fixed-size ornament at 200% scale, no allowFontScaling={false}. Fixed."
+      "iteration": 111,
+      "perspective": "Asset loading fallback, offline (B30 revisited)",
+      "outcome": "CLEAN, live-verified with real airplane-mode-equivalent (svc wifi/data disable): uncached surah fails gracefully, cached surah loads fully offline."
     },
     {
-      "iteration": 108,
-      "perspective": "Screen-reader labels via uiautomator's accessibility tree (B27 revisited)",
-      "outcome": "CLEAN, 11/11 clickable elements on the surah reader properly labeled."
+      "iteration": 112,
+      "perspective": "Navigation stack edge cases (B31 revisited)",
+      "outcome": "CLEAN, live-verified: rapid duplicate tab taps and tab-switch-mid-flow both preserve state correctly with no crash or duplicate screens."
     },
     {
-      "iteration": 109,
-      "perspective": "Touch target sizing >=44dp (B28 revisited)",
-      "outcome": "GAP FOUND AND FIXED x4, plus a methodology note: hitSlop doesn't show in uiautomator bounds (proved via live tap outside visual bounds), causing one false positive (Save ayah, already correctly fixed). Four real gaps fixed: Mushaf icon, Loop icon (live re-verified), Play surah button, DownloadButton icon, and A-/A+ buttons which had neither hitSlop nor an accessibilityLabel at all."
+      "iteration": 113,
+      "perspective": "Error boundaries / crash resilience against malformed data (B32 revisited)",
+      "outcome": "CLEAN, live-verified with genuine SQLite-level corruption injection (adb run-as + sqlite3) into ul.zakat: no crash, graceful default fallback. Architectural note recorded (not fixed): getJSON()'s fallback is read-only by design, a generic shared helper, unlike the narrow per-screen write-back fixes done before - broader decision needed, out of scope for a QA iteration."
     }
   ]
 }

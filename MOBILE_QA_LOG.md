@@ -6125,3 +6125,65 @@ mechanism, not independently re-tapped one by one.
 **Commit:** `apps/mobile/src/screens/SurahReaderScreen.tsx`,
 `apps/mobile/src/components/ReaderControls.tsx`,
 `apps/mobile/src/components/DownloadButton.tsx`.
+
+---
+
+## Iterations 110-113 — B29-B32 revisited, live (all clean; one architectural note recorded, not fixed)
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+### 110 — Noor theme switching across all 8 palettes
+
+Live-verified via `uiautomator`-precise taps (coordinate guessing missed
+the small swatches; exact bounds fixed it): switched Ivory → Obsidian
+(dark) → Rose (light) → back to Ivory. Every switch recolored
+background, cards, text, icons, and the active-tab accent instantly and
+completely, both dark→light and light→dark. No stale colors, no
+flicker artifacts caught across three transitions. **Clean.**
+
+### 111 — Asset loading fallback, offline
+
+Live-verified via `adb shell svc wifi/data disable`: a surah never
+opened this session correctly showed "Couldn't load this surah." (no
+crash, no stale header — the iteration-103 fix holds under real
+offline conditions too, not just malformed deep links). A surah already
+viewed this session (Al-Faatiha) loaded **fully offline** from cache —
+text, crest, reciter row all correct with zero network. **Clean.**
+
+### 112 — Navigation stack edge cases
+
+Live-verified: four rapid taps on the same already-active tab caused no
+duplicate screens or crash; switching Read → Tools → Read mid-flow
+preserved the Read tab's own stack (still on Al-Faatiha) with no
+corruption. **Clean.**
+
+### 113 — Error boundaries / crash resilience against malformed data
+
+**Live-verified with a genuine live corruption**, not a code-reasoning
+argument: used `adb shell run-as ... sqlite3` to write literal invalid
+JSON (`{not valid json!!!`) directly into `ul.zakat` in the app's real
+AsyncStorage-backed SQLite database, force-stopped, cold-relaunched,
+and opened the Zakat Calculator. No crash, no `ErrorBoundary` trip —
+`storage.ts`'s `getJSON()` caught the `JSON.parse` failure and the
+screen rendered its normal empty-state defaults. **Clean, but one
+architectural note recorded rather than fixed:** unlike the
+"missing write-back" bug class this loop has fixed four times before
+(a narrow, screen-specific legacy-migration value getting corrected in
+memory but never persisted), `getJSON()`'s fallback path is read-only
+by design — the literal corrupted bytes are still sitting in storage
+after this test, and will be silently re-caught and re-defaulted on
+every future launch forever, not because of a missed narrow fix but
+because it's a **generic, widely-shared read helper** used across
+dozens of unrelated stores app-wide. Making a generic getter write as
+a side effect of a failed read is a broader architectural change (does
+every `getJSON` call site want that? what about read-only/preview
+contexts?) that deserves its own design decision, not a quick patch
+bundled into a QA iteration — recorded here for whoever makes that
+call. Test corruption cleaned up (`DELETE FROM catalystLocalStorage
+WHERE key='ul.zakat'`) before continuing.
+
+**Verification:** all four live, on `QA_Pixel6`, as detailed per item
+above. No code changes this batch — everything held up.
+
+**Commit:** none (all four iterations clean; no code changes).
