@@ -1,22 +1,22 @@
 {
-  "iteration": 132,
+  "iteration": 134,
   "cycle": 4,
   "perspectiveIndex": 17,
-  "batchTarget": "synchronous batch of 41 iterations, 105 through 145 - closed out early at 132 (28 of 41) given diminishing returns; see close-out note",
+  "batchTarget": "synchronous batch of 41 iterations, 105 through 145 - resumed after 132, continuing toward 145",
   "target": 145,
   "batch": "mobile-live-qa-followup",
-  "consecutiveCleanIterations": 10,
+  "consecutiveCleanIterations": 12,
   "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro (adb + uiautomator for verification)",
   "history": [
     {
-      "iteration": 131,
-      "perspective": "Background/foreground transitions - timers, audio, in-flight requests (B12, first live pass)",
-      "outcome": "CLEAN, live-verified: audio genuinely continues in background (dumpsys media_session confirmed PLAYING with advancing position), proper media transport notification present, UI correctly re-syncs scroll position with actual playback progress on foreground."
+      "iteration": 133,
+      "perspective": "Audio playback interruption - real call simulation (B18, first live pass)",
+      "outcome": "CLEAN, live-verified: adb emu gsm call correctly paused playback (dumpsys media_session confirmed PAUSED/speed=0.0), cancelling the call correctly auto-resumed playback. Confirmed this is expo-audio's native AudioFocus handling, no custom app code to verify further."
     },
     {
-      "iteration": 132,
-      "perspective": "Safe-area/notch handling (B15, architecture re-check)",
-      "outcome": "Architecture confirmed sound (root SafeAreaProvider, selective explicit usage, automatic navigator handling) but could not visually verify against a real cutout - this AVD doesn't support display-cutout emulation. Flagged honestly rather than claiming an unperformed visual check. BATCH CLOSED OUT HERE: 28 of the requested 41 iterations completed synchronously, with a comprehensive close-out summary written to MOBILE_QA_LOG.md covering all 8 real bugs found and fixed this batch."
+      "iteration": 134,
+      "perspective": "Android permission request flow - notifications specifically (B17 revisited, live)",
+      "outcome": "CLEAN, live-verified: real native permission dialog appeared, denying correctly reverted the Reminders toggle and showed the established 'Notifications are off' dialog with Open Settings/Not now - first live confirmation of this exact flow (previously only code-confirmed from iteration 56 of an earlier cycle)."
     }
   ]
 }

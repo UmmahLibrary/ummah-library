@@ -6571,3 +6571,43 @@ clean, `pnpm lint` 0 errors (13 pre-existing warnings, unchanged all
 batch), `pnpm --filter @ummahlibrary/mobile test` 164/164 passing (12
 net new this batch: 3 for `withTimeout`, 9 for
 `prayer-settings-store`).
+
+---
+
+## Iterations 133-134 — B18 and B17 revisited, live, continuing the synchronous batch
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**133 (audio interruption — calls, other apps):** never live-tested
+this session (iteration 131 covered background *continuity*, not an
+actual interruption). Started Al-Faatiha playback, confirmed `PLAYING`
+via `dumpsys media_session`, then simulated a genuine incoming call
+(`adb emu gsm call`). Playback correctly transitioned to `PAUSED`
+(speed=0.0) at the moment the call arrived. Ended the simulated call
+(`adb emu gsm cancel`) and playback correctly auto-resumed
+(`PLAYING`) with no crash and no stuck-paused state. Checked
+`useSurahAudio.ts` for custom interruption-handling code — there is
+none; this is entirely `expo-audio`'s native default AudioFocus
+handling working correctly out of the box, not app logic to verify
+further. **Clean.**
+
+**134 (Android permission request flow — rationale and denial
+handling):** revisited with notifications specifically (location was
+already covered live in iteration 120). Revoked
+`POST_NOTIFICATIONS`, opened Adhkar, tapped the "Reminders" toggle —
+the real native Android permission dialog appeared
+("Allow Ummah Library to send you notifications?"), tapped "Don't
+allow", and the app correctly: reverted the toggle to OFF, and showed
+a clear, purpose-built "Notifications are off" dialog ("Enable
+notifications in Settings to get your adhkar reminder.") with
+"NOT NOW" / "OPEN SETTINGS" actions — the same denial-handling pattern
+an earlier cycle fixed at all 5 of its call sites (iteration 56, per
+this log's history), now confirmed live for the first time on a real
+device rather than only by reading the code. **Clean.**
+
+**Verification:** both live on `QA_Pixel6`, via `dumpsys
+media_session` for 133 and the actual native permission dialog +
+resulting app UI for 134. No code changes.
+
+**Commit:** none (both clean; no code changes).
