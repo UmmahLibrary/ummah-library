@@ -1,11 +1,11 @@
 {
-  "iteration": 150,
+  "iteration": 151,
   "cycle": 4,
   "perspectiveIndex": 24,
   "batchTarget": "continue until 10 consecutive clean iterations (user directive, started after PR #289 merge)",
   "target": null,
   "batch": "mobile-live-qa-continued",
-  "consecutiveCleanIterations": 5,
+  "consecutiveCleanIterations": 6,
   "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro. Note: this emulator instance shows intermittent WiFi beacon-loss flakiness even after a mid-session reboot - a known environmental artifact, not an app bug.",
   "batchComplete": false,
   "history": [
@@ -33,6 +33,11 @@
       "iteration": 150,
       "perspective": "Hadith collections (runtime plugin content), live device",
       "outcome": "CLEAN: Sahih al-Bukhari and Sahih Muslim both load correctly, book pagination and tab switching work, Arabic+translation render correctly for a long multi-paragraph hadith. Consecutive clean count: 5/10."
+    },
+    {
+      "iteration": 151,
+      "perspective": "Settings: theme switching, live device",
+      "outcome": "CLEAN: theme switch via UI control applies instantly and consistently app-wide across screens (verified Settings -> Home propagation), both dark and light palettes correct. Consecutive clean count: 6/10."
     }
   ]
 }

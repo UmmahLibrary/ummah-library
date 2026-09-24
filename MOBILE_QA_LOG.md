@@ -7145,3 +7145,39 @@ a partial screenshot.
 **Commit:** none (no code changes).
 
 **Consecutive clean count: 5/10.**
+
+## Iteration 151 — Settings: theme switching, live device
+
+First live test this session of theme switching from the Settings
+screen itself (prior theme testing this session was via direct
+storage manipulation, not the UI control).
+
+**Flow exercised on-device (`QA_Pixel6`)**:
+1. More → Settings: confirmed all 8 Noor theme swatches, Language
+   (English/Urdu), Font size (100%, A-/A+), Reciter, and Arabic
+   Script sections render correctly.
+2. Tapped the emerald/teal swatch — theme applied instantly and
+   consistently across the entire Settings screen (background, header
+   back arrow, section text, selected-swatch ring, radio button,
+   segmented control).
+3. Navigated to Home (bottom tab) — confirmed the same teal theme
+   carried through app-wide: accent color on the Continue Reading
+   progress bar, Verse of the Day bookmark/reference text, and all
+   three quick-action tile icons (Read/Listen/Qibla) updated
+   consistently, not just the screen that was open when the theme
+   changed.
+4. Reverted: tried the dark swatch first (applied correctly, full
+   black background + gold accent), then switched to the light cream
+   swatch matching the app's session-long default appearance, to
+   leave device state clean for whichever iteration follows.
+
+**Conclusion**: theme switching correctly re-themes the whole app
+live, not just the current screen, across both dark and light
+palettes, with correctly synced selection-ring state. No bug found.
+
+**Verification:** live device (`QA_Pixel6`), switched themes 3 times
+and cross-checked propagation onto a different tab (Home) each time.
+
+**Commit:** none (no code changes).
+
+**Consecutive clean count: 6/10.**
