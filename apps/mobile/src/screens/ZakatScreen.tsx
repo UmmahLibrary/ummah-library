@@ -179,9 +179,12 @@ export function ZakatScreen() {
         </View>
 
         <Text style={styles.disclaimer}>
-          An educational estimate, not a fatwa. Covers cash, gold, silver, investments, and business
-          assets at 2.5% once above the niṣāb for a lunar year. Confirm your situation with a
-          qualified scholar.
+          An educational estimate, not a fatwa. This calculates zakat al-māl on common monetary
+          wealth (cash, gold, silver, investments, business assets) using the method agreed across
+          the four Sunni schools — 2.5% once your net wealth has stayed above the niṣāb for a lunar
+          year. It does not cover agricultural produce, livestock, or Shia khums, and edge cases
+          (pensions, mixed assets, debts) vary. Please confirm your situation with a qualified
+          scholar.
         </Text>
 
         <View style={styles.section}>

@@ -89,8 +89,8 @@ function fromBase64(b64: string): Uint8Array {
 }
 
 /** A fresh, 12-word BIP39 recovery phrase (132 bits of entropy) — see `core/recovery-phrase`. */
-export function generateRecoveryPhrase(): string {
-  return encodeRecoveryPhrase(randomBytes(RECOVERY_PHRASE_ENTROPY_BYTES));
+export async function generateRecoveryPhrase(): Promise<string> {
+  return encodeRecoveryPhrase(await randomBytes(RECOVERY_PHRASE_ENTROPY_BYTES));
 }
 
 /**
@@ -115,7 +115,7 @@ export async function createNobleCipher(secret: string): Promise<Cipher> {
     accountId: async () => accountIdHex,
     entryId: async (keyName) => bytesToHex(hmac(sha256, hmacKey, utf8ToBytes(keyName))),
     encrypt: async (plaintext) => {
-      const iv = randomBytes(NONCE_BYTES);
+      const iv = await randomBytes(NONCE_BYTES);
       const ct = gcm(dataKey, iv).encrypt(utf8ToBytes(plaintext));
       return { ciphertext: toBase64(ct), nonce: toBase64(iv) };
     },

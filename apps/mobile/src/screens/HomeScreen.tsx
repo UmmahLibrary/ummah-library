@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -55,41 +55,55 @@ export function HomeScreen({ navigation }: Props) {
     };
   }, []);
 
+  // The local date `timings` was fetched for. Nothing else re-triggers the
+  // fetch below — an app left open (or backgrounded/foregrounded) across
+  // local midnight on this, the screen most likely to stay mounted for long
+  // stretches, would keep showing yesterday's timings, silently stuck once
+  // `nextPrayer`'s single-day rollover fallback is exhausted (see the
+  // identical fix and full explanation in PrayerTimesScreen.tsx).
+  const timingsDateRef = useRef<string | null>(null);
+
   // Live next-prayer for the home strip — uses the saved location only (no
   // permission prompt here; that lives on the Prayer Times screen).
-  useEffect(() => {
-    let active = true;
-    const loadTimings = () =>
-      void Promise.all([
-        getJSON<Coordinates | null>(KEYS.prayerCoords, null),
-        getString(KEYS.prayerMethod),
-        getString(KEYS.prayerMadhab),
-      ]).then(([c, method, madhab]) => {
-        if (!active || !c) return;
-        setCoords(c);
-        void api
-          .getPrayerTimes({
-            lat: c.latitude,
-            lng: c.longitude,
-            date: localISODate(new Date()),
-            method: method ?? DEFAULT_CALCULATION_METHOD,
-            madhab: (madhab as Madhab) || "shafi",
-          })
-          .then((t) => active && setTimings(t as PrayerTimings))
-          .catch(() => undefined);
-      });
-    loadTimings();
-    const unsubscribe = onSyncApplied(loadTimings);
-    return () => {
-      active = false;
-      unsubscribe();
-    };
+  const loadTimings = useCallback(() => {
+    void Promise.all([
+      getJSON<Coordinates | null>(KEYS.prayerCoords, null),
+      getString(KEYS.prayerMethod),
+      getString(KEYS.prayerMadhab),
+    ]).then(([c, method, madhab]) => {
+      if (!c) return;
+      setCoords(c);
+      const today = localISODate(new Date());
+      void api
+        .getPrayerTimes({
+          lat: c.latitude,
+          lng: c.longitude,
+          date: today,
+          method: method ?? DEFAULT_CALCULATION_METHOD,
+          madhab: (madhab as Madhab) || "shafi",
+        })
+        .then((t) => {
+          timingsDateRef.current = today;
+          setTimings(t as PrayerTimings);
+        })
+        .catch(() => undefined);
+    });
   }, []);
 
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30000);
+    loadTimings();
+    return onSyncApplied(loadTimings);
+  }, [loadTimings]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const n = new Date();
+      setNow(n);
+      const today = localISODate(n);
+      if (timingsDateRef.current && timingsDateRef.current !== today) loadTimings();
+    }, 30000);
     return () => clearInterval(id);
-  }, []);
+  }, [loadTimings]);
 
   const upcoming = timings ? nextPrayer(timings, now) : null;
   const nextP: { name: PrayerName; at: Date } | null =

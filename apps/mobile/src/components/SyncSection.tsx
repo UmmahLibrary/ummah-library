@@ -165,7 +165,7 @@ export function SyncSection() {
             style={styles.input}
           />
           <View style={styles.btnRow}>
-            <Pressable style={styles.secondaryBtn} onPress={() => setPhrase(generateRecoveryPhrase())}>
+            <Pressable style={styles.secondaryBtn} onPress={() => void generateRecoveryPhrase().then(setPhrase)}>
               <Text style={styles.secondaryText}>Generate</Text>
             </Pressable>
             <Pressable

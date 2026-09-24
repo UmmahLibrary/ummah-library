@@ -133,16 +133,27 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   }, [ayahs, n, recordPage]);
 
   useLayoutEffect(() => {
+    // A failed load (e.g. a malformed deep link's out-of-range surah number)
+    // must clear a previous surah's title/action instead of leaving them
+    // stranded above the "Couldn't load this surah" body — setOptions only
+    // runs from the `meta` branch below, so without this the header would
+    // keep showing whichever surah was open before the bad navigation.
+    if (error) {
+      navigation.setOptions({ title: "", headerRight: undefined });
+      return;
+    }
     if (!meta) return;
     navigation.setOptions({
       title: meta.transliteration,
+      // 22px icon + hitSlop reaches the 44×44dp minimum touch target, same
+      // reasoning as the per-āyah action row below.
       headerRight: () => (
-        <Pressable onPress={openMushaf} hitSlop={10} accessibilityLabel="Open in Mushaf page view">
+        <Pressable onPress={openMushaf} hitSlop={11} accessibilityLabel="Open in Mushaf page view">
           <Icon name="layers" size={22} color={colors.accent} sw={1.8} />
         </Pressable>
       ),
     });
-  }, [navigation, meta, colors, openMushaf]);
+  }, [navigation, meta, colors, openMushaf, error]);
 
   // Mark continue-reading and stop audio when leaving the surah. Guarded the
   // same way as the fetch effect below — an out-of-range `n` (a malformed
@@ -452,7 +463,12 @@ export function SurahReaderScreen({ navigation, route }: Props) {
       <View style={styles.head}>
         <View style={styles.crest}>
           <Khatam size={94} color={colors.accent} sw={1} opacity={0.5} />
-          <Text style={styles.crestAr}>{meta.name}</Text>
+          {/* Decorative — the same name is fully readable, and scales normally,
+              a few lines below as `nameEn`. Left scaling, a large system font
+              setting overflows this fixed 94x94 ornament and breaks the crest. */}
+          <Text style={styles.crestAr} allowFontScaling={false}>
+            {meta.name}
+          </Text>
         </View>
         <Text style={styles.nameEn}>
           {meta.transliteration} · {meta.englishName}
@@ -494,6 +510,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           onPress={() =>
             audio.playingKey ? audio.stop() : verses[0] && audio.playFrom(verses, verses[0], true)
           }
+          // 42x42 is 2dp short of the 44×44dp minimum touch target.
+          hitSlop={1}
           accessibilityLabel={audio.playingKey ? "Stop" : "Play surah"}
         >
           <Icon name={audio.playingKey ? "pause" : "play"} size={18} color={colors.ink} />
@@ -505,7 +523,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
               : `Playing ${audio.playingKey}`
             : reciter.name}
         </Text>
-        <Pressable onPress={() => audio.setLoop(!audio.loop)} hitSlop={8} accessibilityLabel="Loop">
+        {/* 20px icon + hitSlop reaches the 44×44dp minimum touch target. */}
+        <Pressable onPress={() => audio.setLoop(!audio.loop)} hitSlop={12} accessibilityLabel="Loop">
           <Icon
             name="repeat"
             size={20}

@@ -6,6 +6,7 @@ import { KEYS, getJSON, setJSON } from "../storage";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { onSyncApplied } from "../lib/sync/sync-events";
+import { withTimeout } from "../utils";
 
 type Status = "idle" | "locating" | "ready" | "denied" | "error";
 
@@ -81,7 +82,10 @@ export function QiblaScreen() {
       return;
     }
     try {
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+      const pos = await withTimeout(
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
+        15000,
+      );
       const c: Coordinates = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
       setCoords(c);
       void setJSON(KEYS.prayerCoords, c);
