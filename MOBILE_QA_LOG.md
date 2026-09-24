@@ -6065,3 +6065,63 @@ programmatically checked (not just eyeballed) for any clickable node
 with neither `content-desc` nor `text`.
 
 **Commit:** none (clean iteration; no code changes).
+
+---
+
+## Iteration 109 — B28 revisited: touch target sizing, a measurement pitfall and four real gaps
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**Checked:** every icon-only control's effective touch target against
+the 44×44dp minimum, computed from `uiautomator`'s reported bounds
+(device density 420 → 2.625px/dp) — never done live before.
+
+**First finding was a false positive, worth recording as a
+methodology note for future passes:** the Home screen's "Save āyah"
+bookmark icon measured 18×18dp by bounds alone — but `hitSlop` (an RN
+touch-area expansion) doesn't appear in the native accessibility
+tree's `bounds` at all, only the underlying view's rendered size.
+Empirically tapping 26px outside the visual icon (in the zone the
+code's own `hitSlop={13}` should cover) correctly opened the "Save
+āyah" sheet — the effective target really is 44×44dp, `uiautomator`
+just can't see it. **Bounds-only auditing produces false positives for
+any RN component using `hitSlop`; verify short measurements by tapping
+outside the visual bounds before concluding anything is actually
+broken.**
+
+**With that correction applied, four real (if minor, 2-9dp) gaps
+found and fixed** — each already used the exact same
+`hitSlop`-to-close-the-gap pattern the codebase established for
+"Save āyah", just under-sized or entirely missing:
+- `SurahReaderScreen.tsx`'s "Open in Mushaf page view" header icon:
+  22px icon + `hitSlop={10}` = 42dp, 2dp short → `hitSlop={11}`.
+- Its "Loop" icon: 20px icon + `hitSlop={8}` = 36dp, 8dp short →
+  `hitSlop={12}`. **Live re-verified**: tapped 23px outside the
+  icon's visual bounds post-fix, the loop toggle correctly engaged
+  (icon turned accent-colored) — the same live-proof method as the
+  false-positive check above, this time confirming a real fix instead
+  of ruling out a false alarm.
+- Its "Play surah" button: fixed 42×42 with **no** `hitSlop` at all,
+  2dp short → added `hitSlop={1}`.
+- `DownloadButton.tsx`'s download/saved icon: 19px icon + `hitSlop={8}`
+  = 35dp, 9dp short → `hitSlop={13}`.
+- `ReaderControls.tsx`'s "A−"/"A+" text-size buttons: had **no**
+  `hitSlop` and **no** explicit `accessibilityLabel` at all — a real
+  inconsistency, since the sibling toggle chips two lines below in the
+  same file already have both. Added `hitSlop={8}` and clear labels
+  ("Decrease/Increase Arabic text size").
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck`
+clean (caught and fixed a JSX-comment placement syntax error inside a
+`navigation.setOptions` arrow function along the way — comments can't
+float before a returned JSX element's opening tag inside an inline
+arrow body); `pnpm lint` — 0 errors, same 13 pre-existing warnings;
+`pnpm --filter @ummahlibrary/mobile test` 152/152 passing. Live
+re-verified the Loop fix as detailed above on `QA_Pixel6`; the other
+four fixes use the identical, already-proven `Pressable` + `hitSlop`
+mechanism, not independently re-tapped one by one.
+
+**Commit:** `apps/mobile/src/screens/SurahReaderScreen.tsx`,
+`apps/mobile/src/components/ReaderControls.tsx`,
+`apps/mobile/src/components/DownloadButton.tsx`.

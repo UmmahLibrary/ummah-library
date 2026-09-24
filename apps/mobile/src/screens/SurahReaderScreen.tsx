@@ -145,8 +145,10 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     if (!meta) return;
     navigation.setOptions({
       title: meta.transliteration,
+      // 22px icon + hitSlop reaches the 44×44dp minimum touch target, same
+      // reasoning as the per-āyah action row below.
       headerRight: () => (
-        <Pressable onPress={openMushaf} hitSlop={10} accessibilityLabel="Open in Mushaf page view">
+        <Pressable onPress={openMushaf} hitSlop={11} accessibilityLabel="Open in Mushaf page view">
           <Icon name="layers" size={22} color={colors.accent} sw={1.8} />
         </Pressable>
       ),
@@ -508,6 +510,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           onPress={() =>
             audio.playingKey ? audio.stop() : verses[0] && audio.playFrom(verses, verses[0], true)
           }
+          // 42x42 is 2dp short of the 44×44dp minimum touch target.
+          hitSlop={1}
           accessibilityLabel={audio.playingKey ? "Stop" : "Play surah"}
         >
           <Icon name={audio.playingKey ? "pause" : "play"} size={18} color={colors.ink} />
@@ -519,7 +523,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
               : `Playing ${audio.playingKey}`
             : reciter.name}
         </Text>
-        <Pressable onPress={() => audio.setLoop(!audio.loop)} hitSlop={8} accessibilityLabel="Loop">
+        {/* 20px icon + hitSlop reaches the 44×44dp minimum touch target. */}
+        <Pressable onPress={() => audio.setLoop(!audio.loop)} hitSlop={12} accessibilityLabel="Loop">
           <Icon
             name="repeat"
             size={20}

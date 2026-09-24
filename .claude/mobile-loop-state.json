@@ -1,32 +1,32 @@
 {
-  "iteration": 108,
+  "iteration": 109,
   "cycle": 3,
-  "perspectiveIndex": 26,
-  "batchTarget": "autonomous batch of 41 iterations, 105 through 145",
+  "perspectiveIndex": 27,
+  "batchTarget": "synchronous batch of 41 iterations, 105 through 145 (user turned off scheduled wakeups, running synchronously now)",
   "target": 145,
   "batch": "mobile-live-qa-followup",
-  "consecutiveCleanIterations": 3,
+  "consecutiveCleanIterations": 0,
   "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro (adb + uiautomator for verification)",
   "history": [
     {
-      "iteration": 105,
-      "perspective": "RTL/Arabic rendering correctness, live with a real IndoPak network fetch (B24 revisited)",
-      "outcome": "CLEAN, live-verified: IndoPak script toggle fetches from quran.com at runtime and renders correctly with distinct glyph shapes vs Uthmani; mixed-direction layout holds."
-    },
-    {
       "iteration": 106,
-      "perspective": "Font loading fallback / flash-of-unstyled-text, a captured cold-start frame (B25 revisited)",
-      "outcome": "CLEAN, live-verified via a rapid screenshot burst through cold start: no unstyled-text frame ever appears. Bonus: first actual captured cold-start splash screenshot, confirming PR #288's light-mode splash fix visually, not just via resource files."
+      "perspective": "Font loading fallback / flash-of-unstyled-text (B25 revisited)",
+      "outcome": "CLEAN, live-verified via rapid screenshot burst through cold start; bonus captured cold-start splash frame confirming PR #288's fix visually."
     },
     {
       "iteration": 107,
-      "perspective": "Large accessibility text scaling up to 200% (B26 revisited)",
-      "outcome": "GAP FOUND AND FIXED: SurahReaderScreen's decorative crest text (Arabic surah name over a fixed 94x94 Khatam ornament) had no allowFontScaling={false}, so 200% system scale broke the crest layout. Fixed. Also noted (not fixed) tab-bar label ellipsis-truncation at 200% - confirmed accessibility text is NOT truncated, purely visual, acceptable degradation."
+      "perspective": "200% accessibility text scaling (B26 revisited)",
+      "outcome": "GAP FOUND AND FIXED: SurahReaderScreen's decorative crest text broke its fixed-size ornament at 200% scale, no allowFontScaling={false}. Fixed."
     },
     {
       "iteration": 108,
-      "perspective": "Screen-reader labels and focus order, live via uiautomator's accessibility tree (B27 revisited)",
-      "outcome": "CLEAN, live-verified: 11 clickable elements on the surah reader's full control surface, all carry a real accessibility label (content-desc or text), zero unlabeled icon-only controls."
+      "perspective": "Screen-reader labels via uiautomator's accessibility tree (B27 revisited)",
+      "outcome": "CLEAN, 11/11 clickable elements on the surah reader properly labeled."
+    },
+    {
+      "iteration": 109,
+      "perspective": "Touch target sizing >=44dp (B28 revisited)",
+      "outcome": "GAP FOUND AND FIXED x4, plus a methodology note: hitSlop doesn't show in uiautomator bounds (proved via live tap outside visual bounds), causing one false positive (Save ayah, already correctly fixed). Four real gaps fixed: Mushaf icon, Loop icon (live re-verified), Play surah button, DownloadButton icon, and A-/A+ buttons which had neither hitSlop nor an accessibilityLabel at all."
     }
   ]
 }

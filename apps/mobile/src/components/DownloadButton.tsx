@@ -38,7 +38,8 @@ export function DownloadButton({
     <Pressable
       onPress={() => audio.downloadSurahs(surahs)}
       disabled={audio.downloadProgress !== null || allSaved}
-      hitSlop={8}
+      // 19px icon + hitSlop reaches the 44×44dp minimum touch target.
+      hitSlop={13}
       accessibilityLabel={label}
       style={styles.btn}
     >

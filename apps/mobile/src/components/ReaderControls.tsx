@@ -57,6 +57,11 @@ export function ReaderControls({
             style={styles.scaleBtn}
             disabled={scale <= MIN_SCALE}
             onPress={() => onScale((prev) => prev - 0.1)}
+            // paddingVertical: 6 + line height is a ~28dp-tall tap target,
+            // short of the 44dp minimum — same reasoning as the toggle
+            // chips below, which already close this gap with hitSlop.
+            hitSlop={8}
+            accessibilityLabel="Decrease Arabic text size"
           >
             <Text style={styles.scaleText}>A−</Text>
           </Pressable>
@@ -64,6 +69,8 @@ export function ReaderControls({
             style={styles.scaleBtn}
             disabled={scale >= MAX_SCALE}
             onPress={() => onScale((prev) => prev + 0.1)}
+            hitSlop={8}
+            accessibilityLabel="Increase Arabic text size"
           >
             <Text style={styles.scaleText}>A+</Text>
           </Pressable>
