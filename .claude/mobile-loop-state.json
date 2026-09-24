@@ -1,22 +1,17 @@
 {
-  "iteration": 134,
+  "iteration": 135,
   "cycle": 4,
-  "perspectiveIndex": 17,
-  "batchTarget": "synchronous batch of 41 iterations, 105 through 145 - resumed after 132, continuing toward 145",
+  "perspectiveIndex": 19,
+  "batchTarget": "synchronous batch of 41 iterations, 105 through 145",
   "target": 145,
   "batch": "mobile-live-qa-followup",
-  "consecutiveCleanIterations": 12,
-  "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro (adb + uiautomator for verification)",
+  "consecutiveCleanIterations": 0,
+  "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro (adb + uiautomator for verification). Note: this emulator instance has been through extensive manual network manipulation this session (wifi/data toggling, geo fix changes, simulated gsm call) - a fresh emulator boot may behave differently for network-dependent tests.",
   "history": [
     {
-      "iteration": 133,
-      "perspective": "Audio playback interruption - real call simulation (B18, first live pass)",
-      "outcome": "CLEAN, live-verified: adb emu gsm call correctly paused playback (dumpsys media_session confirmed PAUSED/speed=0.0), cancelling the call correctly auto-resumed playback. Confirmed this is expo-audio's native AudioFocus handling, no custom app code to verify further."
-    },
-    {
-      "iteration": 134,
-      "perspective": "Android permission request flow - notifications specifically (B17 revisited, live)",
-      "outcome": "CLEAN, live-verified: real native permission dialog appeared, denying correctly reverted the Reminders toggle and showed the established 'Notifications are off' dialog with Open Settings/Not now - first live confirmation of this exact flow (previously only code-confirmed from iteration 56 of an earlier cycle)."
+      "iteration": 135,
+      "perspective": "Notification scheduling correctness - deeper live verification attempt (B20 revisited)",
+      "outcome": "Chased down and correctly diagnosed a stale '0m' Home-screen display as leftover test-session residue (not a regression of iteration 122's fix) by deleting cached coords and confirming a clean empty state. Then hit a genuine but inconclusive 'Couldn't load prayer times' network error - confirmed the production backend is healthy (curl from host = HTTP 200) and basic emulator connectivity works, but couldn't pin down the exact client-side failure mode. Documented as likely cumulative test-environment degradation from this session's own extensive network manipulation, not asserted as a real bug or fixed."
     }
   ]
 }

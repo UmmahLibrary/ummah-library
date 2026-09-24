@@ -6611,3 +6611,62 @@ media_session` for 133 and the actual native permission dialog +
 resulting app UI for 134. No code changes.
 
 **Commit:** none (both clean; no code changes).
+
+---
+
+## Iteration 135 — B20 revisited: chasing a "0m" sighting to ground, then an inconclusive network finding
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**Checked:** notification scheduling correctness, intending to verify
+an actual scheduled alarm's content/timing end-to-end (deeper than the
+`USE_EXACT_ALARM` grant check already done in iterations 104/288).
+
+**First, chased down a "0m until Fajr" sighting that looked like a
+regression of the iteration-122 fix — it wasn't.** Reopening Home
+showed the same stale "0m, 4:56 AM" display from the earlier Tokyo/
+New-York timezone test (iteration 122). Traced this to its actual
+cause: that test's mock coordinates were never explicitly
+re-`locate()`'d back to normal afterward — the fix from iteration 122
+only refetches on a *calendar-day* mismatch, and the real device date
+never crossed midnight during this session, so there was nothing to
+trigger it. This is leftover test-session residue, not a live bug.
+**Proved it cleanly**: deleted `ul.prayerCoords` directly via `adb run-as
+sqlite3`, cold-relaunched, and confirmed the screen correctly showed
+its empty "Use my location" state — no stuck value, no phantom "0m".
+
+**Then, retrying a genuinely fresh location fetch surfaced a real
+symptom, root-caused as far as reasonably possible and left
+inconclusive rather than guessed at**: "Couldn't load prayer times.
+Check your connection." — reproduced twice. Investigated rather than
+assumed: `curl`'d the exact same `ummahlibrary.org/api/v1/prayer-times`
+URL directly from the host machine → **HTTP 200**, so the production
+backend is unambiguously healthy. `adb shell ping 8.8.8.8` and `ping
+ummahlibrary.org` from the emulator both succeeded (DNS resolves,
+basic connectivity works), though at a notably elevated ~500ms RTT.
+`fetchTimings`'s `catch` block doesn't log the underlying error, so the
+exact failure mode (timeout vs. TLS handshake vs. something else)
+couldn't be pinned down further from the client side.
+
+**Conclusion, stated honestly rather than either dismissed or
+over-claimed**: given the backend is independently confirmed healthy
+and this exact emulator instance had been through extensive manual
+network manipulation this session (`svc wifi`/`svc data`
+disable/enable cycles across iterations 111 and 120, `adb emu geo fix`
+changes, a simulated `gsm call`), this reads as cumulative
+test-environment degradation rather than a genuine app or backend bug
+— but this is a plausible diagnosis, not a proven one, since the
+client-side error detail wasn't available to confirm it definitively.
+**Recorded, not treated as a real finding to fix**, consistent with
+how this loop has handled similar environment-specific artifacts
+before (the `validatePath` and `Linking.openSettings` web-preview
+quirks) — flagged for whoever next runs this loop with a fresh
+emulator instance to watch for, not asserted as resolved.
+
+**Verification:** live device throughout; independent host-machine
+`curl` as the key piece of evidence separating "backend problem" from
+"client/environment problem." No code changes — nothing here has a
+clear enough root cause to fix safely.
+
+**Commit:** none (inconclusive network finding, documented not fixed).
