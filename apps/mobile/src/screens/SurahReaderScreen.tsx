@@ -461,7 +461,12 @@ export function SurahReaderScreen({ navigation, route }: Props) {
       <View style={styles.head}>
         <View style={styles.crest}>
           <Khatam size={94} color={colors.accent} sw={1} opacity={0.5} />
-          <Text style={styles.crestAr}>{meta.name}</Text>
+          {/* Decorative — the same name is fully readable, and scales normally,
+              a few lines below as `nameEn`. Left scaling, a large system font
+              setting overflows this fixed 94x94 ornament and breaks the crest. */}
+          <Text style={styles.crestAr} allowFontScaling={false}>
+            {meta.name}
+          </Text>
         </View>
         <Text style={styles.nameEn}>
           {meta.transliteration} · {meta.englishName}

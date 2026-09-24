@@ -5945,3 +5945,123 @@ mid-sync process kill and restore.
 `apps/mobile/src/lib/sync/noble-cipher.ts`,
 `apps/mobile/src/components/SyncSection.tsx`,
 `apps/mobile/src/lib/sync/noble-cipher.test.ts`.
+
+---
+
+## Iteration 105 — B24 revisited: RTL/Arabic rendering, live with a real IndoPak network fetch (clean)
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**Checked:** RTL/Arabic rendering correctness including the IndoPak
+script toggle, which fetches from `quran.com` at runtime
+(`indopak.ts`) and was previously never exercised live.
+
+**Live-verified**: switched "Arabic script" to IndoPak in Settings,
+opened Al-Faatiha — the real network fetch succeeded, the distinct
+South-Asian naskh glyph shapes rendered correctly (visibly different
+from the default Uthmani/Madinah-mushaf style), and mixed-direction
+layout (RTL Arabic stacked above LTR transliteration/translation) held
+up correctly, same as it did under Uthmani.
+
+**Clean.** No fix needed.
+
+**Verification:** live device, visual comparison of both scripts.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 106 — B25 revisited: font loading / flash-of-unstyled-text, a captured cold-start frame (clean, plus a bonus)
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**Checked:** whether fonts load before any content paints, avoiding a
+flash-of-unstyled-text — previously verified only by reading
+`App.tsx`'s `useFonts`/`SplashScreen` gating.
+
+**Live-verified** via a rapid-fire screenshot burst through a cold
+`force-stop` + relaunch: every captured frame before content was ready
+showed either the native splash (logo mark on themed background) or
+nothing — never a frame with unstyled/system-font text, confirming
+`if (!fontsLoaded && !fontError) return null` (App.tsx:198) actually
+holds the paint until fonts resolve, not just in theory.
+
+**Bonus, unplanned finding:** one of the captured frames is the first
+*actual cold-start splash screenshot* taken this loop — previous
+verification of the PR #288 light-mode splash fix only inspected the
+generated Android resource files (`values/colors.xml` vs
+`values-night/colors.xml`), never watched it happen. This frame shows
+the correct light (Ivory `#faf6ee`) background live, on the device's
+current light system theme.
+
+**Clean.** No fix needed.
+
+**Verification:** live device, 5-frame screenshot burst during cold
+start.
+
+**Commit:** none (clean iteration; no code changes).
+
+## Iteration 107 — B26 revisited: 200% accessibility text scaling, found and fixed a real crest overlap
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**Checked:** large accessibility text scaling (up to 200%) — never
+tested live before (native OS setting, no equivalent in the web
+preview).
+
+**Live-verified** via `adb shell settings put system font_scale 2.0`
+across Home, a surah reader, and the bottom tab bar. Two things found:
+
+1. **Real, fixed: the surah-reader crest overlapped and broke.**
+   [`SurahReaderScreen.tsx`](apps/mobile/src/screens/SurahReaderScreen.tsx#L462-L465)
+   overlays the Arabic surah name (`crestAr`, `fontSize: 30`) centered
+   over a fixed 94×94 `Khatam` ornament SVG. With no
+   `allowFontScaling={false}`, the OS's 200% multiplier grew the text
+   past the ornament's bounds, wrapping and visually breaking the
+   crest. Fixed by setting `allowFontScaling={false}` on that one
+   `Text` — it's decorative and the same name is already fully
+   readable (and correctly *does* scale) a few lines below as
+   `nameEn`. Live re-verified: the crest renders cleanly at 200% now,
+   everything else around it still scales normally as intended.
+2. **Noted, not fixed: tab-bar labels ("Memorize" → "Memo…") and the
+   reciter name ellipsis-truncate at 200%.** Confirmed via
+   `uiautomator` that the *underlying* accessibility text is still the
+   full untruncated string (TalkBack would announce "Memorize" in
+   full) — this is a purely visual `numberOfLines`-driven truncation,
+   the same graceful-degradation pattern most apps' tab bars use at
+   extreme scale, not a content-loss or broken-interaction bug. Not
+   worth a redesign for this loop; logged for awareness.
+
+**Verification:** `pnpm --filter @ummahlibrary/mobile typecheck`
+clean; `pnpm lint` — 0 errors, same 13 pre-existing warnings. No test
+added (a pure `allowFontScaling` prop change on a decorative element,
+same reasoning as other style-only fixes this loop has made). Live
+re-verified on `QA_Pixel6` at 200% scale; font scale reset to 100%
+afterward.
+
+**Commit:** `apps/mobile/src/screens/SurahReaderScreen.tsx`.
+
+## Iteration 108 — B27 revisited: screen-reader labels, live via uiautomator's accessibility tree (clean)
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**Checked:** whether every interactive control exposes a real
+accessibility label — previously only spot-checked by reading JSX for
+`accessibilityLabel` props.
+
+**Live-verified** via `uiautomator dump`'s accessibility tree (the
+same tree TalkBack itself would read) across the surah reader's full
+control surface — script/size toggles, the reciter row, the ayah
+action icons (play, star, bookmark, share) after scrolling into view:
+11 clickable elements, all 11 carry either a `content-desc` or visible
+`text`, zero unlabeled icon-only controls found.
+
+**Clean.** No fix needed.
+
+**Verification:** live device, `uiautomator` accessibility-tree dump,
+programmatically checked (not just eyeballed) for any clickable node
+with neither `content-desc` nor `text`.
+
+**Commit:** none (clean iteration; no code changes).
