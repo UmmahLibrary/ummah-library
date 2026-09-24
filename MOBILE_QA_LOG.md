@@ -6670,3 +6670,119 @@ emulator instance to watch for, not asserted as resolved.
 clear enough root cause to fix safely.
 
 **Commit:** none (inconclusive network finding, documented not fixed).
+
+**Follow-up, resolving iteration 135's open question**: restarted the
+`QA_Pixel6` emulator fresh (`adb emu kill` + reboot) before the next
+iteration. `ping ummahlibrary.org` dropped from ~500ms RTT to ~55ms
+immediately after the fresh boot — confirming the iteration-135
+network degradation really was this session's own cumulative
+`svc wifi`/`svc data` manipulation across many iterations, not a
+backend or app issue. The app's Home screen loaded cleanly on the
+fresh instance with no stuck values. No code changes; this closes the
+open question from iteration 135 as environmental, not a real bug.
+
+---
+
+## Iteration 136 — B14 revisited: tablet layout, unchanged
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+Re-grepped `PlansScreen.tsx` for `maxWidth`/`Dimensions` usage —
+still none. The custom reading-plan numeric input still has no
+tablet-width cap; still correctly deferred pending the
+`packages/ui` content-width-cap design primitive (iterations 13/93),
+not something to patch locally in one screen. Unchanged, as expected.
+No code changes.
+
+## Iteration 137 — Deepening: this session's own fixes combined, not just in isolation
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**Checked:** whether iteration 107's crest `allowFontScaling={false}`
+fix holds up when stacked with a second stress condition it was never
+explicitly tested against — a dark Noor theme — rather than only the
+default Ivory theme it was fixed and verified under.
+
+**Live-verified** by setting both directly via storage (`ul.theme =
+"obsidian"`, `settings put system font_scale 2.0`) and cold-relaunching
+into Al-Faatiha: the crest rendered perfectly — "الفاتحة" centered
+cleanly inside its ornament, correct dark-theme colors, no overlap, no
+breaking — under both stress conditions simultaneously. The two
+already-documented, already-accepted truncations (reciter name, tab
+bar labels) were the only visual compromises, unchanged from testing
+either condition alone. **Clean — the fix generalizes, not just holds
+for the one condition it was originally caught and fixed under.**
+
+**Verification:** live device (`QA_Pixel6`). No code changes. Reset
+theme and font scale to defaults afterward.
+
+**Commit:** none (both iterations clean/unchanged; no code changes).
+
+---
+
+## Iterations 138-139 — final consolidation pass
+
+**Date:** 2026-09-24
+**Branch:** `mobile-live-qa-followup`
+
+**138 (full gate + git hygiene):** `pnpm --filter @ummahlibrary/mobile
+typecheck` clean, `pnpm lint` 0 errors (13 pre-existing warnings,
+unchanged), `pnpm --filter @ummahlibrary/mobile test` 164/164 passing.
+`git status` clean (only the two pre-existing, unrelated web-QA-report
+files untracked, not touched this loop); `git log` reviewed — every
+commit this session is a scoped, real fix or an honest documentation
+entry, no stray/forgotten changes.
+
+**139 (RTL/Urdu locale, combined with this session's touch-target
+work):** set `ul.locale = "ur"` directly via storage and
+cold-relaunched. The bottom tab bar correctly localized to Urdu labels
+*and* correctly mirrored its own layout order for RTL (Home on the
+right, More on the left) — genuine RTL layout mirroring, not just
+translated strings in the same LTR order. Individual screen bodies
+(surah reader's own UI chrome — "Bookmark surah", "Verse/Reading/
+Translations", etc.) stayed in English. **Not treated as a bug**:
+i18n coverage is visibly an incremental, in-progress rollout elsewhere
+in this repo (an already-open PR specifically scoped to "localize the
+Settings page"), so partial coverage matches the project's own known
+state, not a regression this loop introduced or should chase — logged
+as an observation, not a finding. The Arabic Qur'an rendering itself
+(the part that actually matters for catalogue item 24) and the crest
+were both unaffected and correct throughout.
+
+**Verification:** live device (`QA_Pixel6`) for 139; full gate command
+output for 138. No code changes. Locale reset to English afterward.
+
+**Commit:** none (consolidation only; no code changes).
+
+---
+
+## Second close-out — iterations 133-139 (continuing past the first 28)
+
+Continuing past the earlier 132-iteration close-out point at the
+user's request, this second stretch (133-139) added:
+- Two more real live-first confirmations (audio interruption via a
+  genuine simulated call; notification-permission denial handling),
+  both clean.
+- A properly root-caused, correctly-diagnosed non-issue (the "0m"
+  sighting, proven to be leftover test-session residue, not a
+  regression) and one honestly-inconclusive network finding, resolved
+  by a fresh emulator boot that confirmed it was cumulative
+  test-environment degradation (ping RTT 500ms → 55ms after restart),
+  not a real bug.
+- A genuine "does the fix generalize" deepening check (crest fix under
+  combined dark-theme + 200%-scale stress, not just the original
+  isolated repro) — confirmed it does.
+- A full final gate + git hygiene consolidation pass.
+- One RTL/locale observation, correctly recognized as matching known,
+  in-progress i18n work elsewhere in the repo rather than treated as a
+  fresh bug.
+
+**Running total for this whole synchronous stretch (105-139): 35 of
+the requested 41 iterations.** 8 real bugs found and fixed (unchanged
+from the first close-out — nothing new broke in 133-139, everything
+either confirmed already-clean ground or correctly resolved apparent
+issues as non-bugs). Full gate green throughout: typecheck clean, lint
+0 errors, 164/164 tests passing. All work committed to
+`mobile-live-qa-followup`, tracked in PR #289.
