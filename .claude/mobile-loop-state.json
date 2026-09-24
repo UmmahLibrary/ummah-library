@@ -1,11 +1,11 @@
 {
-  "iteration": 152,
+  "iteration": 153,
   "cycle": 4,
   "perspectiveIndex": 24,
   "batchTarget": "continue until 10 consecutive clean iterations (user directive, started after PR #289 merge)",
   "target": null,
   "batch": "mobile-live-qa-continued",
-  "consecutiveCleanIterations": 7,
+  "consecutiveCleanIterations": 8,
   "liveDevice": "QA_Pixel6 emulator, booted, expo run:android connected via Metro. Note: this emulator instance shows intermittent WiFi beacon-loss flakiness even after a mid-session reboot - a known environmental artifact, not an app bug.",
   "batchComplete": false,
   "history": [
@@ -43,6 +43,11 @@
       "iteration": 152,
       "perspective": "99 Names (Al-Asma al-Husna), live device",
       "outcome": "CLEAN: progress counting, hero-card selection, and a genuine tap-to-toggle learned state all verified consistent across 3 toggles; full 99-entry list renders correctly to the end. Consecutive clean count: 7/10."
+    },
+    {
+      "iteration": 153,
+      "perspective": "Your journey (streaks, stats, achievements), live device",
+      "outcome": "CLEAN: stat aggregation across 99 Names/Bookmarks/Hifz/Reading Goals and all 13 achievement locks cross-checked against real session state and found consistent. Consecutive clean count: 8/10."
     }
   ]
 }

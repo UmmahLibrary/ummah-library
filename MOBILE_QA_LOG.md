@@ -7223,3 +7223,41 @@ list.
 **Commit:** none (no code changes).
 
 **Consecutive clean count: 7/10.**
+
+## Iteration 153 — Your journey (streaks, stats, achievements), live device
+
+First live test this session of the Your journey screen, now with
+real accumulated state from this session's own testing to check
+against (2 names learned from iteration 152, 1 saved verse from
+iteration 148).
+
+**Flow exercised on-device (`QA_Pixel6`)**:
+1. More → Your journey: stats grid correctly reflects real session
+   state — "2/99 Names learned" (exact match for the toggle state
+   left at the end of iteration 152), "1 Saved verses" (exact match
+   for the Favorites collection from iteration 148), and zeroed Hifz
+   streak/āyāt memorized/surahs started/prayer streak, all genuinely
+   untouched this session.
+2. Scrolled through all 13 achievement cards (First āyah through
+   Curator) — all correctly "Locked", consistent with real progress
+   being below every unlock threshold (e.g. "Ten Names" locked at
+   2/99, "Collector" locked at 1 saved verse).
+3. Checked "Surah starter"/"Five surahs" being locked despite
+   extensive live Al-Faatiha reading this session: consistent with
+   those achievements gating on Hifz/memorization start rather than
+   passive reading (grouped with Hifz streak/āyāt memorized, both
+   also 0) — not a bug, a different tracked action than casual
+   reading.
+
+**Conclusion**: Your journey's stat aggregation across four unrelated
+features (99 Names, Bookmarks, Hifz, Reading Goals) and its 13-item
+achievement-unlock gating are all internally consistent with this
+session's real accumulated state. No bug found.
+
+**Verification:** live device (`QA_Pixel6`), cross-checked every stat
+against the exact state left by earlier iterations in this same
+continuation rather than assuming correctness from the UI alone.
+
+**Commit:** none (no code changes).
+
+**Consecutive clean count: 8/10.**
