@@ -14,6 +14,7 @@ import {
   tafsirRepository,
   translationRepository,
 } from "./repositories";
+import { relatedHadith } from "./related-hadith";
 
 const t = initTRPC.create();
 
@@ -58,6 +59,14 @@ export const appRouter = t.router({
   getHadithSection: t.procedure
     .input(z.object({ collection: z.string(), section: z.number().int().min(1) }))
     .query(({ input }) => hadithRepository.getSection(input.collection, input.section)),
+
+  /**
+   * Hadith that verbatim quote a given ayah (#200, ADR 0042). Resolved from the
+   * bundled link dataset joined to the bundled hadith text — no network.
+   */
+  getRelatedHadith: t.procedure
+    .input(z.object({ surah: surahNumber, ayah: z.number().int().min(1) }))
+    .query(({ input }) => relatedHadith({ sura: input.surah, aya: input.ayah })),
 
   /**
    * The reading-plan catalogue (templates a reader can start). Read-only — a

@@ -13,6 +13,7 @@ import type { IconName } from "@ummahlibrary/ui";
 import { newId, readCollections, readNote, writeCollections, writeNote } from "../lib/collections";
 import { HIFZ_EVENT, isTracked, removeCard, setCard } from "../lib/hifz-store";
 import { TafsirCompare } from "./TafsirCompare";
+import { RelatedHadith } from "./RelatedHadith";
 
 interface TafsirMeta {
   id: string;
@@ -107,6 +108,7 @@ export function AyahActions({
 
   const [saveOpen, setSaveOpen] = useState(false);
   const [tafsirOpen, setTafsirOpen] = useState(false);
+  const [relatedOpen, setRelatedOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -132,7 +134,9 @@ export function AyahActions({
     const block = containerRef.current?.closest<HTMLElement>(".ayah");
     if (!block) return;
     block.classList.toggle("ayah-hifz", tracked);
-    return () => { block.classList.remove("ayah-hifz"); };
+    return () => {
+      block.classList.remove("ayah-hifz");
+    };
   }, [tracked]);
 
   function flash(message: string) {
@@ -168,7 +172,9 @@ export function AyahActions({
   function readAyahText(): { arabic: string; translations: string[] } {
     const block = document.getElementById(`${surah}:${aya}`);
     if (!block) return { arabic: "", translations: [] };
-    const arEl = block.querySelector<HTMLElement>(".ayah-ar")?.cloneNode(true) as HTMLElement | null;
+    const arEl = block
+      .querySelector<HTMLElement>(".ayah-ar")
+      ?.cloneNode(true) as HTMLElement | null;
     arEl?.querySelector(".ayah-marker")?.remove();
     const arabic = arEl?.textContent?.trim() ?? "";
     const translations = [...block.querySelectorAll<HTMLElement>(".ayah-tr")].map((node) => {
@@ -258,9 +264,27 @@ export function AyahActions({
           aria-expanded={saveOpen}
           onClick={openSave}
         />
-        <BarBtn icon="tafsir" label="Tafsir" active={tafsirOpen} onClick={() => setTafsirOpen((o) => !o)} />
+        <BarBtn
+          icon="tafsir"
+          label="Tafsir"
+          active={tafsirOpen}
+          onClick={() => setTafsirOpen((o) => !o)}
+        />
+        <BarBtn
+          icon="globe"
+          label="Related"
+          active={relatedOpen}
+          aria-expanded={relatedOpen}
+          aria-label={`Hadith that quote āyah ${aya}`}
+          onClick={() => setRelatedOpen((o) => !o)}
+        />
         <div style={{ position: "relative", display: "inline-flex" }}>
-          <BarBtn icon="more" label="More" active={moreOpen} onClick={() => setMoreOpen((o) => !o)} />
+          <BarBtn
+            icon="more"
+            label="More"
+            active={moreOpen}
+            onClick={() => setMoreOpen((o) => !o)}
+          />
           {moreOpen && (
             <>
               <div
@@ -329,7 +353,11 @@ export function AyahActions({
             )}
             {collections.map((c) => (
               <label key={c.id} className="ayah-save-col">
-                <input type="checkbox" checked={savedIds.has(c.id)} onChange={() => toggleCol(c.id)} />
+                <input
+                  type="checkbox"
+                  checked={savedIds.has(c.id)}
+                  onChange={() => toggleCol(c.id)}
+                />
                 <span>{c.name}</span>
               </label>
             ))}
@@ -344,7 +372,12 @@ export function AyahActions({
                 if (e.key === "Enter" && newName.trim()) addCollection();
               }}
             />
-            <button type="button" className="hifz-btn" disabled={!newName.trim()} onClick={addCollection}>
+            <button
+              type="button"
+              className="hifz-btn"
+              disabled={!newName.trim()}
+              onClick={addCollection}
+            >
               Add
             </button>
           </div>
@@ -359,6 +392,7 @@ export function AyahActions({
       )}
 
       {tafsirOpen && <TafsirCompare surah={surah} aya={aya} tafsirs={tafsirs} />}
+      {relatedOpen && <RelatedHadith surah={surah} aya={aya} />}
     </div>
   );
 }

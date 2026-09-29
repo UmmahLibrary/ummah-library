@@ -6,5 +6,6 @@
  * `data` directly — keeping the dependency direction app → api → core/data.
  */
 export * from "./repositories";
+export * from "./related-hadith";
 export { appRouter } from "./trpc";
 export type { AppRouter } from "./trpc";
