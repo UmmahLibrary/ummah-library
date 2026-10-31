@@ -348,7 +348,15 @@ export function SearchScreen({ navigation }: Props) {
                 <Text style={styles.cardRef}>{r.ref}</Text>
               </View>
               {r.ar ? (
-                <Text style={[styles.cardAr, r.type === "name" && styles.cardArName]}>{r.ar}</Text>
+                <Text
+                  style={[
+                    styles.cardAr,
+                    r.type === "name" && styles.cardArName,
+                    r.type === "ayah" && styles.cardQuran,
+                  ]}
+                >
+                  {r.ar}
+                </Text>
               ) : null}
               {r.title ? (
                 <Text style={[styles.cardTitle, r.type === "name" && styles.cardTitleName]} numberOfLines={3}>
@@ -463,6 +471,7 @@ function makeStyles(c: Palette) {
       writingDirection: "rtl",
       fontFamily: FONT.ar,
     },
+    cardQuran: { fontFamily: FONT.arQuran, lineHeight: 50 },
     cardArName: { fontSize: 26, marginBottom: 2 },
     cardTitle: { color: c.muted, fontSize: 15, lineHeight: 23, marginTop: 8 },
     hl: { color: c.fg, backgroundColor: c.accentSoft, fontFamily: FONT.bold },

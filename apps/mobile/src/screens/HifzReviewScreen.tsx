@@ -205,7 +205,7 @@ function makeStyles(c: Palette) {
       lineHeight: 56,
       textAlign: "center",
       writingDirection: "rtl",
-      fontFamily: FONT.ar,
+      fontFamily: FONT.arQuran,
     },
     reveal: {
       paddingVertical: 13,

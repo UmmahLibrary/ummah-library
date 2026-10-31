@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.25.0",
+    "@expo-google-fonts/amiri-quran": "0.4.1",
     "@expo-google-fonts/hanken-grotesk": "^0.4.3",
     "@expo-google-fonts/ibm-plex-sans-arabic": "^0.4.2",
     "@expo/metro-runtime": "~6.1.2",

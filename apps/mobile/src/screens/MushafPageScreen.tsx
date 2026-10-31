@@ -180,10 +180,10 @@ function makeStyles(c: Palette) {
       textAlign: "center",
       writingDirection: "rtl",
       marginVertical: 10,
-      fontFamily: FONT.ar,
+      fontFamily: FONT.arQuran,
     },
-    mushaf: { color: c.fg, textAlign: "justify", writingDirection: "rtl", fontFamily: FONT.ar },
-    endMarker: { color: c.accent, fontSize: 18, fontFamily: FONT.ar },
+    mushaf: { color: c.fg, textAlign: "justify", writingDirection: "rtl", fontFamily: FONT.arQuran },
+    endMarker: { color: c.accent, fontSize: 18, fontFamily: FONT.arQuran },
     // The Arabic surah name in ornamental brackets, centred at the foot of the
     // surah's block — mirrors the web reader's `.mushaf-surah-name`.
     surahNameFoot: {
@@ -191,7 +191,7 @@ function makeStyles(c: Palette) {
       fontSize: 19,
       textAlign: "center",
       writingDirection: "rtl",
-      fontFamily: FONT.ar,
+      fontFamily: FONT.arQuran,
       marginTop: 22,
     },
     nav: {

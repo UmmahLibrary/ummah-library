@@ -271,7 +271,7 @@ function makeStyles(c: Palette) {
       paddingVertical: 4,
     },
     copiedText: { color: c.fg, fontSize: 11, fontFamily: FONT.medium },
-    arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
+    arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.arQuran },
     // IndoPak Nastaʿlīq face (ADR 0035) — applied over `arabic`/`wbwAr`.
     arabicIndopak: { fontFamily: FONT.arIndopak },
     wordActive: { color: c.accent },
@@ -287,7 +287,7 @@ function makeStyles(c: Palette) {
       gap: 12,
     },
     wbwUnit: { alignItems: "center" },
-    wbwAr: { color: c.fg, fontFamily: FONT.ar, textAlign: "center" },
+    wbwAr: { color: c.fg, fontFamily: FONT.arQuran, textAlign: "center" },
     wbwTr: { color: c.faint, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
     tr: { marginTop: 12 },
     trName: { color: c.faint, fontSize: 12, marginBottom: 3, fontFamily: FONT.medium },
