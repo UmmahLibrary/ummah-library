@@ -276,7 +276,7 @@ function makeStyles(c: Palette) {
       lineHeight: 42,
       textAlign: "right",
       writingDirection: "rtl",
-      fontFamily: FONT.ar,
+      fontFamily: FONT.arQuran,
     },
     translation: { color: c.muted, fontSize: 14.5, lineHeight: 23 },
     note: {

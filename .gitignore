@@ -36,6 +36,13 @@ Thumbs.db
 # Claude Code personal overrides
 .claude/settings.local.json
 
+# Local personal project notes and Obsidian vaults
+/.local/
+
+# Local release builds and EAS CLI state
+/artifacts/
+/.task-eas-config/
+
 # Playwright
 /test-results
 /playwright-report
