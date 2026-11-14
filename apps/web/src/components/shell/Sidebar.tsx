@@ -2,51 +2,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { N, Logo, Icon } from "@ummahlibrary/ui";
-import type { IconName } from "@ummahlibrary/ui";
 import { useT } from "../../i18n/I18nProvider";
-import type { MessageKey } from "../../i18n/messages";
+import { NAV_DESTINATIONS } from "../../lib/nav";
 
-// [sectionHeadingKey, [[labelKey, href, icon]…]] — labels resolve through i18n (#208).
-const NAV: Array<[MessageKey, Array<[MessageKey, string, IconName]>]> = [
-  [
-    "nav.read",
-    [
-      ["nav.quran", "/", "book"],
-      ["nav.search", "/search", "search"],
-      ["nav.plans", "/plans", "route"],
-      ["nav.bookmarks", "/bookmarks", "bookmark"],
-      ["nav.tafsir", "/tafsir", "tafsir"],
-    ],
-  ],
-  [
-    "nav.memorize",
-    [
-      ["nav.hifz", "/hifz", "star"],
-      ["nav.goals", "/goals", "check"],
-    ],
-  ],
-  [
-    "nav.worship",
-    [
-      ["nav.prayerTimes", "/prayer-times", "home"],
-      ["nav.tracker", "/tracker", "check"],
-      ["nav.ramadan", "/ramadan", "moon"],
-      ["nav.duas", "/duas", "hands"],
-      ["nav.qibla", "/qibla", "compass"],
-      ["nav.adhkar", "/adhkar", "repeat"],
-      ["nav.tasbih", "/tasbih", "more"],
-    ],
-  ],
-  [
-    "nav.learn",
-    [
-      ["nav.hadith", "/hadith", "globe"],
-      ["nav.names", "/names", "grid"],
-      ["nav.calendar", "/calendar", "moon"],
-      ["nav.zakat", "/zakat", "layers"],
-    ],
-  ],
-];
+// Five groups, same as the phone tabs and hub pages (ADR 0041). Labels resolve
+// through i18n (#208).
+const NAV = NAV_DESTINATIONS.filter((d) => d.key !== "today");
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -73,47 +34,45 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Nav groups */}
-      <nav style={{ flex: 1 }}>
-        {NAV.map(([group, items]) => (
-          <div key={group} style={{ marginBottom: 18 }}>
-            <div
+      {/* Today, then the four groups */}
+      <nav style={{ flex: 1 }} aria-label="Main">
+        <Link
+          href="/"
+          aria-current={pathname === "/" ? "page" : undefined}
+          style={navLink(pathname === "/")}
+        >
+          <Icon name="home" size={18} sw={1.8} color={pathname === "/" ? N.ink : N.muted} />
+          {t("nav.today")}
+        </Link>
+        {NAV.map((group) => (
+          <div key={group.key} style={{ marginTop: 18 }}>
+            <Link
+              href={group.href}
               style={{
-                fontSize: 11,
-                letterSpacing: 1.4,
-                textTransform: "uppercase",
-                color: N.faint,
-                padding: "0 10px 8px",
-                fontWeight: 700,
+                display: "block",
+                fontSize: 13,
+                letterSpacing: 0.6,
+                color: N.muted,
+                padding: "0 11px 6px",
+                fontWeight: 800,
                 fontFamily: N.ui,
+                textDecoration: "none",
               }}
             >
-              {t(group)}
-            </div>
-            {items.map(([label, href, icon]) => {
-              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+              {t(group.label)}
+            </Link>
+            {group.items.map((item) => {
+              const active =
+                pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
               return (
                 <Link
-                  key={label}
-                  href={href}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 11,
-                    padding: "9px 11px",
-                    borderRadius: 9,
-                    marginBottom: 2,
-                    fontSize: 14.5,
-                    fontWeight: active ? 700 : 500,
-                    color: active ? N.ink : N.muted,
-                    background: active ? N.goldGrad : "transparent",
-                    textDecoration: "none",
-                    transition: "background .15s, color .15s",
-                    fontFamily: N.ui,
-                  }}
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  style={navLink(active)}
                 >
-                  <Icon name={icon} size={17} sw={1.8} color={active ? N.ink : N.faint} />
-                  {t(label)}
+                  <Icon name={item.icon} size={18} sw={1.8} color={active ? N.ink : N.muted} />
+                  {t(item.label)}
                 </Link>
               );
             })}
@@ -154,4 +113,23 @@ export function Sidebar() {
       </Link>
     </aside>
   );
+}
+
+function navLink(active: boolean): React.CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: 11,
+    minHeight: 44,
+    padding: "8px 11px",
+    borderRadius: 10,
+    marginBottom: 2,
+    fontSize: 15,
+    fontWeight: active ? 700 : 500,
+    color: active ? N.ink : N.fg,
+    background: active ? N.goldGrad : "transparent",
+    textDecoration: "none",
+    transition: "background .15s, color .15s",
+    fontFamily: N.ui,
+  };
 }

@@ -794,3 +794,16 @@ html[data-app-mode="kids"] .noor-tabbar {
     outline-offset: 3px;
   }
 }
+
+/* Easy mode bottom bar: Back + Home, large, on every page. */
+.easy-bar {
+  display: none;
+}
+html[data-app-mode="easy"] .easy-bar {
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px max(10px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--noor-border);
+  background: var(--noor-bg2);
+  flex-shrink: 0;
+}

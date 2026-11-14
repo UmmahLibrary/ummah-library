@@ -49,6 +49,12 @@ export function useI18n(): I18nValue {
   return ctx;
 }
 
+/** The active locale, or English outside the provider (never throws). */
+export function useLocale(): { locale: Locale } {
+  const ctx = useContext(I18nContext);
+  return { locale: ctx?.locale ?? DEFAULT_LOCALE };
+}
+
 /** Convenience hook for components that only need the lookup. */
 export function useT(): (key: MessageKey) => string {
   return useI18n().t;

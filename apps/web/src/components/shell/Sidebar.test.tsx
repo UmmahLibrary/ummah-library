@@ -7,14 +7,16 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 import { Sidebar } from "./Sidebar";
 
 describe("Sidebar", () => {
-  it("renders the nav groups and items", () => {
+  it("groups the app into the same five places as the phone tabs", () => {
     render(<Sidebar />, { wrapper: I18nProvider });
 
-    expect(screen.getByText("Read")).toBeInTheDocument();
-    expect(screen.getByText("Worship")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Quran/ })).toBeInTheDocument();
+    for (const group of ["Today", "Quran", "Prayer", "Learn", "More"]) {
+      expect(
+        screen.getAllByRole("link", { name: new RegExp(`^${group}$`) }).length,
+      ).toBeGreaterThan(0);
+    }
     expect(screen.getByRole("link", { name: /Prayer Times/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /99 Names/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Settings/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Settings/ }).length).toBeGreaterThan(0);
   });
 });

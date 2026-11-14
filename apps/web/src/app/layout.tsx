@@ -126,12 +126,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* Pre-hydration cover for the first-run overlay (shown only when
             data-onboard="1"); the Onboarding component draws the slides on top. */}
         <div id="ul-onboard-veil" aria-hidden="true" />
-        <Onboarding />
         <AdhkarReminderBanner />
         <PrayerReminderScheduler />
         <PlanReminderScheduler />
         <SyncBootstrap />
         <I18nProvider>
+          <Onboarding />
           <AppShellWrapper>{children}</AppShellWrapper>
         </I18nProvider>
         <ServiceWorkerRegister />

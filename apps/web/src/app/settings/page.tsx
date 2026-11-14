@@ -4,6 +4,7 @@ import { ThemePicker } from "../../components/ThemePicker";
 import { LanguagePicker } from "../../components/LanguagePicker";
 import { SyncSettings } from "../../components/SyncSettings";
 import { DataBackup } from "../../components/DataBackup";
+import { ComfortSettings } from "../../components/ComfortSettings";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -21,6 +22,8 @@ export default function SettingsPage() {
       back="/"
       maxW={620}
     >
+      <ComfortSettings />
+      <div style={{ height: 1, background: "var(--noor-border)", margin: "30px 0" }} />
       <ThemePicker />
       <div style={{ height: 1, background: "var(--noor-border)", margin: "30px 0" }} />
       <LanguagePicker />
