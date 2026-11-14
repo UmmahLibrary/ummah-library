@@ -29,5 +29,7 @@ export function defaultEditions(): string[] {
 // verbatim Latin transliteration (CC-BY 3.0), fetched at runtime like any edition.
 export const TRANSLIT_EDITION = "ara-quran-la";
 
-export const MIN_SCALE = 0.8;
-export const MAX_SCALE = 1.6;
+// Arabic size multiplier (ADR 0041). The range only ever grows (it was
+// 0.8–1.6), so a size saved by an earlier version is never shrunk on load.
+export const MIN_SCALE = 0.7;
+export const MAX_SCALE = 2.4;

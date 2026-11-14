@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
+import type { IconName } from "@ummahlibrary/ui";
 import { Pressable, Share, StyleSheet, Text, View } from "../Type";
 import * as Clipboard from "expo-clipboard";
 import { createCard } from "@ummahlibrary/core";
@@ -9,6 +10,8 @@ import { useLibrary } from "../state/LibraryContext";
 import { AyahBadge } from "./AyahBadge";
 import { SaveToCollection } from "./SaveToCollection";
 import { AyahTafsir } from "./AyahTafsir";
+import { useSettings } from "../state/SettingsContext";
+import { targetSize } from "../comfort";
 
 export interface TrLine {
   id: string;
@@ -35,7 +38,10 @@ interface Props {
   onPlayWord?: (aya: number, wordIndex: number) => void;
   activeWord: number;
   playing: boolean;
+  /** Arabic size multiplier (font size + proportional line height only). */
   scale: number;
+  /** Translation / transliteration size multiplier, independent of the Arabic. */
+  trScale?: number;
   onPlayFrom: (aya: number) => void;
   onPlayOne: (aya: number) => void;
   /** Memorize / hide-and-peek (#134). */
@@ -71,6 +77,7 @@ function AyahViewImpl({
   activeWord,
   playing,
   scale,
+  trScale = 1,
   onPlayFrom,
   onPlayOne,
   peek = false,
@@ -83,6 +90,33 @@ function AyahViewImpl({
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { isTracked, setHifzCard, removeHifzCard } = useLibrary();
+  const { comfort } = useSettings();
+  const min = targetSize(comfort);
+  const softTr = comfort.trEmphasis === "soft";
+
+  // A labelled per-āyah action (ADR 0041): icon + 14sp word, ≥ 48dp tall.
+  const action = (
+    icon: IconName,
+    label: string,
+    onPress: () => void,
+    on: boolean,
+    a11y: string,
+  ) => (
+    <Pressable
+      style={({ pressed }) => [
+        styles.act,
+        { minHeight: min, minWidth: min },
+        on && styles.actOn,
+        pressed && styles.pressed,
+      ]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={a11y}
+    >
+      <Icon name={icon} size={18} color={on ? colors.accent : colors.fg} sw={1.8} />
+      <Text style={styles.actText}>{label}</Text>
+    </Pressable>
+  );
   const ref = { sura, aya };
   const memorized = isTracked(ref);
 
@@ -116,28 +150,23 @@ function AyahViewImpl({
       <View style={styles.head}>
         <AyahBadge n={aya} size={30} />
         <View style={styles.actions}>
-          {/* 17px icon + hitSlop was a 33×33 tap target, short of the
-              44×44dp minimum (see iteration 27, which fixed the sibling
-              SaveToCollection icon in this exact row but missed these
-              three) — 14 on each side reaches 45×45. This row renders once
-              per āyah throughout the entire reading experience. */}
-          <Pressable onPress={() => onPlayOne(aya)} hitSlop={14} accessibilityLabel="Play āyah">
-            <Icon name="play" size={17} color={playing ? colors.accent : colors.faint} />
-          </Pressable>
-          <Pressable
-            onPress={() =>
-              memorized ? removeHifzCard(ref) : setHifzCard(ref, createCard(new Date()))
+          {action("play", "Play", () => onPlayOne(aya), playing, `Play āyah ${aya}`)}
+          {action(
+            "star",
+            memorized ? "Memorizing" : "Memorize",
+            () => (memorized ? removeHifzCard(ref) : setHifzCard(ref, createCard(new Date()))),
+            memorized,
+            memorized ? `Stop memorizing āyah ${aya}` : `Memorize āyah ${aya}`,
+          )}
+          <SaveToCollection
+            sura={sura}
+            aya={aya}
+            trigger={(open, saved) =>
+              action("bookmark", saved ? "Saved" : "Save", open, saved, `Save āyah ${aya}`)
             }
-            hitSlop={14}
-            accessibilityLabel={memorized ? "Stop memorizing" : "Memorize āyah"}
-          >
-            <Icon name="star" size={17} color={memorized ? colors.accent : colors.faint} sw={1.8} />
-          </Pressable>
-          <SaveToCollection sura={sura} aya={aya} asIcon />
+          />
           <View>
-            <Pressable onPress={() => void share()} hitSlop={14} accessibilityLabel="Share āyah">
-              <Icon name="share" size={17} color={colors.faint} sw={1.8} />
-            </Pressable>
+            {action("share", "Share", () => void share(), false, `Share āyah ${aya}`)}
             {copied && (
               <View style={styles.copiedBubble} pointerEvents="none">
                 <Text style={styles.copiedText}>Copied</Text>
@@ -162,13 +191,15 @@ function AyahViewImpl({
                 style={[
                   styles.wbwAr,
                   indopak && styles.arabicIndopak,
-                  { fontSize: 26 * scale, lineHeight: (indopak ? 52 : 40) * scale },
+                  { fontSize: 26 * scale, lineHeight: (indopak ? 64 : 50) * scale },
                 ]}
               >
                 {w}
               </Text>
               {translitWords?.[i] ? (
-                <Text style={[styles.wbwTr, { fontSize: 12 * scale }]}>{translitWords[i]}</Text>
+                <Text style={[styles.wbwTr, { fontSize: 13 * trScale, lineHeight: 18 * trScale }]}>
+                  {translitWords[i]}
+                </Text>
               ) : null}
             </Pressable>
           ))}
@@ -213,7 +244,7 @@ function AyahViewImpl({
       )}
 
       {transliteration && !peekHideTr ? (
-        <Text style={[styles.translit, { fontSize: 14 * scale, lineHeight: 22 * scale }]}>
+        <Text style={[styles.translit, { fontSize: 14 * trScale, lineHeight: 22 * trScale }]}>
           {transliteration}
         </Text>
       ) : null}
@@ -225,7 +256,8 @@ function AyahViewImpl({
             <Text
               style={[
                 styles.trText,
-                { fontSize: 15 * scale, lineHeight: 24 * scale },
+                { fontSize: 16 * trScale, lineHeight: 26 * trScale },
+                softTr && styles.trSoft,
                 t.direction === "rtl" && styles.rtl,
               ]}
             >
@@ -258,11 +290,29 @@ function makeStyles(c: Palette) {
       justifyContent: "space-between",
       marginBottom: 14,
     },
-    actions: { flexDirection: "row", alignItems: "center", gap: 20 },
+    actions: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      flexWrap: "wrap",
+      gap: 4,
+      flexShrink: 1,
+    },
+    act: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      borderRadius: 12,
+      gap: 1,
+    },
+    actOn: { backgroundColor: c.accentSoft },
+    pressed: { opacity: 0.7 },
+    actText: { color: c.fg, fontSize: 14, fontFamily: FONT.medium },
     copiedBubble: {
       position: "absolute",
-      bottom: 24,
-      right: -8,
+      bottom: 52,
+      right: 0,
       backgroundColor: c.bgElev,
       borderWidth: 1,
       borderColor: c.border,
@@ -270,14 +320,22 @@ function makeStyles(c: Palette) {
       paddingHorizontal: 8,
       paddingVertical: 4,
     },
-    copiedText: { color: c.fg, fontSize: 11, fontFamily: FONT.medium },
-    arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.arQuran },
+    copiedText: { color: c.fg, fontSize: 13, fontFamily: FONT.medium },
+    // Quran text: the Quran face, explicit line height (≥ 1.9× the size, set
+    // inline) and vertical padding so stacked marks never clip on Android.
+    arabic: {
+      color: c.fg,
+      textAlign: "right",
+      writingDirection: "rtl",
+      fontFamily: FONT.arQuran,
+      paddingVertical: 4,
+    },
     // IndoPak Nastaʿlīq face (ADR 0035) — applied over `arabic`/`wbwAr`.
     arabicIndopak: { fontFamily: FONT.arIndopak },
     wordActive: { color: c.accent },
     // Concealed word: keep its footprint (a hint of length) but hide the glyphs.
     wordHidden: { color: "transparent", backgroundColor: c.borderSoft },
-    translit: { color: c.faint, marginTop: 10, fontStyle: "italic", fontFamily: FONT.medium },
+    translit: { color: c.muted, marginTop: 10, fontStyle: "italic", fontFamily: FONT.medium },
     // Word-by-word transliteration (#144): RTL flow of stacked word units.
     wbwRow: {
       flexDirection: "row-reverse",
@@ -287,11 +345,13 @@ function makeStyles(c: Palette) {
       gap: 12,
     },
     wbwUnit: { alignItems: "center" },
-    wbwAr: { color: c.fg, fontFamily: FONT.arQuran, textAlign: "center" },
-    wbwTr: { color: c.faint, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
+    wbwAr: { color: c.fg, fontFamily: FONT.arQuran, textAlign: "center", paddingVertical: 2 },
+    wbwTr: { color: c.muted, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
     tr: { marginTop: 12 },
-    trName: { color: c.faint, fontSize: 12, marginBottom: 3, fontFamily: FONT.medium },
-    trText: { color: c.muted },
+    trName: { color: c.muted, fontSize: 13, marginBottom: 3, fontFamily: FONT.medium },
+    // Equal emphasis by default; "softer" (Reading comfort) quiets it to muted.
+    trText: { color: c.fg },
+    trSoft: { color: c.muted },
     rtl: { textAlign: "right", writingDirection: "rtl" },
   });
 }

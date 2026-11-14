@@ -12,15 +12,17 @@ import {
   type Surah,
   nextPrayer,
 } from "@ummahlibrary/core";
-import { Icon, Khatam } from "@ummahlibrary/ui";
+import { Icon } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 import { useLibrary } from "../state/LibraryContext";
-import { AyahBadge } from "../components/AyahBadge";
 import { SaveToCollection } from "../components/SaveToCollection";
+import { HomeToday, type HomeReading } from "../components/HomeToday";
+import { EasyHome } from "../components/EasyHome";
+import { useSettings } from "../state/SettingsContext";
 import { verseOfToday } from "../verses";
-import { readReadingState } from "../reading-goals";
+import { readReadingState, todayStr } from "../reading-goals";
 import { KEYS, getJSON, getString } from "../storage";
 import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
 import type { HomeStackParamList } from "../navigation/types";
@@ -32,28 +34,35 @@ export function HomeScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { lastRead } = useLibrary();
+  const { lastRead, lastReadAya } = useLibrary();
+  const { comfort } = useSettings();
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [now, setNow] = useState(() => new Date());
-  // Reading progress (daily pages / goal) for the continue-reading progress bar.
-  const [readPct, setReadPct] = useState(0);
+  // Reading state for the Today card and the "days this week" strip.
+  const [reading, setReading] = useState<HomeReading>({ pagesToday: 0, goal: 4, activeDates: [] });
 
   useEffect(() => {
     let active = true;
-    void api.listSurahs().then((s) => active && setSurahs(s)).catch(() => undefined);
-    const loadReadPct = () =>
+    void api
+      .listSurahs()
+      .then((s) => active && setSurahs(s))
+      .catch(() => undefined);
+    const loadReading = () =>
       void readReadingState().then((s) => {
-        if (active) setReadPct(Math.min(1, s.goal > 0 ? s.pagesToday / s.goal : 0));
+        if (active) setReading({ pagesToday: s.pagesToday, goal: s.goal, activeDates: s.active });
       });
-    loadReadPct();
-    const unsubscribe = onSyncApplied(loadReadPct);
+    loadReading();
+    // Re-read when Home regains focus (a reading session just ended) and on sync.
+    const unfocus = navigation.addListener("focus", loadReading);
+    const unsubscribe = onSyncApplied(loadReading);
     return () => {
       active = false;
+      unfocus();
       unsubscribe();
     };
-  }, []);
+  }, [navigation]);
 
   // The local date `timings` was fetched for. Nothing else re-triggers the
   // fetch below — an app left open (or backgrounded/foregrounded) across
@@ -110,10 +119,6 @@ export function HomeScreen({ navigation }: Props) {
     upcoming ??
     (timings ? { name: "fajr", at: new Date(new Date(timings.fajr).getTime() + 86400000) } : null);
 
-  const last = useMemo(
-    () => (lastRead != null ? (surahs ?? []).find((s) => s.number === lastRead) : undefined),
-    [surahs, lastRead],
-  );
   const vod = verseOfToday();
 
   // Cross-tab navigation helpers.
@@ -121,12 +126,24 @@ export function HomeScreen({ navigation }: Props) {
     navigation.getParent()?.navigate("Read", params as never);
   const toTools = (screen: string) =>
     navigation.getParent()?.navigate("Tools", { screen } as never);
+  const openSurah = (surah: number, aya?: number, listen = false) =>
+    toRead({
+      screen: "SurahReader",
+      params: { surah, ...(aya && aya > 1 ? { aya } : {}), ...(listen ? { listen: true } : {}) },
+    });
+  const toGoals = () =>
+    navigation.getParent()?.navigate("More", { screen: "ReadingGoals" } as never);
 
-  const quick: { icon: Parameters<typeof Icon>[0]["name"]; label: string; onPress: () => void }[] = [
-    { icon: "book", label: "Read", onPress: () => toRead() },
-    { icon: "headphones", label: "Listen", onPress: () => (last ? toRead({ screen: "SurahReader", params: { surah: last.number } }) : toRead()) },
-    { icon: "compass", label: "Qibla", onPress: () => toTools("Qibla") },
-  ];
+  const quick: { icon: Parameters<typeof Icon>[0]["name"]; label: string; onPress: () => void }[] =
+    [
+      { icon: "book", label: "Read", onPress: () => toRead() },
+      {
+        icon: "headphones",
+        label: "Listen",
+        onPress: () => openSurah(lastRead ?? 1, lastReadAya ?? undefined, true),
+      },
+      { icon: "compass", label: "Qibla", onPress: () => toTools("Qibla") },
+    ];
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -140,77 +157,76 @@ export function HomeScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
-        {/* Continue reading */}
-        {last && (
-          <Pressable
-            style={styles.continue}
-            onPress={() => toRead({ screen: "SurahReader", params: { surah: last.number } })}
-          >
-            <View style={styles.continueWatermark} pointerEvents="none">
-              <Khatam size={150} color={colors.accent} sw={1.1} opacity={0.07} />
-            </View>
-            <Text style={styles.kicker}>Continue reading</Text>
-            <View style={styles.continueRow}>
-              <AyahBadge n={last.number} size={48} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={styles.continueName}>{last.transliteration}</Text>
-                <Text style={styles.continueSub}>
-                  {last.englishName} · {last.ayahCount} verses
-                </Text>
-              </View>
-              <Text style={styles.continueAr}>{last.name}</Text>
-            </View>
-            {/* Progress bar (design: h6 · radius3, gold) — daily reading progress */}
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${Math.round(readPct * 100)}%` }]} />
-            </View>
+      {comfort.mode === "easy" ? (
+        <EasyHome
+          surahs={surahs}
+          lastRead={lastRead}
+          lastReadAya={lastReadAya}
+          nextPrayer={
+            nextP ? `${PRAYER_LABELS[nextP.name]} at ${fmtPrayerTime(nextP.at, coords)}` : null
+          }
+          onRead={(s, a) => openSurah(s, a)}
+          onListen={(s, a) => openSurah(s, a, true)}
+          onChoose={() => toRead({ screen: "SurahList" })}
+        />
+      ) : (
+        <ScrollView contentContainerStyle={styles.body}>
+          {/* One card that says what to do now, then days this week (ADR 0041). */}
+          <HomeToday
+            surahs={surahs}
+            lastRead={lastRead}
+            lastReadAya={lastReadAya}
+            reading={reading}
+            today={todayStr()}
+            onRead={(s, a) => openSurah(s, a)}
+            onListen={(s, a) => openSurah(s, a, true)}
+            onGoals={toGoals}
+          />
+
+          {/* Next prayer strip — live countdown if a location is saved */}
+          <Pressable style={styles.prayerStrip} onPress={() => toTools("PrayerTimes")}>
+            <Icon name="moon" size={22} color={colors.accent} sw={1.8} />
+            {nextP ? (
+              <>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.prayerLabel}>Next prayer · {PRAYER_LABELS[nextP.name]}</Text>
+                  <Text style={styles.prayerValue}>in {fmtCountdown(nextP.at, now)}</Text>
+                </View>
+                <Text style={styles.prayerTime}>{fmtPrayerTime(nextP.at, coords)}</Text>
+              </>
+            ) : (
+              <>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.prayerLabel}>Prayer times</Text>
+                  <Text style={styles.prayerValue}>View today’s ṣalāh times</Text>
+                </View>
+                <Icon name="chevR" size={18} color={colors.faint} sw={1.8} />
+              </>
+            )}
           </Pressable>
-        )}
 
-        {/* Next prayer strip — live countdown if a location is saved */}
-        <Pressable style={styles.prayerStrip} onPress={() => toTools("PrayerTimes")}>
-          <Icon name="moon" size={22} color={colors.accent} sw={1.8} />
-          {nextP ? (
-            <>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.prayerLabel}>Next prayer · {PRAYER_LABELS[nextP.name]}</Text>
-                <Text style={styles.prayerValue}>in {fmtCountdown(nextP.at, now)}</Text>
-              </View>
-              <Text style={styles.prayerTime}>{fmtPrayerTime(nextP.at, coords)}</Text>
-            </>
-          ) : (
-            <>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.prayerLabel}>Prayer times</Text>
-                <Text style={styles.prayerValue}>View today’s ṣalāh times</Text>
-              </View>
-              <Icon name="chevR" size={18} color={colors.faint} sw={1.8} />
-            </>
-          )}
-        </Pressable>
-
-        {/* Verse of the day */}
-        <View style={styles.vod}>
-          <View style={styles.vodHead}>
-            <Text style={styles.kicker}>Verse of the day</Text>
-            <SaveToCollection sura={vod.sura} aya={vod.aya} asIcon />
+          {/* Verse of the day */}
+          <View style={styles.vod}>
+            <View style={styles.vodHead}>
+              <Text style={styles.kicker}>Verse of the day</Text>
+              <SaveToCollection sura={vod.sura} aya={vod.aya} asIcon />
+            </View>
+            <Text style={styles.vodAr}>{vod.ar}</Text>
+            <Text style={styles.vodEn}>{vod.en}</Text>
+            <Text style={styles.vodRef}>{vod.ref}</Text>
           </View>
-          <Text style={styles.vodAr}>{vod.ar}</Text>
-          <Text style={styles.vodEn}>{vod.en}</Text>
-          <Text style={styles.vodRef}>{vod.ref}</Text>
-        </View>
 
-        {/* Quick actions */}
-        <View style={styles.quickRow}>
-          {quick.map((a) => (
-            <Pressable key={a.label} style={styles.quickCard} onPress={a.onPress}>
-              <Icon name={a.icon} size={22} color={colors.accent} sw={1.8} />
-              <Text style={styles.quickLabel}>{a.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </ScrollView>
+          {/* Quick actions */}
+          <View style={styles.quickRow}>
+            {quick.map((a) => (
+              <Pressable key={a.label} style={styles.quickCard} onPress={a.onPress}>
+                <Icon name={a.icon} size={22} color={colors.accent} sw={1.8} />
+                <Text style={styles.quickLabel}>{a.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -245,27 +261,6 @@ function makeStyles(c: Palette) {
       textTransform: "uppercase",
       fontFamily: FONT.bold,
     },
-    continue: {
-      backgroundColor: c.bgElev,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: 16,
-      padding: 18,
-      overflow: "hidden",
-    },
-    continueWatermark: { position: "absolute", right: -36, top: -42 },
-    continueRow: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 12 },
-    continueName: { color: c.fg, fontSize: 17, fontFamily: FONT.bold },
-    continueSub: { color: c.muted, fontSize: 13.5, marginTop: 2 },
-    continueAr: { color: c.accentHi, fontSize: 24, writingDirection: "rtl", fontFamily: FONT.ar },
-    progressTrack: {
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: c.bg,
-      marginTop: 16,
-      overflow: "hidden",
-    },
-    progressFill: { height: "100%", borderRadius: 3, backgroundColor: c.accent },
     prayerStrip: {
       flexDirection: "row",
       alignItems: "center",
@@ -276,7 +271,7 @@ function makeStyles(c: Palette) {
       borderRadius: 14,
       padding: 15,
     },
-    prayerLabel: { color: c.muted, fontSize: 12 },
+    prayerLabel: { color: c.muted, fontSize: 13 },
     prayerValue: { color: c.fg, fontSize: 16, fontFamily: FONT.bold, marginTop: 1 },
     prayerTime: { color: c.accent, fontSize: 18, fontFamily: FONT.extrabold },
     vod: {
@@ -308,7 +303,8 @@ function makeStyles(c: Palette) {
       borderColor: c.border,
       borderRadius: 14,
       paddingVertical: 16,
+      minHeight: 72,
     },
-    quickLabel: { color: c.fg, fontSize: 13, fontFamily: FONT.semibold },
+    quickLabel: { color: c.fg, fontSize: 14, fontFamily: FONT.semibold },
   });
 }

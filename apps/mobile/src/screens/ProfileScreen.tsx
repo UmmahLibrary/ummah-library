@@ -62,7 +62,7 @@ export function ProfileScreen() {
   const bestStreak = Math.max(streak.count, prayer.streak, prayer.best, reading.streak);
 
   const stats: [string, string][] = [
-    [`${streak.count} 🔥`, "Hifz streak"],
+    [`${streak.count}`, "Hifz streak"],
     [String(trackedCount), "Āyāt memorized"],
     [String(surahsStarted), "Surahs started"],
     [`${prayer.streak}`, "Prayer streak"],
@@ -110,46 +110,46 @@ export function ProfileScreen() {
 
   return (
     <View style={styles.root}>
-    <ScrollView contentContainerStyle={styles.screen}>
-      <View style={styles.header}>
-        <View style={styles.headerWatermark} pointerEvents="none">
-          <Khatam size={140} color={colors.accent} sw={1.1} opacity={0.08} />
-        </View>
-        <View style={styles.avatar}>
-          <Khatam size={34} color={colors.ink} sw={2} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.name}>Your journey</Text>
-          <Text style={styles.sub}>Local-first · saved on this device</Text>
-        </View>
-      </View>
-
-      <View style={styles.statsGrid}>
-        {stats.map(([v, l]) => (
-          <View key={l} style={styles.stat}>
-            <Text style={styles.statValue}>{v}</Text>
-            <Text style={styles.statLabel}>{l}</Text>
+      <ScrollView contentContainerStyle={styles.screen}>
+        <View style={styles.header}>
+          <View style={styles.headerWatermark} pointerEvents="none">
+            <Khatam size={140} color={colors.accent} sw={1.1} opacity={0.08} />
           </View>
-        ))}
-      </View>
+          <View style={styles.avatar}>
+            <Khatam size={34} color={colors.ink} sw={2} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.name}>Your journey</Text>
+            <Text style={styles.sub}>Local-first · saved on this device</Text>
+          </View>
+        </View>
 
-      <Text style={styles.sectionLabel}>
-        Achievements · {earned}/{badges.length}
-      </Text>
-      <View style={styles.badgeGrid}>
-        {badges.map(({ badge, unlocked }) => (
-          <View key={badge.id} style={[styles.badge, !unlocked && styles.badgeLocked]}>
-            <View style={[styles.badgeIcon, unlocked ? styles.badgeIconOn : styles.badgeIconOff]}>
-              <Text style={styles.badgeGlyph}>{badge.glyph}</Text>
+        <View style={styles.statsGrid}>
+          {stats.map(([v, l]) => (
+            <View key={l} style={styles.stat}>
+              <Text style={styles.statValue}>{v}</Text>
+              <Text style={styles.statLabel}>{l}</Text>
             </View>
-            <Text style={styles.badgeName}>{badge.name}</Text>
-            <Text style={[styles.badgeStatus, unlocked && styles.badgeStatusOn]}>
-              {unlocked ? "Unlocked" : "Locked"}
-            </Text>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
+          ))}
+        </View>
+
+        <Text style={styles.sectionLabel}>
+          Achievements · {earned}/{badges.length}
+        </Text>
+        <View style={styles.badgeGrid}>
+          {badges.map(({ badge, unlocked }) => (
+            <View key={badge.id} style={[styles.badge, !unlocked && styles.badgeLocked]}>
+              <View style={[styles.badgeIcon, unlocked ? styles.badgeIconOn : styles.badgeIconOff]}>
+                <Text style={styles.badgeGlyph}>{badge.glyph}</Text>
+              </View>
+              <Text style={styles.badgeName}>{badge.name}</Text>
+              <Text style={[styles.badgeStatus, unlocked && styles.badgeStatusOn]}>
+                {unlocked ? "Unlocked" : "Locked"}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
       {toast && (
         <View style={styles.toast} pointerEvents="none">
           <View style={styles.toastPill}>
@@ -221,7 +221,12 @@ function makeStyles(c: Palette) {
       fontFamily: FONT.bold,
       marginBottom: 11,
     },
-    badgeGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 10 },
+    badgeGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      rowGap: 10,
+    },
     badge: {
       width: "31.5%",
       backgroundColor: c.bgElev,
@@ -245,7 +250,13 @@ function makeStyles(c: Palette) {
     badgeIconOn: { backgroundColor: c.accentSoft, borderColor: c.accent },
     badgeIconOff: { borderColor: c.border },
     badgeGlyph: { fontSize: 22 },
-    badgeName: { color: c.fg, fontSize: 12.5, fontFamily: FONT.bold, textAlign: "center", lineHeight: 16 },
+    badgeName: {
+      color: c.fg,
+      fontSize: 12.5,
+      fontFamily: FONT.bold,
+      textAlign: "center",
+      lineHeight: 16,
+    },
     badgeStatus: { color: c.faint, fontSize: 10.5, fontFamily: FONT.semibold, marginTop: 3 },
     badgeStatusOn: { color: c.accent },
   });

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -24,10 +24,13 @@ export function SaveToCollection({
   sura,
   aya,
   asIcon = false,
+  trigger,
 }: {
   sura: number;
   aya: number;
   asIcon?: boolean;
+  /** Custom trigger (e.g. the reader's labelled per-āyah action button). */
+  trigger?: (open: () => void, saved: boolean) => ReactNode;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -53,7 +56,9 @@ export function SaveToCollection({
 
   return (
     <>
-      {asIcon ? (
+      {trigger ? (
+        trigger(() => setOpen(true), saved)
+      ) : asIcon ? (
         <Pressable
           onPress={() => setOpen(true)}
           // 18px icon + 8px hitSlop was a 34×34 tap target, short of the

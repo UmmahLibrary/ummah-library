@@ -113,7 +113,12 @@ export function PrayerTrackerScreen() {
   function cycleDate(date: string, prayer: (typeof OBLIGATORY_PRAYERS)[number]) {
     writeGen.current++;
     setLog((prev) => {
-      const next = setPrayerStatus(prev, date, prayer, nextPrayerStatus(statusFor(prev[date], prayer)));
+      const next = setPrayerStatus(
+        prev,
+        date,
+        prayer,
+        nextPrayerStatus(statusFor(prev[date], prayer)),
+      );
       void prayerStore.write(next);
       return next;
     });
@@ -132,7 +137,7 @@ export function PrayerTrackerScreen() {
   const fastingDone = fastingMadeUp(fastingQada, fastingOwed);
   const stats: [string, string][] = [
     [`${prayedCount(todayLog)}/5`, "Prayed today"],
-    [`${prayerStreakWithPause(log, haid, today)} 🔥`, "Day streak"],
+    [`${prayerStreakWithPause(log, haid, today)}`, "Day streak"],
     [`${onTimeRate(log, today)}%`, "On time (30d)"],
     [`${longestPrayerStreakWithPause(log, haid)}`, "Best streak"],
   ];
@@ -158,7 +163,10 @@ export function PrayerTrackerScreen() {
           return (
             <Pressable
               key={p}
-              style={[styles.prayer, lit && { borderColor: statusColor(st), backgroundColor: colors.accentSoft }]}
+              style={[
+                styles.prayer,
+                lit && { borderColor: statusColor(st), backgroundColor: colors.accentSoft },
+              ]}
               onPress={() => cycle(p)}
             >
               <View
@@ -169,7 +177,12 @@ export function PrayerTrackerScreen() {
                     : { borderWidth: 1.5, borderColor: statusColor(st) },
                 ]}
               >
-                <Text style={[styles.dotMark, { color: st === "ontime" ? colors.ink : statusColor(st) }]}>
+                <Text
+                  style={[
+                    styles.dotMark,
+                    { color: st === "ontime" ? colors.ink : statusColor(st) },
+                  ]}
+                >
                   {st === "none" ? "" : "✓"}
                 </Text>
               </View>
@@ -236,9 +249,7 @@ export function PrayerTrackerScreen() {
           style={[styles.haidBtn, haidCurrent ? styles.haidBtnOutline : null]}
           accessibilityLabel={haidCurrent ? "End cycle pause" : "Start cycle pause"}
         >
-          <Text
-            style={[styles.haidBtnText, { color: haidCurrent ? colors.fg : colors.accent }]}
-          >
+          <Text style={[styles.haidBtnText, { color: haidCurrent ? colors.fg : colors.accent }]}>
             {haidCurrent ? "End pause" : "Start pause"}
           </Text>
         </Pressable>
@@ -296,7 +307,12 @@ export function PrayerTrackerScreen() {
               >
                 <Text style={styles.stepMark}>−</Text>
               </Pressable>
-              <Text style={[styles.qadaCount, { color: fastingRemaining ? colors.accent : colors.faint }]}>
+              <Text
+                style={[
+                  styles.qadaCount,
+                  { color: fastingRemaining ? colors.accent : colors.faint },
+                ]}
+              >
                 {fastingRemaining}
               </Text>
               <Pressable
@@ -386,7 +402,13 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.border,
     },
-    dot: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+    dot: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     dotMark: { fontSize: 15, fontWeight: "800" },
     prayerName: { color: c.fg, fontSize: 12.5, fontWeight: "700" },
     prayerStatus: { fontSize: 10.5, fontWeight: "600" },

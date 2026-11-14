@@ -19,10 +19,10 @@ import { LOCALES, localeDir } from "../i18n/config";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { RECITER, RECITERS } from "../plugins";
-import { MAX_SCALE, MIN_SCALE } from "../types";
 import { clearCache, getCacheStats } from "../offlineCache";
 import { clearAllData, exportBackup, importBackup, itemCount } from "../backup";
 import { SyncSection } from "../components/SyncSection";
+import { ComfortSettings } from "../components/ComfortSettings";
 
 /** "1.2 MB", "845 KB", "0 B" — for the cached-content size shown in Settings. */
 function formatBytes(bytes: number): string {
@@ -42,17 +42,8 @@ export function SettingsScreen() {
   const { colors, themeKey, setTheme } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { locale, setLocale, t } = useI18n();
-  const {
-    scale,
-    setScale,
-    reciterId,
-    setReciterId,
-    tafsirId,
-    tafsirs,
-    setTafsirId,
-    script,
-    setScript,
-  } = useSettings();
+  const { reciterId, setReciterId, tafsirId, tafsirs, setTafsirId, script, setScript } =
+    useSettings();
 
   // Local data backup (parity with the web Settings → Data section).
   const [strategy, setStrategy] = useState<MergeStrategy>("replace");
@@ -209,29 +200,10 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>Reading</Text>
-        <View style={styles.card}>
-          <View style={[styles.row, styles.rowLast]}>
-            <Text style={styles.rowLabel}>Font size</Text>
-            <View style={styles.scale}>
-              <Pressable
-                style={[styles.scaleBtn, scale <= MIN_SCALE && styles.disabled]}
-                disabled={scale <= MIN_SCALE}
-                onPress={() => setScale((prev) => prev - 0.1)}
-              >
-                <Text style={styles.scaleText}>A−</Text>
-              </Pressable>
-              <Text style={styles.scaleValue}>{Math.round(scale * 100)}%</Text>
-              <Pressable
-                style={[styles.scaleBtn, scale >= MAX_SCALE && styles.disabled]}
-                disabled={scale >= MAX_SCALE}
-                onPress={() => setScale((prev) => prev + 0.1)}
-              >
-                <Text style={styles.scaleText}>A+</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
+        <Text style={styles.sectionLabel} accessibilityRole="header">
+          Reading comfort
+        </Text>
+        <ComfortSettings />
 
         <Text style={styles.sectionLabel}>Reciter</Text>
         <View style={styles.card}>
@@ -461,18 +433,7 @@ function makeStyles(c: Palette) {
     rowLast: { borderBottomWidth: 0, paddingBottom: 0 },
     rowLabel: { color: c.fg, fontSize: 15.5, fontFamily: FONT.semibold },
     value: { color: c.muted, fontSize: 15 },
-    scale: { flexDirection: "row", alignItems: "center", gap: 12 },
-    scaleBtn: {
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: c.border,
-      backgroundColor: c.bg,
-    },
     disabled: { opacity: 0.4 },
-    scaleText: { color: c.fg, fontSize: 14, fontFamily: FONT.semibold },
-    scaleValue: { color: c.muted, fontSize: 14, minWidth: 44, textAlign: "center" },
     muted: { color: c.muted, fontSize: 14, lineHeight: 22 },
     pickRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
     rowDivider: { borderBottomWidth: 1, borderBottomColor: c.borderSoft },

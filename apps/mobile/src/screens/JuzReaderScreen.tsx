@@ -66,11 +66,13 @@ export function JuzReaderScreen({ route }: Props) {
     readingTranslation,
     reciterId,
     scale,
+    comfort,
     transliteration,
     wordTransliteration,
     tapToHear,
     script,
   } = useSettings();
+  const trScale = comfort.trScale;
   const reciter = RECITERS.find((r) => r.id === reciterId) ?? RECITER;
   const audio = useSurahAudio(reciter);
 
@@ -272,13 +274,22 @@ export function JuzReaderScreen({ route }: Props) {
                         style={[
                           styles.wbwAr,
                           script === "indopak" && styles.arabicIndopak,
-                          { fontSize: 24 * scale, lineHeight: (script === "indopak" ? 48 : 38) * scale },
+                          // Quran text line height ≥ 1.9× its size so marks never clip.
+                          {
+                            fontSize: 24 * scale,
+                            lineHeight: (script === "indopak" ? 58 : 46) * scale,
+                          },
                         ]}
                       >
                         {w}
                       </Text>
                       {l.translitWords[wi] ? (
-                        <Text style={[styles.wbwTr, { fontSize: 11 * scale }]}>
+                        <Text
+                          style={[
+                            styles.wbwTr,
+                            { fontSize: 13 * trScale, lineHeight: 18 * trScale },
+                          ]}
+                        >
                           {l.translitWords[wi]}
                         </Text>
                       ) : null}
@@ -291,7 +302,7 @@ export function JuzReaderScreen({ route }: Props) {
                   style={[
                     styles.arabic,
                     script === "indopak" && styles.arabicIndopak,
-                    { fontSize: 24 * scale, lineHeight: (script === "indopak" ? 56 : 44) * scale },
+                    { fontSize: 24 * scale, lineHeight: (script === "indopak" ? 58 : 46) * scale },
                   ]}
                 >
                   {peek
@@ -314,12 +325,20 @@ export function JuzReaderScreen({ route }: Props) {
                 </Text>
               )}
               {l.transliteration && !hideTr ? (
-                <Text style={[styles.translit, { fontSize: 14 * scale, lineHeight: 22 * scale }]}>
+                <Text
+                  style={[styles.translit, { fontSize: 14 * trScale, lineHeight: 22 * trScale }]}
+                >
                   {l.transliteration}
                 </Text>
               ) : null}
               {l.translation && !hideTr ? (
-                <Text style={[styles.tr, { fontSize: 15 * scale, lineHeight: 23 * scale }]}>
+                <Text
+                  style={[
+                    styles.tr,
+                    comfort.trEmphasis === "soft" && styles.trSoft,
+                    { fontSize: 16 * trScale, lineHeight: 26 * trScale },
+                  ]}
+                >
                   {l.translation}
                 </Text>
               ) : null}
@@ -334,7 +353,13 @@ export function JuzReaderScreen({ route }: Props) {
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.bg },
-    center: { flex: 1, backgroundColor: c.bg, alignItems: "center", justifyContent: "center", gap: 14 },
+    center: {
+      flex: 1,
+      backgroundColor: c.bg,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 14,
+    },
     error: { color: c.error, fontSize: 15, textAlign: "center", paddingHorizontal: 24 },
     chip: {
       paddingVertical: 6,
@@ -385,13 +410,20 @@ function makeStyles(c: Palette) {
       borderBottomColor: c.border,
     },
     ayahPlaying: { backgroundColor: c.bgElev, borderBottomColor: "transparent" },
-    arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.arQuran },
+    arabic: {
+      color: c.fg,
+      textAlign: "right",
+      writingDirection: "rtl",
+      fontFamily: FONT.arQuran,
+      paddingVertical: 4,
+    },
     // IndoPak Nastaʿlīq face (ADR 0035) — applied over `arabic`/`wbwAr`.
     arabicIndopak: { fontFamily: FONT.arIndopak },
     wordHidden: { color: "transparent", backgroundColor: c.borderSoft },
     marker: { color: c.accent, fontSize: 17, fontFamily: FONT.arQuran },
-    translit: { color: c.faint, marginTop: 10, fontStyle: "italic" },
+    translit: { color: c.muted, marginTop: 10, fontStyle: "italic" },
     tr: { color: c.fg, marginTop: 10 },
+    trSoft: { color: c.muted },
     // Word-by-word transliteration (#144): RTL flow of stacked word units.
     wbwRow: {
       flexDirection: "row-reverse",
@@ -401,7 +433,7 @@ function makeStyles(c: Palette) {
       gap: 11,
     },
     wbwUnit: { alignItems: "center" },
-    wbwAr: { color: c.fg, fontFamily: FONT.arQuran, textAlign: "center" },
-    wbwTr: { color: c.faint, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
+    wbwAr: { color: c.fg, fontFamily: FONT.arQuran, textAlign: "center", paddingVertical: 2 },
+    wbwTr: { color: c.muted, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
   });
 }

@@ -8,7 +8,8 @@ export type HomeStackParamList = {
 /** The Read tab's stack: surah list → a surah, or a juzʾ. */
 export type ReadStackParamList = {
   SurahList: undefined;
-  SurahReader: { surah: number };
+  /** `aya` opens at that āyah; `listen` starts the recitation there (Home's "Listen"). */
+  SurahReader: { surah: number; aya?: number; listen?: boolean };
   JuzReader: { juz: number };
   Search: undefined;
   MushafPage: { page: number };

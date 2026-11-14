@@ -7,6 +7,7 @@ import {
   type HeatmapDay,
   type Surah,
   activityHeatmap,
+  daysThisWeek,
   hifzStreaks,
   weakestSurahs,
 } from "@ummahlibrary/core";
@@ -15,6 +16,8 @@ import { api } from "../api";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useLibrary } from "../state/LibraryContext";
+import { useSettings } from "../state/SettingsContext";
+import { localISODate } from "../utils";
 import { AyahBadge } from "../components/AyahBadge";
 import { relativeDue, surahProgressMap, type SurahProgress } from "../hifz";
 import type { HifzStackParamList } from "../navigation/types";
@@ -32,6 +35,13 @@ export function HifzDashboardScreen({ navigation }: Props) {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { ready, allRecords, trackedCount, dueRecords, streak, reviewLog } = useLibrary();
+  // Gentle consistency (ADR 0041): "days this week" unless the reader opted in
+  // to a "days in a row" count.
+  const { comfort } = useSettings();
+  const reviewDaysThisWeek = daysThisWeek(
+    Object.keys(reviewLog).filter((d) => (reviewLog[d] ?? 0) > 0),
+    localISODate(new Date()),
+  );
 
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
 
@@ -43,7 +53,10 @@ export function HifzDashboardScreen({ navigation }: Props) {
 
   useEffect(() => {
     let active = true;
-    void api.listSurahs().then((s) => active && setSurahs(s)).catch(() => active && setSurahs([]));
+    void api
+      .listSurahs()
+      .then((s) => active && setSurahs(s))
+      .catch(() => active && setSurahs([]));
     return () => {
       active = false;
     };
@@ -80,7 +93,12 @@ export function HifzDashboardScreen({ navigation }: Props) {
       .map((p) => {
         const meta = byNum.get(p.surahNumber);
         return meta
-          ? { ...p, transliteration: meta.transliteration, name: meta.name, ayahCount: meta.ayahCount }
+          ? {
+              ...p,
+              transliteration: meta.transliteration,
+              name: meta.name,
+              ayahCount: meta.ayahCount,
+            }
           : null;
       })
       .filter((x): x is QueueItem => x !== null);
@@ -122,7 +140,15 @@ export function HifzDashboardScreen({ navigation }: Props) {
             <Stat value={String(dueCount)} label="Due today" colors={colors} />
           </View>
           <View style={styles.statsRow}>
-            <Stat value={streak.count > 0 ? `${streak.count} 🔥` : "—"} label="Day streak" colors={colors} />
+            {comfort.showStreaks ? (
+              <Stat
+                value={streak.count > 0 ? String(streak.count) : "—"}
+                label="Days in a row"
+                colors={colors}
+              />
+            ) : (
+              <Stat value={`${reviewDaysThisWeek} of 7`} label="Days this week" colors={colors} />
+            )}
             <Stat value={String(trackedCount)} label="Āyāt tracked" colors={colors} />
           </View>
 
@@ -133,7 +159,7 @@ export function HifzDashboardScreen({ navigation }: Props) {
                 <Text style={styles.ctaTitle}>
                   {dueCount} {dueCount === 1 ? "āyah" : "āyāt"} ready for review
                 </Text>
-                <Text style={styles.ctaSub}>Keep your streak alive — a few minutes is all it takes.</Text>
+                <Text style={styles.ctaSub}>A few minutes is all it takes.</Text>
               </View>
               <Pressable style={styles.ctaBtn} onPress={() => navigation.navigate("HifzReview")}>
                 <Text style={styles.ctaBtnText}>▶ Start review</Text>
@@ -184,7 +210,10 @@ export function HifzDashboardScreen({ navigation }: Props) {
                 {weeks.map((week, wi) => (
                   <View key={wi} style={styles.heatCol}>
                     {week.map((d) => (
-                      <View key={d.date} style={[styles.heatCell, { backgroundColor: levelColors[d.level] }]} />
+                      <View
+                        key={d.date}
+                        style={[styles.heatCell, { backgroundColor: levelColors[d.level] }]}
+                      />
                     ))}
                   </View>
                 ))}
@@ -217,11 +246,15 @@ export function HifzDashboardScreen({ navigation }: Props) {
                       <View style={styles.strengthRow}>
                         <View style={styles.strengthTrack}>
                           <View
-                            style={[styles.strengthFill, { width: `${Math.round(item.avgStrength * 100)}%` }]}
+                            style={[
+                              styles.strengthFill,
+                              { width: `${Math.round(item.avgStrength * 100)}%` },
+                            ]}
                           />
                         </View>
                         <Text style={styles.queueMeta}>
-                          {item.trackedCount}/{item.ayahCount} · {Math.round(item.avgStrength * 100)}%
+                          {item.trackedCount}/{item.ayahCount} ·{" "}
+                          {Math.round(item.avgStrength * 100)}%
                         </Text>
                       </View>
                     </View>
@@ -253,7 +286,13 @@ function makeStyles(c: Palette) {
     subtitle: { color: c.muted, fontSize: 14, marginTop: -6, marginBottom: 4 },
     empty: { alignItems: "center", paddingVertical: 48, gap: 14 },
     emptyTitle: { color: c.fg, fontSize: 20, fontWeight: "800" },
-    emptyBody: { color: c.muted, fontSize: 14.5, lineHeight: 23, textAlign: "center", maxWidth: 360 },
+    emptyBody: {
+      color: c.muted,
+      fontSize: 14.5,
+      lineHeight: 23,
+      textAlign: "center",
+      maxWidth: 360,
+    },
     accentInline: { color: c.accent, fontWeight: "700" },
     statsRow: { flexDirection: "row", gap: 12 },
     stat: {

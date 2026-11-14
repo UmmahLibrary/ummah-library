@@ -8,6 +8,7 @@ import {
   type KhatmaPlan,
   addDays,
   computeStreak,
+  daysThisWeek,
   daysBetween,
   goalMet,
   khatmaDailyTarget,
@@ -15,6 +16,7 @@ import {
 } from "@ummahlibrary/core";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
+import { useSettings } from "../state/SettingsContext";
 import {
   clearKhatma,
   readReadingState,
@@ -44,6 +46,7 @@ export function ReadingGoalsScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [state, setState] = useState<ReadingState | null>(null);
+  const { comfort } = useSettings();
 
   const refresh = useCallback(() => {
     void readReadingState().then(setState);
@@ -60,7 +63,9 @@ export function ReadingGoalsScreen({ navigation }: Props) {
   const remaining = Math.max(0, goal - pagesToday);
   const week = lastSevenDays(log);
   const maxWeek = Math.max(1, ...week.map((d) => d.pages));
-  const khatmaPct = khatma ? Math.round(progressFraction(khatma.currentPage, khatma.totalPages) * 100) : 0;
+  const khatmaPct = khatma
+    ? Math.round(progressFraction(khatma.currentPage, khatma.totalPages) * 100)
+    : 0;
   const resumePage = khatma ? Math.min(khatma.totalPages, khatma.currentPage + 1) : 1;
 
   const openMushafPage = (page: number) =>
@@ -90,7 +95,10 @@ export function ReadingGoalsScreen({ navigation }: Props) {
   const adjustKhatma = (delta: number) => {
     setState((prev) => {
       if (!prev?.khatma) return prev;
-      const currentPage = Math.min(prev.khatma.totalPages, Math.max(0, prev.khatma.currentPage + delta));
+      const currentPage = Math.min(
+        prev.khatma.totalPages,
+        Math.max(0, prev.khatma.currentPage + delta),
+      );
       const plan: KhatmaPlan = { ...prev.khatma, currentPage };
       void writeKhatma(plan);
       return { ...prev, khatma: plan };
@@ -137,8 +145,24 @@ export function ReadingGoalsScreen({ navigation }: Props) {
 
       <View style={styles.row2}>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{streak > 0 ? `${streak} 🔥` : "—"}</Text>
-          <Text style={styles.statLabel}>Day streak</Text>
+          {/* Gentle consistency (ADR 0041): days this week by default; a
+              "days in a row" count only if the reader opted in. */}
+          <Text style={styles.statValue}>
+            {comfort.trackingPaused
+              ? "Paused"
+              : comfort.showStreaks
+                ? streak > 0
+                  ? String(streak)
+                  : "—"
+                : `${daysThisWeek(active, today)} of 7`}
+          </Text>
+          <Text style={styles.statLabel}>
+            {comfort.trackingPaused
+              ? "progress is kept"
+              : comfort.showStreaks
+                ? "Days in a row"
+                : "Days this week"}
+          </Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{khatma ? `${khatmaPct}%` : "—"}</Text>
@@ -160,7 +184,9 @@ export function ReadingGoalsScreen({ navigation }: Props) {
                   },
                 ]}
               />
-              <Text style={[styles.weekLabel, d.isToday && { color: colors.accent }]}>{d.label}</Text>
+              <Text style={[styles.weekLabel, d.isToday && { color: colors.accent }]}>
+                {d.label}
+              </Text>
             </View>
           ))}
         </View>
@@ -169,7 +195,11 @@ export function ReadingGoalsScreen({ navigation }: Props) {
       <Text style={styles.sectionLabel}>Daily goal</Text>
       <View style={styles.pills}>
         {GOAL_OPTIONS.map((g) => (
-          <Pressable key={g} style={[styles.pill, g === goal && styles.pillOn]} onPress={() => changeGoal(g)}>
+          <Pressable
+            key={g}
+            style={[styles.pill, g === goal && styles.pillOn]}
+            onPress={() => changeGoal(g)}
+          >
             <Text style={[styles.pillText, g === goal && styles.pillTextOn]}>{g} pages</Text>
           </Pressable>
         ))}
@@ -226,7 +256,9 @@ export function ReadingGoalsScreen({ navigation }: Props) {
       <Pressable style={styles.openBtn} onPress={() => openMushafPage(resumePage)}>
         <Text style={styles.openBtnText}>▶ Open the Mushaf</Text>
       </Pressable>
-      <Text style={styles.foot}>Pages you read in the Mushaf view count towards your goal automatically.</Text>
+      <Text style={styles.foot}>
+        Pages you read in the Mushaf view count towards your goal automatically.
+      </Text>
     </ScrollView>
   );
 }
