@@ -1,17 +1,25 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { N, Logo, Icon } from "@ummahlibrary/ui";
 import { useT } from "../../i18n/I18nProvider";
-import { NAV_DESTINATIONS } from "../../lib/nav";
+import { NAV_DESTINATIONS, destinationOf } from "../../lib/nav";
 
-// Five groups, same as the phone tabs and hub pages (ADR 0041). Labels resolve
-// through i18n (#208).
+// Five places, same as the phone tabs and hub pages (ADR 0041). Progressive
+// disclosure: only the section you're in is open, so the sidebar shows about
+// ten links instead of twenty-five. Every section name opens its hub page,
+// which lists all of its features with a one-line description, and search
+// finds any feature by name or everyday word. Labels resolve through i18n.
 const NAV = NAV_DESTINATIONS.filter((d) => d.key !== "today");
 
 export function Sidebar() {
   const pathname = usePathname();
   const t = useT();
+  const current = destinationOf(pathname);
+  // The current section is open; the reader may open one other to look around.
+  const [open, setOpen] = useState<string>(current);
+  useEffect(() => setOpen(current), [current]);
 
   return (
     <aside
@@ -44,40 +52,81 @@ export function Sidebar() {
           <Icon name="home" size={18} sw={1.8} color={pathname === "/" ? N.ink : N.muted} />
           {t("nav.today")}
         </Link>
-        {NAV.map((group) => (
-          <div key={group.key} style={{ marginTop: 18 }}>
-            <Link
-              href={group.href}
-              style={{
-                display: "block",
-                fontSize: 13,
-                letterSpacing: 0.6,
-                color: N.muted,
-                padding: "0 11px 6px",
-                fontWeight: 800,
-                fontFamily: N.ui,
-                textDecoration: "none",
-              }}
-            >
-              {t(group.label)}
-            </Link>
-            {group.items.map((item) => {
-              const active =
-                pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-              return (
+        {NAV.map((group) => {
+          const isOpen = open === group.key;
+          const here = current === group.key;
+          const panelId = `nav-${group.key}`;
+          return (
+            <div key={group.key} style={{ marginTop: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  style={navLink(active)}
+                  href={group.href}
+                  aria-current={pathname === group.href ? "page" : undefined}
+                  style={{
+                    ...navLink(false),
+                    flex: 1,
+                    marginBottom: 0,
+                    fontWeight: here ? 800 : 600,
+                    color: here ? N.gold : N.fg,
+                  }}
                 >
-                  <Icon name={item.icon} size={18} sw={1.8} color={active ? N.ink : N.muted} />
-                  {t(item.label)}
+                  <Icon name={group.icon} size={18} sw={1.8} color={here ? N.gold : N.muted} />
+                  {t(group.label)}
                 </Link>
-              );
-            })}
-          </div>
-        ))}
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  aria-label={`${t(group.label)}: ${isOpen ? "hide" : "show"} ${group.items.length}`}
+                  onClick={() => setOpen(isOpen ? "" : group.key)}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    border: "none",
+                    background: "transparent",
+                    color: N.muted,
+                    display: "grid",
+                    placeItems: "center",
+                    cursor: "pointer",
+                    transform: isOpen ? "rotate(180deg)" : undefined,
+                    transition: "transform .15s",
+                  }}
+                >
+                  <Icon name="chevD" size={16} />
+                </button>
+              </div>
+              {isOpen && (
+                <div
+                  id={panelId}
+                  style={{
+                    marginInlineStart: 20,
+                    paddingInlineStart: 8,
+                    borderInlineStart: `1px solid ${N.borderSoft}`,
+                    marginTop: 2,
+                    marginBottom: 6,
+                  }}
+                >
+                  {group.items.map((item) => {
+                    const active =
+                      pathname === item.href ||
+                      (item.href !== "/" && pathname.startsWith(item.href));
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
+                        style={{ ...navLink(active), minHeight: 40, fontSize: 14.5 }}
+                      >
+                        {t(item.label)}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Settings footer */}

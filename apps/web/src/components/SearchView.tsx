@@ -5,6 +5,8 @@ import Link from "next/link";
 import { searchText } from "@ummahlibrary/core";
 import { N, Icon, Khatam } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
+import { FEATURE_KEYWORDS, NAV_DESTINATIONS } from "../lib/nav";
+import { en as EN } from "../i18n/messages";
 import {
   clearHistory as clearStoredHistory,
   readHistory,
@@ -15,7 +17,16 @@ const ENGLISH_EDITION = "eng-mustafakhattaba";
 const ENGLISH_URL = `https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/${ENGLISH_EDITION}.min.json`;
 const MAX_HISTORY = 6;
 
-const TOPICS = ["mercy", "patience", "Mulk", "forgiveness", "knowledge", "Raḥmān", "guidance", "light"];
+const TOPICS = [
+  "mercy",
+  "patience",
+  "Mulk",
+  "forgiveness",
+  "knowledge",
+  "Raḥmān",
+  "guidance",
+  "light",
+];
 
 interface SurahRef {
   number: number;
@@ -25,7 +36,7 @@ interface SurahRef {
   ayahCount: number;
 }
 
-type ResultType = "ayah" | "surah" | "name" | "adhkar";
+type ResultType = "feature" | "ayah" | "surah" | "name" | "adhkar";
 
 /** A unit in the unified index. `text` is the haystack core's searchText folds. */
 interface SearchItem {
@@ -47,6 +58,7 @@ interface SearchItem {
 
 /** Per-type presentation: badge label, accent colour, icon. */
 const TYPE_META: Record<ResultType, { label: string; color: string; icon: IconName }> = {
+  feature: { label: "In the app", color: "#E6B855", icon: "grid" },
   ayah: { label: "Verse", color: "#E6B855", icon: "book" },
   surah: { label: "Surah", color: "#E6B855", icon: "book" },
   name: { label: "Name of Allah", color: "#4F90FF", icon: "star" },
@@ -56,6 +68,7 @@ const TYPE_META: Record<ResultType, { label: string; color: string; icon: IconNa
 /** Filter pills — only those with results are shown. `ayah` also counts surahs. */
 const FILTERS: { key: "all" | ResultType; label: string }[] = [
   { key: "all", label: "All" },
+  { key: "feature", label: "Features" },
   { key: "ayah", label: "Quran" },
   { key: "name", label: "Names" },
   { key: "adhkar", label: "Adhkār" },
@@ -90,8 +103,25 @@ interface DhikrDTO {
  *  English translation) + the 99 Names + the adhkār. Resilient to any one
  *  source failing (e.g. the offline English CDN). */
 async function buildIndex(surahs: SurahRef[]): Promise<SearchItem[]> {
-  const labelFor = new Map(surahs.map((s) => [s.number, `${s.transliteration} · ${s.englishName}`]));
+  const labelFor = new Map(
+    surahs.map((s) => [s.number, `${s.transliteration} · ${s.englishName}`]),
+  );
   const items: SearchItem[] = [];
+
+  // Every app feature is findable by name, description or everyday synonym
+  // ("namaz", "kaaba", "beads") — the sidebar stays short, search finds the rest.
+  for (const d of NAV_DESTINATIONS) {
+    for (const f of d.items) {
+      items.push({
+        type: "feature",
+        text: `${EN[f.label]} ${EN[f.note]} ${EN[d.label]} ${FEATURE_KEYWORDS[f.href] ?? ""}`,
+        title: EN[f.label],
+        sub: `${EN[f.note]} · in ${EN[d.label]}`,
+        ref: EN[d.label],
+        href: f.href,
+      });
+    }
+  }
 
   for (const s of surahs) {
     items.push({
@@ -107,11 +137,15 @@ async function buildIndex(surahs: SurahRef[]): Promise<SearchItem[]> {
 
   const [arabic, english, names, adhkar] = await Promise.all([
     fetch("/api/v1/search/corpus")
-      .then((r) => (r.ok ? (r.json() as Promise<{ verses: { s: number; a: number; t: string }[] }>) : null))
+      .then((r) =>
+        r.ok ? (r.json() as Promise<{ verses: { s: number; a: number; t: string }[] }>) : null,
+      )
       .catch(() => null),
     fetch(ENGLISH_URL)
       .then((r) =>
-        r.ok ? (r.json() as Promise<{ quran: { chapter: number; verse: number; text: string }[] }>) : null,
+        r.ok
+          ? (r.json() as Promise<{ quran: { chapter: number; verse: number; text: string }[] }>)
+          : null,
       )
       .catch(() => null),
     fetch("/api/v1/names")
@@ -282,7 +316,15 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
     <div>
       {/* Search field */}
       <div
-        style={{ ...card, display: "flex", alignItems: "center", gap: 12, padding: "0 18px", height: 56, marginBottom: 16 }}
+        style={{
+          ...card,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "0 18px",
+          height: 56,
+          marginBottom: 16,
+        }}
       >
         <Icon name="search" size={22} color={N.muted} />
         <input
@@ -293,14 +335,28 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
           onBlur={() => remember(query)}
           autoFocus
           aria-label="Search"
-          style={{ flex: 1, background: "none", border: "none", outline: "none", color: N.fg, fontFamily: N.ui, fontSize: 17 }}
+          style={{
+            flex: 1,
+            background: "none",
+            border: "none",
+            outline: "none",
+            color: N.fg,
+            fontFamily: N.ui,
+            fontSize: 17,
+          }}
         />
         {query && (
           <button
             type="button"
             onClick={() => run("")}
             aria-label="Clear search"
-            style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 0 }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              padding: 0,
+            }}
           >
             <Icon name="close" size={18} color={N.faint} />
           </button>
@@ -343,12 +399,26 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
         <div>
           {history.length > 0 && (
             <div style={{ marginBottom: 26 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 12,
+                }}
+              >
                 <span style={sectionLabel}>Recent</span>
                 <button
                   type="button"
                   onClick={clearHistory}
-                  style={{ background: "none", border: "none", color: N.faint, fontFamily: N.ui, fontSize: 12.5, cursor: "pointer" }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: N.faint,
+                    fontFamily: N.ui,
+                    fontSize: 12.5,
+                    cursor: "pointer",
+                  }}
                 >
                   Clear
                 </button>
@@ -378,12 +448,25 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
           </div>
 
           <div style={{ ...sectionLabel, marginBottom: 12 }}>Search across</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+              gap: 12,
+            }}
+          >
             {SOURCES.map((s) => (
               <Link
                 key={s.label}
                 href={s.href}
-                style={{ ...card, padding: 18, display: "flex", flexDirection: "column", gap: 10, textDecoration: "none" }}
+                style={{
+                  ...card,
+                  padding: 18,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                  textDecoration: "none",
+                }}
               >
                 <span
                   style={{
@@ -399,7 +482,9 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
                 >
                   <Icon name={s.icon} size={19} color={N.gold} />
                 </span>
-                <span style={{ fontSize: 14.5, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>{s.label}</span>
+                <span style={{ fontSize: 14.5, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
+                  {s.label}
+                </span>
               </Link>
             ))}
           </div>
@@ -426,9 +511,22 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
                   key={`${r.type}:${r.ref}:${r.source ?? ""}:${i}`}
                   href={r.href}
                   onClick={() => remember(q)}
-                  style={{ ...card, padding: "16px 18px", textDecoration: "none", display: "block" }}
+                  style={{
+                    ...card,
+                    padding: "16px 18px",
+                    textDecoration: "none",
+                    display: "block",
+                  }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      marginBottom: 10,
+                    }}
+                  >
                     <span
                       style={{
                         display: "inline-flex",
@@ -446,7 +544,15 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
                     >
                       <Icon name={m.icon} size={13} color={m.color} /> {m.label}
                     </span>
-                    <span style={{ fontSize: 12.5, color: N.gold, fontWeight: 600, flexShrink: 0, fontFamily: N.ui }}>
+                    <span
+                      style={{
+                        fontSize: 12.5,
+                        color: N.gold,
+                        fontWeight: 600,
+                        flexShrink: 0,
+                        fontFamily: N.ui,
+                      }}
+                    >
                       {r.ref}
                     </span>
                   </div>
@@ -479,7 +585,15 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
                     </div>
                   )}
                   {r.tr && (
-                    <div style={{ fontSize: 13, fontStyle: "italic", color: N.faint, marginTop: 4, fontFamily: N.ui }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontStyle: "italic",
+                        color: N.faint,
+                        marginTop: 4,
+                        fontFamily: N.ui,
+                      }}
+                    >
                       {r.tr}
                     </div>
                   )}
@@ -495,10 +609,19 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
 
           {indexReady && filtered.length === 0 && (
             <div style={{ textAlign: "center", padding: "50px 20px" }}>
-              <div style={{ display: "inline-grid", placeItems: "center", marginBottom: 14, opacity: 0.5 }}>
+              <div
+                style={{
+                  display: "inline-grid",
+                  placeItems: "center",
+                  marginBottom: 14,
+                  opacity: 0.5,
+                }}
+              >
                 <Khatam size={54} color={N.goldDim} sw={1.2} />
               </div>
-              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6, fontFamily: N.ui }}>Nothing found</div>
+              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6, fontFamily: N.ui }}>
+                Nothing found
+              </div>
               <div style={{ fontSize: 14, color: N.muted, fontFamily: N.ui }}>
                 Try another word, or a topic like “mercy” or “patience”.
               </div>

@@ -129,3 +129,35 @@ export function destinationOf(pathname: string): NavDestination["key"] {
   }
   return "today";
 }
+
+/**
+ * Everyday words people use for each feature, so search finds it even when
+ * they don't know our label ("namaz times", "kaaba direction", "beads").
+ */
+export const FEATURE_KEYWORDS: Readonly<Record<string, string>> = {
+  "/quran": "index chapters suras list mushaf browse juz para",
+  "/search": "find look up verse ayah word",
+  "/listen/1": "audio recitation tilawat qari reciter murattal hear",
+  "/hifz": "memorise memorize hafiz revision review",
+  "/plans": "khatm khatam khatma schedule complete quran ramadan",
+  "/goals": "daily pages target progress habit portion",
+  "/bookmarks": "saved favourite favorite",
+  "/tafsir": "explanation commentary meaning ibn kathir",
+  "/prayer-times": "salah salat namaz adhan azan fajr dhuhr asr maghrib isha timings",
+  "/tracker": "log prayers missed qada",
+  "/qibla": "kaaba kabah direction makkah mecca compass",
+  "/ramadan": "fasting sehri suhoor iftar roza",
+  "/mosques": "masjid nearby map",
+  "/duas": "supplication dua prayer hisnul muslim",
+  "/adhkar": "dhikr zikr morning evening remembrance",
+  "/hadith": "sunnah bukhari muslim tirmidhi abu dawud",
+  "/names": "asma ul husna 99 names of allah",
+  "/kids": "children child learn short surahs",
+  "/blog": "articles news guides",
+  "/settings": "language theme dark light font size text bigger easy mode",
+  "/tasbih": "counter beads dhikr subhanallah",
+  "/calendar": "hijri islamic date month moon",
+  "/zakat": "charity calculator nisab",
+  "/downloads": "offline audio save",
+  "/profile": "journey achievements stats",
+};
