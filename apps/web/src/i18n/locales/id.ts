@@ -306,4 +306,22 @@ export const id: Record<MessageKey, string> = {
   "speak.readAloud": "Bacakan",
   "speak.stopReading": "Berhenti membacakan",
   "speak.stop": "Berhenti",
+  "settings.jump": "Langsung ke",
+  "settings.text": "Teks dan tema",
+  "settings.textNote": "Buat bacaan nyaman di mata.",
+  "settings.reading": "Membaca Al-Qur'an",
+  "settings.readingNote": "Jenis tulisan, transliterasi, dan warna terjemahan.",
+  "settings.modesNote":
+    "Tampilan lebih sederhana untuk ponsel pertama, mata lanjut usia, dan anak-anak.",
+  "settings.access": "Aksesibilitas",
+  "settings.accessNote": "Tombol lebih besar, jarak lebih lega, gerakan lebih sedikit.",
+  "settings.habitNote": "Pencatatan lembut, sesuai keinginan Anda.",
+  "settings.goalsLink": "Porsi harian dan pengingat",
+  "settings.data": "Data Anda",
+  "settings.dataNote":
+    "Semua tetap di perangkat ini kecuali Anda memilih sinkronisasi atau cadangan.",
+  "settings.script": "Jenis tulisan Al-Qur'an",
+  "settings.scriptIndopak": "IndoPak — seperti cetakan Asia Selatan",
+  "settings.scriptUthmani": "Utsmani — seperti cetakan Madinah",
+  "settings.languageNote": "Pilih bahasa yang paling mudah Anda baca.",
 };

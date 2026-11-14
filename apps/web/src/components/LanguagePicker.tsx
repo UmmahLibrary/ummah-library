@@ -5,13 +5,15 @@ import { LOCALES } from "../i18n/config";
 import { useI18n } from "../i18n/I18nProvider";
 
 /** Interface-language selector (#208). Switches the app UI locale; content is unaffected. */
-export function LanguagePicker() {
+export function LanguagePicker({ bare = false }: { bare?: boolean } = {}) {
   const { locale, setLocale, t } = useI18n();
   return (
-    <div style={{ ...card, padding: "18px 20px" }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
-        {t("common.language")}
-      </div>
+    <div style={bare ? undefined : { ...card, padding: "18px 20px" }}>
+      {!bare && (
+        <div style={{ fontSize: 15, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
+          {t("common.language")}
+        </div>
+      )}
       <p
         style={{
           fontSize: 13,
@@ -35,12 +37,13 @@ export function LanguagePicker() {
               lang={l.code}
               dir={l.dir}
               style={{
+                minHeight: 44,
                 padding: "8px 18px",
                 borderRadius: 999,
                 border: `1px solid ${active ? N.gold : N.border}`,
                 background: active ? N.goldSoft : "transparent",
-                color: active ? N.gold : N.muted,
-                fontSize: 14,
+                color: active ? N.gold : N.fg,
+                fontSize: 15,
                 fontWeight: 600,
                 cursor: "pointer",
                 fontFamily: N.ui,

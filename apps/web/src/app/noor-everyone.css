@@ -859,3 +859,50 @@ html:is([lang="ur"], [lang="ar"]) :is(.arabic, .ayah-ar, .mushaf, .basmala, [dat
   box-shadow: none;
   max-width: 100%;
 }
+
+/* ---- Settings: jump chips + section cards ---- */
+.settings-chips {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 0;
+  background: var(--noor-bg);
+  scrollbar-width: none;
+}
+.settings-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--noor-border);
+  background: var(--noor-card);
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.settings-chip:hover,
+.settings-chip:focus-visible {
+  border-color: var(--noor-gold);
+}
+.settings-section {
+  gap: 16px;
+  scroll-margin-top: 70px;
+}
+.settings-ic {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--noor-gold-soft);
+  color: var(--noor-gold);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}

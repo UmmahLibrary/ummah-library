@@ -8,7 +8,7 @@ export default function MoreHub() {
   return (
     <HubPage destination="more" intro="hub.moreIntro">
       <Link
-        href="/settings#comfort"
+        href="/settings#text"
         className="nf-btn nf-btn--gold"
         style={{ justifySelf: "start" }}
       >
