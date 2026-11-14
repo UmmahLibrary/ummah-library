@@ -1,0 +1,796 @@
+/* ======================================================================
+   Noor for everyone (ADR 0041) — readable, labelled, reachable.
+   Colours come only from the generated Noor variables (packages/ui, ADR 0027).
+   ====================================================================== */
+
+/* Quranic text protection. Interface styling must never alter how the Quran is
+   shaped: no letter-spacing (it breaks Arabic joining and detaches ḥarakāt),
+   no word-spacing changes, no text-transform, no synthetic bold or italic, and
+   the Quran font's own ligatures. Arabic size changes only font-size;
+   line-height stays generous so stacked marks (shadda + fatḥa, madda, waqf
+   signs) are never clipped. */
+.arabic,
+.ayah-ar,
+.ayah-ar *,
+.mushaf,
+.mushaf *,
+.basmala,
+[data-quran-text],
+[data-quran-text] * {
+  letter-spacing: 0 !important;
+  word-spacing: normal !important;
+  text-transform: none !important;
+  font-style: normal !important;
+  font-synthesis: none !important;
+  font-variant-ligatures: normal !important;
+  overflow: visible;
+}
+.ayah-ar {
+  padding-block: 0.15em;
+}
+
+/* ---- Reader top bar: every control has a word ---- */
+.reader-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px clamp(10px, 3vw, 40px);
+  min-height: 66px;
+  border-bottom: 1px solid var(--noor-border-soft);
+  background: var(--noor-bg2);
+  flex-shrink: 0;
+  z-index: 20;
+}
+.reader-back,
+.tb-btn,
+.dock-lbtn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 48px;
+  min-height: 52px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--noor-muted);
+  font-family: var(--noor-ui);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-decoration: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tb-btn[data-on="true"] {
+  color: var(--noor-gold);
+  border-color: var(--noor-gold);
+  background: var(--noor-gold-soft);
+}
+.reader-back:hover,
+.tb-btn:hover,
+.dock-lbtn:hover {
+  color: var(--noor-fg);
+  background: var(--noor-gold-soft);
+}
+.reader-title {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  text-align: start;
+  padding: 6px 10px;
+  min-height: 52px;
+  border-radius: 12px;
+  border: 1px solid var(--noor-border);
+  background: var(--noor-card);
+  color: var(--noor-fg);
+  cursor: pointer;
+  font-family: var(--noor-ui);
+}
+.reader-title:hover {
+  border-color: var(--noor-gold);
+}
+.reader-title .t1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+.reader-title .t1 span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reader-title .t2 {
+  font-size: 13px;
+  color: var(--noor-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reader-modes {
+  display: flex;
+  gap: 6px;
+  padding: 8px clamp(10px, 3vw, 40px);
+  border-bottom: 1px solid var(--noor-border-soft);
+  background: var(--noor-bg2);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.reader-modes button,
+.reader-seg button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--noor-border);
+  background: transparent;
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.reader-modes button[aria-pressed="true"],
+.reader-seg button[aria-pressed="true"] {
+  background: var(--noor-gold);
+  border-color: var(--noor-gold);
+  color: var(--noor-ink);
+  font-weight: 700;
+}
+.reader-seg {
+  display: flex;
+  gap: 4px;
+}
+@media (max-width: 760px) {
+  .reader-seg {
+    display: none;
+  }
+  .reader-bar {
+    gap: 4px;
+  }
+  .tb-btn {
+    min-width: 44px;
+    padding: 2px 2px;
+    font-size: 12px;
+  }
+  .reader-back {
+    min-width: 44px;
+  }
+}
+@media (min-width: 761px) {
+  .reader-modes {
+    display: none;
+  }
+}
+
+/* ---- Bottom dock: one row, nothing floats over the text ---- */
+.reader-dock {
+  position: relative;
+  border-top: 1px solid var(--noor-border);
+  background: var(--noor-bg2);
+}
+.reader-dock-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 66px;
+  padding: 6px clamp(10px, 3vw, 40px) max(8px, env(safe-area-inset-bottom, 0px));
+}
+.dock-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px clamp(10px, 3vw, 40px);
+  border-bottom: 1px solid var(--noor-border);
+}
+.dock-above {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px clamp(10px, 3vw, 40px) 0;
+}
+.back-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--noor-gold);
+  background: var(--noor-gold-soft);
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.back-chip-x {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  border: none;
+  background: none;
+  color: var(--noor-muted);
+  font-family: var(--noor-ui);
+  font-size: 14px;
+  cursor: pointer;
+}
+.recite-tray {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid var(--noor-border);
+  background: var(--noor-card);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  z-index: 30;
+}
+
+/* ---- Go to sheet ---- */
+.goto-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+}
+.goto-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+.goto-sheet {
+  position: relative;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(720px, calc(100dvh - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid var(--noor-border);
+  background: var(--noor-card);
+  color: var(--noor-fg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  font-family: var(--noor-ui);
+}
+.goto-grab {
+  display: none;
+}
+@media (max-width: 600px) {
+  .goto-root {
+    place-items: end stretch;
+  }
+  .goto-sheet {
+    width: 100%;
+    max-height: 88dvh;
+    border-radius: 22px 22px 0 0;
+    padding-bottom: max(18px, env(safe-area-inset-bottom, 0px));
+  }
+  .goto-grab {
+    display: block;
+    width: 44px;
+    height: 5px;
+    border-radius: 5px;
+    background: var(--noor-border);
+    align-self: center;
+  }
+}
+.goto-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--noor-border);
+  background: none;
+  color: var(--noor-muted);
+  font-family: var(--noor-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.goto-input {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 2px solid var(--noor-gold);
+  background: var(--noor-bg);
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  font-size: 18px;
+  outline: none;
+}
+.goto-go {
+  min-width: 72px;
+  height: 52px;
+  border-radius: 14px;
+  border: none;
+  background: var(--noor-gold-grad);
+  color: var(--noor-ink);
+  font-family: var(--noor-ui);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.goto-go:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.goto-preview {
+  min-height: 24px;
+  font-size: 14px;
+  color: var(--noor-muted);
+}
+.goto-match {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--noor-gold);
+  background: var(--noor-gold-soft);
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.goto-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.goto-tab {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--noor-border);
+  background: none;
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.goto-tab[data-on="true"] {
+  background: var(--noor-gold);
+  border-color: var(--noor-gold);
+  color: var(--noor-ink);
+}
+.goto-list {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.goto-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--noor-border);
+  background: none;
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  cursor: pointer;
+}
+.goto-row[data-current="true"] {
+  border-color: var(--noor-gold);
+  background: var(--noor-gold-soft);
+}
+.goto-row b {
+  display: block;
+  font-size: 15.5px;
+}
+.goto-row small {
+  display: block;
+  font-size: 13px;
+  color: var(--noor-muted);
+}
+.goto-num {
+  min-width: 32px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--noor-muted);
+  font-variant-numeric: tabular-nums;
+}
+.goto-ar {
+  font-family: var(--font-amiri), "Amiri", serif;
+  font-size: 20px;
+  line-height: 1.9;
+  color: var(--noor-gold);
+}
+.goto-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 6px;
+}
+.goto-grid--pages {
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+}
+.goto-cell {
+  display: grid;
+  gap: 1px;
+  min-height: 52px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--noor-border);
+  background: none;
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  cursor: pointer;
+}
+.goto-cell b {
+  font-size: 15px;
+}
+.goto-cell span {
+  font-size: 12.5px;
+  color: var(--noor-muted);
+}
+.goto-row:hover,
+.goto-cell:hover,
+.goto-tab:hover {
+  border-color: var(--noor-gold);
+}
+
+/* ---- Position scrubber. Tablet/desktop only: on phones the Arabic runs to
+   the edge, and nothing may sit on top of Quranic text. ---- */
+.ayah-scrubber {
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  right: 6px;
+  width: 30px;
+  z-index: 5;
+  touch-action: none;
+  cursor: pointer;
+}
+.ayah-scrubber .rail {
+  position: absolute;
+  left: 13px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--noor-border);
+}
+.ayah-scrubber .tick {
+  position: absolute;
+  left: 9px;
+  width: 12px;
+  height: 2px;
+  background: var(--noor-muted);
+}
+.ayah-scrubber .thumb {
+  position: absolute;
+  left: 7px;
+  width: 16px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--noor-gold);
+  transform: translateY(-50%);
+}
+.ayah-scrubber .bubble {
+  position: absolute;
+  right: 36px;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--noor-fg);
+  color: var(--noor-bg);
+  font-family: var(--noor-ui);
+  font-size: 13px;
+  font-weight: 700;
+  pointer-events: none;
+}
+@media (max-width: 760px) {
+  .ayah-scrubber {
+    display: none;
+  }
+}
+
+/* ---- Per-verse actions: 44px targets, 14px labels at ≥4.5:1 ---- */
+.ayah-actions {
+  gap: 4px !important;
+  flex-wrap: wrap;
+}
+.ayah-actions > button,
+.ayah-actions > div > button {
+  min-height: 44px;
+  padding: 0 10px !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  color: var(--noor-muted) !important;
+}
+.ayah-actions button[aria-pressed="true"] {
+  color: var(--noor-gold) !important;
+}
+.ayah-actions > button:hover,
+.ayah-actions > div > button:hover {
+  background: var(--noor-gold-soft) !important;
+  color: var(--noor-fg) !important;
+}
+
+/* ---- Comfort settings ---- */
+/* Dyslexia-friendly spacing for Latin-script translation text only. Arabic,
+   Urdu and Persian are excluded: letter-spacing breaks cursive joining. */
+html.comfort-dyslexia .ayah-tr:not([lang="ar"]):not([lang="ur"]):not([lang="fa"]),
+html.comfort-dyslexia .read-flow:not([lang="ar"]):not([lang="ur"]):not([lang="fa"]),
+html.comfort-dyslexia .ayah-translit {
+  letter-spacing: 0.035em;
+  word-spacing: 0.12em;
+  line-height: 1.85;
+}
+html.comfort-reduce-motion *,
+html.comfort-reduce-motion *::before,
+html.comfort-reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+html.comfort-large .tb-btn,
+html.comfort-large .dock-lbtn,
+html.comfort-large .reader-back {
+  min-width: 60px;
+  min-height: 60px;
+  font-size: 14px;
+}
+html.comfort-large .ayah-actions > button,
+html.comfort-large .ayah-actions > div > button {
+  min-height: 56px;
+  font-size: 16px !important;
+}
+html.comfort-large .goto-row,
+html.comfort-large .goto-cell {
+  min-height: 64px;
+}
+
+/* ---- Shared building blocks for Home, modes and settings ---- */
+.nf-card {
+  background: var(--noor-card);
+  border: 1px solid var(--noor-border);
+  border-radius: 18px;
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+}
+.nf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 20px;
+  border-radius: 14px;
+  border: 1.5px solid var(--noor-border);
+  background: transparent;
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.nf-btn--gold {
+  border: none;
+  background: var(--noor-gold-grad);
+  color: var(--noor-ink);
+}
+.nf-btn:focus-visible,
+.tb-btn:focus-visible,
+.dock-lbtn:focus-visible,
+.reader-title:focus-visible,
+.goto-row:focus-visible,
+.goto-cell:focus-visible {
+  outline: 3px solid var(--noor-gold);
+  outline-offset: 2px;
+}
+.nf-tile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 92px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 2px solid var(--noor-border);
+  background: var(--noor-card);
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  font-size: 22px;
+  font-weight: 800;
+  text-decoration: none;
+  text-align: start;
+  cursor: pointer;
+}
+.nf-tile:hover,
+.nf-tile:focus-visible {
+  border-color: var(--noor-gold);
+}
+.nf-tile small {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--noor-muted);
+}
+.nf-tile .ic {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: var(--noor-gold-soft);
+  color: var(--noor-gold);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.nf-week {
+  display: flex;
+  gap: 6px;
+}
+.nf-week i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--noor-border);
+  display: block;
+}
+.nf-week i[data-on="true"] {
+  background: var(--noor-gold);
+  border-color: var(--noor-gold);
+}
+.nf-week i[data-today="true"] {
+  outline: 2px solid var(--noor-gold-soft);
+  outline-offset: 2px;
+}
+.nf-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--noor-border);
+  background: var(--noor-card);
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  font-size: 15.5px;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+  width: 100%;
+}
+.nf-switch small {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--noor-muted);
+}
+.nf-switch .knob {
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--noor-border);
+  position: relative;
+  flex-shrink: 0;
+}
+.nf-switch .knob::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--noor-fg);
+  transition: left 0.15s;
+}
+.nf-switch[aria-checked="true"] .knob {
+  background: var(--noor-gold);
+}
+.nf-switch[aria-checked="true"] .knob::after {
+  left: 21px;
+  background: var(--noor-ink);
+}
+[dir="rtl"] .nf-switch .knob::after {
+  left: auto;
+  right: 3px;
+}
+[dir="rtl"] .nf-switch[aria-checked="true"] .knob::after {
+  right: 21px;
+}
+.nf-stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.nf-stepper button {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  border: 1px solid var(--noor-border);
+  background: var(--noor-card);
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  font-size: 22px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.nf-stepper button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.nf-stepper output {
+  min-width: 64px;
+  text-align: center;
+  font-family: var(--noor-ui);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--noor-fg);
+  font-variant-numeric: tabular-nums;
+}
+.nf-speak {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--noor-border);
+  background: var(--noor-gold-soft);
+  color: var(--noor-gold);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Easy and Kids mode hide the dense parts of the shell. */
+html[data-app-mode="easy"] .noor-sidebar,
+html[data-app-mode="kids"] .noor-sidebar,
+html[data-app-mode="easy"] .noor-tabbar,
+html[data-app-mode="kids"] .noor-tabbar {
+  display: none !important;
+}
+
+/* No interface label smaller than 12.5px in the tab bar. */
+.noor-tabbar a span {
+  font-size: 12.5px !important;
+}
+
+/* ---- 10-foot (TV) and very large screens: scale the whole interface ---- */
+@media (min-width: 1800px) and (min-height: 900px) {
+  html {
+    font-size: 125%;
+  }
+  .tb-btn,
+  .dock-lbtn,
+  .reader-back {
+    min-width: 76px;
+    min-height: 76px;
+    font-size: 16px;
+  }
+  :focus-visible {
+    outline: 4px solid var(--noor-gold) !important;
+    outline-offset: 3px;
+  }
+}

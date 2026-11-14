@@ -2,13 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { type ReciterPlugin, pageNumberOf } from "@ummahlibrary/core";
+import {
+  type GoToSurahName,
+  type GoToTarget,
+  type ReciterPlugin,
+  juzNumberOf,
+  pageNumberOf,
+} from "@ummahlibrary/core";
+import { useRouter } from "next/navigation";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import { AyahTranslations } from "./AyahTranslations";
 import { AyahTransliteration } from "./AyahTransliteration";
 import { AyahWords } from "./AyahWords";
 import { AyahActions } from "./AyahActions";
 import { AyahStar } from "./AyahStar";
+import { GoToSheet } from "./GoToSheet";
+import { AyahScrubber } from "./AyahScrubber";
 import { ReadingAudio } from "./ReadingAudio";
 import { MemorizeBar } from "./MemorizeBar";
 import { ReadingTranslationPicker } from "./ReadingTranslationPicker";
@@ -62,6 +71,8 @@ interface Props {
   nextSurah: { number: number; transliteration: string } | null;
   reciters: ReciterPlugin[];
   tafsirs: { id: string; name: string }[];
+  /** All 114 surah names, for the Go-to box. */
+  surahNames: readonly GoToSurahName[];
 }
 
 /** Group consecutive ayahs by their Madani-mushaf page. */
@@ -82,7 +93,13 @@ function PageMarker({ n }: { n: number }) {
     <div
       data-page={n}
       aria-label={`Page ${n}`}
-      style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0", userSelect: "none" }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        margin: "22px 0",
+        userSelect: "none",
+      }}
     >
       <div style={{ flex: 1, height: 1, background: N.borderSoft }} />
       <span
@@ -110,7 +127,12 @@ export function SurahReaderClient({
   nextSurah,
   reciters,
   tafsirs,
+  surahNames,
 }: Props) {
+  const router = useRouter();
+  const [gotoOpen, setGotoOpen] = useState(false);
+  // After a jump, one tap returns to where you were (Kindle's "page flip" pin).
+  const [backTo, setBackTo] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
   const [mode, setMode] = useState<ReadingMode>("translation");
@@ -123,6 +145,9 @@ export function SurahReaderClient({
   );
   const lastPageRef = useRef(0);
   const currentAyaRef = useRef(0);
+  // Mirrors currentAyaRef for the "Āyah n / N" chip in the reader bar.
+  const [currentAya, setCurrentAya] = useState(0);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const markTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // True only while the *user* is driving the scroll. Programmatic scrolls — the
   // resume scroll, audio auto-follow, and the browser's scroll-anchoring when
@@ -138,6 +163,7 @@ export function SurahReaderClient({
     (aya: number) => {
       if (aya <= 0 || aya === currentAyaRef.current) return;
       currentAyaRef.current = aya;
+      setCurrentAya(aya);
       document
         .querySelectorAll(".ayah--current")
         .forEach((el) => el.classList.remove("ayah--current"));
@@ -156,6 +182,83 @@ export function SurahReaderClient({
     },
     [markCurrentAya],
   );
+
+  // "Go to āyah": scroll the āyah into the centre of whichever mode is showing,
+  // flash it, make it the current/resume āyah, and put it in the URL so the
+  // position can be shared or reloaded. Verse mode has an element per āyah;
+  // Reading and Mushaf tag each āyah's span with data-aya (both flows render,
+  // only the visible one counts).
+  const jumpToAya = useCallback(
+    (aya: number) => {
+      const box = scrollRef.current;
+      if (!box) return;
+      const byId = document.getElementById(`${surah.number}:${aya}`);
+      const target =
+        byId && byId.offsetParent !== null
+          ? byId
+          : Array.from(box.querySelectorAll<HTMLElement>(`[data-aya="${aya}"]`)).find(
+              (el) => el.offsetParent !== null,
+            );
+      if (!target) return;
+      // Centre the āyah, unless it's taller than most of the screen — then
+      // align its start, so the first line of the verse is never cut off.
+      const tall = target.getBoundingClientRect().height > box.clientHeight * 0.8;
+      target.scrollIntoView({ block: tall ? "start" : "center" });
+      document.querySelectorAll(".ayah--target").forEach((e) => e.classList.remove("ayah--target"));
+      void target.offsetWidth;
+      target.classList.add("ayah--target");
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => target.classList.remove("ayah--target"), 1500);
+      if (markTimerRef.current) clearTimeout(markTimerRef.current);
+      markCurrentAya(aya);
+      // replaceState doesn't fire hashchange, so HashHighlighter won't re-scroll.
+      history.replaceState(null, "", `#${surah.number}:${aya}`);
+    },
+    [surah.number, markCurrentAya],
+  );
+  useEffect(
+    () => () => {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    },
+    [],
+  );
+
+  // Go to: a place in this surah jumps in place (and offers "Back to"); any
+  // other surah navigates to it, landing on the target āyah via the hash.
+  const goTo = useCallback(
+    (t: GoToTarget) => {
+      if (t.sura === surah.number) {
+        const from = currentAyaRef.current;
+        if (from > 0 && from !== t.aya) setBackTo(from);
+        jumpToAya(t.aya);
+      } else {
+        router.push(`/surah/${t.sura}#${t.sura}:${t.aya}`);
+      }
+    },
+    [surah.number, jumpToAya, router],
+  );
+
+  // `g` or `/` opens Go to from the keyboard (never while typing).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.tagName === "SELECT" ||
+          t.isContentEditable)
+      )
+        return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "g" || e.key === "/") {
+        e.preventDefault();
+        setGotoOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Mark the resumed / deep-linked āyah immediately on open, so the marker lands
   // on the right āyah from the start (the scroll then settles onto it) rather
@@ -182,7 +285,8 @@ export function SurahReaderClient({
       }, 1000);
     };
     const keys = (e: KeyboardEvent) => {
-      if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "].includes(e.key)) wake();
+      if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "].includes(e.key))
+        wake();
     };
     box.addEventListener("wheel", wake, { passive: true });
     box.addEventListener("touchstart", wake, { passive: true });
@@ -269,7 +373,7 @@ export function SurahReaderClient({
 
   const segValue = MODE_TO_SEG[mode] ?? "verse";
   const segOptions = [
-    { value: "verse", label: "Verse" },
+    { value: "verse", label: "Verse by verse" },
     { value: "reading", label: "Reading" },
     { value: "mushaf", label: "Mushaf" },
   ];
@@ -278,15 +382,13 @@ export function SurahReaderClient({
   // Mushaf (Arabic only).
   const arabicContinuous = (
     <>
-      {surah.hasBismillah && surah.number !== 1 && (
-        <p className="basmala arabic">{bismillah}</p>
-      )}
+      {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
       {pages.map((pg) => (
         <div key={pg.page}>
           <PageMarker n={pg.page} />
           <p className="mushaf arabic">
             {pg.ayahs.map((ayah) => (
-              <span key={ayah.aya}>
+              <span key={ayah.aya} data-aya={ayah.aya}>
                 {ayah.text}
                 <AyahStar n={ayah.aya} />{" "}
               </span>
@@ -317,313 +419,336 @@ export function SurahReaderClient({
         />
       </div>
 
-      {/* Reader bar */}
+      {/* Reader bar — every control carries a word. The title opens Go to. */}
+      <div className="reader-bar">
+        <Link href="/" className="reader-back" aria-label="Back to the library">
+          <Icon name="arrowL" size={20} />
+          <span aria-hidden="true">Library</span>
+        </Link>
+        <button
+          type="button"
+          className="reader-title"
+          onClick={() => setGotoOpen(true)}
+          aria-haspopup="dialog"
+          aria-label={`${surah.transliteration}, surah ${surah.number}, āyah ${currentAya || 1} of ${surah.ayahCount}. Go to another āyah, juz or page`}
+          title="Go to (g)"
+        >
+          <span className="t1">
+            <span>
+              {surah.number} · {surah.transliteration}
+            </span>
+            <Icon name="chevD" size={16} />
+          </span>
+          <span className="t2">
+            Āyah {currentAya || 1} of {surah.ayahCount}
+            <span className="noor-hide-sm">
+              {" "}
+              · {surah.englishName} · {surah.revelationPlace === "meccan" ? "Meccan" : "Medinan"}
+            </span>
+          </span>
+        </button>
+        <ReaderToolbar
+          surahNumber={surah.number}
+          reciters={reciters}
+          tafsirs={tafsirs}
+          segValue={segValue}
+          segOptions={segOptions}
+          onSeg={chooseMode}
+        />
+      </div>
+
+      {/* Phones: the reading modes, in full words, on their own row */}
+      <div className="reader-modes" role="group" aria-label="Reading mode">
+        {segOptions.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => chooseMode(o.value)}
+            aria-pressed={o.value === segValue}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+
+      <GoToSheet
+        open={gotoOpen}
+        onClose={() => setGotoOpen(false)}
+        names={surahNames}
+        currentSurah={surah.number}
+        onGo={goTo}
+      />
+
+      {/* Scrollable reading surface (+ position scrubber on wider screens) */}
       <div
         style={{
+          position: "relative",
+          flex: 1,
+          minHeight: 0,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          padding: "0 clamp(14px,4vw,40px)",
-          height: 58,
-          borderBottom: `1px solid ${N.borderSoft}`,
-          background: N.bg2,
-          flexShrink: 0,
-          zIndex: 20,
+          flexDirection: "column",
         }}
       >
-        {/* Left: back + separator + surah info */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-          <Link
-            href="/"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              color: N.muted,
-              textDecoration: "none",
-              fontFamily: N.ui,
-              fontSize: 14,
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="arrowL" size={18} />
-            <span className="noor-hide-sm">Library</span>
-          </Link>
-          <span style={{ color: N.border }} className="noor-hide-sm">|</span>
-          <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: 15.5,
-                fontWeight: 700,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                fontFamily: N.ui,
-                color: N.fg,
-              }}
-            >
-              {surah.number}<span className="noor-hide-sm"> · {surah.transliteration}</span>
-            </div>
-            <div
-              className="noor-hide-sm"
-              style={{ fontSize: 12, color: N.faint, whiteSpace: "nowrap", fontFamily: N.ui }}
-            >
-              {surah.englishName} · {surah.revelationPlace === "meccan" ? "Meccan" : "Medinan"} ·{" "}
-              {surah.ayahCount} ayahs
-            </div>
-          </div>
-        </div>
-
-        {/* Right: reader controls (text size, reciter, translations, mode, bookmark) */}
-        <div style={{ flexShrink: 0 }}>
-          <ReaderToolbar
-            surahNumber={surah.number}
-            reciters={reciters}
-            tafsirs={tafsirs}
-            segValue={segValue}
-            segOptions={segOptions}
-            onSeg={chooseMode}
-          />
-        </div>
-      </div>
-
-      {/* Scrollable reading surface */}
-      <div
-        ref={scrollRef}
-        onScroll={onScroll}
-        className="noor-scroll"
-        id="main"
-        style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}
-      >
+        <AyahScrubber
+          sura={surah.number}
+          ayahCount={surah.ayahCount}
+          current={currentAya}
+          onJump={(aya) => goTo({ kind: "ayah", sura: surah.number, aya })}
+        />
         <div
-          style={{
-            maxWidth: mode === "reading-tr" ? 760 : 720,
-            margin: "0 auto",
-            padding: "clamp(20px,4vw,36px) clamp(16px,4vw,28px) 60px",
-          }}
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="noor-scroll"
+          id="main"
+          style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}
         >
-          {/* Surah header */}
           <div
             style={{
-              textAlign: "center",
-              paddingBottom: 22,
-              borderBottom: `1px solid ${N.borderSoft}`,
-              marginBottom: 8,
+              maxWidth: mode === "reading-tr" ? 760 : 720,
+              margin: "0 auto",
+              padding: "clamp(20px,4vw,36px) clamp(16px,4vw,28px) 60px",
             }}
           >
+            {/* Surah header */}
             <div
               style={{
-                display: "inline-grid",
-                placeItems: "center",
-                position: "relative",
-                marginBottom: 10,
+                textAlign: "center",
+                paddingBottom: 22,
+                borderBottom: `1px solid ${N.borderSoft}`,
+                marginBottom: 8,
               }}
             >
-              <Khatam size={96} color={N.goldDim} sw={1} opacity={0.55} />
-              <span
+              <div
                 style={{
-                  position: "absolute",
-                  fontSize: 30,
-                  color: N.goldHi,
-                  fontFamily: N.ar,
-                  direction: "rtl",
+                  display: "inline-grid",
+                  placeItems: "center",
+                  position: "relative",
+                  marginBottom: 10,
                 }}
               >
-                {surah.name}
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: 19,
-                fontWeight: 800,
-                fontFamily: N.ui,
-                color: N.fg,
-                letterSpacing: -0.3,
-              }}
-            >
-              {surah.transliteration}
-            </div>
-            <div
-              style={{
-                fontSize: 12.5,
-                color: N.faint,
-                marginTop: 4,
-                letterSpacing: 0.6,
-                fontFamily: N.ui,
-                textTransform: "uppercase",
-              }}
-            >
-              {surah.englishName} ·{" "}
-              {surah.revelationPlace === "meccan" ? "Meccan" : "Medinan"} ·{" "}
-              {surah.ayahCount} āyāt
-            </div>
-          </div>
-
-          {/* Verse mode */}
-          <div className="mode-translation">
-            <WordByWord />
-
-            {surah.hasBismillah && surah.number !== 1 && (
-              <p
-                className="basmala arabic"
-                style={{ color: N.fg, textAlign: "center", margin: "1.75rem 0 2.25rem" }}
+                <Khatam size={96} color={N.goldDim} sw={1} opacity={0.55} />
+                <span
+                  style={{
+                    position: "absolute",
+                    fontSize: 30,
+                    color: N.goldHi,
+                    fontFamily: N.ar,
+                    direction: "rtl",
+                  }}
+                >
+                  {surah.name}
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: 19,
+                  fontWeight: 800,
+                  fontFamily: N.ui,
+                  color: N.fg,
+                  letterSpacing: -0.3,
+                }}
               >
-                {bismillah}
-              </p>
-            )}
-
-            <div>
-              {pages.map((pg) => (
-                <div key={pg.page}>
-                  <PageMarker n={pg.page} />
-                  {pg.ayahs.map((ayah) => (
-                    <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
-                      <p className="ayah-ar arabic">
-                        <AyahWords surah={surah.number} aya={ayah.aya} text={ayah.text} />
-                        <button
-                          type="button"
-                          className="ayah-marker"
-                          data-play-key={`${surah.number}:${ayah.aya}`}
-                          aria-label={`Play from āyah ${ayah.aya}`}
-                        >
-                          ﴿{toArabicDigits(ayah.aya)}﴾
-                        </button>
-                      </p>
-                      <AyahTransliteration surah={surah.number} aya={ayah.aya} />
-                      <AyahTranslations surah={surah.number} aya={ayah.aya} />
-                      <AyahActions surah={surah.number} aya={ayah.aya} tafsirs={tafsirs} />
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Reading mode: continuous Arabic + a continuous translation */}
-          <div className="mode-reading">
-            {arabicContinuous}
-            <div
-              style={{ height: 1, background: N.borderSoft, margin: "1.75rem 0 1.5rem" }}
-              aria-hidden="true"
-            />
-            <ReadingTranslationPicker />
-            <ReadingTranslationFlow surah={surah.number} ayat={ayahs.map((a) => a.aya)} />
-          </div>
-
-          {/* Mushaf mode: a bordered page with continuous Arabic only */}
-          <div className="mode-reading-tr">
-            <div className="mushaf-page">
-              {arabicContinuous}
-              <div className="mushaf-surah-name" dir="rtl">
-                ﴿ {surah.name} ﴾
+                {surah.transliteration}
+              </div>
+              <div
+                style={{
+                  fontSize: 12.5,
+                  color: N.faint,
+                  marginTop: 4,
+                  letterSpacing: 0.6,
+                  fontFamily: N.ui,
+                  textTransform: "uppercase",
+                }}
+              >
+                {surah.englishName} · {surah.revelationPlace === "meccan" ? "Meccan" : "Medinan"} ·{" "}
+                {surah.ayahCount} āyāt
               </div>
             </div>
+
+            {/* Verse mode */}
+            <div className="mode-translation">
+              <WordByWord />
+
+              {surah.hasBismillah && surah.number !== 1 && (
+                <p
+                  className="basmala arabic"
+                  style={{ color: N.fg, textAlign: "center", margin: "1.75rem 0 2.25rem" }}
+                >
+                  {bismillah}
+                </p>
+              )}
+
+              <div>
+                {pages.map((pg) => (
+                  <div key={pg.page}>
+                    <PageMarker n={pg.page} />
+                    {pg.ayahs.map((ayah) => (
+                      <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
+                        <p className="ayah-ar arabic">
+                          <AyahWords surah={surah.number} aya={ayah.aya} text={ayah.text} />
+                          <button
+                            type="button"
+                            className="ayah-marker"
+                            data-play-key={`${surah.number}:${ayah.aya}`}
+                            aria-label={`Play from āyah ${ayah.aya}`}
+                          >
+                            ﴿{toArabicDigits(ayah.aya)}﴾
+                          </button>
+                        </p>
+                        <AyahTransliteration surah={surah.number} aya={ayah.aya} />
+                        <AyahTranslations surah={surah.number} aya={ayah.aya} />
+                        <AyahActions surah={surah.number} aya={ayah.aya} tafsirs={tafsirs} />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Reading mode: continuous Arabic + a continuous translation */}
+            <div className="mode-reading">
+              {arabicContinuous}
+              <div
+                style={{ height: 1, background: N.borderSoft, margin: "1.75rem 0 1.5rem" }}
+                aria-hidden="true"
+              />
+              <ReadingTranslationPicker />
+              <ReadingTranslationFlow surah={surah.number} ayat={ayahs.map((a) => a.aya)} />
+            </div>
+
+            {/* Mushaf mode: a bordered page with continuous Arabic only */}
+            <div className="mode-reading-tr">
+              <div className="mushaf-page">
+                {arabicContinuous}
+                <div className="mushaf-surah-name" dir="rtl">
+                  ﴿ {surah.name} ﴾
+                </div>
+              </div>
+            </div>
+
+            {/* Prev/next surah pager */}
+            <nav
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                marginTop: 30,
+                paddingTop: 22,
+                borderTop: `1px solid ${N.borderSoft}`,
+              }}
+            >
+              {prevSurah ? (
+                <Link
+                  href={`/surah/${prevSurah.number}`}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    border: `1px solid ${N.border}`,
+                    background: N.card,
+                    color: N.fg,
+                    textDecoration: "none",
+                    fontFamily: N.ui,
+                    transition: "border-color .15s",
+                  }}
+                >
+                  <Icon name="chevL" size={18} color={N.muted} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 11, color: N.faint }}>Previous</div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {prevSurah.transliteration}
+                    </div>
+                  </div>
+                </Link>
+              ) : (
+                <div style={{ flex: 1 }} />
+              )}
+              {nextSurah ? (
+                <Link
+                  href={`/surah/${nextSurah.number}`}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    gap: 10,
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    border: `1px solid ${N.border}`,
+                    background: N.card,
+                    color: N.fg,
+                    textDecoration: "none",
+                    fontFamily: N.ui,
+                    transition: "border-color .15s",
+                  }}
+                >
+                  <div style={{ minWidth: 0, textAlign: "right" }}>
+                    <div style={{ fontSize: 11, color: N.faint }}>Next</div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {nextSurah.transliteration}
+                    </div>
+                  </div>
+                  <Icon name="chevR" size={18} color={N.muted} />
+                </Link>
+              ) : (
+                <div style={{ flex: 1 }} />
+              )}
+            </nav>
+
+            <p className="foot">
+              Arabic: Tanzil (CC-BY 3.0) · Translations via Ummah Library datasets
+            </p>
           </div>
-
-          {/* Prev/next surah pager */}
-          <nav
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              marginTop: 30,
-              paddingTop: 22,
-              borderTop: `1px solid ${N.borderSoft}`,
-            }}
-          >
-            {prevSurah ? (
-              <Link
-                href={`/surah/${prevSurah.number}`}
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  border: `1px solid ${N.border}`,
-                  background: N.card,
-                  color: N.fg,
-                  textDecoration: "none",
-                  fontFamily: N.ui,
-                  transition: "border-color .15s",
-                }}
-              >
-                <Icon name="chevL" size={18} color={N.muted} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 11, color: N.faint }}>Previous</div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {prevSurah.transliteration}
-                  </div>
-                </div>
-              </Link>
-            ) : (
-              <div style={{ flex: 1 }} />
-            )}
-            {nextSurah ? (
-              <Link
-                href={`/surah/${nextSurah.number}`}
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                  gap: 10,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  border: `1px solid ${N.border}`,
-                  background: N.card,
-                  color: N.fg,
-                  textDecoration: "none",
-                  fontFamily: N.ui,
-                  transition: "border-color .15s",
-                }}
-              >
-                <div style={{ minWidth: 0, textAlign: "right" }}>
-                  <div style={{ fontSize: 11, color: N.faint }}>Next</div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {nextSurah.transliteration}
-                  </div>
-                </div>
-                <Icon name="chevR" size={18} color={N.muted} />
-              </Link>
-            ) : (
-              <div style={{ flex: 1 }} />
-            )}
-          </nav>
-
-          <p className="foot">
-            Arabic: Tanzil (CC-BY 3.0) · Translations via Ummah Library datasets
-          </p>
         </div>
       </div>
-
-      {/* Memorize / hide-and-peek — floats above the dock */}
-      <MemorizeBar />
 
       {/* Audio player — fixed bottom dock, drives playback for all modes */}
       <ReadingAudio
         verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
         reciters={reciters}
         variant="dock"
+        positionLabel={`Āyah ${currentAya || 1} of ${surah.ayahCount} · Juz ${juzNumberOf({ sura: surah.number, aya: currentAya || 1 })}`}
+        trailing={<MemorizeBar placement="dock" />}
+        above={
+          backTo ? (
+            <div className="dock-above">
+              <button
+                type="button"
+                className="back-chip"
+                onClick={() => {
+                  const to = backTo;
+                  setBackTo(null);
+                  jumpToAya(to);
+                }}
+              >
+                ↩ Back to {surah.number}:{backTo}
+              </button>
+              <button type="button" className="back-chip-x" onClick={() => setBackTo(null)}>
+                Dismiss
+              </button>
+            </div>
+          ) : null
+        }
         // Listening advances the current/resume āyah too, not just scrolling.
         onAyah={(v) => markCurrentAya(v.aya)}
         // The dock ▶ starts from the āyah you're on, not the surah start.

@@ -314,7 +314,7 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
 
 /* reading-tr layout: one translation in a continuous, chrome-free flow. */
 .read-flow {
-  font-size: calc(1.15rem * var(--reading-scale, 1));
+  font-size: calc(1.15rem * var(--tr-scale, 1));
   line-height: 2;
   color: var(--fg);
   margin: 1.5rem 0;
@@ -1944,14 +1944,21 @@ body.peek-on.peek-hide-tr .ayah-tr {
   padding: 0.3rem 0.5rem;
   margin-inline-start: auto;
 }
+/* Translation: 18px default, its own size control (--tr-scale, separate from the
+   Arabic --reading-scale), and the same weight as the Arabic by default — readers
+   of the translation deserve equal emphasis. "Softer" restores the muted look. */
 .ayah-tr {
+  color: var(--fg);
+  font-size: calc(1.125rem * var(--tr-scale, 1));
+  line-height: 1.65;
+}
+html.tr-soft .ayah-tr {
   color: var(--muted);
-  font-size: calc(1rem * var(--reading-scale, 1));
 }
 .ayah-tr[lang="ur"] {
   font-family: var(--font-nastaliq), var(--font-amiri), serif;
   line-height: 2.6;
-  font-size: calc(1.35rem * var(--reading-scale, 1));
+  font-size: calc(1.35rem * var(--tr-scale, 1));
 }
 .ayah-tr .n {
   color: var(--faint);
@@ -1962,7 +1969,7 @@ body.peek-on.peek-hide-tr .ayah-tr {
 .ayah-translit {
   color: var(--faint);
   font-style: italic;
-  font-size: calc(0.95rem * var(--reading-scale, 1));
+  font-size: calc(1rem * var(--tr-scale, 1));
   margin-bottom: 0.35rem;
 }
 
@@ -2433,6 +2440,7 @@ body {
     left: 0 !important;
   }
 }
+
 .noor-hide-md {
   display: revert;
 }

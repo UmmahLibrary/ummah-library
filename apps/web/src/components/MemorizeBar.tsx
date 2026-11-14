@@ -19,7 +19,7 @@ const AYAH_SEL = ".mode-translation .ayah-ar";
  * is ephemeral — peek mode always starts off, so the muṣḥaf is never hidden by
  * surprise on the next visit.
  */
-export function MemorizeBar() {
+export function MemorizeBar({ placement = "float" }: { placement?: "float" | "dock" } = {}) {
   const [on, setOn] = useState(false);
   const [revealed, setRevealed] = useState(0); // ordered prefix of revealed words
   const [extra, setExtra] = useState<Set<number>>(new Set()); // ad-hoc tapped words
@@ -50,10 +50,7 @@ export function MemorizeBar() {
   }, [on, apply]);
 
   // Tidy the body classes if the reader unmounts while peek is on.
-  useEffect(
-    () => () => document.body.classList.remove("peek-on", "peek-hide-tr"),
-    [],
-  );
+  useEffect(() => () => document.body.classList.remove("peek-on", "peek-hide-tr"), []);
 
   // While peeking, a tap on a concealed word reveals just that word. Bound on the
   // capture phase so it pre-empts the word-by-word popover (which listens on
@@ -96,6 +93,53 @@ export function MemorizeBar() {
   }
 
   const total = () => totalWords(wordCounts());
+
+  // Docked (surah reader): a labelled button inside the bottom dock; its tray
+  // opens directly above the dock instead of floating over the verses.
+  if (placement === "dock") {
+    return (
+      <div style={{ position: "relative", flexShrink: 0 }}>
+        <button
+          type="button"
+          className="dock-lbtn"
+          onClick={toggleOn}
+          aria-pressed={on}
+          style={{ color: on ? N.gold : N.muted }}
+        >
+          <Icon name="eye" size={20} />
+          <span>Recite</span>
+        </button>
+        {on && (
+          <div className="recite-tray" role="group" aria-label="Recite from memory">
+            <Ctl onClick={() => setRevealed((r) => revealWord(r, total()))}>Peek word</Ctl>
+            <Ctl onClick={() => setRevealed((r) => revealAyah(r, wordCounts()))}>Reveal āyah</Ctl>
+            <Ctl
+              onClick={() => {
+                setRevealed(total());
+                setExtra(new Set());
+              }}
+            >
+              Show all
+            </Ctl>
+            <Ctl
+              onClick={() => {
+                setRevealed(0);
+                setExtra(new Set());
+              }}
+            >
+              Hide all
+            </Ctl>
+            <button type="button" onClick={toggleHideTr} style={ctl(hideTr)} aria-pressed={hideTr}>
+              Hide translation
+            </button>
+            <button type="button" onClick={toggleOn} style={ctl(false)}>
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (!on) {
     return (
@@ -198,13 +242,14 @@ function pill(active: boolean): React.CSSProperties {
 
 function ctl(active: boolean): React.CSSProperties {
   return {
-    padding: "8px 11px",
-    borderRadius: 10,
+    minHeight: 44,
+    padding: "8px 13px",
+    borderRadius: 12,
     border: `1px solid ${active ? N.gold : N.border}`,
     background: active ? N.goldSoft : N.card,
     color: active ? N.gold : N.fg,
     fontFamily: N.ui,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
     whiteSpace: "nowrap",

@@ -10,10 +10,12 @@ import { AppShellWrapper } from "../components/AppShellWrapper";
 import { I18nProvider } from "../i18n/I18nProvider";
 import { Onboarding } from "../components/Onboarding";
 import { SITE_URL } from "../lib/site";
+import { COMFORT_BOOTSTRAP } from "../lib/comfort-store";
 // Noor palette (all themes) — generated from packages/ui/src/themes.ts (ADR 0027).
 // Imported before globals.css so the web's next/font overrides for --noor-ui/--noor-ar win.
 import "@ummahlibrary/ui/noor-themes.css";
 import "./globals.css";
+import "./noor-everyone.css";
 
 /* ── Noor fonts ── */
 const hanken = Hanken_Grotesk({
@@ -82,14 +84,18 @@ export const viewport: Viewport = {
   themeColor: "#0A0B0F",
 };
 
-/* Apply saved theme before first paint to avoid flash. Defaults to Obsidian (Noor
-   is dark-first); maps the legacy "dark"/"light" values and sets data-mode. */
+/* Apply saved theme before first paint to avoid flash. With no saved choice it
+   follows the device's light/dark setting (Ivory or Obsidian) until the reader
+   picks a theme; maps the legacy "dark"/"light" values and sets data-mode.
+   Comfort settings (translation size, larger buttons, Easy/Kids mode) apply here
+   too, so large-text readers never see a flash of small text. */
 const themeScript = `(function(){try{
   var d=document.documentElement;
   var legacy={dark:"obsidian",light:"ivory"};
   var light={ivory:1,sepia:1,mint:1,rose:1};
   var dark={obsidian:1,midnight:1,emerald:1,ocean:1};
-  var raw=localStorage.getItem("ul.theme")||"obsidian";
+  var osLight=false;try{osLight=window.matchMedia("(prefers-color-scheme: light)").matches;}catch(e){}
+  var raw=localStorage.getItem("ul.theme")||(osLight?"ivory":"obsidian");
   var t=(dark[raw]||light[raw])?raw:(legacy[raw]||"obsidian");
   d.dataset.theme=t;
   d.dataset.mode=light[t]?"light":"dark";
@@ -99,6 +105,7 @@ const themeScript = `(function(){try{
   /* Noor: set CSS var font families after font vars are available */
   d.style.setProperty("--noor-ui","'Hanken Grotesk', system-ui, sans-serif");
   d.style.setProperty("--noor-ar","'IBM Plex Sans Arabic', serif");
+  ${COMFORT_BOOTSTRAP}
 }catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
