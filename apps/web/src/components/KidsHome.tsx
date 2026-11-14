@@ -6,6 +6,7 @@ import { N, Icon } from "@ummahlibrary/ui";
 import { KIDS_EVENT, readKidsFinished } from "../lib/kids-store";
 import { readComfort, writeComfort } from "../lib/comfort-store";
 import { HoldButton } from "./HoldButton";
+import { useIntl } from "../i18n/I18nProvider";
 
 interface SurahLite {
   number: number;
@@ -23,6 +24,7 @@ interface SurahLite {
 export function KidsHome({ surahs }: { surahs: readonly SurahLite[] }) {
   const [finished, setFinished] = useState<Set<number>>(new Set());
   const [kidsMode, setKidsMode] = useState(false);
+  const { t, tf, num } = useIntl();
 
   useEffect(() => {
     const refresh = () => setFinished(readKidsFinished());
@@ -56,11 +58,11 @@ export function KidsHome({ surahs }: { surahs: readonly SurahLite[] }) {
           }}
         >
           <h1 style={{ margin: 0, fontFamily: N.ui, fontSize: 28, fontWeight: 800, color: N.fg }}>
-            Short surahs
+            {t("kids.title")}
           </h1>
           {kidsMode ? (
             <HoldButton
-              label="Grown-ups: hold to leave Kids mode"
+              label={t("kids.holdToLeave")}
               onHold={() => {
                 writeComfort({ mode: "standard" });
                 window.location.href = "/";
@@ -75,12 +77,12 @@ export function KidsHome({ surahs }: { surahs: readonly SurahLite[] }) {
                 setKidsMode(true);
               }}
             >
-              Turn on Kids mode
+              {t("kids.turnOn")}
             </button>
           )}
         </div>
         <p style={{ margin: 0, fontFamily: N.ui, fontSize: 17, color: N.muted }}>
-          Tap a surah. Tap any word to hear it.
+          {t("kids.intro")}
         </p>
         <div
           style={{
@@ -99,12 +101,13 @@ export function KidsHome({ surahs }: { surahs: readonly SurahLite[] }) {
                 style={{ minHeight: 96, borderColor: done ? N.gold : undefined }}
               >
                 <span className="ic" aria-hidden="true" style={{ fontWeight: 800, fontSize: 18 }}>
-                  {done ? <Icon name="check" size={26} /> : s.number}
+                  {done ? <Icon name="check" size={26} /> : num(s.number)}
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   {s.transliteration}
                   <small>
-                    {s.ayahCount} āyāt{done ? " · finished" : ""}
+                    {tf("reader.ayatCount", { n: s.ayahCount })}
+                    {done ? ` · ${t("kids.finished")}` : ""}
                   </small>
                 </span>
                 <span

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { N, Icon } from "@ummahlibrary/ui";
 import { revealAyah, revealWord, totalWords } from "@ummahlibrary/core";
+import { useT } from "../i18n/I18nProvider";
 
 // The verse-layout Arabic lines, in reading order. Both the surah and juzʾ
 // readers render exactly one `.mode-translation` block of these.
@@ -19,11 +20,14 @@ const AYAH_SEL = ".mode-translation .ayah-ar";
  * is ephemeral — peek mode always starts off, so the muṣḥaf is never hidden by
  * surprise on the next visit.
  */
-export function MemorizeBar({ placement = "float" }: { placement?: "float" | "dock" } = {}) {
+export function MemorizeBar({
+  placement = "float",
+}: { placement?: "float" | "dock" | "inline" } = {}) {
   const [on, setOn] = useState(false);
   const [revealed, setRevealed] = useState(0); // ordered prefix of revealed words
   const [extra, setExtra] = useState<Set<number>>(new Set()); // ad-hoc tapped words
   const [hideTr, setHideTr] = useState(false);
+  const t = useT();
 
   const ayahEls = useCallback(
     () => Array.from(document.querySelectorAll<HTMLElement>(AYAH_SEL)),
@@ -96,9 +100,14 @@ export function MemorizeBar({ placement = "float" }: { placement?: "float" | "do
 
   // Docked (surah reader): a labelled button inside the bottom dock; its tray
   // opens directly above the dock instead of floating over the verses.
-  if (placement === "dock") {
+  // "inline" (juzʾ reader): the same labelled button in the page flow, with its
+  // tray opening in-flow beneath it — nothing floats over the verses.
+  if (placement === "dock" || placement === "inline") {
     return (
-      <div style={{ position: "relative", flexShrink: 0 }}>
+      <div
+        className={placement === "inline" ? "recite-inline" : undefined}
+        style={{ position: "relative", flexShrink: 0 }}
+      >
         <button
           type="button"
           className="dock-lbtn"
@@ -107,19 +116,23 @@ export function MemorizeBar({ placement = "float" }: { placement?: "float" | "do
           style={{ color: on ? N.gold : N.muted }}
         >
           <Icon name="eye" size={20} />
-          <span>Recite</span>
+          <span>{t("recite.recite")}</span>
         </button>
         {on && (
-          <div className="recite-tray" role="group" aria-label="Recite from memory">
-            <Ctl onClick={() => setRevealed((r) => revealWord(r, total()))}>Peek word</Ctl>
-            <Ctl onClick={() => setRevealed((r) => revealAyah(r, wordCounts()))}>Reveal āyah</Ctl>
+          <div className="recite-tray" role="group" aria-label={t("recite.fromMemory")}>
+            <Ctl onClick={() => setRevealed((r) => revealWord(r, total()))}>
+              {t("recite.peekWord")}
+            </Ctl>
+            <Ctl onClick={() => setRevealed((r) => revealAyah(r, wordCounts()))}>
+              {t("recite.revealAyah")}
+            </Ctl>
             <Ctl
               onClick={() => {
                 setRevealed(total());
                 setExtra(new Set());
               }}
             >
-              Show all
+              {t("recite.showAll")}
             </Ctl>
             <Ctl
               onClick={() => {
@@ -127,13 +140,13 @@ export function MemorizeBar({ placement = "float" }: { placement?: "float" | "do
                 setExtra(new Set());
               }}
             >
-              Hide all
+              {t("recite.hideAll")}
             </Ctl>
             <button type="button" onClick={toggleHideTr} style={ctl(hideTr)} aria-pressed={hideTr}>
-              Hide translation
+              {t("recite.hideTranslation")}
             </button>
             <button type="button" onClick={toggleOn} style={ctl(false)}>
-              Done
+              {t("recite.done")}
             </button>
           </div>
         )}
@@ -146,7 +159,7 @@ export function MemorizeBar({ placement = "float" }: { placement?: "float" | "do
       <div style={shell}>
         <button type="button" onClick={toggleOn} style={pill(false)} aria-pressed={false}>
           <Icon name="eye" size={16} />
-          <span style={{ fontWeight: 700 }}>Recite</span>
+          <span style={{ fontWeight: 700 }}>{t("recite.recite")}</span>
         </button>
       </div>
     );
@@ -157,18 +170,20 @@ export function MemorizeBar({ placement = "float" }: { placement?: "float" | "do
       <div style={tray}>
         <button type="button" onClick={toggleOn} style={pill(true)} aria-pressed={true}>
           <Icon name="eye" size={16} color={N.ink} />
-          <span style={{ fontWeight: 700 }}>Recite</span>
+          <span style={{ fontWeight: 700 }}>{t("recite.recite")}</span>
         </button>
         <div style={divider} aria-hidden="true" />
-        <Ctl onClick={() => setRevealed((r) => revealWord(r, total()))}>Peek word</Ctl>
-        <Ctl onClick={() => setRevealed((r) => revealAyah(r, wordCounts()))}>Reveal āyah</Ctl>
+        <Ctl onClick={() => setRevealed((r) => revealWord(r, total()))}>{t("recite.peekWord")}</Ctl>
+        <Ctl onClick={() => setRevealed((r) => revealAyah(r, wordCounts()))}>
+          {t("recite.revealAyah")}
+        </Ctl>
         <Ctl
           onClick={() => {
             setRevealed(total());
             setExtra(new Set());
           }}
         >
-          Show all
+          {t("recite.showAll")}
         </Ctl>
         <Ctl
           onClick={() => {
@@ -176,18 +191,18 @@ export function MemorizeBar({ placement = "float" }: { placement?: "float" | "do
             setExtra(new Set());
           }}
         >
-          Hide all
+          {t("recite.hideAll")}
         </Ctl>
         <button
           type="button"
           onClick={toggleHideTr}
           style={ctl(hideTr)}
           aria-pressed={hideTr}
-          title="Also hide the translation"
+          title={t("recite.alsoHideTranslation")}
         >
-          Translation
+          {t("toolbar.translation")}
         </button>
-        <button type="button" onClick={toggleOn} style={closeBtn} aria-label="Exit recite mode">
+        <button type="button" onClick={toggleOn} style={closeBtn} aria-label={t("recite.exit")}>
           <Icon name="close" size={15} />
         </button>
       </div>
@@ -205,7 +220,7 @@ function Ctl({ children, onClick }: { children: React.ReactNode; onClick: () => 
 
 const shell: React.CSSProperties = {
   position: "fixed",
-  right: "clamp(14px, 4vw, 40px)",
+  insetInlineEnd: "clamp(14px, 4vw, 40px)",
   bottom: 80,
   zIndex: 30,
 };

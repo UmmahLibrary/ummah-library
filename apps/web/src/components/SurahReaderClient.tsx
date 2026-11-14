@@ -11,6 +11,7 @@ import {
 } from "@ummahlibrary/core";
 import { useRouter } from "next/navigation";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
+import { useIntl } from "../i18n/I18nProvider";
 import { AyahTranslations } from "./AyahTranslations";
 import { AyahTransliteration } from "./AyahTransliteration";
 import { AyahWords } from "./AyahWords";
@@ -89,10 +90,11 @@ function pagesOf(sura: number, ayahs: Ayah[]): { page: number; ayahs: Ayah[] }[]
 
 /** A subtle Madani-page divider, shown where each mushaf page begins. */
 function PageMarker({ n }: { n: number }) {
+  const { tf } = useIntl();
   return (
     <div
       data-page={n}
-      aria-label={`Page ${n}`}
+      aria-label={tf("reader.pageN", { n })}
       style={{
         display: "flex",
         alignItems: "center",
@@ -112,7 +114,7 @@ function PageMarker({ n }: { n: number }) {
           color: N.faint,
         }}
       >
-        Page {n}
+        {tf("reader.pageN", { n })}
       </span>
       <div style={{ flex: 1, height: 1, background: N.borderSoft }} />
     </div>
@@ -130,6 +132,8 @@ export function SurahReaderClient({
   surahNames,
 }: Props) {
   const router = useRouter();
+  const { t, tf, num, dir } = useIntl();
+  const rtl = dir === "rtl";
   const [gotoOpen, setGotoOpen] = useState(false);
   // After a jump, one tap returns to where you were (Kindle's "page flip" pin).
   const [backTo, setBackTo] = useState<number | null>(null);
@@ -373,9 +377,9 @@ export function SurahReaderClient({
 
   const segValue = MODE_TO_SEG[mode] ?? "verse";
   const segOptions = [
-    { value: "verse", label: "Verse by verse" },
-    { value: "reading", label: "Reading" },
-    { value: "mushaf", label: "Mushaf" },
+    { value: "verse", label: t("reader.modeVerse") },
+    { value: "reading", label: t("reader.modeReading") },
+    { value: "mushaf", label: t("reader.modeMushaf") },
   ];
 
   // The continuous Arabic flow — shared by Reading (Arabic + translation) and
@@ -421,29 +425,35 @@ export function SurahReaderClient({
 
       {/* Reader bar — every control carries a word. The title opens Go to. */}
       <div className="reader-bar">
-        <Link href="/" className="reader-back" aria-label="Back to the library">
-          <Icon name="arrowL" size={20} />
-          <span aria-hidden="true">Library</span>
+        <Link href="/" className="reader-back" aria-label={t("reader.backToLibrary")}>
+          <Icon name={rtl ? "arrowR" : "arrowL"} size={20} />
+          <span aria-hidden="true">{t("reader.library")}</span>
         </Link>
         <button
           type="button"
           className="reader-title"
           onClick={() => setGotoOpen(true)}
           aria-haspopup="dialog"
-          aria-label={`${surah.transliteration}, surah ${surah.number}, āyah ${currentAya || 1} of ${surah.ayahCount}. Go to another āyah, juz or page`}
-          title="Go to (g)"
+          aria-label={tf("reader.titleAria", {
+            surah: surah.transliteration,
+            n: surah.number,
+            aya: currentAya || 1,
+            total: surah.ayahCount,
+          })}
+          title={t("reader.goToHint")}
         >
           <span className="t1">
             <span>
-              {surah.number} · {surah.transliteration}
+              {num(surah.number)} · {surah.transliteration}
             </span>
             <Icon name="chevD" size={16} />
           </span>
           <span className="t2">
-            Āyah {currentAya || 1} of {surah.ayahCount}
+            {tf("reader.ayahOf", { aya: currentAya || 1, total: surah.ayahCount })}
             <span className="noor-hide-sm">
               {" "}
-              · {surah.englishName} · {surah.revelationPlace === "meccan" ? "Meccan" : "Medinan"}
+              · {surah.englishName} ·{" "}
+              {surah.revelationPlace === "meccan" ? t("quran.meccan") : t("quran.medinan")}
             </span>
           </span>
         </button>
@@ -458,7 +468,7 @@ export function SurahReaderClient({
       </div>
 
       {/* Phones: the reading modes, in full words, on their own row */}
-      <div className="reader-modes" role="group" aria-label="Reading mode">
+      <div className="reader-modes" role="group" aria-label={t("reader.readingMode")}>
         {segOptions.map((o) => (
           <button
             key={o.value}
@@ -560,8 +570,9 @@ export function SurahReaderClient({
                   textTransform: "uppercase",
                 }}
               >
-                {surah.englishName} · {surah.revelationPlace === "meccan" ? "Meccan" : "Medinan"} ·{" "}
-                {surah.ayahCount} āyāt
+                {surah.englishName} ·{" "}
+                {surah.revelationPlace === "meccan" ? t("quran.meccan") : t("quran.medinan")} ·{" "}
+                {tf("reader.ayatCount", { n: surah.ayahCount })}
               </div>
             </div>
 
@@ -590,7 +601,7 @@ export function SurahReaderClient({
                             type="button"
                             className="ayah-marker"
                             data-play-key={`${surah.number}:${ayah.aya}`}
-                            aria-label={`Play from āyah ${ayah.aya}`}
+                            aria-label={tf("reader.playFrom", { aya: ayah.aya })}
                           >
                             ﴿{toArabicDigits(ayah.aya)}﴾
                           </button>
@@ -656,9 +667,9 @@ export function SurahReaderClient({
                     transition: "border-color .15s",
                   }}
                 >
-                  <Icon name="chevL" size={18} color={N.muted} />
+                  <Icon name={rtl ? "chevR" : "chevL"} size={18} color={N.muted} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: N.faint }}>Previous</div>
+                    <div style={{ fontSize: 11, color: N.faint }}>{t("reader.previous")}</div>
                     <div
                       style={{
                         fontSize: 14,
@@ -694,8 +705,8 @@ export function SurahReaderClient({
                     transition: "border-color .15s",
                   }}
                 >
-                  <div style={{ minWidth: 0, textAlign: "right" }}>
-                    <div style={{ fontSize: 11, color: N.faint }}>Next</div>
+                  <div style={{ minWidth: 0, textAlign: "end" }}>
+                    <div style={{ fontSize: 11, color: N.faint }}>{t("reader.next")}</div>
                     <div
                       style={{
                         fontSize: 14,
@@ -708,7 +719,7 @@ export function SurahReaderClient({
                       {nextSurah.transliteration}
                     </div>
                   </div>
-                  <Icon name="chevR" size={18} color={N.muted} />
+                  <Icon name={rtl ? "chevL" : "chevR"} size={18} color={N.muted} />
                 </Link>
               ) : (
                 <div style={{ flex: 1 }} />
@@ -727,7 +738,11 @@ export function SurahReaderClient({
         verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
         reciters={reciters}
         variant="dock"
-        positionLabel={`Āyah ${currentAya || 1} of ${surah.ayahCount} · Juz ${juzNumberOf({ sura: surah.number, aya: currentAya || 1 })}`}
+        positionLabel={tf("dock.position", {
+          aya: currentAya || 1,
+          total: surah.ayahCount,
+          juz: juzNumberOf({ sura: surah.number, aya: currentAya || 1 }),
+        })}
         trailing={<MemorizeBar placement="dock" />}
         above={
           backTo ? (
@@ -741,10 +756,10 @@ export function SurahReaderClient({
                   jumpToAya(to);
                 }}
               >
-                ↩ Back to {surah.number}:{backTo}
+                {rtl ? "↪" : "↩"} {tf("reader.backTo", { ref: `${surah.number}:${backTo}` })}
               </button>
               <button type="button" className="back-chip-x" onClick={() => setBackTo(null)}>
-                Dismiss
+                {t("reader.dismiss")}
               </button>
             </div>
           ) : null

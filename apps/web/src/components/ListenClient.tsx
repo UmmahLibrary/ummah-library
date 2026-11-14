@@ -8,6 +8,7 @@ import { ReadingAudio } from "./ReadingAudio";
 import { AyahWords } from "./AyahWords";
 import { AyahTranslations } from "./AyahTranslations";
 import { markActivity } from "../lib/reading-goals";
+import { useIntl } from "../i18n/I18nProvider";
 
 const toArabicDigits = (n: number): string =>
   String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
@@ -37,6 +38,8 @@ interface Props {
 export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
   const [current, setCurrent] = useState(1);
   const startRef = useRef(1);
+  const { t, tf, dir } = useIntl();
+  const rtl = dir === "rtl";
 
   // Start from the āyah in the hash (#61), e.g. "Listen instead" on Home.
   useEffect(() => {
@@ -71,7 +74,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
       <div className="reader-bar">
         <Link href={`/surah/${surah.number}#${surah.number}:${current}`} className="reader-back">
           <Icon name="book" size={20} />
-          <span>Read</span>
+          <span>{t("easy.read")}</span>
         </Link>
         <div style={{ flex: 1, minWidth: 0, fontFamily: N.ui }}>
           <div
@@ -83,16 +86,19 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
               textOverflow: "ellipsis",
             }}
           >
-            Listen · {surah.transliteration}
+            {t("nav.listen")} · {surah.transliteration}
           </div>
           <div style={{ fontSize: 13.5, color: N.muted }}>
-            Āyah {current} of {surah.ayahCount} · Juz{" "}
-            {juzNumberOf({ sura: surah.number, aya: current })}
+            {tf("dock.position", {
+              aya: current,
+              total: surah.ayahCount,
+              juz: juzNumberOf({ sura: surah.number, aya: current }),
+            })}
           </div>
         </div>
         <Link href="/" className="reader-back">
           <Icon name="home" size={20} />
-          <span>Today</span>
+          <span>{t("nav.today")}</span>
         </Link>
       </div>
 
@@ -110,7 +116,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
           <section
             className="nf-card"
             aria-live="polite"
-            aria-label={`${surah.transliteration}, āyah ${current}`}
+            aria-label={`${surah.transliteration}, ${tf("easy.ayahN", { aya: current })}`}
             style={{
               gap: 14,
               position: "sticky",
@@ -130,7 +136,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
               }}
             >
               <span style={{ fontFamily: N.ui, fontSize: 15, fontWeight: 700, color: N.gold }}>
-                Āyah {current}
+                {tf("dock.ayahN", { aya: current })}
               </span>
               <span
                 className="noor-ar"
@@ -163,7 +169,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
                 disabled={current <= 1}
                 style={{ minWidth: 120 }}
               >
-                ⏮ Previous
+                ⏮ {t("reader.previous")}
               </button>
               <button
                 type="button"
@@ -171,7 +177,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
                 data-play-one={`${surah.number}:${current}`}
                 style={{ minWidth: 150 }}
               >
-                <Icon name="repeat" size={18} /> Play this āyah
+                <Icon name="repeat" size={18} /> {t("listen.playThis")}
               </button>
               <button
                 type="button"
@@ -180,7 +186,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
                 disabled={current >= surah.ayahCount}
                 style={{ minWidth: 120 }}
               >
-                Next ⏭
+                {t("reader.next")} ⏭
               </button>
             </div>
           </section>
@@ -215,14 +221,14 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
           >
             {prev ? (
               <Link href={`/listen/${prev.number}`} className="nf-btn">
-                ← {prev.transliteration}
+                {rtl ? "→" : "←"} {prev.transliteration}
               </Link>
             ) : (
               <span />
             )}
             {next && (
               <Link href={`/listen/${next.number}`} className="nf-btn">
-                {next.transliteration} →
+                {next.transliteration} {rtl ? "←" : "→"}
               </Link>
             )}
           </nav>
@@ -235,7 +241,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
         variant="dock"
         onAyah={onAyah}
         startVerse={() => ({ sura: surah.number, aya: startRef.current })}
-        positionLabel={`Āyah ${current} of ${surah.ayahCount} · tap any āyah to play from it`}
+        positionLabel={tf("listen.position", { aya: current, total: surah.ayahCount })}
       />
     </div>
   );

@@ -442,7 +442,7 @@ export interface PrayerTimingsProvider {
 /** A reading-plan daily-reminder preference. */
 export interface PlanReminderPref {
   on: boolean;
-  /** Local wall-clock time, `HH:MM`. */
+  /** Local wall-clock time `HH:MM`, or a prayer anchor such as `after:maghrib` (ADR 0041). */
   time: string;
 }
 

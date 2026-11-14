@@ -62,3 +62,97 @@ body::-webkit-scrollbar-thumb {
   border-radius: 6px;
   animation: ul-pulse 1.3s ease-in-out infinite;
 }
+
+/* ── Noor for everyone (ADR 0041) ─────────────────────────────────────────
+   Every control: icon + word, at least 44px tall, labels ≥ 13px in Noor text
+   colours (fg/muted clear 4.5:1 on every theme; gold is used for borders and
+   fills only, never small text). Logical properties so RTL mirrors. */
+
+:focus-visible {
+  outline: 2px solid var(--noor-gold);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.ul-plain {
+  text-decoration: none;
+  color: inherit;
+}
+
+.ul-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding-block: 8px;
+  padding-inline: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--noor-border);
+  background: var(--noor-bg2);
+  color: var(--noor-fg);
+  font-family: var(--noor-ui);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-decoration: none;
+  cursor: pointer;
+}
+.ul-btn:hover {
+  background: var(--noor-card-hi);
+}
+.ul-btn--primary {
+  background: var(--noor-gold);
+  border-color: var(--noor-gold);
+  color: var(--noor-ink);
+  font-weight: 700;
+}
+.ul-btn--primary:hover {
+  background: var(--noor-gold-hi);
+}
+.ul-btn--active {
+  border-color: var(--noor-gold);
+  background: var(--noor-gold-soft);
+}
+
+.ul-input {
+  width: 100%;
+  min-height: 44px;
+  padding-block: 10px;
+  padding-inline: 40px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--noor-border);
+  background: var(--noor-bg2);
+  color: var(--noor-fg);
+  font-size: 14px;
+}
+.ul-input::placeholder {
+  color: var(--noor-muted);
+}
+
+.ul-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding-inline: 8px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--noor-fg);
+}
+.ul-row:hover {
+  background: var(--noor-card-hi);
+}
+
+/* Arabic: never letter-spacing, case transforms or synthetic bold; generous
+   line-height so marks above and below the line never collide. */
+.ul-ar,
+:lang(ar) {
+  font-family: var(--noor-ar);
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1.95;
+  color: var(--noor-fg);
+}

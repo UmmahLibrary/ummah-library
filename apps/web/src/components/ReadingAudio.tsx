@@ -15,6 +15,7 @@ import { readReciter, writeReciter } from "../lib/reader-prefs";
 import { LOOP_EVENT, readLoop, readRate, writeLoop, writeRate } from "../lib/reader-prefs-store";
 import { type Segment, bundledSegments } from "../lib/audio-timing";
 import { webAudioStore } from "../lib/audio-store";
+import { useIntl } from "../i18n/I18nProvider";
 
 const RECITER_KEY = "ul.reciter";
 
@@ -121,6 +122,8 @@ export function ReadingAudio({
   above?: ReactNode;
 }) {
   const [reciterId, setReciterId] = useState(reciters[0]?.id ?? "");
+  // Localized strings for the reader dock (the legacy bar stays English).
+  const { t, tf } = useIntl();
   const [current, setCurrent] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [loop, setLoop] = useState(false);
@@ -668,7 +671,7 @@ export function ReadingAudio({
     const pct = pos >= 0 && list.length > 0 ? ((pos + 1) / list.length) * 100 : 0;
     const currentAya = current ? parseKey(current).aya : null;
     const reciterName =
-      reciters.find((r) => r.id === reciterId)?.name ?? reciters[0]?.name ?? "Reciter";
+      reciters.find((r) => r.id === reciterId)?.name ?? reciters[0]?.name ?? t("dock.reciter");
     // Labelled option buttons: icon/value on top, a word underneath, 48px tall.
     const opt = (active: boolean) =>
       ({
@@ -691,15 +694,15 @@ export function ReadingAudio({
         flexShrink: 0,
       }) as const;
     const optionsRow = showOptions ? (
-      <div className="dock-options" role="group" aria-label="Audio options">
+      <div className="dock-options" role="group" aria-label={t("dock.audioOptions")}>
         <button
           type="button"
           onClick={cycleRate}
           style={opt(rate !== 1)}
-          aria-label={`Speed ${rateLabel(rate)}`}
+          aria-label={tf("dock.speedAria", { rate: rateLabel(rate) })}
         >
           <span style={{ fontSize: 15, fontWeight: 800 }}>{rateLabel(rate)}</span>
-          <span>Speed</span>
+          <span>{t("dock.speed")}</span>
         </button>
         <button
           type="button"
@@ -708,11 +711,11 @@ export function ReadingAudio({
           style={opt(showRange)}
         >
           <span style={{ fontSize: 15, fontWeight: 800 }}>A–B</span>
-          <span>Repeat range</span>
+          <span>{t("dock.repeatRange")}</span>
         </button>
         <button type="button" onClick={toggleLoop} aria-pressed={loop} style={opt(loop)}>
           <Icon name="repeat" size={18} />
-          <span>Repeat surah</span>
+          <span>{t("dock.repeatSurah")}</span>
         </button>
         <button
           type="button"
@@ -721,11 +724,19 @@ export function ReadingAudio({
           style={opt(download !== null || allSaved)}
         >
           {download ? (
-            <span style={{ fontSize: 15, fontWeight: 800 }}>{downloadPct}%</span>
+            <span style={{ fontSize: 15, fontWeight: 800 }}>
+              {tf("dock.percent", { n: downloadPct })}
+            </span>
           ) : (
             <Icon name={allSaved ? "check" : "download"} size={18} />
           )}
-          <span>{allSaved ? "Saved offline" : download ? "Saving…" : "Save offline"}</span>
+          <span>
+            {allSaved
+              ? t("dock.savedOffline")
+              : download
+                ? t("dock.saving")
+                : t("dock.saveOffline")}
+          </span>
         </button>
         {reciters.length > 1 && (
           <label
@@ -738,9 +749,9 @@ export function ReadingAudio({
               color: N.muted,
             }}
           >
-            Reciter
+            {t("dock.reciter")}
             <select
-              aria-label="Reciter"
+              aria-label={t("dock.reciter")}
               value={reciterId}
               onChange={(e) => {
                 setReciterId(e.target.value);
@@ -770,8 +781,8 @@ export function ReadingAudio({
       </div>
     ) : null;
     const status = isPlaying
-      ? `${reciterName}${currentAya ? ` · Āyah ${currentAya}` : ""}`
-      : (positionLabel ?? (current ? "Paused" : reciterName));
+      ? `${reciterName}${currentAya ? ` · ${tf("dock.ayahN", { aya: currentAya })}` : ""}`
+      : (positionLabel ?? (current ? t("dock.paused") : reciterName));
     return (
       <div
         className="reader-dock"
@@ -785,7 +796,7 @@ export function ReadingAudio({
             type="button"
             onClick={toggle}
             aria-pressed={isPlaying}
-            aria-label={isPlaying ? "Pause recitation" : "Listen — play recitation"}
+            aria-label={isPlaying ? t("dock.pauseAria") : t("dock.playAria")}
             style={{
               width: 52,
               height: 52,
@@ -803,7 +814,7 @@ export function ReadingAudio({
           </button>
           <div style={{ flex: 1, minWidth: 0, fontFamily: N.ui }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: N.fg }}>
-              {isPlaying ? "Listening" : "Listen"}
+              {isPlaying ? t("dock.listening") : t("dock.listen")}
             </div>
             <div
               style={{
@@ -839,7 +850,7 @@ export function ReadingAudio({
             style={{ color: showOptions ? N.gold : N.muted }}
           >
             <Icon name="settings" size={20} />
-            <span>Options</span>
+            <span>{t("dock.options")}</span>
           </button>
         </div>
       </div>

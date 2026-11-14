@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ayahKey, verseOfDay } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
+import { useT } from "../i18n/I18nProvider";
 
 interface Loaded {
   sura: number;
@@ -50,6 +51,7 @@ const labelStyle = {
  */
 export function HomeVerseOfDay({ nameOf }: { nameOf: (sura: number) => string }) {
   const [v, setV] = useState<Loaded | null>(null);
+  const t = useT();
 
   useEffect(() => {
     const ref = verseOfDay(today());
@@ -76,10 +78,13 @@ export function HomeVerseOfDay({ nameOf }: { nameOf: (sura: number) => string })
       <div style={cardStyle} aria-busy="true">
         <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div className="skeleton-line" style={{ height: "1.8rem", borderRadius: 6 }} />
-          <div className="skeleton-line" style={{ height: "1.8rem", width: "68%", borderRadius: 6 }} />
+          <div
+            className="skeleton-line"
+            style={{ height: "1.8rem", width: "68%", borderRadius: 6 }}
+          />
         </div>
         <div style={{ flex: "1 1 260px" }}>
-          <div style={labelStyle}>Verse of the day</div>
+          <div style={labelStyle}>{t("vod.label")}</div>
           <div className="skeleton-line" style={{ height: "1rem", marginBottom: 8 }} />
           <div className="skeleton-line" style={{ height: "1rem", width: "82%" }} />
         </div>
@@ -101,13 +106,21 @@ export function HomeVerseOfDay({ nameOf }: { nameOf: (sura: number) => string })
         {v.arabic}
       </div>
       <div style={{ flex: "1 1 260px" }}>
-        <div style={labelStyle}>Verse of the day</div>
+        <div style={labelStyle}>{t("vod.label")}</div>
         {v.translation && (
           <div style={{ fontSize: 15.5, lineHeight: 1.65, color: N.muted, fontFamily: N.ui }}>
             {v.translation}
           </div>
         )}
-        <div style={{ fontSize: 13.5, color: N.gold, marginTop: 10, fontWeight: 600, fontFamily: N.ui }}>
+        <div
+          style={{
+            fontSize: 13.5,
+            color: N.gold,
+            marginTop: 10,
+            fontWeight: 600,
+            fontFamily: N.ui,
+          }}
+        >
           {name ? `${name} ${key}` : key}
         </div>
       </div>

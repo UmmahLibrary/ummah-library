@@ -8,6 +8,7 @@
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { DEFAULT_LOCALE, type Locale, localeDir } from "./config";
+import { type FmtVars, fmt, formatNumber } from "./format";
 import { readLocale, writeLocale } from "./locale-store";
 import { MESSAGES, type MessageKey } from "./messages";
 
@@ -18,6 +19,10 @@ interface I18nValue {
 }
 
 const I18nContext = createContext<I18nValue | null>(null);
+
+function lookup(locale: Locale, key: MessageKey): string {
+  return MESSAGES[locale]?.[key] || MESSAGES.en[key] || key;
+}
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
@@ -38,7 +43,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     writeLocale(next);
   };
 
-  const t = (key: MessageKey): string => MESSAGES[locale]?.[key] ?? MESSAGES.en[key] ?? key;
+  const t = (key: MessageKey): string => lookup(locale, key);
 
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
 }
@@ -55,7 +60,33 @@ export function useLocale(): { locale: Locale } {
   return { locale: ctx?.locale ?? DEFAULT_LOCALE };
 }
 
-/** Convenience hook for components that only need the lookup. */
+/** Convenience hook for components that only need the lookup. English outside
+ *  the provider (never throws), so isolated component tests keep working. */
 export function useT(): (key: MessageKey) => string {
-  return useI18n().t;
+  const ctx = useContext(I18nContext);
+  return ctx?.t ?? ((key: MessageKey) => lookup(DEFAULT_LOCALE, key));
+}
+
+export interface Intl18n {
+  locale: Locale;
+  dir: "ltr" | "rtl";
+  t: (key: MessageKey) => string;
+  /** `t()` + `{placeholder}` interpolation; numeric values use the locale's digits. */
+  tf: (key: MessageKey, vars: FmtVars) => string;
+  /** A count in the locale's digits. */
+  num: (n: number) => string;
+}
+
+/** Lookup + interpolation + localized numerals. English outside the provider. */
+export function useIntl(): Intl18n {
+  const ctx = useContext(I18nContext);
+  const locale = ctx?.locale ?? DEFAULT_LOCALE;
+  const t = ctx?.t ?? ((key: MessageKey) => lookup(DEFAULT_LOCALE, key));
+  return {
+    locale,
+    dir: localeDir(locale),
+    t,
+    tf: (key, vars) => fmt(t(key), vars, locale),
+    num: (n) => formatNumber(n, locale),
+  };
 }

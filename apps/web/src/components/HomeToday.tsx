@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   type Coordinates,
-  PRAYER_LABELS,
+  type PrayerName,
   type PrayerTimings,
   computeStreak,
   homeAction,
@@ -21,6 +21,17 @@ import { PRAYER_SETTINGS_EVENT, webPrayerSettingsStore } from "../lib/prayer-set
 import { fmtPrayerTime } from "../lib/prayer-time-format";
 import { COMFORT_EVENT, type Comfort, readComfort } from "../lib/comfort-store";
 import { SpeakButton } from "./SpeakButton";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
+
+const PRAYER_KEY: Record<PrayerName, MessageKey> = {
+  fajr: "prayer.fajr",
+  sunrise: "prayer.sunrise",
+  dhuhr: "prayer.dhuhr",
+  asr: "prayer.asr",
+  maghrib: "prayer.maghrib",
+  isha: "prayer.isha",
+};
 
 /**
  * The top of Home: one card that says what to do now (ADR 0041). A slim prayer
@@ -43,6 +54,7 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [comfort, setComfort] = useState<Comfort | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const { t: tr, tf } = useIntl();
 
   useEffect(() => {
     setReady(true);
@@ -95,10 +107,13 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
 
   const speech =
     action.kind === "continue"
-      ? `${action.welcomeBack ? "Welcome back." : ""} Continue reading ${resumeSurah?.transliteration ?? ""}, āyah ${action.at.aya}. Press Continue to read, or Listen to hear the recitation.`
+      ? `${action.welcomeBack ? tr("home.speakWelcomeBack") : ""} ${tf("home.speakContinue", {
+          surah: resumeSurah?.transliteration ?? "",
+          aya: action.at.aya,
+        })}`
       : action.kind === "done"
-        ? "Today's portion is done. You can stop here, or read a little more."
-        : "Welcome. Start with Al-Fātiḥah, or listen to a short surah.";
+        ? tr("home.speakDone")
+        : tr("home.speakStart");
 
   return (
     <div style={{ display: "grid", gap: 14, marginBottom: 22 }}>
@@ -119,8 +134,10 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
           }}
         >
           <span>
-            <b>{PRAYER_LABELS[near.name]}</b> in{" "}
-            {Math.max(1, Math.round((near.at.getTime() - now.getTime()) / 60000))} minutes
+            <b>{tr(PRAYER_KEY[near.name])}</b>{" "}
+            {tf("home.prayerIn", {
+              min: Math.max(1, Math.round((near.at.getTime() - now.getTime()) / 60000)),
+            })}
           </span>
           <span style={{ color: N.muted }}>{fmtPrayerTime(near.at, coords)}</span>
         </Link>
@@ -145,13 +162,13 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
           >
             {action.kind === "continue"
               ? action.welcomeBack
-                ? "Welcome back"
-                : "Continue reading"
+                ? tr("home.welcomeBack")
+                : tr("home.continueReading")
               : action.kind === "done"
-                ? "Today's portion is done"
-                : "Begin here"}
+                ? tr("home.portionDone")
+                : tr("home.beginHere")}
           </h2>
-          <SpeakButton text={speech} label="Read this card aloud" />
+          <SpeakButton text={speech} label={tr("home.readCardAloud")} />
         </div>
 
         {action.kind === "continue" && resumeSurah && (
@@ -185,13 +202,17 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
               </div>
             </div>
             <div style={{ fontFamily: N.ui, fontSize: 15, color: N.muted }}>
-              Āyah {action.at.aya} of {resumeSurah.ayahCount} · Juz{" "}
-              {safeJuz(action.at.sura, action.at.aya)} · {resumeSurah.englishName}
+              {tf("home.ayahOfJuz", {
+                aya: action.at.aya,
+                total: resumeSurah.ayahCount,
+                juz: safeJuz(action.at.sura, action.at.aya),
+              })}{" "}
+              · {resumeSurah.englishName}
             </div>
             <div
               style={{ height: 8, borderRadius: 8, background: N.bg, overflow: "hidden" }}
               role="progressbar"
-              aria-label="Progress through the surah"
+              aria-label={tr("home.surahProgress")}
               aria-valuenow={Math.round((action.at.aya / resumeSurah.ayahCount) * 100)}
               aria-valuemin={0}
               aria-valuemax={100}
@@ -211,7 +232,7 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
                 style={{ flex: "1 1 160px" }}
               >
                 <Icon name="book" size={20} />
-                Continue
+                {tr("home.continue")}
               </Link>
               <Link
                 href={`/listen/${action.at.sura}#${action.at.aya}`}
@@ -219,7 +240,7 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
                 style={{ flex: "1 1 160px" }}
               >
                 <Icon name="headphones" size={20} />
-                Listen instead
+                {tr("home.listenInstead")}
               </Link>
             </div>
           </>
@@ -228,8 +249,9 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
         {action.kind === "done" && (
           <>
             <p style={{ margin: 0, fontFamily: N.ui, fontSize: 16, color: N.fg }}>
-              You read {reading.pages} {reading.pages === 1 ? "page" : "pages"} today. You can stop
-              here.
+              {tf(reading.pages === 1 ? "home.readPagesOne" : "home.readPagesMany", {
+                n: reading.pages,
+              })}
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {action.at && (
@@ -238,11 +260,11 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
                   className="nf-btn"
                   style={{ flex: "1 1 160px" }}
                 >
-                  Read a little more
+                  {tr("home.readMore")}
                 </Link>
               )}
               <Link href="/goals" className="nf-btn" style={{ flex: "1 1 160px" }}>
-                Change my daily portion
+                {tr("home.changePortion")}
               </Link>
             </div>
           </>
@@ -251,16 +273,16 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
         {action.kind === "start" && (
           <>
             <p style={{ margin: 0, fontFamily: N.ui, fontSize: 16, color: N.fg }}>
-              Start with the opening surah, or listen to a short one.
+              {tr("home.startHint")}
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Link href="/surah/1" className="nf-btn nf-btn--gold" style={{ flex: "1 1 160px" }}>
                 <Icon name="book" size={20} />
-                Read Al-Fātiḥah
+                {tr("home.readFatiha")}
               </Link>
               <Link href="/listen/112" className="nf-btn" style={{ flex: "1 1 160px" }}>
                 <Icon name="headphones" size={20} />
-                Listen to Al-Ikhlāṣ
+                {tr("home.listenIkhlas")}
               </Link>
             </div>
           </>
@@ -284,19 +306,26 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
       >
         <span style={{ display: "grid", gap: 2 }}>
           <b style={{ fontSize: 15.5 }}>
-            Today: {Math.min(reading.pages, reading.goal)} of {reading.goal}{" "}
-            {reading.goal === 1 ? "page" : "pages"}
+            {tf(reading.goal === 1 ? "home.todayPagesOne" : "home.todayPagesMany", {
+              done: Math.min(reading.pages, reading.goal),
+              goal: reading.goal,
+            })}
           </b>
           <span style={{ fontSize: 14, color: N.muted }}>
             {paused
-              ? "Tracking paused — your progress is kept."
-              : `${weekCount} of 7 days this week${
-                  showStreak ? ` · ${computeStreak(reading.activeDates, t)} days in a row` : ""
+              ? tr("home.trackingPaused")
+              : `${tf("home.daysThisWeek", { n: weekCount, total: 7 })}${
+                  showStreak
+                    ? ` · ${tf("home.daysInARow", { n: computeStreak(reading.activeDates, t) })}`
+                    : ""
                 }`}
           </span>
         </span>
         {!paused && (
-          <span className="nf-week" aria-label={`${weekCount} of the last 7 days`}>
+          <span
+            className="nf-week"
+            aria-label={tf("home.lastSevenDays", { n: weekCount, total: 7 })}
+          >
             {week.map((d) => (
               <i
                 key={d.date}

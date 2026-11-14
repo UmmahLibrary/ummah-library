@@ -11,12 +11,7 @@ import { useEffect, useState } from "react";
 import { N } from "@ummahlibrary/ui";
 import type { SyncOutcome } from "@ummahlibrary/core";
 import { generateRecoveryPhrase } from "./lib/sync/web-crypto-cipher";
-import {
-  disableSync,
-  enableSync,
-  isSyncEnabled,
-  readSyncSecret,
-} from "./lib/sync/sync-settings";
+import { disableSync, enableSync, isSyncEnabled, readSyncSecret } from "./lib/sync/sync-settings";
 import { resetSyncRuntime, syncIfEnabled } from "./lib/sync/sync-runtime";
 
 const SERVER_DOWN = "Couldn’t reach the sync server — your data is safe on this device.";
@@ -30,34 +25,36 @@ function outcomeMessage(outcome: SyncOutcome | null): string {
 }
 
 const LABEL_STYLE = {
-  fontSize: 10.5,
-  letterSpacing: 1.2,
-  textTransform: "uppercase",
-  color: N.gold,
+  fontSize: 13,
+  color: N.muted,
   fontWeight: 700,
   fontFamily: N.ui,
 } as const;
 
 const primaryBtn = {
-  padding: "8px 14px",
-  borderRadius: 9,
+  minHeight: 44,
+  paddingBlock: 8,
+  paddingInline: 14,
+  borderRadius: 10,
   border: "1px solid transparent",
   background: N.gold,
   color: N.ink,
   fontWeight: 700,
-  fontSize: 12.5,
+  fontSize: 14,
   cursor: "pointer",
   fontFamily: N.ui,
 } as const;
 
 const secondaryBtn = {
-  padding: "8px 12px",
-  borderRadius: 9,
+  minHeight: 44,
+  paddingBlock: 8,
+  paddingInline: 14,
+  borderRadius: 10,
   border: `1px solid ${N.border}`,
   background: N.bg2,
   color: N.fg,
   fontWeight: 600,
-  fontSize: 12.5,
+  fontSize: 14,
   cursor: "pointer",
   fontFamily: N.ui,
 } as const;
@@ -137,6 +134,7 @@ export function SyncPanel() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          minHeight: 44,
           background: "transparent",
           border: "none",
           padding: 0,
@@ -144,7 +142,7 @@ export function SyncPanel() {
         }}
       >
         <span style={LABEL_STYLE}>Sync across devices</span>
-        <span style={{ fontSize: 11, color: enabled ? N.gold : N.muted, fontFamily: N.ui }}>
+        <span style={{ fontSize: 13, color: enabled ? N.fg : N.muted, fontFamily: N.ui }}>
           {enabled ? "On" : "Off"} {open ? "▴" : "▾"}
         </span>
       </button>
@@ -161,7 +159,7 @@ export function SyncPanel() {
             gap: 10,
           }}
         >
-          <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.5, color: N.muted, fontFamily: N.ui }}>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: N.muted, fontFamily: N.ui }}>
             Keep your theme and Hijri-date setting in step with the Ummah Library app and website —
             end-to-end encrypted, no account.
           </p>
@@ -193,7 +191,7 @@ export function SyncPanel() {
                       border: `1px solid ${N.border}`,
                       color: N.fg,
                       fontFamily: "monospace",
-                      fontSize: 12,
+                      fontSize: 13,
                     }}
                   >
                     {secret}
@@ -218,10 +216,11 @@ export function SyncPanel() {
                     background: "transparent",
                     border: "none",
                     color: DANGER,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontFamily: N.ui,
                     cursor: "pointer",
                     alignSelf: "flex-start",
+                    minHeight: 44,
                     padding: 0,
                   }}
                   onClick={() => setConfirmOff(true)}
@@ -244,10 +243,11 @@ export function SyncPanel() {
                   color: N.fg,
                   border: `1px solid ${N.border}`,
                   borderRadius: 9,
-                  padding: "8px 10px",
-                  fontSize: 12.5,
+                  minHeight: 44,
+                  paddingBlock: 8,
+                  paddingInline: 10,
+                  fontSize: 14,
                   fontFamily: "monospace",
-                  outline: "none",
                 }}
               />
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -271,12 +271,19 @@ export function SyncPanel() {
           )}
 
           {status && (
-            <p style={{ margin: 0, fontSize: 11.5, color: status.ok ? N.gold : DANGER, fontFamily: N.ui }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 13,
+                color: status.ok ? N.fg : DANGER,
+                fontFamily: N.ui,
+              }}
+            >
               {status.message}
             </p>
           )}
 
-          <p style={{ margin: 0, fontSize: 10.5, lineHeight: 1.5, color: N.faint, fontFamily: N.ui }}>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: N.muted, fontFamily: N.ui }}>
             ⚠ Your phrase is the only key — we can’t recover it. If you lose it, the synced data
             can’t be decrypted.
           </p>

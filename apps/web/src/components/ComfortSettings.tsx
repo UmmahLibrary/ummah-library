@@ -11,6 +11,7 @@ import {
 } from "../lib/comfort-store";
 import { readTransliteration, writeTransliteration } from "../lib/transliteration";
 import { SizeControls } from "./SizeControls";
+import { useT } from "../i18n/I18nProvider";
 
 function Switch({
   id,
@@ -51,6 +52,7 @@ function Switch({
 export function ComfortSettings() {
   const [c, setC] = useState<Comfort>(DEFAULT_COMFORT);
   const [translit, setTranslit] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     const refresh = () => setC(readComfort());
@@ -70,7 +72,7 @@ export function ComfortSettings() {
       style={{ display: "grid", gap: 14, scrollMarginTop: 80 }}
     >
       <h2 id="comfort-title" style={h}>
-        Reading comfort
+        {t("comfort.title")}
       </h2>
       <SizeControls />
 
@@ -79,8 +81,8 @@ export function ComfortSettings() {
           id="comfort-tr-soft"
           on={c.trEmphasis === "soft"}
           onChange={(v) => set({ trEmphasis: v ? "soft" : "equal" })}
-          title="Softer translation colour"
-          note="Make the translation quieter than the Arabic"
+          title={t("comfort.softTitle")}
+          note={t("comfort.softNote")}
         />
         <Switch
           id="comfort-translit"
@@ -89,65 +91,65 @@ export function ComfortSettings() {
             setTranslit(v);
             void writeTransliteration(v);
           }}
-          title="Show transliteration"
-          note="The Arabic sounds in Latin letters under each āyah"
+          title={t("comfort.translitTitle")}
+          note={t("comfort.translitNote")}
         />
         <Switch
           id="comfort-dyslexia"
           on={c.dyslexia}
           onChange={(v) => set({ dyslexia: v })}
-          title="Dyslexia-friendly spacing"
-          note="Wider letter and line spacing for Latin-script translations (never the Arabic)"
+          title={t("comfort.dyslexiaTitle")}
+          note={t("comfort.dyslexiaNote")}
         />
         <Switch
           id="comfort-large"
           on={c.largeButtons}
           onChange={(v) => set({ largeButtons: v })}
-          title="Larger buttons"
-          note="Bigger targets everywhere, easier for shaky hands"
+          title={t("comfort.largeTitle")}
+          note={t("comfort.largeNote")}
         />
         <Switch
           id="comfort-motion"
           on={c.reduceMotion}
           onChange={(v) => set({ reduceMotion: v })}
-          title="Reduce motion"
-          note="No sliding or animated scrolling"
+          title={t("comfort.motionTitle")}
+          note={t("comfort.motionNote")}
         />
       </div>
 
-      <h2 style={{ ...h, marginTop: 8 }}>Modes</h2>
+      <h2 style={{ ...h, marginTop: 8 }}>{t("comfort.modes")}</h2>
       <div style={{ display: "grid", gap: 8 }}>
         <Switch
           id="comfort-easy"
           on={c.mode === "easy"}
           onChange={(v) => set({ mode: v ? "easy" : "standard" })}
-          title="Easy mode"
-          note="Three big buttons — Continue, Listen, Choose a surah — and a big Back on every page"
+          title={t("comfort.easyTitle")}
+          note={t("comfort.easyNote")}
         />
         <Switch
           id="comfort-kids"
           on={c.mode === "kids"}
           onChange={(v) => set({ mode: v ? "kids" : "standard" })}
-          title="Kids mode"
-          note="Short surahs, word audio, no streaks or notifications"
+          title={t("comfort.kidsTitle")}
+          note={t("comfort.kidsNote")}
         />
       </div>
 
-      <h2 style={{ ...h, marginTop: 8 }}>Daily habit</h2>
+      <h2 style={{ ...h, marginTop: 8 }}>{t("comfort.habit")}</h2>
       <div style={{ display: "grid", gap: 8 }}>
         <Switch
           id="comfort-streaks"
           on={c.showStreaks}
           onChange={(v) => set({ showStreaks: v })}
-          title="Show “days in a row”"
-          note="Off by default. Home shows how many days you read this week instead."
+          title={t("comfort.streakTitle")}
+          note={t("comfort.streakNote")}
         />
         <Switch
           id="comfort-pause"
           on={c.trackingPaused}
           onChange={(v) => set({ trackingPaused: v })}
-          title="Pause tracking"
-          note="Take a break from habit tracking for any reason. Your progress is kept."
+          title={t("comfort.pauseTitle")}
+          note={t("comfort.pauseNote")}
         />
       </div>
     </section>

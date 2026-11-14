@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Hanken_Grotesk, IBM_Plex_Sans_Arabic, Amiri } from "next/font/google";
+import { Hanken_Grotesk, IBM_Plex_Sans_Arabic, Amiri, Noto_Nastaliq_Urdu } from "next/font/google";
 import { ServiceWorkerRegister } from "../components/ServiceWorkerRegister";
 import { AdhkarReminderBanner } from "../components/AdhkarReminderBanner";
 import { PrayerReminderScheduler } from "../components/PrayerReminderScheduler";
@@ -38,6 +38,16 @@ const amiri = Amiri({
   weight: ["400", "700"],
   variable: "--font-amiri",
   display: "swap",
+});
+
+/* Urdu interface text (html[lang="ur"], noor-everyone.css) and Urdu translations.
+   Not preloaded: only fetched when an Urdu reader actually needs it. */
+const nastaliq = Noto_Nastaliq_Urdu({
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  variable: "--font-nastaliq",
+  display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -113,7 +123,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       translate="no"
-      className={`${hanken.variable} ${ibmArabic.variable} ${amiri.variable} notranslate`}
+      className={`${hanken.variable} ${ibmArabic.variable} ${amiri.variable} ${nastaliq.variable} notranslate`}
       suppressHydrationWarning
     >
       <head>

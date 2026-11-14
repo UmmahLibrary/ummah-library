@@ -8,6 +8,7 @@ import {
   addDays,
   computeStreak,
   daysBetween,
+  daysThisWeek,
   goalMet,
   khatmaDailyTarget,
   progressFraction,
@@ -15,12 +16,15 @@ import {
 import {
   READING_EVENT,
   clearKhatma,
+  markActivity,
   readReadingState,
   today,
   writeGoal,
   writeKhatma,
 } from "../lib/reading-goals";
 import { N } from "@ummahlibrary/ui";
+import { KhatmJourney } from "./KhatmJourney";
+import { COMFORT_EVENT, readComfort } from "../lib/comfort-store";
 
 const lcard = { background: N.card, border: `1px solid ${N.border}`, borderRadius: 16 } as const;
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"] as const;
@@ -64,6 +68,10 @@ function lastSevenDays(log: Record<string, number>) {
 export function ReadingGoalsView() {
   const [goal, setGoal] = useState(4);
   const [streak, setStreak] = useState(0);
+  const [weekDays, setWeekDays] = useState(0);
+  const [showStreak, setShowStreak] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [loggedToday, setLoggedToday] = useState(false);
   const [pages, setPages] = useState(0);
   const [week, setWeek] = useState<{ label: string; pages: number; isToday: boolean }[]>([]);
   const [khatma, setKhatma] = useState<KhatmaPlan | null>(null);
@@ -74,14 +82,26 @@ export function ReadingGoalsView() {
       void readReadingState().then((s) => {
         setGoal(s.goal);
         setStreak(computeStreak(s.activeDates, today()));
+        setWeekDays(daysThisWeek(s.activeDates, today()));
+        setLoggedToday(s.activeDates.includes(today()));
         setPages(s.pagesToday);
         setWeek(lastSevenDays(s.log));
         setKhatma(s.khatma);
       });
+    const refreshComfort = () => {
+      const c = readComfort();
+      setShowStreak(c.showStreaks);
+      setPaused(c.trackingPaused);
+    };
     refresh();
+    refreshComfort();
     setReady(true);
     window.addEventListener(READING_EVENT, refresh);
-    return () => window.removeEventListener(READING_EVENT, refresh);
+    window.addEventListener(COMFORT_EVENT, refreshComfort);
+    return () => {
+      window.removeEventListener(READING_EVENT, refresh);
+      window.removeEventListener(COMFORT_EVENT, refreshComfort);
+    };
   }, []);
 
   function changeGoal(next: number) {
@@ -272,10 +292,12 @@ export function ReadingGoalsView() {
           >
             <div>
               <div style={{ fontSize: 30, fontWeight: 800, color: N.gold, fontFamily: N.ui }}>
-                {streak} day{streak === 1 ? "" : "s"}
+                {paused ? "Paused" : `${weekDays} of 7`}
               </div>
-              <div style={{ fontSize: 13, color: N.faint, fontFamily: N.ui }}>
-                Current streak 🔥
+              <div style={{ fontSize: 14, color: N.muted, fontFamily: N.ui }}>
+                {paused
+                  ? "Tracking is paused — your progress is kept"
+                  : `days this week${showStreak ? ` · ${streak} in a row` : ""}`}
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -364,8 +386,21 @@ export function ReadingGoalsView() {
         <Link href="/page/1" style={{ color: N.gold, fontWeight: 600 }}>
           Mushaf view
         </Link>{" "}
-        count automatically — reading anywhere keeps your streak.
+        count automatically, and so does listening. Reading from a printed mushaf counts too.
       </p>
+
+      <div style={{ marginTop: 14 }}>
+        <button
+          type="button"
+          className="nf-btn"
+          disabled={loggedToday}
+          onClick={() => void markActivity().then(() => setLoggedToday(true))}
+        >
+          {loggedToday ? "✓ Today is counted" : "I read from a printed mushaf today"}
+        </button>
+      </div>
+
+      <KhatmJourney currentPage={khatma?.currentPage ?? 0} active={!!khatma} />
     </div>
   );
 }

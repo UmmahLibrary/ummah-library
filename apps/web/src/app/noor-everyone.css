@@ -807,3 +807,55 @@ html[data-app-mode="easy"] .easy-bar {
   background: var(--noor-bg2);
   flex-shrink: 0;
 }
+
+/* ---- Interface language typography (ADR 0040, wave 1) ----
+   Only interface text changes face. Quranic text (.arabic, .ayah-ar, .mushaf,
+   .basmala, [data-quran-text]) keeps its own font-family rules, which win over
+   inheritance; the guard below also restores the UI variable inside those
+   subtrees so nothing Quranic ever picks up the Urdu/Arabic UI face. */
+html[lang="ur"] body {
+  --noor-ui:
+    var(--font-nastaliq, "Noto Nastaliq Urdu"), var(--font-hanken, "Hanken Grotesk"), system-ui,
+    sans-serif;
+  font-family: var(--noor-ui);
+  line-height: 1.9;
+}
+/* Nastaliq stacks vertically: give single-line controls room so marks aren't clipped. */
+html[lang="ur"] body :is(button, .nf-btn, .nf-tile, .reader-title, .goto-tab, input) {
+  line-height: 1.9;
+}
+/* Arabic interface text: the existing --noor-ar face (IBM Plex Sans Arabic). */
+html[lang="ar"] body {
+  --noor-ui:
+    var(--font-ibm-arabic, "IBM Plex Sans Arabic"), var(--font-hanken, "Hanken Grotesk"), system-ui,
+    sans-serif;
+  font-family: var(--noor-ui);
+}
+/* Arabic-script UI: letter-spacing breaks letter joining, so it is always 0. */
+html:is([lang="ur"], [lang="ar"]) body * {
+  letter-spacing: 0 !important;
+}
+html:is([lang="ur"], [lang="ar"]) :is(.arabic, .ayah-ar, .mushaf, .basmala, [data-quran-text]) {
+  --noor-ui: var(--font-hanken, "Hanken Grotesk"), system-ui, sans-serif;
+}
+
+/* Juzʾ reader: Recite sits in the page flow; its tray opens beneath it. */
+.recite-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.recite-inline .dock-lbtn {
+  flex-direction: row;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--noor-border);
+  font-size: 14px;
+}
+.recite-inline .recite-tray {
+  position: static;
+  box-shadow: none;
+  max-width: 100%;
+}

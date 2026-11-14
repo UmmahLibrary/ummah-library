@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { nextDailyReminder } from "@ummahlibrary/core";
+import { type PrayerTimings, isPrayerAnchor, resolveReminderTime } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
 import {
   DEFAULT_PLAN_REMINDER_TIME,
@@ -9,13 +9,20 @@ import {
   setPlanReminderPref,
 } from "../lib/plan-reminders";
 import { WebNotifier } from "../lib/web-notifier";
+import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
+
+/** When the daily nudge comes: anchored to a prayer, or a clock time (ADR 0041). */
+const ANCHORS: { value: string; label: string }[] = [
+  { value: "after:fajr", label: "After Fajr" },
+  { value: "after:maghrib", label: "After Maghrib" },
+  { value: "after:isha", label: "After ʿIshāʾ" },
+  { value: "clock", label: "At a time I choose" },
+];
 
 const notifier = new WebNotifier();
 
-const fmtTime = (d: Date) =>
-  d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-const fmtDay = (d: Date) =>
-  d.toDateString() === new Date().toDateString() ? "today" : "tomorrow";
+const fmtTime = (d: Date) => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const fmtDay = (d: Date) => (d.toDateString() === new Date().toDateString() ? "today" : "tomorrow");
 
 /**
  * Opt-in daily reminder for the active plan (#71): a single nudge at a chosen
@@ -26,9 +33,14 @@ export function PlanReminderToggle() {
   const [time, setTime] = useState(DEFAULT_PLAN_REMINDER_TIME);
   const [denied, setDenied] = useState(false);
   const [ready, setReady] = useState(false);
+  const [timings, setTimings] = useState<PrayerTimings | null>(null);
+  // The last clock time, kept while an anchor is selected so switching back restores it.
+  const [clock, setClock] = useState(DEFAULT_PLAN_REMINDER_TIME);
 
   useEffect(() => {
+    void webPrayerTimingsProvider.getTodaysTimings().then((t) => setTimings(t ?? null));
     void readPlanReminderPref().then((p) => {
+      if (!isPrayerAnchor(p.time)) setClock(p.time);
       setOn(p.on);
       setTime(p.time);
       setDenied(notifier.permission() === "denied");
@@ -54,7 +66,8 @@ export function PlanReminderToggle() {
   }
 
   if (!ready) return null;
-  const next = on ? nextDailyReminder(time, new Date()) : null;
+  const next = on ? resolveReminderTime(time, timings, new Date()) : null;
+  const anchorValue = isPrayerAnchor(time) ? time : "clock";
 
   return (
     <div
@@ -66,13 +79,16 @@ export function PlanReminderToggle() {
         background: N.card,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
+      <div
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Icon name="bell" size={17} color={on ? N.gold : N.muted} sw={1.8} />
           <div>
             <strong style={{ color: N.fg, fontFamily: N.ui, fontSize: 14 }}>Daily reminder</strong>
             <p style={{ margin: "2px 0 0", color: N.muted, fontSize: 12.5, fontFamily: N.ui }}>
-              A gentle nudge for today’s portion. Works while Ummah Library is open.
+              One gentle nudge a day for today’s portion, at a time you choose. Works while Ummah
+              Library is open.
             </p>
           </div>
         </div>
@@ -83,7 +99,8 @@ export function PlanReminderToggle() {
           onClick={() => void toggle()}
           style={{
             flexShrink: 0,
-            padding: "7px 14px",
+            minHeight: 44,
+            padding: "7px 16px",
             borderRadius: 999,
             border: `1px solid ${on ? N.gold : N.border}`,
             background: on ? N.goldSoft : N.card,
@@ -94,34 +111,86 @@ export function PlanReminderToggle() {
             cursor: "pointer",
           }}
         >
-          {on ? "🔔 On" : "🔕 Off"}
+          {on ? "On" : "Off"}
         </button>
       </div>
 
       {on && (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, color: N.muted, fontSize: 13, fontFamily: N.ui }}>
-            Remind me at
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => changeTime(e.target.value)}
+        <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+          <div
+            role="radiogroup"
+            aria-label="When to remind me"
+            style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
+          >
+            {ANCHORS.map((a) => {
+              const active = anchorValue === a.value;
+              return (
+                <button
+                  key={a.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => changeTime(a.value === "clock" ? clock : a.value)}
+                  style={{
+                    minHeight: 44,
+                    padding: "8px 14px",
+                    borderRadius: 999,
+                    border: `1px solid ${active ? N.gold : N.border}`,
+                    background: active ? N.goldSoft : N.card,
+                    color: active ? N.gold : N.fg,
+                    fontFamily: N.ui,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  {a.label}
+                </button>
+              );
+            })}
+          </div>
+          {anchorValue === "clock" && (
+            <label
               style={{
-                padding: "6px 10px",
-                borderRadius: 10,
-                border: `1px solid ${N.border}`,
-                background: N.cardHi,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
                 color: N.fg,
+                fontSize: 14,
                 fontFamily: N.ui,
-                fontSize: 13,
               }}
-            />
-          </label>
-          {next && (
-            <span style={{ color: N.faint, fontSize: 12.5, fontFamily: N.ui }}>
+            >
+              Remind me at
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => {
+                  setClock(e.target.value);
+                  changeTime(e.target.value);
+                }}
+                style={{
+                  minHeight: 44,
+                  padding: "6px 10px",
+                  borderRadius: 10,
+                  border: `1px solid ${N.border}`,
+                  background: N.cardHi,
+                  color: N.fg,
+                  fontFamily: N.ui,
+                  fontSize: 15,
+                }}
+              />
+            </label>
+          )}
+          {next ? (
+            <span style={{ color: N.muted, fontSize: 14, fontFamily: N.ui }}>
               Next: {fmtDay(next)} at {fmtTime(next)}
             </span>
-          )}
+          ) : isPrayerAnchor(time) ? (
+            <span style={{ color: N.muted, fontSize: 14, fontFamily: N.ui }}>
+              Set your location in Prayer Times so we know when{" "}
+              {ANCHORS.find((a) => a.value === time)?.label.replace("After ", "")} is.
+            </span>
+          ) : null}
         </div>
       )}
 

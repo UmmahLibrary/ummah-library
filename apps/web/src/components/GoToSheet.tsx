@@ -14,6 +14,7 @@ import {
   parseGoTo,
 } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
+import { useIntl } from "../i18n/I18nProvider";
 
 type Tab = "surah" | "juz" | "hizb" | "page";
 
@@ -37,6 +38,7 @@ export function GoToSheet({
   onGo: (target: GoToTarget) => void;
 }) {
   const [query, setQuery] = useState("");
+  const { t: tr, tf, num, dir } = useIntl();
   const [tab, setTab] = useState<Tab>("surah");
   const [tried, setTried] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -115,11 +117,11 @@ export function GoToSheet({
             id="goto-title"
             style={{ margin: 0, fontFamily: N.ui, fontSize: 20, fontWeight: 800, color: N.fg }}
           >
-            Go to
+            {tr("goto.title")}
           </h2>
           <button type="button" className="goto-close" onClick={onClose}>
             <Icon name="close" size={18} />
-            <span>Close</span>
+            <span>{tr("goto.close")}</span>
           </button>
         </div>
         <form
@@ -130,7 +132,7 @@ export function GoToSheet({
           style={{ display: "flex", gap: 8 }}
         >
           <label htmlFor="goto-input" className="sr-only">
-            Surah, āyah, juz or page
+            {tr("goto.inputLabel")}
           </label>
           <input
             id="goto-input"
@@ -141,7 +143,9 @@ export function GoToSheet({
             autoComplete="off"
             spellCheck={false}
             placeholder={
-              currentSurah ? `Āyah number, 2:255, kahf, juz 15…` : `2:255, kahf, juz 15, page 300…`
+              currentSurah
+                ? tf("goto.placeholderInSurah", { examples: "2:255, kahf, juz 15…" })
+                : "2:255, kahf, juz 15, page 300…"
             }
             value={query}
             aria-invalid={tried && !target}
@@ -152,29 +156,33 @@ export function GoToSheet({
             }}
           />
           <button type="submit" className="goto-go" disabled={!target}>
-            Go
+            {tr("goto.go")}
           </button>
         </form>
         <div id="goto-hint" aria-live="polite" className="goto-preview">
           {target ? (
             <button type="button" className="goto-match" onClick={() => go(target)}>
-              <Icon name="arrowR" size={16} />
+              <Icon name={dir === "rtl" ? "arrowL" : "arrowR"} size={16} />
               <span>{describeGoTo(target, names)}</span>
             </button>
           ) : tried && query ? (
             <span style={{ color: N.gold }}>
-              That isn't a place in the Quran. Try “2:255”, “kahf 10”, “juz 15” or “page 300”.
+              {tf("goto.notFound", { examples: "“2:255”, “kahf 10”, “juz 15”, “page 300”" })}
             </span>
           ) : (
-            <span>Also understands: baqarah 255 · ٢:٢٥٥ · para 15 · page 300 · hizb 30</span>
+            <span>
+              {tf("goto.alsoUnderstands", {
+                examples: "baqarah 255 · ٢:٢٥٥ · para 15 · page 300 · hizb 30",
+              })}
+            </span>
           )}
         </div>
 
-        <div role="tablist" aria-label="Choose by" className="goto-tabs">
-          {tabBtn("surah", "Surah")}
-          {tabBtn("juz", "Juz")}
-          {tabBtn("hizb", "Hizb")}
-          {tabBtn("page", "Page")}
+        <div role="tablist" aria-label={tr("goto.chooseBy")} className="goto-tabs">
+          {tabBtn("surah", tr("goto.tabSurah"))}
+          {tabBtn("juz", tr("goto.tabJuz"))}
+          {tabBtn("hizb", tr("goto.tabHizb"))}
+          {tabBtn("page", tr("goto.tabPage"))}
         </div>
 
         <div className="goto-list" role="tabpanel">
@@ -187,11 +195,12 @@ export function GoToSheet({
                 data-current={s.number === currentSurah ? "true" : undefined}
                 onClick={() => go({ kind: "surah", sura: s.number, aya: 1 })}
               >
-                <span className="goto-num">{s.number}</span>
+                <span className="goto-num">{num(s.number)}</span>
                 <span style={{ flex: 1, minWidth: 0, textAlign: "start" }}>
                   <b>{s.transliteration}</b>
                   <small>
-                    {s.englishName} · {AYAH_COUNTS[s.number - 1]} āyāt
+                    {s.englishName} ·{" "}
+                    {tf("reader.ayatCount", { n: AYAH_COUNTS[s.number - 1] ?? 0 })}
                   </small>
                 </span>
                 <span className="goto-ar" lang="ar" dir="rtl">
@@ -203,7 +212,7 @@ export function GoToSheet({
             <div className="goto-grid">
               {JUZ_STARTS.map((v, i) =>
                 cell(
-                  `Juz ${i + 1}`,
+                  tf("goto.juzN", { n: i + 1 }),
                   `${v.sura}:${v.aya}`,
                   { kind: "juz", sura: v.sura, aya: v.aya, n: i + 1 },
                   `j${i}`,
@@ -215,7 +224,7 @@ export function GoToSheet({
             <div className="goto-grid">
               {HIZB_STARTS.map((v, i) =>
                 cell(
-                  `Hizb ${i + 1}`,
+                  tf("goto.hizbN", { n: i + 1 }),
                   `${v.sura}:${v.aya}`,
                   { kind: "hizb", sura: v.sura, aya: v.aya, n: i + 1 },
                   `h${i}`,
@@ -228,7 +237,7 @@ export function GoToSheet({
               {Array.from({ length: TOTAL_PAGES_MADANI }, (_, i) => {
                 const v = PAGE_STARTS[i]!;
                 return cell(
-                  String(i + 1),
+                  num(i + 1),
                   `${v.sura}:${v.aya}`,
                   { kind: "page", sura: v.sura, aya: v.aya, n: i + 1 },
                   `p${i}`,

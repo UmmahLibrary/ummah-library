@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@ummahlibrary/ui";
-import { useLocale } from "../i18n/I18nProvider";
+import { useIntl } from "../i18n/I18nProvider";
 
 /**
  * "Read this aloud" for interface text, for people who don't read well
@@ -10,10 +10,11 @@ import { useLocale } from "../i18n/I18nProvider";
  * Interface text only — Quranic Arabic is never synthesised: recitation always
  * comes from recorded reciters.
  */
-export function SpeakButton({ text, label = "Read aloud" }: { text: string; label?: string }) {
+export function SpeakButton({ text, label }: { text: string; label?: string }) {
   const [supported, setSupported] = useState(false);
   const [speaking, setSpeaking] = useState(false);
-  const { locale } = useLocale();
+  const { locale, t } = useIntl();
+  const idleLabel = label ?? t("speak.readAloud");
 
   useEffect(() => {
     setSupported(typeof window !== "undefined" && "speechSynthesis" in window);
@@ -51,8 +52,8 @@ export function SpeakButton({ text, label = "Read aloud" }: { text: string; labe
       className="nf-speak"
       onClick={toggle}
       aria-pressed={speaking}
-      aria-label={speaking ? "Stop reading aloud" : label}
-      title={speaking ? "Stop" : label}
+      aria-label={speaking ? t("speak.stopReading") : idleLabel}
+      title={speaking ? t("speak.stop") : idleLabel}
     >
       <Icon name={speaking ? "close" : "headphones"} size={18} />
     </button>

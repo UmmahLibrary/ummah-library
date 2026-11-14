@@ -19,7 +19,7 @@ export function Sidebar() {
         width: 250,
         flexShrink: 0,
         background: N.bg2,
-        borderRight: `1px solid ${N.borderSoft}`,
+        borderInlineEnd: `1px solid ${N.borderSoft}`,
         padding: "24px 16px",
         display: "flex",
         flexDirection: "column",
@@ -35,7 +35,7 @@ export function Sidebar() {
       </div>
 
       {/* Today, then the four groups */}
-      <nav style={{ flex: 1 }} aria-label="Main">
+      <nav style={{ flex: 1 }} aria-label={t("shell.mainNav")}>
         <Link
           href="/"
           aria-current={pathname === "/" ? "page" : undefined}

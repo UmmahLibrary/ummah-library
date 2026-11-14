@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useIntl } from "../i18n/I18nProvider";
 
 /**
  * A deliberate "press and hold" button (about 2 seconds) for leaving Easy or
@@ -17,6 +18,7 @@ export function HoldButton({
   ms?: number;
 }) {
   const [progress, setProgress] = useState(0);
+  const { t, dir } = useIntl();
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const started = useRef(0);
 
@@ -57,10 +59,10 @@ export function HoldButton({
         position: "relative",
         overflow: "hidden",
         fontSize: 14,
-        background: `linear-gradient(90deg, var(--noor-gold-soft) ${progress * 100}%, transparent ${progress * 100}%)`,
+        background: `linear-gradient(${dir === "rtl" ? "270deg" : "90deg"}, var(--noor-gold-soft) ${progress * 100}%, transparent ${progress * 100}%)`,
       }}
     >
-      {progress > 0 ? "Keep holding…" : label}
+      {progress > 0 ? t("hold.keepHolding") : label}
     </button>
   );
 }

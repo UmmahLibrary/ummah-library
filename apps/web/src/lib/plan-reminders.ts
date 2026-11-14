@@ -14,6 +14,7 @@ import {
 } from "@ummahlibrary/core";
 import { webPlanStore } from "./plan-store";
 import { webReminderStore } from "./reminder-store";
+import { webPrayerTimingsProvider } from "./prayer-timings-provider";
 
 export { DEFAULT_PLAN_REMINDER_TIME, PLAN_REMINDER_ID };
 export type { PlanReminderPref };
@@ -37,6 +38,8 @@ export function syncPlanReminder(notifier: Notifier): Promise<void> {
     notifier,
     reminders: webReminderStore,
     plans: webPlanStore,
+    // Resolves prayer anchors like "after:maghrib" (ADR 0041).
+    timings: webPrayerTimingsProvider,
     now: () => new Date(),
   });
 }

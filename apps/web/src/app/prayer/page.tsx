@@ -4,7 +4,7 @@ import { ToolsPrayerCard } from "../../components/ToolsPrayerCard";
 
 export default function PrayerHub() {
   return (
-    <HubPage destination="prayer" intro="Prayer times, your prayer log and the qibla.">
+    <HubPage destination="prayer" intro="hub.prayerIntro">
       <ToolsPrayerCard />
     </HubPage>
   );

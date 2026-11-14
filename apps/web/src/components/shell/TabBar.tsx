@@ -15,7 +15,7 @@ export function TabBar() {
   const current = destinationOf(pathname);
   return (
     <nav
-      aria-label="Main"
+      aria-label={t("shell.mainNav")}
       style={{
         borderTop: `1px solid ${N.border}`,
         background: N.bg2,

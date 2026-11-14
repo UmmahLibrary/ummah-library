@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Khatam, N } from "@ummahlibrary/ui";
 import { markOnboarded } from "../lib/onboarding-store";
-import { useI18n } from "../i18n/I18nProvider";
+import { useI18n, useIntl, useT } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
 import { LOCALES, type Locale } from "../i18n/config";
 import { SCRIPT_INDOPAK_CLASS, fetchSurahIndopak, readScript, writeScript } from "../lib/script";
 import type { QuranScript } from "@ummahlibrary/core";
@@ -27,12 +28,12 @@ import { SpeakButton } from "./SpeakButton";
 const STEPS = ["language", "script", "size", "theme", "path"] as const;
 type Step = (typeof STEPS)[number];
 
-const TITLES: Record<Step, string> = {
-  language: "Choose your language",
-  script: "Which looks like your mushaf?",
-  size: "Make the text comfortable",
-  theme: "Light or dark?",
-  path: "How do you usually take in the Quran?",
+const TITLES: Record<Step, MessageKey> = {
+  language: "onb.titleLanguage",
+  script: "onb.titleScript",
+  size: "onb.titleSize",
+  theme: "onb.titleTheme",
+  path: "onb.titlePath",
 };
 
 export function Onboarding() {
@@ -40,6 +41,7 @@ export function Onboarding() {
   const [i, setI] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
   const primaryRef = useRef<HTMLButtonElement>(null);
+  const { t, tf, dir } = useIntl();
 
   useEffect(() => {
     if (document.documentElement.dataset.onboard === "1") setShow(true);
@@ -128,10 +130,10 @@ export function Onboarding() {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Khatam size={34} color={N.gold} sw={1.4} />
             <span style={{ fontSize: 14, color: N.muted, fontWeight: 600 }}>
-              Step {i + 1} of {STEPS.length}
+              {tf("onb.stepOf", { n: i + 1, total: STEPS.length })}
             </span>
           </div>
-          <SpeakButton text={TITLES[step]} label="Read this question aloud" />
+          <SpeakButton text={t(TITLES[step])} label={t("onb.readQuestion")} />
         </div>
 
         <div style={{ display: "flex", gap: 6 }} aria-hidden="true">
@@ -152,7 +154,7 @@ export function Onboarding() {
           id="ul-setup-title"
           style={{ margin: 0, fontSize: 26, fontWeight: 800, lineHeight: 1.25 }}
         >
-          {TITLES[step]}
+          {t(TITLES[step])}
         </h1>
 
         <div style={{ display: "grid", gap: 10 }}>
@@ -165,10 +167,10 @@ export function Onboarding() {
 
         <div style={{ marginTop: "auto", display: "grid", gap: 10, paddingTop: 12 }}>
           <button ref={primaryRef} type="button" className="nf-btn nf-btn--gold" onClick={next}>
-            {last ? "Start reading" : "Next"}
+            {last ? t("onb.startReading") : t("onb.next")}
           </button>
           <button type="button" className="nf-btn" onClick={finish}>
-            Skip, use these settings
+            {t("onb.skip")}
           </button>
           {i > 0 && (
             <button
@@ -177,7 +179,7 @@ export function Onboarding() {
               style={{ border: "none", color: N.muted, minHeight: 44 }}
               onClick={() => setI((n) => n - 1)}
             >
-              ← Back
+              {dir === "rtl" ? "→" : "←"} {t("onb.back")}
             </button>
           )}
         </div>
@@ -242,6 +244,7 @@ function LanguageStep({ onPick }: { onPick: () => void }) {
 function ScriptStep({ onPick }: { onPick: () => void }) {
   const [script, setScript] = useState<QuranScript | null>(null);
   const [indopak, setIndopak] = useState<string | null>(null);
+  const t = useT();
 
   useEffect(() => {
     void readScript().then(setScript);
@@ -262,7 +265,11 @@ function ScriptStep({ onPick }: { onPick: () => void }) {
 
   return (
     <>
-      <Choice on={script === "indopak"} onClick={() => choose("indopak")} label="IndoPak script">
+      <Choice
+        on={script === "indopak"}
+        onClick={() => choose("indopak")}
+        label={t("onb.indopakScript")}
+      >
         <span style={{ display: "grid", gap: 4, width: "100%" }}>
           {indopak ? (
             <span
@@ -274,10 +281,14 @@ function ScriptStep({ onPick }: { onPick: () => void }) {
               {indopak}
             </span>
           ) : null}
-          <span style={{ fontSize: 15 }}>IndoPak — as printed in South Asia</span>
+          <span style={{ fontSize: 15 }}>{t("onb.indopakNote")}</span>
         </span>
       </Choice>
-      <Choice on={script === "uthmani"} onClick={() => choose("uthmani")} label="Uthmani script">
+      <Choice
+        on={script === "uthmani"}
+        onClick={() => choose("uthmani")}
+        label={t("onb.uthmaniScript")}
+      >
         <span style={{ display: "grid", gap: 4, width: "100%" }}>
           <span
             className="arabic"
@@ -288,7 +299,7 @@ function ScriptStep({ onPick }: { onPick: () => void }) {
           >
             {SAMPLE_FATIHA_2.arabic}
           </span>
-          <span style={{ fontSize: 15 }}>Uthmani (Madani) — as printed in Madinah</span>
+          <span style={{ fontSize: 15 }}>{t("onb.uthmaniNote")}</span>
         </span>
       </Choice>
     </>
@@ -297,6 +308,7 @@ function ScriptStep({ onPick }: { onPick: () => void }) {
 
 function ThemeStep({ onPick }: { onPick: () => void }) {
   const [mode, setMode] = useState<string>("");
+  const t = useT();
   useEffect(() => setMode(document.documentElement.dataset.mode ?? ""), []);
   const pick = (key: "ivory" | "obsidian") => {
     applyTheme(key);
@@ -307,19 +319,17 @@ function ThemeStep({ onPick }: { onPick: () => void }) {
     <>
       <Choice on={mode === "light"} onClick={() => pick("ivory")}>
         <span style={{ display: "grid", gap: 2 }}>
-          <span style={{ fontSize: 17, fontWeight: 700 }}>Light</span>
-          <small>Best in daylight and for most eyes</small>
+          <span style={{ fontSize: 17, fontWeight: 700 }}>{t("onb.light")}</span>
+          <small>{t("onb.lightNote")}</small>
         </span>
       </Choice>
       <Choice on={mode === "dark"} onClick={() => pick("obsidian")}>
         <span style={{ display: "grid", gap: 2 }}>
-          <span style={{ fontSize: 17, fontWeight: 700 }}>Dark</span>
-          <small>Gentle at night</small>
+          <span style={{ fontSize: 17, fontWeight: 700 }}>{t("onb.dark")}</span>
+          <small>{t("onb.darkNote")}</small>
         </span>
       </Choice>
-      <p style={{ margin: 0, fontSize: 14, color: N.muted }}>
-        More themes, including sepia and high contrast, are in Settings.
-      </p>
+      <p style={{ margin: 0, fontSize: 14, color: N.muted }}>{t("onb.moreThemes")}</p>
     </>
   );
 }
@@ -327,6 +337,7 @@ function ThemeStep({ onPick }: { onPick: () => void }) {
 function PathStep() {
   const [path, setPath] = useState<ReadingPath>("arabic");
   const [easy, setEasy] = useState(false);
+  const t = useT();
   const choose = (p: ReadingPath) => {
     setPath(p);
     writeComfort({ readingPath: p });
@@ -335,18 +346,18 @@ function PathStep() {
   return (
     <>
       <Choice on={path === "arabic"} onClick={() => choose("arabic")}>
-        <span style={{ fontSize: 17, fontWeight: 700 }}>I read Arabic</span>
+        <span style={{ fontSize: 17, fontWeight: 700 }}>{t("onb.pathArabic")}</span>
       </Choice>
       <Choice on={path === "translit"} onClick={() => choose("translit")}>
         <span style={{ display: "grid", gap: 2 }}>
-          <span style={{ fontSize: 17, fontWeight: 700 }}>I read with transliteration</span>
-          <small>Shows the Arabic sounds in Latin letters under each āyah</small>
+          <span style={{ fontSize: 17, fontWeight: 700 }}>{t("onb.pathTranslit")}</span>
+          <small>{t("onb.pathTranslitNote")}</small>
         </span>
       </Choice>
       <Choice on={path === "listen"} onClick={() => choose("listen")}>
         <span style={{ display: "grid", gap: 2 }}>
-          <span style={{ fontSize: 17, fontWeight: 700 }}>I mostly listen</span>
-          <small>Home will lead with recitation</small>
+          <span style={{ fontSize: 17, fontWeight: 700 }}>{t("onb.pathListen")}</span>
+          <small>{t("onb.pathListenNote")}</small>
         </span>
       </Choice>
       <button
@@ -361,8 +372,8 @@ function PathStep() {
         }}
       >
         <span>
-          Easy mode
-          <small>Three big buttons and fewer choices. Good for first phones and older eyes.</small>
+          {t("comfort.easyTitle")}
+          <small>{t("onb.easyNote")}</small>
         </span>
         <span className="knob" aria-hidden="true" />
       </button>

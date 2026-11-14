@@ -13,6 +13,7 @@ import {
   writeComfort,
 } from "../lib/comfort-store";
 import { SAMPLE_FATIHA_2 } from "../lib/quran-samples";
+import { useIntl } from "../i18n/I18nProvider";
 
 const round = (n: number) => Math.round(n * 10) / 10;
 
@@ -25,6 +26,7 @@ const round = (n: number) => Math.round(n * 10) / 10;
 export function SizeControls({ sample = true }: { sample?: boolean }) {
   const [ar, setAr] = useState(1);
   const [tr, setTr] = useState(1);
+  const { t, tf } = useIntl();
 
   useEffect(() => {
     const syncAr = () =>
@@ -61,23 +63,23 @@ export function SizeControls({ sample = true }: { sample?: boolean }) {
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "grid", gap: 6 }}>
         <span style={label} id="size-ar-label">
-          Arabic size
+          {t("size.arabic")}
         </span>
         <div className="nf-stepper" role="group" aria-labelledby="size-ar-label">
           <button
             type="button"
             onClick={() => stepAr(-0.1)}
             disabled={ar <= AR_SCALE_MIN}
-            aria-label="Smaller Arabic"
+            aria-label={t("size.smallerArabic")}
           >
             −
           </button>
-          <output aria-live="polite">{Math.round(ar * 100)}%</output>
+          <output aria-live="polite">{tf("dock.percent", { n: Math.round(ar * 100) })}</output>
           <button
             type="button"
             onClick={() => stepAr(0.1)}
             disabled={ar >= AR_SCALE_MAX}
-            aria-label="Bigger Arabic"
+            aria-label={t("size.biggerArabic")}
           >
             +
           </button>
@@ -85,23 +87,23 @@ export function SizeControls({ sample = true }: { sample?: boolean }) {
       </div>
       <div style={{ display: "grid", gap: 6 }}>
         <span style={label} id="size-tr-label">
-          Translation size
+          {t("size.translation")}
         </span>
         <div className="nf-stepper" role="group" aria-labelledby="size-tr-label">
           <button
             type="button"
             onClick={() => stepTr(-0.1)}
             disabled={tr <= TR_SCALE_MIN}
-            aria-label="Smaller translation"
+            aria-label={t("size.smallerTranslation")}
           >
             −
           </button>
-          <output aria-live="polite">{Math.round(tr * 100)}%</output>
+          <output aria-live="polite">{tf("dock.percent", { n: Math.round(tr * 100) })}</output>
           <button
             type="button"
             onClick={() => stepTr(0.1)}
             disabled={tr >= TR_SCALE_MAX}
-            aria-label="Bigger translation"
+            aria-label={t("size.biggerTranslation")}
           >
             +
           </button>

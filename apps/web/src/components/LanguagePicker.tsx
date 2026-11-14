@@ -12,7 +12,15 @@ export function LanguagePicker() {
       <div style={{ fontSize: 15, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
         {t("common.language")}
       </div>
-      <p style={{ fontSize: 13, color: N.muted, margin: "6px 0 14px", lineHeight: 1.6, fontFamily: N.ui }}>
+      <p
+        style={{
+          fontSize: 13,
+          color: N.muted,
+          margin: "6px 0 14px",
+          lineHeight: 1.6,
+          fontFamily: N.ui,
+        }}
+      >
         {t("settings.languageHint")}
       </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -25,6 +33,7 @@ export function LanguagePicker() {
               onClick={() => setLocale(l.code)}
               aria-pressed={active}
               lang={l.code}
+              dir={l.dir}
               style={{
                 padding: "8px 18px",
                 borderRadius: 999,

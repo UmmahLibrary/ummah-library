@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { N, Icon } from "@ummahlibrary/ui";
+import { useIntl } from "../i18n/I18nProvider";
 
 /**
  * Easy mode's bottom bar: a large Back and Home on every page (Assistive
@@ -11,8 +12,9 @@ import { N, Icon } from "@ummahlibrary/ui";
  */
 export function EasyBar() {
   const pathname = usePathname();
+  const { t, dir } = useIntl();
   return (
-    <nav className="easy-bar" aria-label="Easy mode">
+    <nav className="easy-bar" aria-label={t("comfort.easyTitle")}>
       <button
         type="button"
         className="nf-btn"
@@ -22,14 +24,14 @@ export function EasyBar() {
         }
         disabled={pathname === "/"}
       >
-        <Icon name="arrowL" size={24} /> Back
+        <Icon name={dir === "rtl" ? "arrowR" : "arrowL"} size={24} /> {t("onb.back")}
       </button>
       <Link
         href="/"
         className="nf-btn nf-btn--gold"
         style={{ flex: 1, minHeight: 64, fontSize: 19, color: N.ink }}
       >
-        <Icon name="home" size={24} /> Home
+        <Icon name="home" size={24} /> {t("easy.home")}
       </Link>
     </nav>
   );

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { N, Icon } from "@ummahlibrary/ui";
 import { NAV_DESTINATIONS, type NavDestination } from "../lib/nav";
 import { useT } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
 
 /**
  * A destination's hub (Prayer, Learn, More): big labelled tiles — an icon, a
@@ -16,7 +17,8 @@ export function HubPage({
   children,
 }: {
   destination: NavDestination["key"];
-  intro?: string;
+  /** An i18n key for the one-line intro under the title. */
+  intro?: MessageKey;
   children?: ReactNode;
 }) {
   const t = useT();
@@ -45,7 +47,7 @@ export function HubPage({
             {t(d.label)}
           </h1>
           {intro && (
-            <p style={{ margin: 0, fontFamily: N.ui, fontSize: 16, color: N.muted }}>{intro}</p>
+            <p style={{ margin: 0, fontFamily: N.ui, fontSize: 16, color: N.muted }}>{t(intro)}</p>
           )}
         </div>
         {children}

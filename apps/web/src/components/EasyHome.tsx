@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  PRAYER_LABELS,
   type Coordinates,
+  type PrayerName,
   type PrayerTimings,
   nextPrayer,
 } from "@ummahlibrary/core";
@@ -16,6 +16,17 @@ import { fmtPrayerTime } from "../lib/prayer-time-format";
 import { writeComfort } from "../lib/comfort-store";
 import { HoldButton } from "./HoldButton";
 import { SpeakButton } from "./SpeakButton";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
+
+const PRAYER_KEY: Record<PrayerName, MessageKey> = {
+  fajr: "prayer.fajr",
+  sunrise: "prayer.sunrise",
+  dhuhr: "prayer.dhuhr",
+  asr: "prayer.asr",
+  maghrib: "prayer.maghrib",
+  isha: "prayer.isha",
+};
 
 interface SurahLite {
   number: number;
@@ -31,6 +42,7 @@ export function EasyHome({ surahs }: { surahs: readonly SurahLite[] }) {
   const [lr, setLr] = useState<LastRead | null>(null);
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
   const [coords, setCoords] = useState<Coordinates | null>(null);
+  const { t, tf } = useIntl();
 
   useEffect(() => {
     setLr(readLastReadFull());
@@ -48,16 +60,14 @@ export function EasyHome({ surahs }: { surahs: readonly SurahLite[] }) {
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
       >
         <h1 style={{ margin: 0, fontFamily: N.ui, fontSize: 28, fontWeight: 800 }}>
-          As-salāmu ʿalaykum
+          {t("home.greeting")}
         </h1>
-        <SpeakButton
-          text="Choose one: Continue reading, Listen, or Choose a surah."
-          label="Read the choices aloud"
-        />
+        <SpeakButton text={t("easy.speakChoices")} label={t("easy.readChoices")} />
       </div>
       {upcoming && (
         <p style={{ margin: 0, fontFamily: N.ui, fontSize: 20, color: N.fg }}>
-          Next prayer: <b>{PRAYER_LABELS[upcoming.name]}</b> at {fmtPrayerTime(upcoming.at, coords)}
+          {t("easy.nextPrayer")} <b>{t(PRAYER_KEY[upcoming.name])}</b> ·{" "}
+          {fmtPrayerTime(upcoming.at, coords)}
         </p>
       )}
 
@@ -71,8 +81,10 @@ export function EasyHome({ surahs }: { surahs: readonly SurahLite[] }) {
           <Icon name="book" size={30} />
         </span>
         <span>
-          {surah ? "Continue" : "Read"}
-          <small>{surah ? `${surah.transliteration} · āyah ${aya}` : "Al-Fātiḥah"}</small>
+          {surah ? t("home.continue") : t("easy.read")}
+          <small>
+            {surah ? `${surah.transliteration} · ${tf("easy.ayahN", { aya })}` : t("easy.fatiha")}
+          </small>
         </span>
       </Link>
       <Link href={surah ? `/listen/${surah.number}#${aya}` : "/listen/1"} className="nf-tile">
@@ -80,8 +92,8 @@ export function EasyHome({ surahs }: { surahs: readonly SurahLite[] }) {
           <Icon name="headphones" size={30} />
         </span>
         <span>
-          Listen
-          <small>Recitation with translation</small>
+          {t("nav.listen")}
+          <small>{t("note.listen")}</small>
         </span>
       </Link>
       <Link href="/quran" className="nf-tile">
@@ -89,14 +101,14 @@ export function EasyHome({ surahs }: { surahs: readonly SurahLite[] }) {
           <Icon name="grid" size={30} />
         </span>
         <span>
-          Choose a surah
-          <small>All 114, in a big list</small>
+          {t("easy.chooseSurah")}
+          <small>{tf("easy.chooseSurahNote", { n: 114 })}</small>
         </span>
       </Link>
 
       <div style={{ marginTop: 12, display: "grid", justifyItems: "start", gap: 6 }}>
         <HoldButton
-          label="Hold to leave Easy mode"
+          label={t("easy.holdToLeave")}
           onHold={() => {
             writeComfort({ mode: "standard" });
             window.location.reload();

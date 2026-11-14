@@ -8,6 +8,7 @@ import { ReadingAudio } from "./ReadingAudio";
 import { AyahWords } from "./AyahWords";
 import { TAP_HEAR_CLASS } from "../lib/tap-to-hear";
 import { markKidsFinished, readKidsFinished } from "../lib/kids-store";
+import { useIntl } from "../i18n/I18nProvider";
 
 const toArabicDigits = (n: number): string =>
   String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
@@ -30,6 +31,7 @@ export function KidsReader({
   bismillah: string | null;
 }) {
   const [finished, setFinished] = useState(false);
+  const { t, tf, dir } = useIntl();
 
   useEffect(() => {
     setFinished(readKidsFinished().has(surah.number));
@@ -51,12 +53,12 @@ export function KidsReader({
     >
       <div className="reader-bar">
         <Link href="/kids" className="reader-back" style={{ minWidth: 64, minHeight: 60 }}>
-          <Icon name="arrowL" size={22} />
-          <span>Back</span>
+          <Icon name={dir === "rtl" ? "arrowR" : "arrowL"} size={22} />
+          <span>{t("onb.back")}</span>
         </Link>
         <div style={{ flex: 1, minWidth: 0, fontFamily: N.ui }}>
           <div style={{ fontSize: 20, fontWeight: 800 }}>{surah.transliteration}</div>
-          <div style={{ fontSize: 14, color: N.muted }}>Tap a word to hear it</div>
+          <div style={{ fontSize: 14, color: N.muted }}>{t("kids.tapWord")}</div>
         </div>
         <span className="noor-ar" lang="ar" dir="rtl" style={{ fontSize: 28, color: N.goldHi }}>
           {surah.name}
@@ -111,7 +113,7 @@ export function KidsReader({
                   type="button"
                   className="ayah-marker"
                   data-play-one={`${surah.number}:${a.aya}`}
-                  aria-label={`Play āyah ${a.aya}`}
+                  aria-label={tf("kids.playAyah", { aya: a.aya })}
                 >
                   ﴿{toArabicDigits(a.aya)}﴾
                 </button>
@@ -133,7 +135,7 @@ export function KidsReader({
                   color: N.gold,
                 }}
               >
-                You finished {surah.transliteration}. Well done.
+                {tf("kids.youFinished", { surah: surah.transliteration })}
               </p>
             ) : (
               <button
@@ -145,11 +147,11 @@ export function KidsReader({
                   setFinished(true);
                 }}
               >
-                <Icon name="check" size={22} /> I finished this surah
+                <Icon name="check" size={22} /> {t("kids.iFinished")}
               </button>
             )}
             <Link href="/kids" className="nf-btn" style={{ minHeight: 60 }}>
-              Choose another surah
+              {t("kids.chooseAnother")}
             </Link>
           </div>
         </div>
@@ -159,7 +161,7 @@ export function KidsReader({
         verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
         reciters={reciters}
         variant="dock"
-        positionLabel="Tap ▶ to listen to the whole surah"
+        positionLabel={t("kids.listenWhole")}
       />
     </div>
   );

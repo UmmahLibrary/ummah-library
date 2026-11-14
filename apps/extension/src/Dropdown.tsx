@@ -54,13 +54,15 @@ export function Dropdown({
           display: "flex",
           alignItems: "center",
           gap: 6,
-          maxWidth: 160,
+          maxWidth: 170,
+          minHeight: 44,
           background: N.bg2,
-          color: N.muted,
+          color: N.fg,
           border: `1px solid ${N.border}`,
-          borderRadius: 8,
-          fontSize: 11,
-          padding: "3px 8px",
+          borderRadius: 10,
+          fontSize: 13,
+          paddingBlock: 6,
+          paddingInline: 10,
           cursor: "pointer",
           fontFamily: N.ui,
         }}
@@ -68,7 +70,9 @@ export function Dropdown({
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {current?.label ?? ariaLabel}
         </span>
-        <span aria-hidden style={{ color: N.faint, fontSize: 9 }}>{open ? "▲" : "▼"}</span>
+        <span aria-hidden style={{ color: N.muted, fontSize: 11 }}>
+          {open ? "▲" : "▼"}
+        </span>
       </button>
 
       {open && (
@@ -77,7 +81,7 @@ export function Dropdown({
           aria-label={ariaLabel}
           style={{
             position: "absolute",
-            right: 0,
+            insetInlineEnd: 0,
             top: "calc(100% + 4px)",
             zIndex: 20,
             listStyle: "none",
@@ -104,9 +108,12 @@ export function Dropdown({
                   setOpen(false);
                 }}
                 style={{
-                  padding: "6px 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  minHeight: 44,
+                  paddingInline: 10,
                   borderRadius: 6,
-                  fontSize: 12,
+                  fontSize: 14,
                   cursor: "pointer",
                   color: selected ? N.gold : N.fg,
                   fontWeight: selected ? 700 : 400,

@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation";
 import { readComfort, type AppMode } from "../lib/comfort-store";
 import { HomeVerseOfDay } from "./HomeVerseOfDay";
 import { useSearch } from "./shell/SearchContext";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
 
 interface Surah {
   number: number;
@@ -26,12 +28,13 @@ interface Props {
   variant?: "home" | "quran";
 }
 
-const QUICK_TOOLS = [
-  { label: "The Quran", href: "/quran", note: "All 114 surahs", glyph: "📖" },
-  { label: "Prayer Times", href: "/prayer-times", note: "Daily ṣalāh", glyph: "🕌" },
-  { label: "Hifz Review", href: "/hifz", note: "Memorise", glyph: "✦" },
-  { label: "Duʿās", href: "/duas", note: "From the Quran & Sunnah", glyph: "🤲" },
-];
+const QUICK_TOOLS: readonly { label: MessageKey; href: string; note: MessageKey; glyph: string }[] =
+  [
+    { label: "quran.title", href: "/quran", note: "home.toolQuranNote", glyph: "📖" },
+    { label: "nav.prayerTimes", href: "/prayer-times", note: "home.toolPrayerNote", glyph: "🕌" },
+    { label: "nav.hifz", href: "/hifz", note: "home.toolHifzNote", glyph: "✦" },
+    { label: "nav.duas", href: "/duas", note: "note.duas", glyph: "🤲" },
+  ];
 
 // Traditional names of the 30 ajzāʾ (by opening words).
 const JUZ_NAMES = [
@@ -79,6 +82,7 @@ function startingJuz(surahNumber: number): number {
 }
 
 function SurahCard({ s }: { s: Surah }) {
+  const { t, tf, num } = useIntl();
   return (
     <Link
       href={`/surah/${s.number}`}
@@ -114,7 +118,7 @@ function SurahCard({ s }: { s: Surah }) {
             fontFamily: N.ui,
           }}
         >
-          {s.number}
+          {num(s.number)}
         </span>
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
@@ -132,8 +136,8 @@ function SurahCard({ s }: { s: Surah }) {
           {s.transliteration}
         </div>
         <div style={{ fontSize: 12.5, color: N.faint, fontFamily: N.ui }}>
-          {s.englishName} · {s.ayahCount} ayahs ·{" "}
-          {s.revelationPlace === "meccan" ? "Meccan" : "Medinan"}
+          {s.englishName} · {tf("quran.ayahCount", { n: s.ayahCount })} ·{" "}
+          {s.revelationPlace === "meccan" ? t("quran.meccan") : t("quran.medinan")}
         </div>
       </div>
       <div className="noor-ar" style={{ fontSize: 22, color: N.muted, flexShrink: 0 }}>
@@ -218,6 +222,7 @@ function GroupHeader({
 /** Juzʾ index — the 30 ajzāʾ, surahs grouped by the juzʾ they begin in, with a
  *  muted "continuation" row where a juzʾ opens mid-surah (mirrors the design). */
 function JuzGroups({ surahs }: { surahs: Surah[] }) {
+  const { t, tf } = useIntl();
   const byNumber = new Map(surahs.map((s) => [s.number, s]));
   const starters = new Map<number, Surah[]>();
   for (const s of surahs) {
@@ -235,10 +240,14 @@ function JuzGroups({ surahs }: { surahs: Surah[] }) {
           <div key={n}>
             <GroupHeader
               href={`/juz/${n}`}
-              kicker={`Juzʾ ${n}`}
+              kicker={tf("quran.juzN", { n })}
               title={JUZ_NAMES[n - 1] ?? ""}
               note={
-                list.length ? `${list.length} surah${list.length > 1 ? "s" : ""} begin here` : null
+                list.length
+                  ? tf(list.length > 1 ? "quran.surahsBeginMany" : "quran.surahsBeginOne", {
+                      n: list.length,
+                    })
+                  : null
               }
             />
             {cont ? (
@@ -258,7 +267,7 @@ function JuzGroups({ surahs }: { surahs: Surah[] }) {
               >
                 <Icon name="arrowR" size={16} color={N.goldDim} />
                 <span style={{ fontSize: 14, fontFamily: N.ui }}>
-                  Continuation of{" "}
+                  {t("quran.continuationOf")}{" "}
                   <span style={{ color: N.muted, fontWeight: 600 }}>{cont.transliteration}</span> ·{" "}
                   {cont.englishName}
                 </span>
@@ -285,18 +294,19 @@ function JuzGroups({ surahs }: { surahs: Surah[] }) {
 
 /** Revelation index — surahs grouped by place of revelation (Meccan / Medinan). */
 function RevGroups({ surahs }: { surahs: Surah[] }) {
+  const { t, num } = useIntl();
   const groups = [
     {
       place: "meccan" as const,
-      title: "Meccan",
+      title: t("quran.meccan"),
       ar: "مكية",
-      desc: "Revealed in Mecca — faith, tawḥīd and the hereafter",
+      desc: t("quran.meccanDesc"),
     },
     {
       place: "medinan" as const,
-      title: "Medinan",
+      title: t("quran.medinan"),
       ar: "مدنية",
-      desc: "Revealed in Medina — law, community and social life",
+      desc: t("quran.medinanDesc"),
     },
   ];
   return (
@@ -305,7 +315,7 @@ function RevGroups({ surahs }: { surahs: Surah[] }) {
         const list = surahs.filter((s) => s.revelationPlace === g.place);
         return (
           <div key={g.place}>
-            <GroupHeader kicker={String(list.length)} title={g.title} ar={g.ar} note={g.desc} />
+            <GroupHeader kicker={num(list.length)} title={g.title} ar={g.ar} note={g.desc} />
             <div
               style={{
                 display: "grid",
@@ -333,6 +343,7 @@ function RevGroups({ surahs }: { surahs: Surah[] }) {
 export function NoorHomePage({ surahs, variant = "home" }: Props) {
   const { query } = useSearch();
   const router = useRouter();
+  const { t, tf, num } = useIntl();
   // Easy mode gets its own three-tile Home; Kids mode opens the kids list.
   const [appMode, setAppMode] = useState<AppMode>("standard");
   useEffect(() => {
@@ -403,7 +414,7 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
                 fontFamily: N.ui,
               }}
             >
-              As-salāmu ʿalaykum
+              {t("home.greeting")}
             </h1>
 
             {/* One card that says what to do now, then a quiet habit strip */}
@@ -424,7 +435,7 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
               fontFamily: N.ui,
             }}
           >
-            The Quran
+            {t("quran.title")}
           </h1>
         )}
 
@@ -438,10 +449,10 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
               marginBottom: 28,
             }}
           >
-            {QUICK_TOOLS.map((t) => (
+            {QUICK_TOOLS.map((tool) => (
               <Link
-                key={t.href}
-                href={t.href}
+                key={tool.href}
+                href={tool.href}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -454,7 +465,9 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
                   transition: "border-color .15s",
                 }}
               >
-                <div style={{ fontSize: 22 }}>{t.glyph}</div>
+                <div style={{ fontSize: 22 }} aria-hidden="true">
+                  {tool.glyph}
+                </div>
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
@@ -465,7 +478,7 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
                       fontFamily: N.ui,
                     }}
                   >
-                    {t.label}
+                    {t(tool.label)}
                   </div>
                   <div
                     style={{
@@ -477,7 +490,7 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
                       fontFamily: N.ui,
                     }}
                   >
-                    {t.note}
+                    {tf(tool.note, { n: 114 })}
                   </div>
                 </div>
               </Link>
@@ -499,17 +512,21 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
                 gap: 10,
               }}
             >
-              <div style={{ fontSize: 18, fontWeight: 700, fontFamily: N.ui }}>The Quran</div>
+              <div style={{ fontSize: 18, fontWeight: 700, fontFamily: N.ui }}>
+                {t("quran.title")}
+              </div>
               <div style={{ display: "flex", gap: 6 }}>
                 {(
                   [
-                    ["surah", "Surah"],
-                    ["juz", "Juzʾ"],
-                    ["rev", "Revelation"],
+                    ["surah", t("quran.tabSurah")],
+                    ["juz", t("quran.tabJuz")],
+                    ["rev", t("quran.tabRevelation")],
                   ] as const
                 ).map(([v, l]) => (
                   <button
                     key={v}
+                    type="button"
+                    aria-pressed={tab === v}
                     onClick={() => setTab(v)}
                     style={{
                       padding: "7px 14px",
@@ -531,8 +548,10 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
 
             {q && tab === "surah" && (
               <div style={{ fontSize: 13, color: N.faint, marginBottom: 12, fontFamily: N.ui }}>
-                {surahList.length} result{surahList.length !== 1 ? "s" : ""} for &ldquo;{query}
-                &rdquo;
+                {tf(surahList.length === 1 ? "quran.resultsOne" : "quran.resultsMany", {
+                  n: surahList.length,
+                  q: query,
+                })}
               </div>
             )}
 
@@ -588,7 +607,7 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
                           fontFamily: N.ui,
                         }}
                       >
-                        {s.number}
+                        {num(s.number)}
                       </span>
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
@@ -606,8 +625,8 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
                         {s.transliteration}
                       </div>
                       <div style={{ fontSize: 12.5, color: N.faint, fontFamily: N.ui }}>
-                        {`${s.englishName} · ${s.ayahCount} ayahs · ${
-                          s.revelationPlace === "meccan" ? "Meccan" : "Medinan"
+                        {`${s.englishName} · ${tf("quran.ayahCount", { n: s.ayahCount })} · ${
+                          s.revelationPlace === "meccan" ? t("quran.meccan") : t("quran.medinan")
                         }`}
                       </div>
                     </div>
@@ -631,7 +650,7 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
                   fontFamily: N.ui,
                 }}
               >
-                No surah matches &ldquo;{query}&rdquo;.
+                {tf("quran.noMatch", { q: query })}
               </div>
             )}
           </>

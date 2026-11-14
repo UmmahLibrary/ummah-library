@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { JUZ_STARTS, PAGE_STARTS, juzNumberOf, pageNumberOf } from "@ummahlibrary/core";
+import { useIntl } from "../i18n/I18nProvider";
 
 /**
  * A thin position rail at the reading column's edge (tablet/desktop only — see
@@ -22,6 +23,7 @@ export function AyahScrubber({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<number | null>(null);
+  const { t, tf } = useIntl();
   if (ayahCount < 12) return null;
 
   const frac = (aya: number) => (ayahCount <= 1 ? 0 : (aya - 1) / (ayahCount - 1));
@@ -33,7 +35,11 @@ export function AyahScrubber({
   };
   const juzTicks = JUZ_STARTS.filter((v) => v.sura === sura && v.aya > 1).map((v) => v.aya);
   const shown = drag ?? Math.max(1, current);
-  const label = `Āyah ${shown} · Juz ${juzNumberOf({ sura, aya: shown })} · Page ${pageNumberOf({ sura, aya: shown })}`;
+  const label = tf("scrub.label", {
+    aya: shown,
+    juz: juzNumberOf({ sura, aya: shown }),
+    page: pageNumberOf({ sura, aya: shown }),
+  });
   // Page ticks are dense; show them only for long surahs where they help orient.
   const pageTicks =
     ayahCount > 100
@@ -46,7 +52,7 @@ export function AyahScrubber({
       className="ayah-scrubber"
       role="slider"
       tabIndex={0}
-      aria-label="Position in surah"
+      aria-label={t("scrub.position")}
       aria-valuemin={1}
       aria-valuemax={ayahCount}
       aria-valuenow={shown}

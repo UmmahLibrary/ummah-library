@@ -1,16 +1,18 @@
 "use client";
 import Link from "next/link";
 import { HubPage } from "../../components/HubPage";
+import { useT } from "../../i18n/I18nProvider";
 
 export default function MoreHub() {
+  const t = useT();
   return (
-    <HubPage destination="more" intro="Settings, tools and your reading so far.">
+    <HubPage destination="more" intro="hub.moreIntro">
       <Link
         href="/settings#comfort"
         className="nf-btn nf-btn--gold"
         style={{ justifySelf: "start" }}
       >
-        Reading comfort: text size, Easy mode, language
+        {t("hub.comfortLink")}
       </Link>
     </HubPage>
   );
