@@ -12,7 +12,23 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { targetSize } from "../comfort";
-import { weekdayLabel } from "../goto-nav";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
+
+/** One-letter weekday initials, Sunday first (UTC weekday of a civil date). */
+const WEEKDAY_KEYS: readonly MessageKey[] = [
+  "home.wd.0",
+  "home.wd.1",
+  "home.wd.2",
+  "home.wd.3",
+  "home.wd.4",
+  "home.wd.5",
+  "home.wd.6",
+];
+
+function weekdayKey(date: string): MessageKey {
+  return WEEKDAY_KEYS[new Date(`${date}T00:00:00Z`).getUTCDay()] ?? "home.wd.0";
+}
 
 export interface HomeReading {
   pagesToday: number;
@@ -47,6 +63,7 @@ export function HomeToday({
 }) {
   const { colors } = useTheme();
   const { comfort } = useSettings();
+  const { t, tf, locale } = useIntl();
   const min = targetSize(comfort);
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -83,11 +100,13 @@ export function HomeToday({
   const heading =
     action.kind === "continue"
       ? action.welcomeBack
-        ? "Welcome back"
-        : "Continue reading"
+        ? t("home.welcomeBack")
+        : t("home.continueReading")
       : action.kind === "done"
-        ? "Today’s portion is done"
-        : "Begin here";
+        ? t("home.portionDone")
+        : t("home.beginHere");
+  const shownToday = Math.min(reading.pagesToday, reading.goal);
+  const pageVars = { done: shownToday, goal: reading.goal };
 
   return (
     <View style={styles.wrap}>
@@ -103,13 +122,18 @@ export function HomeToday({
               <Text style={styles.nameAr}>{resumeSurah.name}</Text>
             </View>
             <Text style={styles.meta}>
-              Āyah {action.at.aya} of {resumeSurah.ayahCount} · Juz{" "}
-              {safeJuz(action.at.sura, action.at.aya)} · {resumeSurah.englishName}
+              {tf("home.meta", {
+                aya: action.at.aya,
+                count: resumeSurah.ayahCount,
+                juz: safeJuz(action.at.sura, action.at.aya),
+              })}
+              {/* The English surah meaning is English-only data; shown in English. */}
+              {locale === "en" ? ` · ${resumeSurah.englishName}` : ""}
             </Text>
             <View
               style={styles.track}
               accessibilityRole="progressbar"
-              accessibilityLabel="Progress through the surah"
+              accessibilityLabel={t("home.progressA11y")}
               accessibilityValue={{
                 min: 0,
                 max: 100,
@@ -124,8 +148,10 @@ export function HomeToday({
               />
             </View>
             <View style={styles.btnRow}>
-              {btn("book", "Continue", () => onRead(action.at.sura, action.at.aya), true)}
-              {btn("headphones", "Listen instead", () => onListen(action.at.sura, action.at.aya))}
+              {btn("book", t("home.continue"), () => onRead(action.at.sura, action.at.aya), true)}
+              {btn("headphones", t("home.listenInstead"), () =>
+                onListen(action.at.sura, action.at.aya),
+              )}
             </View>
           </>
         )}
@@ -133,23 +159,24 @@ export function HomeToday({
         {action.kind === "done" && (
           <>
             <Text style={styles.body}>
-              You read {reading.pagesToday} {reading.pagesToday === 1 ? "page" : "pages"} today. You
-              can stop here.
+              {tf(reading.pagesToday === 1 ? "home.readPagesOne" : "home.readPagesOther", {
+                n: reading.pagesToday,
+              })}
             </Text>
             <View style={styles.btnRow}>
               {action.at &&
-                btn(null, "Read a little more", () => onRead(action.at!.sura, action.at!.aya))}
-              {btn(null, "Change my daily portion", onGoals)}
+                btn(null, t("home.readMore"), () => onRead(action.at!.sura, action.at!.aya))}
+              {btn(null, t("home.changePortion"), onGoals)}
             </View>
           </>
         )}
 
         {action.kind === "start" && (
           <>
-            <Text style={styles.body}>Start with the opening surah, or listen to a short one.</Text>
+            <Text style={styles.body}>{t("home.startBody")}</Text>
             <View style={styles.btnRow}>
-              {btn("book", "Read Al-Fātiḥah", () => onRead(1), true)}
-              {btn("headphones", "Listen to Al-Ikhlāṣ", () => onListen(112))}
+              {btn("book", t("home.readFatiha"), () => onRead(1), true)}
+              {btn("headphones", t("home.listenIkhlas"), () => onListen(112))}
             </View>
           </>
         )}
@@ -161,21 +188,24 @@ export function HomeToday({
         accessibilityRole="button"
         accessibilityLabel={
           paused
-            ? "Tracking paused. Open reading goals"
-            : `Today ${Math.min(reading.pagesToday, reading.goal)} of ${reading.goal} pages. ${weekCount} of 7 days this week. Open reading goals`
+            ? t("home.pausedA11y")
+            : tf(reading.goal === 1 ? "home.weekA11yOne" : "home.weekA11yOther", {
+                ...pageVars,
+                days: weekCount,
+                total: 7,
+              })
         }
       >
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text style={styles.weekTitle}>
-            Today: {Math.min(reading.pagesToday, reading.goal)} of {reading.goal}{" "}
-            {reading.goal === 1 ? "page" : "pages"}
+            {tf(reading.goal === 1 ? "home.todayPagesOne" : "home.todayPagesOther", pageVars)}
           </Text>
           <Text style={styles.weekSub}>
             {paused
-              ? "Tracking paused — your progress is kept."
-              : `${weekCount} of 7 days this week${
+              ? t("home.paused")
+              : `${tf("home.weekDays", { days: weekCount, total: 7 })}${
                   comfort.showStreaks
-                    ? ` · ${computeStreak(reading.activeDates, today)} days in a row`
+                    ? ` · ${tf("home.streak", { n: computeStreak(reading.activeDates, today) })}`
                     : ""
                 }`}
           </Text>
@@ -188,7 +218,7 @@ export function HomeToday({
                   style={[styles.dot, d.active && styles.dotOn, d.isToday && styles.dotToday]}
                 />
                 <Text style={[styles.dayText, d.isToday && styles.dayTextToday]}>
-                  {weekdayLabel(d.date).slice(0, 1)}
+                  {t(weekdayKey(d.date))}
                 </Text>
               </View>
             ))}

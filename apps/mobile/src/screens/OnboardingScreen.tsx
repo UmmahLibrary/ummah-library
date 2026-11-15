@@ -5,21 +5,13 @@ import { Khatam } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useT } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
 import { TranslationChoice } from "../components/TranslationChoice";
 
-const SLIDES = [
-  {
-    title: "The Qur'ān,\nbeautifully open",
-    body: "Read, listen and reflect — with translation, tafsīr and word-by-word recitation, free and ad-free forever.",
-  },
-  {
-    title: "Memorize with\nconfidence",
-    body: "Spaced-repetition Hifz, a daily reading goal and a khatma planner keep your journey on track.",
-  },
-  {
-    title: "Your faith\ncompanion",
-    body: "Prayer times, qibla, adhkār, the 99 Names and more — all local-first, with no account needed.",
-  },
+const SLIDES: readonly { title: MessageKey; body: MessageKey }[] = [
+  { title: "home.onb.1.title", body: "home.onb.1.body" },
+  { title: "home.onb.2.title", body: "home.onb.2.body" },
+  { title: "home.onb.3.title", body: "home.onb.3.body" },
 ];
 
 /** First-run intro. Shown until the user finishes; `onDone` persists the flag. */
@@ -37,10 +29,10 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
     return (
       <SafeAreaView style={styles.screen}>
         <ScrollView contentContainerStyle={{ paddingVertical: 24, gap: 14 }}>
-          <Text style={[styles.title, { textAlign: "left", fontSize: 26, lineHeight: 32 }]}>
+          <Text style={[styles.title, { textAlign: undefined, fontSize: 26, lineHeight: 32 }]}>
             {t("tr.choose")}
           </Text>
-          <Text style={[styles.body, { textAlign: "left", maxWidth: undefined }]}>
+          <Text style={[styles.body, { textAlign: undefined, maxWidth: undefined }]}>
             {t("tr.chooseNote")}
           </Text>
           <TranslationChoice />
@@ -66,8 +58,8 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
             <Khatam size={104} color={colors.accentHi} sw={1.4} opacity={0.5} />
           </View>
         </View>
-        <Text style={styles.title}>{slide.title}</Text>
-        <Text style={styles.body}>{slide.body}</Text>
+        <Text style={styles.title}>{t(slide.title)}</Text>
+        <Text style={styles.body}>{t(slide.body)}</Text>
       </View>
 
       <View style={styles.footer}>
@@ -79,11 +71,14 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
         <Pressable
           style={styles.btn}
           onPress={() => (last ? setAskTranslation(true) : setI(i + 1))}
+          accessibilityRole="button"
         >
-          <Text style={styles.btnText}>{last ? "Get started" : "Continue"}</Text>
+          <Text style={styles.btnText}>
+            {last ? t("home.onb.getStarted") : t("home.onb.continue")}
+          </Text>
         </Pressable>
-        <Pressable onPress={onDone} hitSlop={8}>
-          <Text style={styles.skip}>{last ? " " : "Skip"}</Text>
+        <Pressable onPress={onDone} hitSlop={8} accessibilityRole="button" disabled={last}>
+          <Text style={styles.skip}>{last ? " " : t("onb.skip")}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

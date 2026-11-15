@@ -353,4 +353,8 @@ export const bn: Record<MessageKey, string> = {
   "ayah.stopMemorize": "মুখস্থ বন্ধ করুন",
   "ayah.reflection": "ভাবনা যোগ করুন",
   "onb.translation": "কোন অনুবাদটি চান?",
+  "goto.ayah": "{surah} · আয়াত {aya}",
+  "goto.juz": "পারা {n} · শুরু {surah} {key} থেকে",
+  "goto.hizb": "হিজব {n} · শুরু {surah} {key} থেকে",
+  "goto.page": "পৃষ্ঠা {n} · শুরু {surah} {key} থেকে",
 };

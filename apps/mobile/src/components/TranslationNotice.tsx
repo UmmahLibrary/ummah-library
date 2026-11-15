@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "../Type";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
-import { useT } from "../i18n/I18nProvider";
+import { useIntl } from "../i18n/I18nProvider";
 
 /**
  * Above the first verse, until the reader has chosen (ADR 0041), mirroring
@@ -15,11 +15,11 @@ export function TranslationNotice({ onChange }: { onChange: () => void }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { editionsChosen, editions, catalogue, keepEditions } = useSettings();
-  const t = useT();
+  const { t, tf } = useIntl();
   if (editionsChosen) return null;
   const meta = catalogue.find((e) => e.id === editions[0]);
   const label = meta
-    ? t("tr.notice").replace("{name}", `${meta.author} (${meta.language})`)
+    ? tf("tr.notice", { name: `${meta.author} (${meta.language})` })
     : editions.length === 0
       ? t("tr.noticeNone")
       : null;

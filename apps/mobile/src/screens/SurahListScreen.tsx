@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "../Type";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "../Type";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { JUZ_STARTS, TOTAL_JUZ, type Surah } from "@ummahlibrary/core";
@@ -17,6 +9,7 @@ import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 import { AyahBadge } from "../components/AyahBadge";
 import type { ReadStackParamList } from "../navigation/types";
+import { useIntl } from "../i18n/I18nProvider";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "SurahList">;
 
@@ -64,6 +57,8 @@ export function SurahListScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
+  const { t, tf, num, dir } = useIntl();
+  const rtl = dir === "rtl";
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [query, setQuery] = useState("");
@@ -85,10 +80,10 @@ export function SurahListScreen({ navigation }: Props) {
 
   const errorMessage = error
     ? error.isNetworkError
-      ? "Couldn't load surahs. Check your connection."
+      ? t("rd.list.errNetwork")
       : error.status && error.status >= 500
-        ? "The server is starting up. Try again in a moment."
-        : "Couldn't load surahs."
+        ? t("rd.errServer")
+        : t("rd.list.err")
     : null;
 
   // Fold diacritics so "fatiha" matches "Al-Fātiḥah", "baqarah" matches
@@ -137,17 +132,17 @@ export function SurahListScreen({ navigation }: Props) {
       const meccan = filtered.filter((s) => s.revelationPlace === "meccan");
       const medinan = filtered.filter((s) => s.revelationPlace === "medinan");
       if (meccan.length) {
-        out.push({ kind: "section", label: "Meccan" });
+        out.push({ kind: "section", label: t("rd.meccan") });
         meccan.forEach((s) => out.push({ kind: "surah", surah: s }));
       }
       if (medinan.length) {
-        out.push({ kind: "section", label: "Medinan" });
+        out.push({ kind: "section", label: t("rd.medinan") });
         medinan.forEach((s) => out.push({ kind: "surah", surah: s }));
       }
       return out;
     }
     return filtered.map((s) => ({ kind: "surah", surah: s }));
-  }, [tab, filtered, q]);
+  }, [tab, filtered, q, t]);
 
   // Surah lookup for the juzʾ tab's span labels ("Al-Fātiḥah – Al-Baqarah").
   const byNumber = useMemo(() => new Map((surahs ?? []).map((s) => [s.number, s])), [surahs]);
@@ -166,35 +161,37 @@ export function SurahListScreen({ navigation }: Props) {
         ListHeaderComponent={
           <View>
             <View style={styles.headerRow}>
-              <Text style={styles.h1}>Qur'ān</Text>
+              <Text style={[styles.h1, rtl && styles.noTrack]}>{t("rd.list.title")}</Text>
               <Pressable
                 onPress={() => navigation.navigate("Search")}
                 hitSlop={10}
-                accessibilityLabel="Search verses, names, and adhkār"
+                accessibilityLabel={t("rd.list.searchA11y")}
               >
                 <Icon name="search" size={22} color={colors.accent} sw={1.8} />
               </Pressable>
             </View>
             <TextInput
               style={styles.search}
-              placeholder="Search surah, juz or verse"
+              placeholder={t("rd.list.searchPh")}
               placeholderTextColor={colors.faint}
               value={query}
               onChangeText={setQuery}
               autoCorrect={false}
             />
             <View style={styles.seg}>
-              {([
-                { v: "surah", l: "Surah" },
-                { v: "juz", l: "Juzʾ" },
-                { v: "rev", l: "Revelation" },
-              ] as const).map((o) => (
+              {(
+                [
+                  { v: "surah", l: "rd.surah" },
+                  { v: "juz", l: "rd.juz" },
+                  { v: "rev", l: "rd.list.revelation" },
+                ] as const
+              ).map((o) => (
                 <Pressable
                   key={o.v}
                   style={[styles.segItem, tab === o.v && styles.segItemOn]}
                   onPress={() => setTab(o.v)}
                 >
-                  <Text style={[styles.segText, tab === o.v && styles.segTextOn]}>{o.l}</Text>
+                  <Text style={[styles.segText, tab === o.v && styles.segTextOn]}>{t(o.l)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -202,23 +199,25 @@ export function SurahListScreen({ navigation }: Props) {
               <View style={styles.errorRow}>
                 <Text style={styles.error}>{errorMessage}</Text>
                 <Pressable style={styles.chip} onPress={load}>
-                  <Text style={styles.chipText}>Try again</Text>
+                  <Text style={styles.chipText}>{t("rd.tryAgain")}</Text>
                 </Pressable>
               </View>
             )}
-            {!surahs && !error && <ActivityIndicator color={colors.accent} style={styles.spinner} />}
+            {!surahs && !error && (
+              <ActivityIndicator color={colors.accent} style={styles.spinner} />
+            )}
           </View>
         }
         ListEmptyComponent={
           surahs && q ? (
             <Text style={styles.muted}>
-              No {tab === "juz" ? "juzʾ" : "surahs"} match “{query}”.
+              {tf(tab === "juz" ? "rd.list.noJuz" : "rd.list.noSurahs", { q: query })}
             </Text>
           ) : null
         }
         renderItem={({ item }) => {
           if (item.kind === "section") {
-            return <Text style={styles.sectionLabel}>{item.label}</Text>;
+            return <Text style={[styles.sectionLabel, rtl && styles.noTrack]}>{item.label}</Text>;
           }
           if (item.kind === "juz") {
             const start = JUZ_STARTS[item.juz - 1]!;
@@ -226,7 +225,7 @@ export function SurahListScreen({ navigation }: Props) {
             const lastSura = juzEndSura(item.juz);
             const last = byNumber.get(lastSura);
             const span = !first
-              ? "Read continuously"
+              ? t("rd.list.readContinuously")
               : lastSura === start.sura
                 ? first.transliteration
                 : `${first.transliteration} – ${last?.transliteration ?? ""}`;
@@ -236,10 +235,10 @@ export function SurahListScreen({ navigation }: Props) {
                 onPress={() => navigation.navigate("JuzReader", { juz: item.juz })}
               >
                 <View style={styles.juzBadge}>
-                  <Text style={styles.juzBadgeText}>{item.juz}</Text>
+                  <Text style={styles.juzBadgeText}>{num(item.juz)}</Text>
                 </View>
                 <View style={styles.rowMeta}>
-                  <Text style={styles.rowTitle}>Juzʾ {item.juz}</Text>
+                  <Text style={styles.rowTitle}>{tf("rd.juzN", { n: item.juz })}</Text>
                   <Text style={styles.rowSub} numberOfLines={1}>
                     {span}
                   </Text>
@@ -250,11 +249,12 @@ export function SurahListScreen({ navigation }: Props) {
           const s = item.surah;
           return (
             <Pressable style={styles.row} onPress={() => open(s.number)}>
-              <AyahBadge n={s.number} size={40} />
+              <AyahBadge n={num(s.number)} size={40} />
               <View style={styles.rowMeta}>
                 <Text style={styles.rowTitle}>{s.transliteration}</Text>
                 <Text style={styles.rowSub}>
-                  {s.revelationPlace === "meccan" ? "Meccan" : "Medinan"} · {s.ayahCount} verses
+                  {s.revelationPlace === "meccan" ? t("rd.meccan") : t("rd.medinan")} ·{" "}
+                  {tf("rd.versesCount", { n: s.ayahCount })}
                 </Text>
               </View>
               <Text style={styles.rowArabic}>{s.name}</Text>
@@ -341,7 +341,12 @@ function makeStyles(c: Palette) {
     rowMeta: { flex: 1, minWidth: 0 },
     rowTitle: { color: c.fg, fontSize: 16, fontFamily: FONT.bold },
     rowSub: { color: c.faint, fontSize: 13, marginTop: 2 },
-    rowArabic: { color: c.accentHi, fontSize: 22, writingDirection: "rtl", fontFamily: FONT.arSemibold },
+    rowArabic: {
+      color: c.accentHi,
+      fontSize: 22,
+      writingDirection: "rtl",
+      fontFamily: FONT.arSemibold,
+    },
     juzBadge: {
       width: 40,
       height: 40,
@@ -353,5 +358,7 @@ function makeStyles(c: Palette) {
       justifyContent: "center",
     },
     juzBadgeText: { color: c.accent, fontSize: 15, fontFamily: FONT.bold },
+    // Arabic/Urdu interface text must not be letter-spaced (it breaks the joins).
+    noTrack: { letterSpacing: 0 },
   });
 }

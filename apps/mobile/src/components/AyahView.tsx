@@ -1,4 +1,5 @@
-import { useT } from "../i18n/I18nProvider";
+import { useIntl } from "../i18n/I18nProvider";
+import { LTR_TEXT, textDir } from "../text-direction";
 import { memo, useEffect, useMemo, useState } from "react";
 import type { IconName } from "@ummahlibrary/ui";
 import { Pressable, Share, StyleSheet, Text, View } from "../Type";
@@ -92,7 +93,7 @@ function AyahViewImpl({
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { isTracked, setHifzCard, removeHifzCard } = useLibrary();
   const { comfort } = useSettings();
-  const t = useT();
+  const { t, tf, num, dir } = useIntl();
   const min = targetSize(comfort);
   const softTr = comfort.trEmphasis === "soft";
 
@@ -150,15 +151,21 @@ function AyahViewImpl({
   return (
     <View style={[styles.ayah, playing && styles.ayahPlaying]}>
       <View style={styles.head}>
-        <AyahBadge n={aya} size={30} />
+        <AyahBadge n={num(aya)} size={30} />
         <View style={styles.actions}>
-          {action("play", t("ayah.play"), () => onPlayOne(aya), playing, `Play āyah ${aya}`)}
+          {action(
+            "play",
+            t("ayah.play"),
+            () => onPlayOne(aya),
+            playing,
+            tf("rd.ayah.playA11y", { n: aya }),
+          )}
           {action(
             "star",
             memorized ? t("ayah.memorizing") : t("ayah.memorize"),
             () => (memorized ? removeHifzCard(ref) : setHifzCard(ref, createCard(new Date()))),
             memorized,
-            memorized ? `Stop memorizing āyah ${aya}` : `Memorize āyah ${aya}`,
+            memorized ? tf("rd.ayah.stopMemA11y", { n: aya }) : tf("rd.ayah.memA11y", { n: aya }),
           )}
           <SaveToCollection
             sura={sura}
@@ -169,15 +176,21 @@ function AyahViewImpl({
                 saved ? t("ayah.saved") : t("ayah.save"),
                 open,
                 saved,
-                `Save āyah ${aya}`,
+                tf("rd.ayah.saveA11y", { n: aya }),
               )
             }
           />
           <View>
-            {action("share", t("ayah.share"), () => void share(), false, `Share āyah ${aya}`)}
+            {action(
+              "share",
+              t("ayah.share"),
+              () => void share(),
+              false,
+              tf("rd.ayah.shareA11y", { n: aya }),
+            )}
             {copied && (
               <View style={styles.copiedBubble} pointerEvents="none">
-                <Text style={styles.copiedText}>Copied</Text>
+                <Text style={styles.copiedText}>{t("rd.copied")}</Text>
               </View>
             )}
           </View>
@@ -188,7 +201,9 @@ function AyahViewImpl({
         // Word-by-word view (#144 transliteration + #145 tap-to-hear): each word
         // is a tap target stacked over its Latin reading. A tap plays just that
         // word when tap-to-hear is on, else it plays from the āyah.
-        <View style={styles.wbwRow}>
+        // Under an RTL interface (ar/ur) Yoga flips row-reverse to left-to-right, so
+        // the Arabic word order is kept right-to-left by switching to "row" there.
+        <View style={[styles.wbwRow, dir === "rtl" && { flexDirection: "row" }]}>
           {words.map((w, i) => (
             <Pressable
               key={i}
@@ -252,7 +267,9 @@ function AyahViewImpl({
       )}
 
       {transliteration && !peekHideTr ? (
-        <Text style={[styles.translit, { fontSize: 14 * trScale, lineHeight: 22 * trScale }]}>
+        <Text
+          style={[styles.translit, LTR_TEXT, { fontSize: 14 * trScale, lineHeight: 22 * trScale }]}
+        >
           {transliteration}
         </Text>
       ) : null}
@@ -266,7 +283,7 @@ function AyahViewImpl({
                 styles.trText,
                 { fontSize: 16 * trScale, lineHeight: 26 * trScale },
                 softTr && styles.trSoft,
-                t.direction === "rtl" && styles.rtl,
+                textDir(t.direction),
                 t.direction === "rtl" && { fontSize: 18 * trScale, lineHeight: 34 * trScale },
               ]}
             >
@@ -321,7 +338,7 @@ function makeStyles(c: Palette) {
     copiedBubble: {
       position: "absolute",
       bottom: 52,
-      right: 0,
+      end: 0,
       backgroundColor: c.bgElev,
       borderWidth: 1,
       borderColor: c.border,
@@ -337,10 +354,11 @@ function makeStyles(c: Palette) {
       textAlign: "right",
       writingDirection: "rtl",
       fontFamily: FONT.arQuran,
+      direction: "ltr",
       paddingVertical: 4,
     },
     // IndoPak Nastaʿlīq face (ADR 0035) — applied over `arabic`/`wbwAr`.
-    arabicIndopak: { fontFamily: FONT.arIndopak },
+    arabicIndopak: { fontFamily: FONT.arIndopak, direction: "ltr" },
     wordActive: { color: c.accent },
     // Concealed word: keep its footprint (a hint of length) but hide the glyphs.
     wordHidden: { color: "transparent", backgroundColor: c.borderSoft },
@@ -354,7 +372,13 @@ function makeStyles(c: Palette) {
       gap: 12,
     },
     wbwUnit: { alignItems: "center" },
-    wbwAr: { color: c.fg, fontFamily: FONT.arQuran, textAlign: "center", paddingVertical: 2 },
+    wbwAr: {
+      color: c.fg,
+      fontFamily: FONT.arQuran,
+      direction: "ltr",
+      textAlign: "center",
+      paddingVertical: 2,
+    },
     wbwTr: { color: c.muted, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
     tr: { marginTop: 12 },
     trName: { color: c.muted, fontSize: 13, marginBottom: 3, fontFamily: FONT.medium },

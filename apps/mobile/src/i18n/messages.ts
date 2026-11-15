@@ -1,82 +1,46 @@
 /**
- * UI message catalogue (#208) — mobile mirror of `apps/web/src/i18n/messages.ts`.
- * English is the source of truth and defines the key set (`MessageKey`); every
- * other locale is a `Record<MessageKey, string>` the compiler forces to stay
- * complete. This is a **starter slice** (the bottom tab bar + the Settings
- * language section) that proves the mechanism end-to-end on this platform,
- * mirroring web's Phase 0–1 scope (ADR 0040) — extracting the rest of the UI is
- * incremental follow-up under #208.
- *
- * The `common.*` keys and their Urdu text are copied verbatim from web's
- * catalogue so the two platforms describe the same choice identically; `tab.*`
- * is mobile-only (the bottom tab bar has no web equivalent).
- *
- * The Urdu strings are a first pass flagged for **native review** before
- * release — the localization *infrastructure* is what this change lands, not
- * authoritative translations.
+ * UI message catalogue for the mobile app (#208, ADR 0040/0041). Strings live
+ * in one file per area under `./ns/` (so the reader, prayer, learn, memorize,
+ * home and settings strings can be edited independently); this module merges
+ * them. English defines the key set; the compiler forces every other language
+ * to be complete. Non-English values are first passes flagged for native review.
  */
 import type { Locale } from "./config";
+import * as common from "./ns/common";
+import * as home from "./ns/home";
+import * as reader from "./ns/reader";
+import * as prayer from "./ns/prayer";
+import * as learn from "./ns/learn";
+import * as memorize from "./ns/memorize";
+import * as settings from "./ns/settings";
 
 export const en = {
-  // Bottom tab bar
-  "tab.home": "Home",
-  "tab.read": "Read",
-  "tab.tools": "Tools",
-  "tab.memorize": "Memorize",
-  "tab.more": "More",
-  // Common chrome (kept in sync with apps/web/src/i18n/messages.ts)
-  "common.settings": "Settings",
-  "common.language": "Language",
-  "settings.languageHint":
-    "Choose the language for the app's interface. Quran and translation text are unaffected.",
-  // Translation choice + verse actions (ADR 0041)
-  "tr.choose": "Which translation would you like?",
-  "tr.chooseNote": "You can change this any time.",
-  "tr.none": "None — Arabic only",
-  "tr.noneNote": "Read the Quran without a translation",
-  "tr.notice": "Translation: {name}",
-  "tr.noticeNone": "No translation is shown",
-  "tr.change": "Change",
-  "tr.keep": "Keep this",
-  "onb.start": "Start reading",
-  "onb.skip": "Skip",
-  "ayah.play": "Play",
-  "ayah.save": "Save",
-  "ayah.saved": "Saved",
-  "ayah.share": "Share",
-  "ayah.memorize": "Memorize",
-  "ayah.memorizing": "Memorizing",
-} as const;
+  ...common.en,
+  ...home.en,
+  ...reader.en,
+  ...prayer.en,
+  ...learn.en,
+  ...memorize.en,
+  ...settings.en,
+};
 
 export type MessageKey = keyof typeof en;
 
-// First-pass Urdu (RTL) — نظرِ ثانی درکار / needs native review.
-const ur: Record<MessageKey, string> = {
-  "tab.home": "ہوم",
-  "tab.read": "پڑھیں",
-  "tab.tools": "اوزار",
-  "tab.memorize": "حفظ",
-  "tab.more": "مزید",
-  "common.settings": "ترتیبات",
-  "common.language": "زبان",
-  "settings.languageHint":
-    "ایپ کے انٹرفیس کی زبان منتخب کریں۔ قرآن اور ترجمے کا متن متاثر نہیں ہوگا۔",
-  "tr.choose": "آپ کون سا ترجمہ پسند کریں گے؟",
-  "tr.chooseNote": "آپ اسے کسی بھی وقت بدل سکتے ہیں۔",
-  "tr.none": "کوئی نہیں — صرف عربی",
-  "tr.noneNote": "قرآن بغیر ترجمے کے پڑھیں",
-  "tr.notice": "ترجمہ: {name}",
-  "tr.noticeNone": "کوئی ترجمہ نہیں دکھایا جا رہا",
-  "tr.change": "تبدیل کریں",
-  "tr.keep": "یہی رکھیں",
-  "onb.start": "پڑھنا شروع کریں",
-  "onb.skip": "چھوڑیں",
-  "ayah.play": "سنیں",
-  "ayah.save": "محفوظ کریں",
-  "ayah.saved": "محفوظ",
-  "ayah.share": "شیئر کریں",
-  "ayah.memorize": "حفظ کریں",
-  "ayah.memorizing": "حفظ جاری",
-};
+const merge = (l: Exclude<Locale, "en">): Record<MessageKey, string> => ({
+  ...common[l],
+  ...home[l],
+  ...reader[l],
+  ...prayer[l],
+  ...learn[l],
+  ...memorize[l],
+  ...settings[l],
+});
 
-export const MESSAGES: Record<Locale, Record<MessageKey, string>> = { en, ur };
+export const MESSAGES: Record<Locale, Record<MessageKey, string>> = {
+  en,
+  ar: merge("ar"),
+  ur: merge("ur"),
+  id: merge("id"),
+  bn: merge("bn"),
+  tr: merge("tr"),
+};

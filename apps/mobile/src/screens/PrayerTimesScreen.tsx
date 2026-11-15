@@ -12,9 +12,8 @@ import {
   type Madhab,
   MADHABS,
   OBLIGATORY_PRAYERS,
-  PRAYER_LABELS,
   type PrayerName,
-  SUPPLEMENTARY_TIMING_LABELS,
+  type SupplementaryTimingName,
   SUPPLEMENTARY_TIMING_NAMES,
   TIMING_NAMES,
   nextPrayer,
@@ -24,7 +23,10 @@ import { api } from "../api";
 import { KEYS, getJSON, getString, setJSON, setString } from "../storage";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
-import { fmtCountdown, fmtPrayerTime, localISODate, withTimeout } from "../utils";
+import { localISODate, withTimeout } from "../utils";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
+import { PRAYER_KEY, fmtCountdownIn, fmtPrayerTimeIn } from "../prayer-intl";
 import { expoNotifier } from "../notifier";
 import { notifyNotificationPermissionDenied } from "../notification-permission-alert";
 import {
@@ -44,6 +46,21 @@ const PRAYER_AR: Record<PrayerName, string> = {
   maghrib: "المغرب",
   isha: "العشاء",
 };
+const SUPPLEMENTARY_KEY: Record<SupplementaryTimingName, MessageKey> = {
+  imsak: "pr.imsak",
+  midnight: "pr.midnight",
+  lastThird: "pr.lastThird",
+};
+const MADHAB_KEY: Record<Madhab, MessageKey> = {
+  shafi: "pr.madhab.shafi",
+  hanafi: "pr.madhab.hanafi",
+};
+const HIGH_LAT_KEY: Record<HighLatitudeRuleId, MessageKey> = {
+  none: "pr.hlr.none",
+  MiddleOfTheNight: "pr.hlr.MiddleOfTheNight",
+  SeventhOfTheNight: "pr.hlr.SeventhOfTheNight",
+  TwilightAngle: "pr.hlr.TwilightAngle",
+};
 const PRAYER_ICON: Record<PrayerName, IconName> = {
   fajr: "moon",
   sunrise: "sun",
@@ -56,6 +73,9 @@ const PRAYER_ICON: Record<PrayerName, IconName> = {
 export function PrayerTimesScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, locale } = useIntl();
+  const prayerName = (name: PrayerName) => t(PRAYER_KEY[name]);
+  const fmtTime = (src: string | Date) => fmtPrayerTimeIn(src, coords, locale);
 
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [method, setMethod] = useState(DEFAULT_CALCULATION_METHOD);
@@ -191,7 +211,7 @@ export function PrayerTimesScreen() {
     if (turningOn && expoNotifier.permission() !== "granted") {
       await expoNotifier.requestPermission();
       if (expoNotifier.permission() !== "granted") {
-        notifyNotificationPermissionDenied(`${PRAYER_LABELS[name]} reminder`);
+        notifyNotificationPermissionDenied(tf("pr.reminderFor", { name: prayerName(name) }), t);
         return;
       }
     }
@@ -207,11 +227,9 @@ export function PrayerTimesScreen() {
     <ScrollView contentContainerStyle={styles.screen}>
       {!coords && status !== "locating" && (
         <View style={styles.cta}>
-          <Text style={styles.ctaText}>
-            See accurate prayer times for where you are. Your location stays on this device.
-          </Text>
+          <Text style={styles.ctaText}>{t("pr.timesIntro")}</Text>
           <Pressable style={styles.ctaBtn} onPress={locate}>
-            <Text style={styles.ctaBtnText}>📍 Use my location</Text>
+            <Text style={styles.ctaBtnText}>{t("pr.useLocation")}</Text>
           </Pressable>
         </View>
       )}
@@ -219,27 +237,28 @@ export function PrayerTimesScreen() {
       {status === "locating" && (
         <View style={styles.center}>
           <ActivityIndicator color={colors.accent} />
-          <Text style={styles.muted}>Getting your location…</Text>
+          <Text style={styles.muted}>{t("pr.locating")}</Text>
         </View>
       )}
 
       {status === "denied" && (
         <View style={styles.cta}>
-          <Text style={styles.ctaText}>Location permission was denied. Enable it in Settings.</Text>
+          <Text style={styles.ctaText}>{t("pr.denied")}</Text>
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Pressable style={styles.chip} onPress={locate}>
-              <Text style={styles.chipText}>Try again</Text>
+              <Text style={styles.chipText}>{t("pr.tryAgain")}</Text>
             </Pressable>
-            <Pressable style={styles.chip} onPress={() => void Linking.openSettings().catch(() => {})}>
-              <Text style={styles.chipText}>Open Settings</Text>
+            <Pressable
+              style={styles.chip}
+              onPress={() => void Linking.openSettings().catch(() => {})}
+            >
+              <Text style={styles.chipText}>{t("pr.openSettings")}</Text>
             </Pressable>
           </View>
         </View>
       )}
 
-      {status === "error" && (
-        <Text style={styles.muted}>Couldn't load prayer times. Check your connection.</Text>
-      )}
+      {status === "error" && <Text style={styles.muted}>{t("pr.timesError")}</Text>}
 
       {status === "loading" && (
         <View style={styles.center}>
@@ -254,10 +273,12 @@ export function PrayerTimesScreen() {
               <View style={styles.heroWatermark} pointerEvents="none">
                 <Khatam size={220} color={colors.accent} sw={0.9} opacity={0.06} />
               </View>
-              <Text style={styles.heroLabel}>Next · {PRAYER_LABELS[next.name]}</Text>
-              <Text style={styles.heroCountdown}>{fmtCountdown(next.at, now)}</Text>
+              <Text style={styles.heroLabel}>
+                {tf("pr.nextLabel", { name: prayerName(next.name) })}
+              </Text>
+              <Text style={styles.heroCountdown}>{fmtCountdownIn(next.at, now, tf)}</Text>
               <Text style={styles.heroSub}>
-                until {PRAYER_LABELS[next.name]} at {fmtPrayerTime(next.at, coords)}
+                {tf("pr.until", { name: prayerName(next.name), time: fmtTime(next.at) })}
               </Text>
             </View>
           )}
@@ -281,13 +302,16 @@ export function PrayerTimesScreen() {
                     sw={1.8}
                   />
                   <Text style={[styles.prayerName, isNext && styles.prayerNameNext]}>
-                    {PRAYER_LABELS[name]}
+                    {prayerName(name)}
                   </Text>
-                  <Text style={[styles.prayerAr, isNext && styles.prayerArNext]}>
-                    {PRAYER_AR[name]}
-                  </Text>
+                  {/* The Arabic name repeats the label in an Arabic interface. */}
+                  {locale !== "ar" && (
+                    <Text style={[styles.prayerAr, isNext && styles.prayerArNext]}>
+                      {PRAYER_AR[name]}
+                    </Text>
+                  )}
                   <Text style={[styles.prayerTime, isNext && styles.prayerTimeNext]}>
-                    {fmtPrayerTime(timings[name], coords)}
+                    {fmtTime(timings[name])}
                   </Text>
                   {OBLIGATORY_PRAYERS.includes(name) && (
                     <Pressable
@@ -298,7 +322,9 @@ export function PrayerTimesScreen() {
                       hitSlop={14}
                       accessibilityRole="switch"
                       accessibilityState={{ checked: !!reminders[name] }}
-                      accessibilityLabel={`${reminders[name] ? "Turn off" : "Turn on"} reminder for ${PRAYER_LABELS[name]}`}
+                      accessibilityLabel={tf(reminders[name] ? "pr.reminderOff" : "pr.reminderOn", {
+                        name: prayerName(name),
+                      })}
                     >
                       <Icon
                         name="bell"
@@ -313,7 +339,7 @@ export function PrayerTimesScreen() {
             })}
           </View>
 
-          <Text style={styles.sectionLabel}>Night</Text>
+          <Text style={styles.sectionLabel}>{t("pr.night")}</Text>
           <View style={styles.list}>
             {SUPPLEMENTARY_TIMING_NAMES.map((name, i) => (
               <View
@@ -321,9 +347,9 @@ export function PrayerTimesScreen() {
                 style={[styles.row, i < SUPPLEMENTARY_TIMING_NAMES.length - 1 && styles.rowDivider]}
               >
                 <Icon name="moon" size={20} color={colors.muted} sw={1.8} />
-                <Text style={styles.prayerName}>{SUPPLEMENTARY_TIMING_LABELS[name]}</Text>
+                <Text style={styles.prayerName}>{t(SUPPLEMENTARY_KEY[name])}</Text>
                 <Text style={styles.prayerTime}>
-                  {timings[name] ? fmtPrayerTime(timings[name], coords) : "—"}
+                  {timings[name] ? fmtTime(timings[name]) : "—"}
                 </Text>
               </View>
             ))}
@@ -331,7 +357,7 @@ export function PrayerTimesScreen() {
 
           <View style={styles.controls}>
             <View style={styles.pickerRow}>
-              <Text style={styles.label}>Method</Text>
+              <Text style={styles.label}>{t("pr.method")}</Text>
               <View style={styles.chips}>
                 {CALCULATION_METHODS.map((m) => (
                   <Pressable
@@ -348,7 +374,7 @@ export function PrayerTimesScreen() {
             </View>
 
             <View style={styles.pickerRow}>
-              <Text style={styles.label}>Asr (madhab)</Text>
+              <Text style={styles.label}>{t("pr.asrMadhab")}</Text>
               <View style={styles.chips}>
                 {MADHABS.map((m) => (
                   <Pressable
@@ -357,7 +383,7 @@ export function PrayerTimesScreen() {
                     onPress={() => changeMadhab(m.id)}
                   >
                     <Text style={[styles.chipText, m.id === madhab && styles.chipTextOn]}>
-                      {m.label}
+                      {t(MADHAB_KEY[m.id])}
                     </Text>
                   </Pressable>
                 ))}
@@ -365,7 +391,7 @@ export function PrayerTimesScreen() {
             </View>
 
             <View style={styles.pickerRow}>
-              <Text style={styles.label}>High-latitude rule</Text>
+              <Text style={styles.label}>{t("pr.highLat")}</Text>
               <View style={styles.chips}>
                 {HIGH_LATITUDE_RULES.map((r) => (
                   <Pressable
@@ -374,7 +400,7 @@ export function PrayerTimesScreen() {
                     onPress={() => changeHighLat(r.id)}
                   >
                     <Text style={[styles.chipText, r.id === highLat && styles.chipTextOn]}>
-                      {r.label}
+                      {t(HIGH_LAT_KEY[r.id])}
                     </Text>
                   </Pressable>
                 ))}
@@ -382,10 +408,18 @@ export function PrayerTimesScreen() {
             </View>
 
             <Pressable style={styles.chip} onPress={locate}>
-              <Text style={styles.chipText}>📍 Update location</Text>
+              <Text style={styles.chipText}>{t("pr.updateLocation")}</Text>
             </Pressable>
           </View>
-          <Text style={styles.foot}>Times computed on the server · {localISODate(now)}</Text>
+          <Text style={styles.foot}>
+            {tf("pr.timesFoot", {
+              date: now.toLocaleDateString(locale, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              }),
+            })}
+          </Text>
         </>
       )}
     </ScrollView>

@@ -14,7 +14,10 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
     multiGet: async (keys: string[]) => keys.map((k) => [k, mem.get(k) ?? null]),
   },
 }));
-vi.mock("./crypto-random", () => ({ randomBytes: () => new Uint8Array(0), randomId: () => "node-A" }));
+vi.mock("./crypto-random", () => ({
+  randomBytes: () => new Uint8Array(0),
+  randomId: () => "node-A",
+}));
 
 import { explodeKey } from "@ummahlibrary/core";
 import { createMobileSyncStateStore } from "./mobile-sync-state-store";

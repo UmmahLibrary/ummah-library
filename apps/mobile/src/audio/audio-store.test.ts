@@ -52,7 +52,9 @@ vi.mock("expo-file-system", () => {
       for (const f of fsState.files.keys()) {
         if (f.startsWith(prefix) && !f.slice(prefix.length).includes("/")) seen.set(f, "file");
       }
-      return [...seen].map(([uri, kind]) => (kind === "dir" ? new FakeDirectory(uri) : new FakeFile(uri)));
+      return [...seen].map(([uri, kind]) =>
+        kind === "dir" ? new FakeDirectory(uri) : new FakeFile(uri),
+      );
     }
   }
   class FakeFile {
@@ -105,7 +107,10 @@ describe("mobileAudioStore", () => {
   it("reports not-saved, then saved after save()", async () => {
     const store = await loadStore();
     expect(await store.has("mishary", ref(1, 1))).toBe(false);
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("audio", { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("audio", { status: 200 })),
+    );
 
     await store.save("mishary", ref(1, 1), "https://example.com/1-1.mp3");
 
@@ -127,7 +132,10 @@ describe("mobileAudioStore", () => {
 
   it("save() throws when the remote fetch fails, and leaves nothing behind", async () => {
     const store = await loadStore();
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 404 })),
+    );
 
     await expect(
       store.save("mishary", ref(1, 2), "https://example.com/missing.mp3"),
@@ -154,9 +162,9 @@ describe("mobileAudioStore", () => {
       })),
     );
 
-    await expect(
-      store.save("mishary", ref(6, 1), "https://example.com/6-1.mp3"),
-    ).rejects.toThrow(/Network request failed/);
+    await expect(store.save("mishary", ref(6, 1), "https://example.com/6-1.mp3")).rejects.toThrow(
+      /Network request failed/,
+    );
     expect(await store.has("mishary", ref(6, 1))).toBe(false);
     vi.unstubAllGlobals();
   });
@@ -165,7 +173,10 @@ describe("mobileAudioStore", () => {
     const store = await loadStore();
     expect(await store.localUrl("mishary", ref(3, 1))).toBeNull();
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("audio", { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("audio", { status: 200 })),
+    );
     await store.save("mishary", ref(3, 1), "https://example.com/3-1.mp3");
 
     const url = await store.localUrl("mishary", ref(3, 1));
@@ -175,7 +186,10 @@ describe("mobileAudioStore", () => {
 
   it("removeSurah() deletes only that surah's ayahs for that reciter", async () => {
     const store = await loadStore();
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("audio", { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("audio", { status: 200 })),
+    );
     await store.save("mishary", ref(4, 1), "https://example.com/4-1.mp3");
     await store.save("mishary", ref(4, 2), "https://example.com/4-2.mp3");
     await store.save("mishary", ref(5, 1), "https://example.com/5-1.mp3");
@@ -190,7 +204,10 @@ describe("mobileAudioStore", () => {
 
   it("savedSurahs() aggregates ayah count and bytes, sorted by reciter then surah", async () => {
     const store = await loadStore();
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("12345", { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("12345", { status: 200 })),
+    );
 
     await store.save("zzz-reciter", ref(2, 1), "https://example.com/a.mp3");
     const oneAyahBytes = (await store.savedSurahs())[0]!.bytes;

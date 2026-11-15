@@ -8,11 +8,13 @@ import { targetSize } from "../comfort";
 import type { ReadingMode } from "../types";
 import { LabelButton } from "./LabelButton";
 import { SizeControls } from "./SizeControls";
+import { useT } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
 
-const MODES: { mode: ReadingMode; label: string }[] = [
-  { mode: "translation", label: "Verse by verse" },
-  { mode: "reading", label: "Reading" },
-  { mode: "reading-tr", label: "Translation" },
+const MODES: { mode: ReadingMode; label: MessageKey }[] = [
+  { mode: "translation", label: "rd.mode.verse" },
+  { mode: "reading", label: "rd.mode.reading" },
+  { mode: "reading-tr", label: "rd.mode.translation" },
 ];
 
 /**
@@ -51,6 +53,7 @@ export function ReaderControls({
 }) {
   const { colors } = useTheme();
   const { comfort } = useSettings();
+  const t = useT();
   const min = targetSize(comfort);
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [textOpen, setTextOpen] = useState(false);
@@ -80,32 +83,32 @@ export function ReaderControls({
       <View style={styles.tools}>
         <LabelButton
           icon="type"
-          label="Text"
+          label={t("rd.ctl.text")}
           active={textOpen}
           onPress={() => setTextOpen((v) => !v)}
-          accessibilityLabel={textOpen ? "Hide text settings" : "Text size and transliteration"}
+          accessibilityLabel={textOpen ? t("rd.ctl.textHideA11y") : t("rd.ctl.textA11y")}
           style={styles.tool}
         />
         <LabelButton
           icon="headphones"
-          label="Reciter"
+          label={t("rd.reciter")}
           onPress={() => setReciterOpen(true)}
-          accessibilityLabel="Choose reciter"
+          accessibilityLabel={t("rd.ctl.reciterA11y")}
           style={styles.tool}
         />
         <LabelButton
           icon="globe"
-          label="Translation"
+          label={t("rd.mode.translation")}
           onPress={onManage}
-          accessibilityLabel="Choose translations"
+          accessibilityLabel={t("rd.ctl.trA11y")}
           style={styles.tool}
         />
         <LabelButton
           icon="bookmark"
-          label={saved ? "Saved" : "Save"}
+          label={saved ? t("ayah.saved") : t("ayah.save")}
           active={saved}
           onPress={onSave}
-          accessibilityLabel={saved ? "Saved — remove bookmark" : "Bookmark this surah"}
+          accessibilityLabel={saved ? t("rd.ctl.savedA11y") : t("rd.ctl.saveA11y")}
           style={styles.tool}
         />
       </View>
@@ -114,18 +117,18 @@ export function ReaderControls({
         <View style={styles.panel}>
           <SizeControls sample={false} />
           {switchRow(
-            "Transliteration",
-            "The Arabic sounds in Latin letters under each āyah",
+            t("rd.ctl.translit"),
+            t("rd.ctl.translitNote"),
             transliteration,
             onTransliteration,
           )}
           {switchRow(
-            "Word by word",
-            "Latin reading under every Arabic word",
+            t("rd.ctl.wbw"),
+            t("rd.ctl.wbwNote"),
             wordTransliteration,
             onWordTransliteration,
           )}
-          {switchRow("Tap a word to hear it", "Plays just that word", tapToHear, onTapToHear)}
+          {switchRow(t("rd.ctl.tapHear"), t("rd.ctl.tapHearNote"), tapToHear, onTapToHear)}
         </View>
       )}
 
@@ -139,7 +142,7 @@ export function ReaderControls({
             accessibilityState={{ selected: m === mode }}
           >
             <Text style={[styles.segText, m === mode && styles.segTextOn]} numberOfLines={1}>
-              {label}
+              {t(label)}
             </Text>
           </Pressable>
         ))}
@@ -154,11 +157,11 @@ export function ReaderControls({
         <Pressable
           style={styles.backdrop}
           onPress={() => setReciterOpen(false)}
-          accessibilityLabel="Close"
+          accessibilityLabel={t("rd.close")}
         >
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.sheetTitle} accessibilityRole="header">
-              Reciter
+              {t("rd.reciter")}
             </Text>
             <ScrollView style={{ maxHeight: 420 }}>
               {RECITERS.map((r) => {
@@ -190,7 +193,7 @@ export function ReaderControls({
               onPress={() => setReciterOpen(false)}
               accessibilityRole="button"
             >
-              <Text style={styles.doneText}>Done</Text>
+              <Text style={styles.doneText}>{t("rd.done")}</Text>
             </Pressable>
           </Pressable>
         </Pressable>

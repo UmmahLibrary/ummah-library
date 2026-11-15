@@ -11,12 +11,14 @@ import {
 import { mobileTasbihStore as store } from "../tasbih-store";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
+import { useIntl } from "../i18n/I18nProvider";
 
 const DEFAULT: TasbihRecord = { phraseId: "subhanallah", phrases: {} };
 
 export function TasbihScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, num } = useIntl();
 
   const [state, setState] = useState<TasbihRecord>(DEFAULT);
 
@@ -88,43 +90,48 @@ export function TasbihScreen() {
             transform="rotate(-90 130 130)"
           />
         </Svg>
-        <Pressable style={styles.dial} onPress={tap} accessibilityRole="button" accessibilityLabel="Count">
+        <Pressable
+          style={styles.dial}
+          onPress={tap}
+          accessibilityRole="button"
+          accessibilityLabel={t("lr.countA11y")}
+        >
           <Text style={styles.dialAr}>{phrase.arabic}</Text>
           <Text style={[styles.dialCount, justLapped && styles.dialCountLapped]}>
-            {justLapped ? progress.target : view.count}
+            {num(justLapped ? progress.target : view.count)}
           </Text>
-          <Text style={styles.dialTarget}>of {progress.target}</Text>
+          <Text style={styles.dialTarget}>{tf("lr.ofTarget", { n: progress.target })}</Text>
         </Pressable>
       </View>
 
       <View style={styles.stats}>
         <View style={styles.stat}>
-          <Text style={styles.statValue}>{view.rounds}</Text>
-          <Text style={styles.statLabel}>Cycles complete</Text>
+          <Text style={styles.statValue}>{num(view.rounds)}</Text>
+          <Text style={styles.statLabel}>{t("lr.cycles")}</Text>
         </View>
         <View style={styles.stat}>
-          <Text style={styles.statValue}>{view.total}</Text>
-          <Text style={styles.statLabel}>Total today</Text>
+          <Text style={styles.statValue}>{num(view.total)}</Text>
+          <Text style={styles.statLabel}>{t("lr.totalToday")}</Text>
         </View>
       </View>
 
       <View style={styles.controls}>
         <View style={styles.pickerRow}>
-          <Text style={styles.label}>Target</Text>
+          <Text style={styles.label}>{t("lr.target")}</Text>
           <View style={styles.chips}>
-            {TASBIH_TARGETS.map((t) => (
+            {TASBIH_TARGETS.map((target) => (
               <Pressable
-                key={t}
-                style={[styles.chip, t === progress.target && styles.chipOn]}
+                key={target}
+                style={[styles.chip, target === progress.target && styles.chipOn]}
                 onPress={() =>
                   persist({
                     ...state,
-                    phrases: { ...state.phrases, [state.phraseId]: { ...progress, target: t } },
+                    phrases: { ...state.phrases, [state.phraseId]: { ...progress, target } },
                   })
                 }
               >
-                <Text style={[styles.chipText, t === progress.target && styles.chipTextOn]}>
-                  {t}
+                <Text style={[styles.chipText, target === progress.target && styles.chipTextOn]}>
+                  {num(target)}
                 </Text>
               </Pressable>
             ))}
@@ -140,7 +147,7 @@ export function TasbihScreen() {
             })
           }
         >
-          <Text style={styles.resetText}>Reset</Text>
+          <Text style={styles.resetText}>{t("lr.reset")}</Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -157,7 +164,13 @@ function makeStyles(c: Palette) {
       gap: 8,
       marginBottom: 4,
     },
-    dialWrap: { width: 260, height: 260, alignItems: "center", justifyContent: "center", marginTop: 8 },
+    dialWrap: {
+      width: 260,
+      height: 260,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 8,
+    },
     ring: { position: "absolute" },
     dial: {
       width: 208,
@@ -176,7 +189,13 @@ function makeStyles(c: Palette) {
       fontFamily: FONT.arSemibold,
       marginBottom: 2,
     },
-    dialCount: { color: c.fg, fontSize: 60, fontFamily: FONT.extrabold, letterSpacing: -2, lineHeight: 64 },
+    dialCount: {
+      color: c.fg,
+      fontSize: 60,
+      fontFamily: FONT.extrabold,
+      letterSpacing: -2,
+      lineHeight: 64,
+    },
     dialCountLapped: { color: c.accent },
     dialTarget: { color: c.faint, fontSize: 13, marginTop: 2 },
     stats: { flexDirection: "row", gap: 44, marginVertical: 28 },

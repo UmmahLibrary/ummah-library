@@ -19,6 +19,7 @@ export * from "./search";
 export * from "./goto";
 export * from "./consistency";
 export * from "./translation-defaults";
+export * from "./i18n-format";
 export * from "./hadith";
 export * from "./prayer";
 export * from "./prayer-tracker";

@@ -22,9 +22,7 @@ interface FakeNode {
 
 const { fsState, joinUri } = vi.hoisted(() => {
   function joinUri(parts: unknown[]): string {
-    return parts
-      .map((p) => (typeof p === "string" ? p : (p as { uri: string }).uri))
-      .join("/");
+    return parts.map((p) => (typeof p === "string" ? p : (p as { uri: string }).uri)).join("/");
   }
   return {
     fsState: { files: new Map<string, string>(), dirs: new Set<string>() },

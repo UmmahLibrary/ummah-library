@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Alert, Linking } from "react-native";
 import { Pressable, StyleSheet, Switch, Text, View } from "../Type";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Icon, type Palette } from "@ummahlibrary/ui";
@@ -6,15 +7,18 @@ import { DEFAULT_PLAN_REMINDER_TIME } from "@ummahlibrary/core";
 import { useTheme } from "../theme";
 import { FONT } from "../fonts";
 import { expoNotifier } from "../notifier";
-import { notifyNotificationPermissionDenied } from "../notification-permission-alert";
+import { useIntl } from "../i18n/I18nProvider";
 import { readPlanReminderPref, setPlanReminderPref } from "../plan-reminders";
 
-/** `"20:00"` → `"8:00 PM"`. */
-function label(time: string): string {
+/** `"20:00"` → `"8:00 PM"`, with the language's digits and AM/PM words. */
+function label(intl: ReturnType<typeof useIntl>, time: string): string {
   const [h, m] = time.split(":").map(Number);
   const am = (h ?? 0) < 12;
   const h12 = (h ?? 0) % 12 === 0 ? 12 : (h ?? 0) % 12;
-  return `${h12}:${String(m ?? 0).padStart(2, "0")} ${am ? "AM" : "PM"}`;
+  const clock = `${h12}:${String(m ?? 0).padStart(2, "0")}`.replace(/[0-9]/g, (d) =>
+    intl.num(Number(d)),
+  );
+  return `${clock} ${intl.t(am ? "mem.reminder.am" : "mem.reminder.pm")}`;
 }
 
 function timeToDate(time: string): Date {
@@ -36,6 +40,8 @@ function dateToTime(d: Date): string {
 export function PlanReminderToggle() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const intl = useIntl();
+  const { t, tf } = intl;
   const [on, setOn] = useState(false);
   const [time, setTime] = useState(DEFAULT_PLAN_REMINDER_TIME);
   const [showPicker, setShowPicker] = useState(false);
@@ -55,7 +61,14 @@ export function PlanReminderToggle() {
     if (next && expoNotifier.permission() !== "granted") {
       await expoNotifier.requestPermission();
       if (expoNotifier.permission() !== "granted") {
-        notifyNotificationPermissionDenied("daily reading reminder");
+        // Same alert as notification-permission-alert.ts, in the reader's language.
+        Alert.alert(t("mem.reminder.deniedTitle"), t("mem.reminder.deniedBody"), [
+          { text: t("mem.reminder.notNow"), style: "cancel" },
+          {
+            text: t("mem.reminder.openSettings"),
+            onPress: () => void Linking.openSettings().catch(() => {}),
+          },
+        ]);
         return;
       }
     }
@@ -79,11 +92,12 @@ export function PlanReminderToggle() {
       <View style={styles.row}>
         <Icon name="bell" size={17} color={on ? colors.accent : colors.muted} sw={1.8} />
         <View style={styles.text}>
-          <Text style={styles.title}>Daily reminder</Text>
-          <Text style={styles.note}>A gentle daily nudge for today's portion.</Text>
+          <Text style={styles.title}>{t("mem.reminder.title")}</Text>
+          <Text style={styles.note}>{t("mem.reminder.note")}</Text>
         </View>
         <Switch
           value={on}
+          accessibilityLabel={t("mem.reminder.title")}
           onValueChange={(v) => void toggle(v)}
           trackColor={{ true: colors.accentSoft, false: colors.border }}
           thumbColor={on ? colors.accent : colors.faint}
@@ -91,17 +105,27 @@ export function PlanReminderToggle() {
       </View>
 
       {on && (
-        <Pressable style={styles.timeRow} onPress={() => setShowPicker(true)} accessibilityRole="button">
-          <Text style={styles.timeLabel}>Remind me at</Text>
+        <Pressable
+          style={styles.timeRow}
+          onPress={() => setShowPicker(true)}
+          accessibilityRole="button"
+          accessibilityLabel={tf("mem.reminder.atA11y", { time: label(intl, time) })}
+        >
+          <Text style={styles.timeLabel}>{t("mem.reminder.at")}</Text>
           <View style={styles.timePill}>
             <Icon name="clock" size={13} color={colors.accent} sw={1.8} />
-            <Text style={styles.timeValue}>{label(time)}</Text>
+            <Text style={styles.timeValue}>{label(intl, time)}</Text>
           </View>
         </Pressable>
       )}
 
       {showPicker && (
-        <DateTimePicker value={timeToDate(time)} mode="time" is24Hour={false} onChange={onPickTime} />
+        <DateTimePicker
+          value={timeToDate(time)}
+          mode="time"
+          is24Hour={false}
+          onChange={onPickTime}
+        />
       )}
     </View>
   );

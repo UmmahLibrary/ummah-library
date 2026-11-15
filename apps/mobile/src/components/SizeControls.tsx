@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { LTR_TEXT } from "../text-direction";
 import { Pressable, StyleSheet, Text, View } from "../Type";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
@@ -12,6 +13,7 @@ import {
   targetSize,
 } from "../comfort";
 import { SAMPLE_FATIHA_2 } from "../quran-samples";
+import { useIntl } from "../i18n/I18nProvider";
 
 /**
  * Separate Arabic and translation size steppers (ADR 0041) with a live sample.
@@ -22,6 +24,7 @@ import { SAMPLE_FATIHA_2 } from "../quran-samples";
 export function SizeControls({ sample = true }: { sample?: boolean }) {
   const { colors } = useTheme();
   const { scale, setScale, comfort, setComfort } = useSettings();
+  const { t, tf } = useIntl();
   const min = targetSize(comfort);
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -31,7 +34,8 @@ export function SizeControls({ sample = true }: { sample?: boolean }) {
     lo: number,
     hi: number,
     onStep: (delta: number) => void,
-    what: string,
+    smallerLabel: string,
+    biggerLabel: string,
   ) => (
     <View style={styles.row}>
       <Text style={styles.label}>{title}</Text>
@@ -41,19 +45,19 @@ export function SizeControls({ sample = true }: { sample?: boolean }) {
           disabled={value <= lo}
           onPress={() => onStep(-0.1)}
           accessibilityRole="button"
-          accessibilityLabel={`Smaller ${what}`}
+          accessibilityLabel={smallerLabel}
         >
           <Text style={styles.stepText}>−</Text>
         </Pressable>
         <Text style={styles.value} accessibilityLiveRegion="polite">
-          {Math.round(value * 100)}%
+          {tf("set.s.percent", { n: Math.round(value * 100) })}
         </Text>
         <Pressable
           style={[styles.step, { minHeight: min, minWidth: min }, value >= hi && styles.disabled]}
           disabled={value >= hi}
           onPress={() => onStep(0.1)}
           accessibilityRole="button"
-          accessibilityLabel={`Bigger ${what}`}
+          accessibilityLabel={biggerLabel}
         >
           <Text style={styles.stepText}>+</Text>
         </Pressable>
@@ -64,20 +68,22 @@ export function SizeControls({ sample = true }: { sample?: boolean }) {
   return (
     <View style={styles.wrap}>
       {stepper(
-        "Arabic size",
+        t("set.s.arabic"),
         scale,
         AR_SCALE_MIN,
         AR_SCALE_MAX,
         (d) => setScale((prev) => stepScale(prev, d, AR_SCALE_MIN, AR_SCALE_MAX)),
-        "Arabic",
+        t("set.s.arSmaller"),
+        t("set.s.arBigger"),
       )}
       {stepper(
-        "Translation size",
+        t("set.s.translation"),
         comfort.trScale,
         TR_SCALE_MIN,
         TR_SCALE_MAX,
         (d) => setComfort({ trScale: stepScale(comfort.trScale, d, TR_SCALE_MIN, TR_SCALE_MAX) }),
-        "translation",
+        t("set.s.trSmaller"),
+        t("set.s.trBigger"),
       )}
       {sample && (
         <View style={styles.sample}>
@@ -92,13 +98,17 @@ export function SizeControls({ sample = true }: { sample?: boolean }) {
           <Text
             style={[
               styles.sampleEn,
+              LTR_TEXT,
               comfort.trEmphasis === "soft" && styles.sampleEnSoft,
               { fontSize: 15 * comfort.trScale, lineHeight: 24 * comfort.trScale },
             ]}
           >
             {SAMPLE_FATIHA_2.english}
           </Text>
-          <Text style={styles.sampleRef}>Al-Fātiḥah 1:2 · The Clear Quran, Mustafa Khattab</Text>
+          {/* Translation attribution stays as published. */}
+          <Text style={styles.sampleRef}>
+            {t("set.s.sampleRef")} · The Clear Quran, Mustafa Khattab
+          </Text>
         </View>
       )}
     </View>
@@ -142,6 +152,7 @@ function makeStyles(c: Palette) {
       textAlign: "right",
       writingDirection: "rtl",
       fontFamily: FONT.arQuran,
+      direction: "ltr",
       paddingVertical: 4,
     },
     sampleEn: { color: c.fg },

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "../Type";
 import type { Translation } from "@ummahlibrary/core";
 import { useTheme, type Palette } from "../theme";
+import { useT } from "../i18n/I18nProvider";
 
 /**
  * Single-choice translation picker for the "Reading → Translations" view: pick
@@ -20,17 +21,20 @@ export function ReadingTranslationPicker({
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const t = useT();
   const [open, setOpen] = useState(false);
   const active = shortlist.find((e) => e.id === activeId);
 
   return (
     <View style={styles.wrap}>
       <Pressable style={styles.trigger} onPress={() => setOpen((o) => !o)}>
-        <Text style={styles.triggerText}>Translation: {active?.name ?? "—"} ▾</Text>
+        <Text style={styles.triggerText}>
+          {t("rd.trPicker.label")} {active?.name ?? "—"} ▾
+        </Text>
       </Pressable>
       {open && (
         <View style={styles.menu}>
-          <Text style={styles.menuHead}>My Translations</Text>
+          <Text style={styles.menuHead}>{t("rd.trPicker.mine")}</Text>
           {shortlist.map((e) => (
             <Pressable
               key={e.id}
@@ -53,7 +57,7 @@ export function ReadingTranslationPicker({
               onManage();
             }}
           >
-            <Text style={styles.manageText}>⚙ Select translations</Text>
+            <Text style={styles.manageText}>⚙ {t("rd.trPicker.select")}</Text>
           </Pressable>
         </View>
       )}
@@ -93,7 +97,12 @@ function makeStyles(c: Palette) {
     item: { paddingVertical: 10, paddingHorizontal: 14 },
     itemText: { color: c.fg, fontSize: 15 },
     itemOn: { color: c.accent, fontWeight: "600" },
-    manage: { paddingVertical: 10, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: c.border },
+    manage: {
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+    },
     manageText: { color: c.accent, fontSize: 14, fontWeight: "600" },
   });
 }

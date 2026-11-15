@@ -4,10 +4,22 @@ import { Khatam } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { DUAS, DUA_CATEGORIES, duaOfToday } from "@ummahlibrary/core";
+import { useT } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
+
+const CATEGORY_KEY: Record<(typeof DUA_CATEGORIES)[number], MessageKey> = {
+  Comprehensive: "lr.duaCat.comprehensive",
+  Forgiveness: "lr.duaCat.forgiveness",
+  "Guidance & knowledge": "lr.duaCat.guidance",
+  "Ease in hardship": "lr.duaCat.hardship",
+  "Trust & protection": "lr.duaCat.trust",
+  "Gratitude & family": "lr.duaCat.gratitude",
+};
 
 export function DuasScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const t = useT();
   const featured = duaOfToday();
 
   return (
@@ -17,7 +29,7 @@ export function DuasScreen() {
         <View style={styles.featuredWatermark} pointerEvents="none">
           <Khatam size={140} color={colors.accent} sw={1.1} opacity={0.06} />
         </View>
-        <Text style={styles.featuredKicker}>Duʿā of the day</Text>
+        <Text style={styles.featuredKicker}>{t("lr.duaOfDay")}</Text>
         <Text style={styles.featuredAr}>{featured.ar}</Text>
         <Text style={styles.featuredEn}>“{featured.en}”</Text>
         <Text style={styles.featuredRef}>{featured.ref}</Text>
@@ -28,7 +40,7 @@ export function DuasScreen() {
         if (list.length === 0) return null;
         return (
           <View key={cat}>
-            <Text style={styles.sectionLabel}>{cat}</Text>
+            <Text style={styles.sectionLabel}>{t(CATEGORY_KEY[cat])}</Text>
             {list.map((d) => (
               <View key={d.ref} style={styles.card}>
                 <Text style={styles.cardAr}>{d.ar}</Text>
@@ -40,9 +52,7 @@ export function DuasScreen() {
         );
       })}
 
-      <Text style={styles.foot}>
-        Qurʾānic supplications · recite with presence of heart and certainty of response.
-      </Text>
+      <Text style={styles.foot}>{t("lr.duasFoot")}</Text>
     </ScrollView>
   );
 }
@@ -60,7 +70,7 @@ function makeStyles(c: Palette) {
       marginBottom: 8,
       gap: 12,
     },
-    featuredWatermark: { position: "absolute", right: -36, top: -40 },
+    featuredWatermark: { position: "absolute", end: -36, top: -40 },
     featuredKicker: {
       color: c.accent,
       fontSize: 11,
@@ -68,7 +78,13 @@ function makeStyles(c: Palette) {
       textTransform: "uppercase",
       fontFamily: FONT.bold,
     },
-    featuredAr: { color: c.fg, fontSize: 25, lineHeight: 48, textAlign: "right", writingDirection: "rtl" },
+    featuredAr: {
+      color: c.fg,
+      fontSize: 25,
+      lineHeight: 48,
+      textAlign: "right",
+      writingDirection: "rtl",
+    },
     featuredEn: { color: c.muted, fontSize: 14.5, lineHeight: 23 },
     featuredRef: { color: c.accent, fontSize: 13, fontFamily: FONT.semibold },
     sectionLabel: {
@@ -89,7 +105,13 @@ function makeStyles(c: Palette) {
       marginBottom: 10,
       gap: 10,
     },
-    cardAr: { color: c.fg, fontSize: 22, lineHeight: 42, textAlign: "right", writingDirection: "rtl" },
+    cardAr: {
+      color: c.fg,
+      fontSize: 22,
+      lineHeight: 42,
+      textAlign: "right",
+      writingDirection: "rtl",
+    },
     cardEn: { color: c.muted, fontSize: 14, lineHeight: 22 },
     cardRef: { color: c.accent, fontSize: 12.5, fontFamily: FONT.semibold },
     foot: { color: c.faint, fontSize: 12, lineHeight: 18, textAlign: "center", marginTop: 16 },

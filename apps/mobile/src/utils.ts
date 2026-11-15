@@ -37,7 +37,11 @@ export function fmtPrayerTime(src: string | Date, coords: Coordinates | null | u
   const d = typeof src === "string" ? new Date(src) : src;
   if (Number.isNaN(d.getTime())) return "—";
   const timeZone = timeZoneFor(coords);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", ...(timeZone && { timeZone }) });
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    ...(timeZone && { timeZone }),
+  });
 }
 
 /** Human-readable countdown: "2h 15m" or "8m". Returns "0m" when target is past. */

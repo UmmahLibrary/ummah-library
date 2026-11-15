@@ -15,7 +15,6 @@ import {
   HIZB_STARTS,
   JUZ_STARTS,
   PAGE_STARTS,
-  describeGoTo,
   matchSurahNames,
   parseGoTo,
   type GoToSurahName,
@@ -26,32 +25,38 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { targetSize } from "../comfort";
+import { useIntl } from "../i18n/I18nProvider";
 
 type Tab = "surah" | "juz" | "hizb" | "page";
 
+// Labels are built at render time so they follow the interface language.
 interface Cell {
   key: string;
-  label: string;
-  sub: string;
+  n: number;
+  sura: number;
+  aya: number;
   target: GoToTarget;
 }
 
 const JUZ_CELLS: Cell[] = JUZ_STARTS.map((v, i) => ({
   key: `j${i}`,
-  label: `Juz ${i + 1}`,
-  sub: `${v.sura}:${v.aya}`,
+  n: i + 1,
+  sura: v.sura,
+  aya: v.aya,
   target: { kind: "juz", sura: v.sura, aya: v.aya, n: i + 1 },
 }));
 const HIZB_CELLS: Cell[] = HIZB_STARTS.map((v, i) => ({
   key: `h${i}`,
-  label: `Hizb ${i + 1}`,
-  sub: `${v.sura}:${v.aya}`,
+  n: i + 1,
+  sura: v.sura,
+  aya: v.aya,
   target: { kind: "hizb", sura: v.sura, aya: v.aya, n: i + 1 },
 }));
 const PAGE_CELLS: Cell[] = PAGE_STARTS.map((v, i) => ({
   key: `p${i}`,
-  label: String(i + 1),
-  sub: `${v.sura}:${v.aya}`,
+  n: i + 1,
+  sura: v.sura,
+  aya: v.aya,
   target: { kind: "page", sura: v.sura, aya: v.aya, n: i + 1 },
 }));
 
@@ -76,6 +81,7 @@ export function GoToSheet({
 }) {
   const { colors } = useTheme();
   const { comfort } = useSettings();
+  const { t, tf, num, dir } = useIntl();
   const min = targetSize(comfort);
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [query, setQuery] = useState("");
@@ -97,8 +103,8 @@ export function GoToSheet({
     return q ? matchSurahNames(q, names) : [...names];
   }, [query, names]);
 
-  const go = (t: GoToTarget) => {
-    onGo(t);
+  const go = (dest: GoToTarget) => {
+    onGo(dest);
     onClose();
   };
   const submit = () => {
@@ -119,20 +125,24 @@ export function GoToSheet({
         style={styles.root}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close Go to" />
+        <Pressable
+          style={styles.scrim}
+          onPress={onClose}
+          accessibilityLabel={t("rd.goto.closeA11y")}
+        />
         <View style={styles.sheet} accessibilityViewIsModal>
           <View style={styles.head}>
             <Text style={styles.title} accessibilityRole="header">
-              Go to
+              {t("rd.goto.title")}
             </Text>
             <Pressable
               style={[styles.close, { minHeight: min }]}
               onPress={onClose}
               accessibilityRole="button"
-              accessibilityLabel="Close"
+              accessibilityLabel={t("rd.close")}
             >
               <Icon name="close" size={18} color={colors.fg} />
-              <Text style={styles.closeText}>Close</Text>
+              <Text style={styles.closeText}>{t("rd.close")}</Text>
             </Pressable>
           </View>
 
@@ -147,23 +157,23 @@ export function GoToSheet({
               onSubmitEditing={submit}
               placeholder={
                 currentSurah
-                  ? "Āyah number, 2:255, kahf, juz 15…"
+                  ? tf("rd.goto.phInSurah", { examples: "2:255, kahf, juz 15" })
                   : "2:255, kahf, juz 15, page 300…"
               }
               placeholderTextColor={colors.muted}
               autoCorrect={false}
               autoCapitalize="none"
               returnKeyType="go"
-              accessibilityLabel="Surah, āyah, juz or page"
+              accessibilityLabel={t("rd.goto.inputA11y")}
             />
             <Pressable
               style={[styles.goBtn, { minHeight: min, minWidth: min }, !target && styles.disabled]}
               disabled={!target}
               onPress={submit}
               accessibilityRole="button"
-              accessibilityLabel="Go"
+              accessibilityLabel={t("rd.goto.go")}
             >
-              <Text style={styles.goText}>Go</Text>
+              <Text style={styles.goText}>{t("rd.goto.go")}</Text>
             </Pressable>
           </View>
 
@@ -174,16 +184,16 @@ export function GoToSheet({
                 onPress={() => go(target)}
                 accessibilityRole="button"
               >
-                <Icon name="arrowR" size={16} color={colors.accent} />
-                <Text style={styles.matchText}>{describeGoTo(target, names)}</Text>
+                <Icon name={dir === "rtl" ? "arrowL" : "arrowR"} size={16} color={colors.accent} />
+                <Text style={styles.matchText}>{describeTarget(tf, target, names)}</Text>
               </Pressable>
             ) : tried && query ? (
               <Text style={styles.hintText}>
-                That isn’t a place in the Quran. Try “2:255”, “kahf 10”, “juz 15” or “page 300”.
+                {tf("rd.goto.notFound", { examples: "“2:255”, “kahf 10”, “juz 15”, “page 300”" })}
               </Text>
             ) : (
               <Text style={styles.hintText}>
-                Also understands: baqarah 255 · ٢:٢٥٥ · para 15 · page 300 · hizb 30
+                {t("rd.goto.also")} baqarah 255 · ٢:٢٥٥ · para 15 · page 300 · hizb 30
               </Text>
             )}
           </View>
@@ -191,20 +201,20 @@ export function GoToSheet({
           <View style={styles.tabs} accessibilityRole="tablist">
             {(
               [
-                ["surah", "Surah"],
-                ["juz", "Juz"],
-                ["hizb", "Hizb"],
-                ["page", "Page"],
+                ["surah", "rd.surah"],
+                ["juz", "rd.juz"],
+                ["hizb", "rd.hizb"],
+                ["page", "rd.page"],
               ] as const
-            ).map(([t, label]) => (
+            ).map(([k, label]) => (
               <Pressable
-                key={t}
-                style={[styles.tab, { minHeight: min }, tab === t && styles.tabOn]}
-                onPress={() => setTab(t)}
+                key={k}
+                style={[styles.tab, { minHeight: min }, tab === k && styles.tabOn]}
+                onPress={() => setTab(k)}
                 accessibilityRole="tab"
-                accessibilityState={{ selected: tab === t }}
+                accessibilityState={{ selected: tab === k }}
               >
-                <Text style={[styles.tabText, tab === t && styles.tabTextOn]}>{label}</Text>
+                <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>{t(label)}</Text>
               </Pressable>
             ))}
           </View>
@@ -226,15 +236,15 @@ export function GoToSheet({
                   ]}
                   onPress={() => go({ kind: "surah", sura: s.number, aya: 1 })}
                   accessibilityRole="button"
-                  accessibilityLabel={`${s.number}, ${s.transliteration}, ${s.englishName}`}
+                  accessibilityLabel={`${num(s.number)}, ${s.transliteration}, ${s.englishName}`}
                 >
-                  <Text style={styles.num}>{s.number}</Text>
+                  <Text style={styles.num}>{num(s.number)}</Text>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.rowTitle} numberOfLines={1}>
                       {s.transliteration}
                     </Text>
                     <Text style={styles.rowSub} numberOfLines={1}>
-                      {s.englishName} · {AYAH_COUNTS[s.number - 1]} āyāt
+                      {s.englishName} · {tf("rd.ayahCount", { n: AYAH_COUNTS[s.number - 1] ?? 0 })}
                     </Text>
                   </View>
                   <Text style={styles.rowAr}>{s.name}</Text>
@@ -251,17 +261,29 @@ export function GoToSheet({
               keyboardShouldPersistTaps="handled"
               initialNumToRender={30}
               columnWrapperStyle={styles.gridRow}
-              renderItem={({ item: c }) => (
-                <Pressable
-                  style={[styles.cell, { minHeight: Math.max(56, min) }]}
-                  onPress={() => go(c.target)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${tab === "page" ? `Page ${c.label}` : c.label}, starts at ${c.sub}`}
-                >
-                  <Text style={styles.cellLabel}>{c.label}</Text>
-                  <Text style={styles.cellSub}>{c.sub}</Text>
-                </Pressable>
-              )}
+              renderItem={({ item: c }) => {
+                const label =
+                  tab === "juz"
+                    ? tf("rd.juzN", { n: c.n })
+                    : tab === "hizb"
+                      ? tf("rd.hizbN", { n: c.n })
+                      : num(c.n);
+                const sub = `${num(c.sura)}:${num(c.aya)}`;
+                return (
+                  <Pressable
+                    style={[styles.cell, { minHeight: Math.max(56, min) }]}
+                    onPress={() => go(c.target)}
+                    accessibilityRole="button"
+                    accessibilityLabel={tf("rd.goto.cellA11y", {
+                      label: tab === "page" ? tf("rd.pageN", { n: c.n }) : label,
+                      ref: sub,
+                    })}
+                  >
+                    <Text style={styles.cellLabel}>{label}</Text>
+                    <Text style={styles.cellSub}>{sub}</Text>
+                  </Pressable>
+                );
+              }}
             />
           )}
         </View>
@@ -277,8 +299,8 @@ function makeStyles(c: Palette) {
     sheet: {
       height: "86%",
       backgroundColor: c.bgElev,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      borderTopStartRadius: 20,
+      borderTopEndRadius: 20,
       borderWidth: 1,
       borderColor: c.border,
       paddingHorizontal: 16,
@@ -379,4 +401,29 @@ function makeStyles(c: Palette) {
     cellLabel: { color: c.fg, fontSize: 15, fontFamily: FONT.bold },
     cellSub: { color: c.muted, fontSize: 13 },
   });
+}
+
+/** The Go-to preview in the interface language (core's describeGoTo is English). */
+function describeTarget(
+  tf: (
+    key: "rd.goto.ayah" | "rd.goto.juz" | "rd.goto.hizb" | "rd.goto.page",
+    vars: Record<string, string | number>,
+  ) => string,
+  t: GoToTarget,
+  names: readonly GoToSurahName[],
+): string {
+  const surah = names.find((s) => s.number === t.sura)?.transliteration ?? String(t.sura);
+  const key = `${t.sura}:${t.aya}`;
+  switch (t.kind) {
+    case "surah":
+      return surah;
+    case "ayah":
+      return tf("rd.goto.ayah", { surah, aya: t.aya });
+    case "juz":
+      return tf("rd.goto.juz", { n: t.n ?? 0, surah, key });
+    case "hizb":
+      return tf("rd.goto.hizb", { n: t.n ?? 0, surah, key });
+    case "page":
+      return tf("rd.goto.page", { n: t.n ?? 0, surah, key });
+  }
 }

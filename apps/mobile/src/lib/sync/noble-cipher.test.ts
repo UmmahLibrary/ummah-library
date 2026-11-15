@@ -108,7 +108,9 @@ describe("generateRecoveryPhrase", () => {
   });
 
   it("is effectively unique across calls", async () => {
-    const set = new Set(await Promise.all(Array.from({ length: 20 }, () => generateRecoveryPhrase())));
+    const set = new Set(
+      await Promise.all(Array.from({ length: 20 }, () => generateRecoveryPhrase())),
+    );
     expect(set.size).toBe(20);
   });
 });

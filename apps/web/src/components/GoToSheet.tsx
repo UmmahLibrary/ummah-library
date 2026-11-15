@@ -9,7 +9,6 @@ import {
   JUZ_STARTS,
   PAGE_STARTS,
   TOTAL_PAGES_MADANI,
-  describeGoTo,
   matchSurahNames,
   parseGoTo,
 } from "@ummahlibrary/core";
@@ -163,7 +162,7 @@ export function GoToSheet({
           {target ? (
             <button type="button" className="goto-match" onClick={() => go(target)}>
               <Icon name={dir === "rtl" ? "arrowL" : "arrowR"} size={16} />
-              <span>{describeGoTo(target, names)}</span>
+              <span>{describeTarget(tf, target, names)}</span>
             </button>
           ) : tried && query ? (
             <span style={{ color: N.gold }}>
@@ -249,4 +248,29 @@ export function GoToSheet({
       </div>
     </div>
   );
+}
+
+/** The Go-to preview in the interface language (core's describeGoTo is English). */
+function describeTarget(
+  tf: (
+    key: "goto.ayah" | "goto.juz" | "goto.hizb" | "goto.page",
+    vars: Record<string, string | number>,
+  ) => string,
+  t: GoToTarget,
+  names: readonly GoToSurahName[],
+): string {
+  const surah = names.find((s) => s.number === t.sura)?.transliteration ?? String(t.sura);
+  const key = `${t.sura}:${t.aya}`;
+  switch (t.kind) {
+    case "surah":
+      return surah;
+    case "ayah":
+      return tf("goto.ayah", { surah, aya: t.aya });
+    case "juz":
+      return tf("goto.juz", { n: t.n ?? 0, surah, key });
+    case "hizb":
+      return tf("goto.hizb", { n: t.n ?? 0, surah, key });
+    case "page":
+      return tf("goto.page", { n: t.n ?? 0, surah, key });
+  }
 }

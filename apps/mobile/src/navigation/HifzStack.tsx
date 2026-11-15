@@ -1,5 +1,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { useRtlHeaderOptions } from "./header-direction";
+import { useT } from "../i18n/I18nProvider";
 import { HifzDashboardScreen } from "../screens/HifzDashboardScreen";
 import { HifzReviewScreen } from "../screens/HifzReviewScreen";
 import type { HifzStackParamList } from "./types";
@@ -8,9 +10,12 @@ const Stack = createNativeStackNavigator<HifzStackParamList>();
 
 export function HifzStack() {
   const { colors } = useTheme();
+  const rtlHeader = useRtlHeaderOptions();
+  const t = useT();
   return (
     <Stack.Navigator
       screenOptions={{
+        ...rtlHeader,
         headerStyle: { backgroundColor: colors.bg },
         headerTintColor: colors.accent,
         headerTitleStyle: { color: colors.fg },
@@ -25,7 +30,7 @@ export function HifzStack() {
       <Stack.Screen
         name="HifzReview"
         component={HifzReviewScreen}
-        options={{ title: "Review", headerBackTitle: "Hifz" }}
+        options={{ title: t("mem.review.title"), headerBackTitle: t("mem.hifz.title") }}
       />
     </Stack.Navigator>
   );

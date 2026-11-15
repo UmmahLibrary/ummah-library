@@ -28,11 +28,10 @@ import type {
 import { readThrough } from "./offlineCache";
 import { CACHE_KEYS } from "./offlineCacheManifest";
 
-const BASE =
-  (process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://ummahlibrary.org/api/v1").replace(
-    /\/$/,
-    "",
-  );
+const BASE = (process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://ummahlibrary.org/api/v1").replace(
+  /\/$/,
+  "",
+);
 
 /** A tafsir edition as listed by `/tafsirs`. */
 export interface TafsirMeta {
@@ -122,9 +121,7 @@ export const api = {
   /** The full runtime translation catalogue (~490 editions — ADR 0011). */
   listTranslationCatalog: () =>
     readThrough(CACHE_KEYS.translationCatalog(), () =>
-      getJson<{ translations: Translation[] }>(`${BASE}/translations`).then(
-        (d) => d.translations,
-      ),
+      getJson<{ translations: Translation[] }>(`${BASE}/translations`).then((d) => d.translations),
     ),
   /** A catalogue edition's text for one surah, fetched at runtime. */
   getCatalogTranslation: (edition: string, n: number) =>

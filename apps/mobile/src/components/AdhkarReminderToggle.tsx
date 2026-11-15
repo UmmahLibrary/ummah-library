@@ -3,6 +3,7 @@ import { StyleSheet, Switch, Text, View } from "../Type";
 import { Icon, type Palette } from "@ummahlibrary/ui";
 import { useTheme } from "../theme";
 import { FONT } from "../fonts";
+import { useT } from "../i18n/I18nProvider";
 import { expoNotifier } from "../notifier";
 import { notifyNotificationPermissionDenied } from "../notification-permission-alert";
 import { mobilePrayerSettingsStore } from "../prayer-settings-store";
@@ -15,6 +16,7 @@ import { readAdhkarReminderOn, setAdhkarReminderOn } from "../adhkar-reminders";
 export function AdhkarReminderToggle() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const t = useT();
   const [on, setOn] = useState(false);
   const [hasCoords, setHasCoords] = useState(true);
   const [ready, setReady] = useState(false);
@@ -33,7 +35,7 @@ export function AdhkarReminderToggle() {
     if (next && expoNotifier.permission() !== "granted") {
       await expoNotifier.requestPermission();
       if (expoNotifier.permission() !== "granted") {
-        notifyNotificationPermissionDenied("adhkar reminder");
+        notifyNotificationPermissionDenied(t("pr.adhkarRemLabel"), t);
         return;
       }
     }
@@ -48,19 +50,18 @@ export function AdhkarReminderToggle() {
       <View style={styles.row}>
         <Icon name="bell" size={17} color={on ? colors.accent : colors.muted} sw={1.8} />
         <View style={styles.text}>
-          <Text style={styles.title}>Reminders</Text>
-          <Text style={styles.note}>Morning &amp; evening adhkar, timed off your prayer times.</Text>
+          <Text style={styles.title}>{t("pr.adhkarRemTitle")}</Text>
+          <Text style={styles.note}>{t("pr.adhkarRemNote")}</Text>
         </View>
         <Switch
           value={on}
+          accessibilityLabel={t("pr.adhkarRemTitle")}
           onValueChange={(v) => void toggle(v)}
           trackColor={{ true: colors.accentSoft, false: colors.border }}
           thumbColor={on ? colors.accent : colors.faint}
         />
       </View>
-      {on && !hasCoords && (
-        <Text style={styles.hint}>Set your location on Prayer times so reminders know when Fajr and ʿAṣr are.</Text>
-      )}
+      {on && !hasCoords && <Text style={styles.hint}>{t("pr.adhkarRemHint")}</Text>}
     </View>
   );
 }

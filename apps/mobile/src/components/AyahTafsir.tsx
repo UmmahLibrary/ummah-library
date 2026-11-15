@@ -4,6 +4,7 @@ import { api } from "../api";
 import { TAFSIRS } from "../plugins";
 import { useTheme, type Palette } from "../theme";
 import { useSettings } from "../state/SettingsContext";
+import { useIntl } from "../i18n/I18nProvider";
 
 // One shared fetch per (tafsir, surah); every āyah/column toggle reuses it.
 const cache = new Map<string, Promise<Map<number, string>>>();
@@ -38,9 +39,10 @@ export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { tafsirId, tafsirCompare, tafsirs, setTafsirCompare } = useSettings();
+  const { t: tr, tf, dir } = useIntl();
 
   const allTafsirs = tafsirs.length > 0 ? tafsirs : TAFSIRS;
-  const nameOf = (id: string) => allTafsirs.find((t) => t.id === id)?.name ?? "Tafsir";
+  const nameOf = (id: string) => allTafsirs.find((t) => t.id === id)?.name ?? tr("rd.tafsir");
 
   // The editions to show: the explicit comparison set (validated), else the primary.
   const editions = useMemo(() => {
@@ -81,13 +83,15 @@ export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
   }
 
   const header =
-    editions.length > 1 ? `Tafsir · comparing ${editions.length}` : `Tafsir · ${nameOf(editions[0] ?? "")}`;
+    editions.length > 1
+      ? tf("rd.tafsir.comparing", { n: editions.length })
+      : tf("rd.tafsir.named", { name: nameOf(editions[0] ?? "") });
 
   return (
     <View style={styles.wrap}>
       <Pressable onPress={() => setOpen((o) => !o)}>
         <Text style={styles.toggle}>
-          {open ? "▾" : "▸"} {header}
+          {open ? "▾" : dir === "rtl" ? "◂" : "▸"} {header}
         </Text>
       </Pressable>
       {open && (
@@ -115,7 +119,9 @@ export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
               <View key={id} style={editions.length > 1 ? styles.section : undefined}>
                 {editions.length > 1 && <Text style={styles.sectionName}>{nameOf(id)}</Text>}
                 {(!d || d.state === "loading") && <ActivityIndicator color={colors.accent} />}
-                {d?.state === "empty" && <Text style={styles.muted}>No tafsir for this āyah.</Text>}
+                {d?.state === "empty" && (
+                  <Text style={styles.muted}>{tr("rd.tafsir.noneForAyah")}</Text>
+                )}
                 {d?.state === "ready" &&
                   d.text
                     .split("\n")

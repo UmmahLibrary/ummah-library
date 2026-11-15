@@ -1,16 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "../Type";
 import { TOTAL_SURAHS, type Surah, type TafsirEntry } from "@ummahlibrary/core";
 import { api, type TafsirMeta } from "../api";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
+import { useIntl } from "../i18n/I18nProvider";
 
 /** Standalone tafsir browser: pick an edition and a surah, read it per āyah. */
 export function TafsirScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { tafsirId } = useSettings();
+  const { t: tr, tf, num, dir } = useIntl();
 
   const [tafsirs, setTafsirs] = useState<TafsirMeta[]>([]);
   const [edition, setEdition] = useState<string>(tafsirId);
@@ -27,7 +37,10 @@ export function TafsirScreen() {
         if (!t.some((x) => x.id === edition) && t[0]) setEdition(t[0].id);
       })
       .catch(() => undefined);
-    void api.listSurahs().then(setSurahs).catch(() => undefined);
+    void api
+      .listSurahs()
+      .then(setSurahs)
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -45,12 +58,14 @@ export function TafsirScreen() {
   }, [surah, edition]);
 
   const meta = surahs.find((s) => s.number === surah);
-  const editionName = tafsirs.find((t) => t.id === edition)?.name ?? "Tafsir";
+  const editionName = tafsirs.find((t) => t.id === edition)?.name ?? tr("rd.tafsir");
 
   const header = (
     <>
       <Text style={styles.surahTitle}>
-        {meta ? `${meta.transliteration} · ${meta.englishName}` : `Surah ${surah}`}
+        {meta
+          ? `${meta.transliteration} · ${meta.englishName}`
+          : tf("rd.search.surahRef", { n: surah })}
       </Text>
       <Text style={styles.editionName}>{editionName}</Text>
     </>
@@ -59,8 +74,14 @@ export function TafsirScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.controls}>
-        <Text style={styles.label}>Edition</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        <Text style={[styles.label, dir === "rtl" && styles.noTrack]}>
+          {tr("rd.tafsir.edition")}
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
           {tafsirs.map((t) => (
             <Pressable
               key={t.id}
@@ -72,15 +93,19 @@ export function TafsirScreen() {
           ))}
         </ScrollView>
 
-        <Text style={styles.label}>Surah</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        <Text style={[styles.label, dir === "rtl" && styles.noTrack]}>{tr("rd.surah")}</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
           {Array.from({ length: TOTAL_SURAHS }, (_, i) => i + 1).map((n) => (
             <Pressable
               key={n}
               style={[styles.numChip, n === surah && styles.chipOn]}
               onPress={() => setSurah(n)}
             >
-              <Text style={[styles.chipText, n === surah && styles.chipTextOn]}>{n}</Text>
+              <Text style={[styles.chipText, n === surah && styles.chipTextOn]}>{num(n)}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -90,7 +115,7 @@ export function TafsirScreen() {
         <ScrollView contentContainerStyle={styles.body}>
           {header}
           {error ? (
-            <Text style={styles.muted}>Couldn’t load this tafsir. Try another edition.</Text>
+            <Text style={styles.muted}>{tr("rd.tafsir.loadErr")}</Text>
           ) : (
             <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
           )}
@@ -105,13 +130,11 @@ export function TafsirScreen() {
           keyExtractor={(e) => String(e.aya)}
           contentContainerStyle={styles.body}
           ListHeaderComponent={<>{header}</>}
-          ListEmptyComponent={
-            <Text style={styles.muted}>No tafsir available for this surah in this edition.</Text>
-          }
+          ListEmptyComponent={<Text style={styles.muted}>{tr("rd.tafsir.noneForSurah")}</Text>}
           renderItem={({ item: e }) => (
             <View style={styles.entry}>
               <Text style={styles.ayaRef}>
-                {surah}:{e.aya}
+                {num(surah)}:{num(e.aya)}
               </Text>
               {e.text
                 .split("\n")
@@ -183,5 +206,7 @@ function makeStyles(c: Palette) {
     },
     ayaRef: { color: c.accent, fontSize: 13, fontFamily: FONT.bold },
     para: { color: c.fg, fontSize: 15, lineHeight: 24 },
+    // Arabic/Urdu interface text must not be letter-spaced (it breaks the joins).
+    noTrack: { letterSpacing: 0 },
   });
 }

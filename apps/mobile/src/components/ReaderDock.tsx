@@ -7,6 +7,7 @@ import { FONT } from "../fonts";
 import type { SurahAudio } from "../audio/useSurahAudio";
 import { LabelButton } from "./LabelButton";
 import { AudioRangeControls } from "./AudioRangeControls";
+import { useIntl } from "../i18n/I18nProvider";
 
 /**
  * The surah reader's bottom dock (ADR 0041) — the web reader's `ReadingAudio`
@@ -40,6 +41,7 @@ export function ReaderDock({
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf } = useIntl();
   const [showOptions, setShowOptions] = useState(false);
 
   const playing = audio.playingKey !== null;
@@ -48,7 +50,7 @@ export function ReaderDock({
   const dlPct = dl ? Math.round((dl.done / Math.max(1, dl.total)) * 100) : 0;
   const pos = playing ? verses.findIndex((v) => `${v.sura}:${v.aya}` === audio.playingKey) : -1;
   const pct = pos >= 0 && verses.length > 0 ? ((pos + 1) / verses.length) * 100 : 0;
-  const playingAya = audio.playingKey ? audio.playingKey.split(":")[1] : null;
+  const playingAya = audio.playingKey ? Number(audio.playingKey.split(":")[1]) : null;
 
   const toggle = () => {
     if (playing) {
@@ -61,8 +63,10 @@ export function ReaderDock({
 
   const status = playing
     ? audio.buffering
-      ? "Loading…"
-      : `${reciterName}${playingAya ? ` · Āyah ${playingAya}` : ""}`
+      ? t("rd.loading")
+      : playingAya
+        ? tf("rd.dock.playing", { reciter: reciterName, n: playingAya })
+        : reciterName
     : positionLabel;
 
   return (
@@ -74,7 +78,7 @@ export function ReaderDock({
           <View style={styles.optRow}>
             <LabelButton
               icon="repeat"
-              label="Repeat surah"
+              label={t("rd.dock.repeatSurah")}
               active={audio.loop}
               onPress={() => audio.setLoop(!audio.loop)}
               accessibilityRole="switch"
@@ -83,12 +87,12 @@ export function ReaderDock({
               icon={allSaved ? "check" : "download"}
               label={
                 allSaved
-                  ? "Saved offline"
+                  ? t("rd.dock.savedOffline")
                   : dl
-                    ? `Saving ${dlPct}%`
+                    ? tf("rd.dock.saving", { pct: dlPct })
                     : audio.downloadError
-                      ? "Retry save"
-                      : "Save offline"
+                      ? t("rd.dock.retrySave")
+                      : t("rd.dock.saveOffline")
               }
               active={allSaved}
               disabled={dl !== null || allSaved}
@@ -104,12 +108,14 @@ export function ReaderDock({
           style={styles.play}
           onPress={toggle}
           accessibilityRole="button"
-          accessibilityLabel={playing ? "Pause recitation" : "Listen — play recitation"}
+          accessibilityLabel={playing ? t("rd.dock.pauseA11y") : t("rd.dock.playA11y")}
         >
           <Icon name={playing ? "pause" : "play"} size={20} color={colors.ink} />
         </Pressable>
         <Pressable style={styles.info} onPress={toggle} accessible={false}>
-          <Text style={styles.infoTitle}>{playing ? "Listening" : "Listen"}</Text>
+          <Text style={styles.infoTitle}>
+            {playing ? t("rd.dock.listening") : t("rd.dock.listen")}
+          </Text>
           <Text style={styles.infoSub} numberOfLines={1}>
             {status}
           </Text>
@@ -122,10 +128,10 @@ export function ReaderDock({
         {trailing}
         <LabelButton
           icon="settings"
-          label="Options"
+          label={t("rd.dock.options")}
           active={showOptions}
           onPress={() => setShowOptions((v) => !v)}
-          accessibilityLabel={showOptions ? "Hide audio options" : "Audio options"}
+          accessibilityLabel={showOptions ? t("rd.dock.optionsHideA11y") : t("rd.dock.optionsA11y")}
         />
       </View>
     </View>
@@ -174,6 +180,7 @@ export function BackToRow({
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeBackStyles(colors), [colors]);
+  const { t, dir } = useIntl();
   return (
     <View style={styles.row}>
       <Pressable
@@ -182,16 +189,16 @@ export function BackToRow({
         accessibilityRole="button"
         accessibilityLabel={label}
       >
-        <Icon name="arrowL" size={18} color={colors.fg} />
+        <Icon name={dir === "rtl" ? "arrowR" : "arrowL"} size={18} color={colors.fg} />
         <Text style={styles.backText}>{label}</Text>
       </Pressable>
       <Pressable
         style={styles.dismiss}
         onPress={onDismiss}
         accessibilityRole="button"
-        accessibilityLabel="Dismiss"
+        accessibilityLabel={t("rd.dismiss")}
       >
-        <Text style={styles.dismissText}>Dismiss</Text>
+        <Text style={styles.dismissText}>{t("rd.dismiss")}</Text>
       </Pressable>
     </View>
   );

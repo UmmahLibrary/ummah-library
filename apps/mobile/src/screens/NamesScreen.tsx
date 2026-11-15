@@ -7,10 +7,12 @@ import { KEYS, getJSON, isObjectRecord, setJSON } from "../storage";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
 import { onSyncApplied } from "../lib/sync/sync-events";
+import { useIntl } from "../i18n/I18nProvider";
 
 export function NamesScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, num } = useIntl();
 
   const [names, setNames] = useState<DivineName[]>([]);
   const [learned, setLearned] = useState<Record<number, true>>({});
@@ -21,7 +23,10 @@ export function NamesScreen() {
 
   useEffect(() => {
     let active = true;
-    void Promise.all([api.listNames(), getJSON<Record<number, true>>(KEYS.asmaLearned, {}, isObjectRecord)])
+    void Promise.all([
+      api.listNames(),
+      getJSON<Record<number, true>>(KEYS.asmaLearned, {}, isObjectRecord),
+    ])
       .then(([fetched, saved]) => {
         if (!active) return;
         setNames(fetched);
@@ -66,7 +71,7 @@ export function NamesScreen() {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>Could not load names. Check your connection.</Text>
+        <Text style={styles.errorText}>{t("lr.namesError")}</Text>
       </View>
     );
   }
@@ -76,15 +81,17 @@ export function NamesScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
-      <Text style={styles.h1}>The 99 Names</Text>
-      <Text style={styles.sub}>Al-Asmāʾ al-Ḥusná · {count} of {names.length} learned</Text>
+      <Text style={styles.h1}>{t("lr.namesTitle")}</Text>
+      <Text style={styles.sub}>{tf("lr.namesSub", { count, total: names.length })}</Text>
 
       {featured && (
         <View style={styles.featured}>
           <View style={styles.featuredWatermark} pointerEvents="none">
             <Khatam size={170} color={colors.accent} sw={1} opacity={0.07} />
           </View>
-          <Text style={styles.featuredKicker}>{featured.number} OF {names.length}</Text>
+          <Text style={styles.featuredKicker}>
+            {tf("lr.nameOf", { n: featured.number, total: names.length })}
+          </Text>
           <Text style={styles.featuredAr}>{featured.arabic}</Text>
           <Text style={styles.featuredTr}>{featured.transliteration}</Text>
           <Text style={styles.featuredMeaning}>{featured.meaning}</Text>
@@ -106,7 +113,7 @@ export function NamesScreen() {
               accessibilityState={{ selected: done }}
             >
               <View style={styles.gridHead}>
-                <Text style={styles.num}>{n.number}</Text>
+                <Text style={styles.num}>{num(n.number)}</Text>
                 <Text style={styles.gridAr}>{n.arabic}</Text>
               </View>
               <Text style={styles.translit} numberOfLines={1}>
@@ -128,7 +135,13 @@ function makeStyles(c: Palette) {
     screen: { padding: 18, backgroundColor: c.bg, paddingBottom: 32 },
     center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg },
     errorText: { color: c.error, fontSize: 15, textAlign: "center", paddingHorizontal: 24 },
-    h1: { color: c.fg, fontSize: 26, fontFamily: FONT.extrabold, letterSpacing: -0.5, marginTop: 6 },
+    h1: {
+      color: c.fg,
+      fontSize: 26,
+      fontFamily: FONT.extrabold,
+      letterSpacing: -0.5,
+      marginTop: 6,
+    },
     sub: { color: c.muted, fontSize: 13.5, marginTop: 2, marginBottom: 18 },
     featured: {
       backgroundColor: c.bgElev,
@@ -156,7 +169,12 @@ function makeStyles(c: Palette) {
       marginBottom: 11,
     },
     gridCardDone: { borderColor: c.accent, backgroundColor: c.accentSoft },
-    gridHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+    gridHead: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 8,
+    },
     num: { color: c.faint, fontSize: 11.5, fontFamily: FONT.bold },
     gridAr: { color: c.accent, fontSize: 22, writingDirection: "rtl", fontFamily: FONT.arSemibold },
     translit: { color: c.fg, fontSize: 14.5, fontFamily: FONT.bold },

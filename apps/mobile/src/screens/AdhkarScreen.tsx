@@ -15,6 +15,22 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { adhkarToday } from "../utils";
 import { AdhkarReminderToggle } from "../components/AdhkarReminderToggle";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
+
+const OCCASION_KEY: Record<AdhkarOccasion, MessageKey> = {
+  morning: "lr.occ.morning",
+  evening: "lr.occ.evening",
+  "after-salah": "lr.occ.afterSalah",
+  waking: "lr.occ.waking",
+  sleep: "lr.occ.sleep",
+  home: "lr.occ.home",
+  travel: "lr.occ.travel",
+  eating: "lr.occ.eating",
+  dressing: "lr.occ.dressing",
+  distress: "lr.occ.distress",
+  daily: "lr.occ.daily",
+};
 
 interface Stored {
   date: string;
@@ -33,6 +49,7 @@ async function saveCounts(counts: Record<string, number>): Promise<void> {
 export function AdhkarScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf } = useIntl();
 
   const [dhikr, setDhikr] = useState<Dhikr[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -59,7 +76,9 @@ export function AdhkarScreen() {
         setError(e instanceof ApiError ? e : new ApiError("Failed", { isNetworkError: true }));
         setStatus("error");
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [reloadToken]);
 
   function tap(d: Dhikr) {
@@ -94,13 +113,13 @@ export function AdhkarScreen() {
   if (status === "error") {
     const message =
       error && !error.isNetworkError && error.status && error.status >= 500
-        ? "The server is starting up. Try again in a moment."
-        : "Could not load adhkar. Check your connection.";
+        ? t("lr.serverWaking")
+        : t("lr.adhkarError");
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>{message}</Text>
         <Pressable style={styles.chip} onPress={retry}>
-          <Text style={styles.chipText}>Try again</Text>
+          <Text style={styles.chipText}>{t("pr.tryAgain")}</Text>
         </Pressable>
       </View>
     );
@@ -118,7 +137,9 @@ export function AdhkarScreen() {
             accessibilityRole="tab"
             accessibilityState={{ selected: o.id === occasion }}
           >
-            <Text style={[styles.tabText, o.id === occasion && styles.tabTextOn]}>{o.label}</Text>
+            <Text style={[styles.tabText, o.id === occasion && styles.tabTextOn]}>
+              {t(OCCASION_KEY[o.id])}
+            </Text>
             <Text style={[styles.tabAr, o.id === occasion && styles.tabTextOn]}>{o.arabic}</Text>
           </Pressable>
         ))}
@@ -134,10 +155,12 @@ export function AdhkarScreen() {
           />
         </View>
         <Text style={[styles.progressText, allDone && styles.progressTextDone]}>
-          {allDone ? "Completed for today 🤍" : `${progress.completed} / ${progress.total} done`}
+          {allDone
+            ? t("lr.adhkarDone")
+            : tf("lr.progressDone", { done: progress.completed, total: progress.total })}
         </Text>
         <Pressable style={styles.resetChip} onPress={reset}>
-          <Text style={styles.resetChipText}>Reset</Text>
+          <Text style={styles.resetChipText}>{t("lr.reset")}</Text>
         </Pressable>
       </View>
 
@@ -149,7 +172,11 @@ export function AdhkarScreen() {
             key={d.id}
             style={[styles.card, done && styles.cardDone]}
             onPress={() => tap(d)}
-            accessibilityLabel={`${d.transliteration}, tap to count, ${count} of ${d.repeat}`}
+            accessibilityLabel={tf("lr.dhikrA11y", {
+              name: d.transliteration,
+              count,
+              total: d.repeat,
+            })}
           >
             <Text style={styles.arabic}>{d.arabic}</Text>
             <Text style={styles.translit}>{d.transliteration}</Text>
@@ -164,21 +191,17 @@ export function AdhkarScreen() {
                     style={[styles.miniFill, { width: `${Math.min(1, count / d.repeat) * 100}%` }]}
                   />
                 </View>
-                <Text style={styles.count}>
-                  {count} / {d.repeat}
-                </Text>
+                <Text style={styles.count}>{tf("lr.count", { count, total: d.repeat })}</Text>
               </View>
               <Text style={[styles.status, done && styles.statusDone]}>
-                {done ? "✓ Done" : "Tap to count"}
+                {done ? t("lr.doneMark") : t("lr.tapToCount")}
               </Text>
             </View>
           </Pressable>
         );
       })}
 
-      <Text style={styles.foot}>
-        Tap a dhikr to count · progress resets each day · adhkar from Ḥiṣn al-Muslim
-      </Text>
+      <Text style={styles.foot}>{t("lr.adhkarFoot")}</Text>
     </ScrollView>
   );
 }
@@ -186,7 +209,13 @@ export function AdhkarScreen() {
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { padding: 16, backgroundColor: c.bg, gap: 10, paddingBottom: 32 },
-    center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, gap: 14 },
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.bg,
+      gap: 14,
+    },
     errorText: { color: c.error, fontSize: 15, textAlign: "center", paddingHorizontal: 24 },
     chip: {
       paddingVertical: 6,
@@ -221,11 +250,23 @@ function makeStyles(c: Palette) {
       borderColor: c.border,
     },
     progressRowDone: { borderColor: c.accent, backgroundColor: c.accentSoft },
-    progressTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: c.border, overflow: "hidden" },
+    progressTrack: {
+      flex: 1,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.border,
+      overflow: "hidden",
+    },
     progressFill: { height: 4, borderRadius: 2, backgroundColor: c.accent },
     progressText: { color: c.muted, fontSize: 12 },
     progressTextDone: { color: c.accent },
-    resetChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: c.border },
+    resetChip: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
     resetChipText: { color: c.muted, fontSize: 12 },
     card: {
       backgroundColor: c.bgElev,
@@ -240,7 +281,13 @@ function makeStyles(c: Palette) {
     cardNum: { color: c.muted, fontSize: 12, fontWeight: "600" },
     counter: { color: c.muted, fontSize: 12, fontWeight: "600" },
     accentText: { color: c.accent },
-    arabic: { color: c.fg, fontSize: 22, lineHeight: 38, writingDirection: "rtl", fontFamily: FONT.ar },
+    arabic: {
+      color: c.fg,
+      fontSize: 22,
+      lineHeight: 38,
+      writingDirection: "rtl",
+      fontFamily: FONT.ar,
+    },
     translit: { color: c.accent, fontSize: 13.5, fontStyle: "italic" },
     translation: { color: c.muted, fontSize: 14, lineHeight: 21 },
     meta: { color: c.faint, fontSize: 11, lineHeight: 16, marginTop: 2 },
@@ -251,7 +298,13 @@ function makeStyles(c: Palette) {
       marginTop: 8,
     },
     progressWrap: { flexDirection: "row", alignItems: "center", gap: 10 },
-    miniTrack: { width: 90, height: 6, borderRadius: 3, backgroundColor: c.border, overflow: "hidden" },
+    miniTrack: {
+      width: 90,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: c.border,
+      overflow: "hidden",
+    },
     miniFill: { height: 6, borderRadius: 3, backgroundColor: c.accent },
     count: { color: c.faint, fontSize: 12.5 },
     status: { color: c.faint, fontSize: 12.5, fontFamily: FONT.bold },

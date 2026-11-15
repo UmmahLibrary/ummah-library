@@ -5,6 +5,7 @@ import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { targetSize } from "../comfort";
 import { SizeControls } from "./SizeControls";
+import { useT } from "../i18n/I18nProvider";
 
 function Switch({
   on,
@@ -50,6 +51,7 @@ function Switch({
 export function ComfortSettings() {
   const { colors } = useTheme();
   const { comfort, setComfort, transliteration, setTransliteration } = useSettings();
+  const t = useT();
   const min = targetSize(comfort);
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const sw = (title: string, note: string, on: boolean, onChange: (v: boolean) => void) => (
@@ -68,52 +70,36 @@ export function ComfortSettings() {
     <View style={styles.card}>
       <SizeControls />
       <View style={styles.group}>
-        {sw(
-          "Softer translation colour",
-          "Make the translation quieter than the Arabic",
-          comfort.trEmphasis === "soft",
-          (v) => setComfort({ trEmphasis: v ? "soft" : "equal" }),
+        {sw(t("set.c.softTr"), t("set.c.softTrNote"), comfort.trEmphasis === "soft", (v) =>
+          setComfort({ trEmphasis: v ? "soft" : "equal" }),
         )}
-        {sw(
-          "Show transliteration",
-          "The Arabic sounds in Latin letters under each āyah",
-          transliteration,
-          setTransliteration,
+        {sw(t("set.c.translit"), t("set.c.translitNote"), transliteration, setTransliteration)}
+        {sw(t("set.c.largeBtns"), t("set.c.largeBtnsNote"), comfort.largeButtons, (v) =>
+          setComfort({ largeButtons: v }),
         )}
-        {sw(
-          "Larger buttons",
-          "Bigger targets everywhere, easier for shaky hands",
-          comfort.largeButtons,
-          (v) => setComfort({ largeButtons: v }),
-        )}
-        {sw("Reduce motion", "No sliding or animated scrolling", comfort.reduceMotion, (v) =>
+        {sw(t("set.c.reduceMotion"), t("set.c.reduceMotionNote"), comfort.reduceMotion, (v) =>
           setComfort({ reduceMotion: v }),
         )}
       </View>
 
-      <Text style={styles.sub}>Modes</Text>
+      <Text style={styles.sub} accessibilityRole="header">
+        {t("set.c.modes")}
+      </Text>
       <View style={styles.group}>
-        {sw(
-          "Easy mode",
-          "Three big buttons on Home — Continue, Listen, Choose a surah. Hold to leave.",
-          comfort.mode === "easy",
-          (v) => setComfort({ mode: v ? "easy" : "standard" }),
+        {sw(t("set.c.easy"), t("set.c.easyNote"), comfort.mode === "easy", (v) =>
+          setComfort({ mode: v ? "easy" : "standard" }),
         )}
       </View>
 
-      <Text style={styles.sub}>Daily habit</Text>
+      <Text style={styles.sub} accessibilityRole="header">
+        {t("set.c.habit")}
+      </Text>
       <View style={styles.group}>
-        {sw(
-          "Show “days in a row”",
-          "Off by default. Home shows how many days you read this week instead.",
-          comfort.showStreaks,
-          (v) => setComfort({ showStreaks: v }),
+        {sw(t("set.c.streaks"), t("set.c.streaksNote"), comfort.showStreaks, (v) =>
+          setComfort({ showStreaks: v }),
         )}
-        {sw(
-          "Pause tracking",
-          "Take a break from habit tracking for any reason. Your progress is kept.",
-          comfort.trackingPaused,
-          (v) => setComfort({ trackingPaused: v }),
+        {sw(t("set.c.pause"), t("set.c.pauseNote"), comfort.trackingPaused, (v) =>
+          setComfort({ trackingPaused: v }),
         )}
       </View>
     </View>

@@ -26,14 +26,24 @@ import {
   type ReadingState,
 } from "../reading-goals";
 import type { MoreStackParamList } from "../navigation/types";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
 
 type Props = NativeStackScreenProps<MoreStackParamList, "ReadingGoals">;
 
-const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+const DAY_LABELS: MessageKey[] = [
+  "mem.goals.dow0",
+  "mem.goals.dow1",
+  "mem.goals.dow2",
+  "mem.goals.dow3",
+  "mem.goals.dow4",
+  "mem.goals.dow5",
+  "mem.goals.dow6",
+];
 const GOAL_OPTIONS = [2, 4, 8, 16, 20];
 
 function lastSevenDays(log: Record<string, number>) {
-  const out: { label: string; pages: number; isToday: boolean }[] = [];
+  const out: { label: MessageKey; pages: number; isToday: boolean }[] = [];
   const now = new Date();
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
@@ -47,6 +57,7 @@ export function ReadingGoalsScreen({ navigation }: Props) {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [state, setState] = useState<ReadingState | null>(null);
   const { comfort } = useSettings();
+  const { t, tf, num } = useIntl();
 
   const refresh = useCallback(() => {
     void readReadingState().then(setState);
@@ -111,8 +122,8 @@ export function ReadingGoalsScreen({ navigation }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
-      <Text style={styles.h1}>Reading goals</Text>
-      <Text style={styles.subtitle}>Build a daily Quran habit</Text>
+      <Text style={styles.h1}>{t("mem.goals.title")}</Text>
+      <Text style={styles.subtitle}>{t("mem.goals.subtitle")}</Text>
 
       <View style={styles.ringCard}>
         <View style={styles.ringWrap}>
@@ -132,14 +143,16 @@ export function ReadingGoalsScreen({ navigation }: Props) {
             />
           </Svg>
           <View style={styles.ringCenter}>
-            <Text style={styles.ringNum}>{pagesToday}</Text>
-            <Text style={styles.ringLabel}>of {goal} pages today</Text>
+            <Text style={styles.ringNum}>{num(pagesToday)}</Text>
+            <Text style={styles.ringLabel}>{tf("mem.goals.ofPages", { n: goal })}</Text>
           </View>
         </View>
         <Text style={styles.ringStatus}>
           {done
-            ? "Today’s goal met — māshāʾAllāh ✓"
-            : `${remaining} page${remaining === 1 ? "" : "s"} to reach today’s goal`}
+            ? t("mem.goals.met")
+            : tf(remaining === 1 ? "mem.goals.remainingOne" : "mem.goals.remainingOther", {
+                n: remaining,
+              })}
         </Text>
       </View>
 
@@ -149,29 +162,31 @@ export function ReadingGoalsScreen({ navigation }: Props) {
               "days in a row" count only if the reader opted in. */}
           <Text style={styles.statValue}>
             {comfort.trackingPaused
-              ? "Paused"
+              ? t("mem.goals.paused")
               : comfort.showStreaks
                 ? streak > 0
-                  ? String(streak)
+                  ? num(streak)
                   : "—"
-                : `${daysThisWeek(active, today)} of 7`}
+                : tf("mem.hifz.weekValue", { n: daysThisWeek(active, today) })}
           </Text>
           <Text style={styles.statLabel}>
             {comfort.trackingPaused
-              ? "progress is kept"
+              ? t("mem.goals.kept")
               : comfort.showStreaks
-                ? "Days in a row"
-                : "Days this week"}
+                ? t("mem.hifz.statStreak")
+                : t("mem.hifz.statWeek")}
           </Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{khatma ? `${khatmaPct}%` : "—"}</Text>
-          <Text style={styles.statLabel}>{khatma ? "to khatm" : "no khatma"}</Text>
+          <Text style={styles.statValue}>{khatma ? `${num(khatmaPct)}%` : "—"}</Text>
+          <Text style={styles.statLabel}>
+            {khatma ? t("mem.goals.toKhatm") : t("mem.goals.noKhatma")}
+          </Text>
         </View>
       </View>
 
       <View style={styles.weekCard}>
-        <Text style={styles.sectionLabel}>This week</Text>
+        <Text style={styles.sectionLabel}>{t("mem.goals.thisWeek")}</Text>
         <View style={styles.weekRow}>
           {week.map((d, i) => (
             <View key={i} style={styles.weekCol}>
@@ -185,14 +200,14 @@ export function ReadingGoalsScreen({ navigation }: Props) {
                 ]}
               />
               <Text style={[styles.weekLabel, d.isToday && { color: colors.accent }]}>
-                {d.label}
+                {t(d.label)}
               </Text>
             </View>
           ))}
         </View>
       </View>
 
-      <Text style={styles.sectionLabel}>Daily goal</Text>
+      <Text style={styles.sectionLabel}>{t("mem.goals.daily")}</Text>
       <View style={styles.pills}>
         {GOAL_OPTIONS.map((g) => (
           <Pressable
@@ -200,65 +215,80 @@ export function ReadingGoalsScreen({ navigation }: Props) {
             style={[styles.pill, g === goal && styles.pillOn]}
             onPress={() => changeGoal(g)}
           >
-            <Text style={[styles.pillText, g === goal && styles.pillTextOn]}>{g} pages</Text>
+            <Text style={[styles.pillText, g === goal && styles.pillTextOn]}>
+              {tf("mem.goals.pages", { n: g })}
+            </Text>
           </Pressable>
         ))}
       </View>
 
-      <Text style={styles.sectionLabel}>Khatma</Text>
+      <Text style={styles.sectionLabel}>{t("mem.goals.khatma")}</Text>
       {!khatma ? (
         <View style={styles.pills}>
           {[30, 60, 90].map((dys) => (
             <Pressable key={dys} style={styles.pill} onPress={() => startKhatma(dys)}>
-              <Text style={styles.pillText}>{dys} days</Text>
+              <Text style={styles.pillText}>{tf("mem.goals.days", { n: dys })}</Text>
             </Pressable>
           ))}
         </View>
       ) : khatma.currentPage >= khatma.totalPages ? (
         <View style={styles.khatmaBox}>
-          <Text style={styles.khatmaComplete}>Alhamdulillah — khatm complete! 🎉</Text>
+          <Text style={styles.khatmaComplete}>{t("mem.goals.complete")}</Text>
           <View style={styles.pills}>
-            <Pressable style={styles.pill} onPress={() => adjustKhatma(-1)}>
-              <Text style={styles.pillText}>−1</Text>
+            <Pressable
+              style={styles.pill}
+              accessibilityLabel={t("mem.goals.minusA11y")}
+              onPress={() => adjustKhatma(-1)}
+            >
+              <Text style={styles.pillText}>−{num(1)}</Text>
             </Pressable>
             <Pressable style={styles.pill} onPress={clearKhatmaAndRefresh}>
-              <Text style={styles.pillText}>Start a new khatm</Text>
+              <Text style={styles.pillText}>{t("mem.goals.newKhatm")}</Text>
             </Pressable>
           </View>
         </View>
       ) : (
         <View style={styles.khatmaBox}>
           <Text style={styles.khatmaInfo}>
-            Page {khatma.currentPage}/{khatma.totalPages} ·{" "}
-            {Math.max(0, daysBetween(today, khatma.targetDate))}d left ·{" "}
-            {khatmaDailyTarget(khatma, today)}/day
+            {tf("mem.goals.info", {
+              page: khatma.currentPage,
+              total: khatma.totalPages,
+              left: Math.max(0, daysBetween(today, khatma.targetDate)),
+              perDay: khatmaDailyTarget(khatma, today),
+            })}
           </Text>
           <View style={styles.pills}>
             <Pressable
               style={[styles.pill, styles.pillOn]}
               onPress={() => openMushafPage(resumePage)}
             >
-              <Text style={styles.pillTextOn}>Resume p{resumePage}</Text>
+              <Text style={styles.pillTextOn}>{tf("mem.goals.resume", { n: resumePage })}</Text>
             </Pressable>
-            <Pressable style={styles.pill} onPress={() => adjustKhatma(1)}>
-              <Text style={styles.pillText}>+1</Text>
+            <Pressable
+              style={styles.pill}
+              accessibilityLabel={t("mem.goals.plusA11y")}
+              onPress={() => adjustKhatma(1)}
+            >
+              <Text style={styles.pillText}>+{num(1)}</Text>
             </Pressable>
-            <Pressable style={styles.pill} onPress={() => adjustKhatma(-1)}>
-              <Text style={styles.pillText}>−1</Text>
+            <Pressable
+              style={styles.pill}
+              accessibilityLabel={t("mem.goals.minusA11y")}
+              onPress={() => adjustKhatma(-1)}
+            >
+              <Text style={styles.pillText}>−{num(1)}</Text>
             </Pressable>
             <Pressable style={styles.pill} onPress={clearKhatmaAndRefresh}>
-              <Text style={styles.pillText}>Clear</Text>
+              <Text style={styles.pillText}>{t("mem.goals.clear")}</Text>
             </Pressable>
           </View>
         </View>
       )}
 
       <Pressable style={styles.openBtn} onPress={() => openMushafPage(resumePage)}>
-        <Text style={styles.openBtnText}>▶ Open the Mushaf</Text>
+        <Text style={styles.openBtnText}>{t("mem.goals.open")}</Text>
       </Pressable>
-      <Text style={styles.foot}>
-        Pages you read in the Mushaf view count towards your goal automatically.
-      </Text>
+      <Text style={styles.foot}>{t("mem.goals.foot")}</Text>
     </ScrollView>
   );
 }

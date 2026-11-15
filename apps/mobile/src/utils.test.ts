@@ -91,7 +91,10 @@ describe("fmtPrayerTime", () => {
 
   it("falls back to the device timezone when coordinates are unknown", () => {
     const instant = "2026-06-21T12:00:00Z";
-    const expected = new Date(instant).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const expected = new Date(instant).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
     expect(fmtPrayerTime(instant, null)).toBe(expected);
   });
 
@@ -120,7 +123,11 @@ describe("ignoreStale", () => {
   it("applies the value when no write landed since dispatch", () => {
     const gen = 0;
     const seen: number[] = [];
-    const wrapped = ignoreStale(() => gen, gen, (v: number) => seen.push(v));
+    const wrapped = ignoreStale(
+      () => gen,
+      gen,
+      (v: number) => seen.push(v),
+    );
     wrapped(5);
     expect(seen).toEqual([5]);
   });
@@ -132,7 +139,11 @@ describe("ignoreStale", () => {
     let gen = 0;
     const dispatchGen = gen; // captured when the async read was dispatched
     const seen: number[] = [];
-    const wrapped = ignoreStale(() => gen, dispatchGen, (v: number) => seen.push(v));
+    const wrapped = ignoreStale(
+      () => gen,
+      dispatchGen,
+      (v: number) => seen.push(v),
+    );
 
     gen++; // a local write happens before the reload resolves
     wrapped(999); // the reload's stale result arrives
@@ -144,7 +155,11 @@ describe("ignoreStale", () => {
     let gen = 0;
     const seen: number[] = [];
     gen++; // local write
-    const wrapped = ignoreStale(() => gen, gen, (v: number) => seen.push(v)); // fresh reload, current gen
+    const wrapped = ignoreStale(
+      () => gen,
+      gen,
+      (v: number) => seen.push(v),
+    ); // fresh reload, current gen
     wrapped(42);
     expect(seen).toEqual([42]);
   });

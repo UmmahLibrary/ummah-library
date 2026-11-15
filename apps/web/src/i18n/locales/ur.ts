@@ -349,4 +349,8 @@ export const ur: Record<MessageKey, string> = {
   "ayah.stopMemorize": "حفظ روکیں",
   "ayah.reflection": "اپنا تاثر لکھیں",
   "onb.translation": "آپ کون سا ترجمہ پسند کریں گے؟",
+  "goto.ayah": "{surah} · آیت {aya}",
+  "goto.juz": "پارہ {n} · شروع {surah} {key} سے",
+  "goto.hizb": "حزب {n} · شروع {surah} {key} سے",
+  "goto.page": "صفحہ {n} · شروع {surah} {key} سے",
 };

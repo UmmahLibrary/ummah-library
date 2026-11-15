@@ -62,7 +62,10 @@ describe("createHttpSyncBackend", () => {
       "not an object",
     ];
     const fetchImpl = (async () => jsonResponse({ entries: bad })) as unknown as typeof fetch;
-    const out = await createHttpSyncBackend({ endpoint: "https://x/api/sync", fetchImpl }).exchange("a", []);
+    const out = await createHttpSyncBackend({ endpoint: "https://x/api/sync", fetchImpl }).exchange(
+      "a",
+      [],
+    );
     expect(out.entries).toEqual([goodEntry]);
   });
 
@@ -74,8 +77,12 @@ describe("createHttpSyncBackend", () => {
   });
 
   it("passes through the server's rejected ids (ADR 0035 graceful overflow)", async () => {
-    const fetchImpl = (async () => jsonResponse({ entries: [], rejected: ["bad-id", 1] })) as unknown as typeof fetch;
-    const out = await createHttpSyncBackend({ endpoint: "https://x/api/sync", fetchImpl }).exchange("a", []);
+    const fetchImpl = (async () =>
+      jsonResponse({ entries: [], rejected: ["bad-id", 1] })) as unknown as typeof fetch;
+    const out = await createHttpSyncBackend({ endpoint: "https://x/api/sync", fetchImpl }).exchange(
+      "a",
+      [],
+    );
     expect(out.rejected).toEqual(["bad-id"]);
   });
 });

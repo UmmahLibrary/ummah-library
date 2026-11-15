@@ -5,12 +5,17 @@ import { api } from "../api";
 import { HADITH_COLLECTIONS } from "../plugins";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
+import { useIntl } from "../i18n/I18nProvider";
 
 const GRADE_GOOD = "#5bbf8a";
 
 export function HadithScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, dir } = useIntl();
+  // Chevrons follow reading direction: "previous" points back toward the start.
+  const back = dir === "rtl" ? "›" : "‹";
+  const fwd = dir === "rtl" ? "‹" : "›";
   const [collectionId, setCollectionId] = useState<string>(HADITH_COLLECTIONS[0].id);
   const [section, setSection] = useState(1);
   const [data, setData] = useState<HadithSection | null>(null);
@@ -34,7 +39,7 @@ export function HadithScreen() {
   }, [collectionId, section]);
 
   const collectionName =
-    HADITH_COLLECTIONS.find((c) => c.id === collectionId)?.name ?? "Hadith";
+    HADITH_COLLECTIONS.find((c) => c.id === collectionId)?.name ?? t("lr.hadith");
 
   return (
     <View style={styles.screen}>
@@ -61,25 +66,21 @@ export function HadithScreen() {
             disabled={section <= 1}
             onPress={() => setSection((s) => Math.max(1, s - 1))}
           >
-            <Text style={styles.chipText}>‹ Prev</Text>
+            <Text style={styles.chipText}>{`${back} ${t("lr.prev")}`}</Text>
           </Pressable>
           <Text style={styles.sectionLabel} numberOfLines={1}>
-            Book {section}
+            {tf("lr.book", { n: section })}
             {data?.name ? ` · ${data.name}` : ""}
           </Text>
           <Pressable style={styles.chip} onPress={() => setSection((s) => s + 1)}>
-            <Text style={styles.chipText}>Next ›</Text>
+            <Text style={styles.chipText}>{`${t("lr.next")} ${fwd}`}</Text>
           </Pressable>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.list}>
         {status === "loading" && <ActivityIndicator color={colors.accent} style={styles.spinner} />}
-        {status === "error" && (
-          <Text style={styles.muted}>
-            Couldn’t load this book. You may have reached the end of the collection.
-          </Text>
-        )}
+        {status === "error" && <Text style={styles.muted}>{t("lr.hadithError")}</Text>}
         {status === "ready" &&
           data?.hadiths.map((h) => (
             <View key={h.number} style={styles.card}>

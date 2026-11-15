@@ -5,6 +5,7 @@ import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { targetSize } from "../comfort";
 import { LabelButton } from "./LabelButton";
+import { useT } from "../i18n/I18nProvider";
 
 interface TrayProps {
   hideTr: boolean;
@@ -17,14 +18,15 @@ interface TrayProps {
 
 /** The labelled Recite on/off button (lives in the reader's bottom dock). */
 export function ReciteToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  const t = useT();
   return (
     <LabelButton
       icon="eye"
-      label="Recite"
+      label={t("rd.recite")}
       active={on}
       onPress={onToggle}
       accessibilityRole="switch"
-      accessibilityLabel={on ? "Recite mode on — tap to stop" : "Recite mode — hide and peek"}
+      accessibilityLabel={on ? t("rd.recite.onA11y") : t("rd.recite.offA11y")}
     />
   );
 }
@@ -39,6 +41,7 @@ export function ReciteTray({
   onToggleTr,
 }: TrayProps) {
   const { colors } = useTheme();
+  const t = useT();
   const { comfort } = useSettings();
   const min = targetSize(comfort);
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -56,11 +59,11 @@ export function ReciteTray({
   );
   return (
     <View style={styles.tray}>
-      {ctl("Peek word", onPeekWord)}
-      {ctl("Reveal āyah", onRevealAyah)}
-      {ctl("Show all", onShowAll)}
-      {ctl("Hide all", onHideAll)}
-      {ctl("Hide translation", onToggleTr, hideTr, "Hide translation")}
+      {ctl(t("rd.recite.peekWord"), onPeekWord)}
+      {ctl(t("rd.recite.revealAyah"), onRevealAyah)}
+      {ctl(t("rd.recite.showAll"), onShowAll)}
+      {ctl(t("rd.recite.hideAll"), onHideAll)}
+      {ctl(t("rd.recite.hideTr"), onToggleTr, hideTr, t("rd.recite.hideTr"))}
     </View>
   );
 }

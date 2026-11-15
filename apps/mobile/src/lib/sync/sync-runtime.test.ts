@@ -68,7 +68,9 @@ describe("syncIfEnabled", () => {
   it("caches the cipher by secret until reset", async () => {
     vi.mocked(isSyncEnabled).mockResolvedValue(true);
     vi.mocked(readSyncSecret).mockResolvedValue("secret");
-    vi.mocked(createSyncControllerFromSecret).mockResolvedValue({ syncNow: vi.fn().mockResolvedValue(OUTCOME) });
+    vi.mocked(createSyncControllerFromSecret).mockResolvedValue({
+      syncNow: vi.fn().mockResolvedValue(OUTCOME),
+    });
     await syncIfEnabled();
     await syncIfEnabled();
     expect(createSyncControllerFromSecret).toHaveBeenCalledTimes(1); // reused

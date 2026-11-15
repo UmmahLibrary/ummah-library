@@ -362,4 +362,8 @@ export const id: Record<MessageKey, string> = {
   "ayah.stopMemorize": "Berhenti menghafal",
   "ayah.reflection": "Tambah renungan",
   "onb.translation": "Terjemahan mana yang Anda inginkan?",
+  "goto.ayah": "{surah} · Ayat {aya}",
+  "goto.juz": "Juz {n} · dimulai di {surah} {key}",
+  "goto.hizb": "Hizb {n} · dimulai di {surah} {key}",
+  "goto.page": "Halaman {n} · dimulai di {surah} {key}",
 };

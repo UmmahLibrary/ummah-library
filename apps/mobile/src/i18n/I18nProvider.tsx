@@ -13,7 +13,8 @@
  * for Arabic, e.g. `SurahReaderScreen`'s `mushaf` style).
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { DEFAULT_LOCALE, type Locale } from "./config";
+import { type FmtVars, fmtMessage, formatUiNumber } from "@ummahlibrary/core";
+import { DEFAULT_LOCALE, type Locale, localeDir } from "./config";
 import { readLocale, writeLocale } from "./locale-store";
 import { MESSAGES, type MessageKey } from "./messages";
 
@@ -46,6 +47,22 @@ export function useI18n(): I18nContextValue {
   const ctx = useContext(I18nContext);
   if (!ctx) throw new Error("useI18n must be used within an I18nProvider");
   return ctx;
+}
+
+/**
+ * The full interface toolkit: `t` (lookup), `tf` (lookup + `{placeholders}`,
+ * numbers in the language's own digits), `num` (a count in those digits) and
+ * `dir` ("rtl" for Arabic and Urdu).
+ */
+export function useIntl() {
+  const { locale, t } = useI18n();
+  return {
+    locale,
+    t,
+    tf: (key: MessageKey, vars: FmtVars) => fmtMessage(t(key), vars, locale),
+    num: (n: number) => formatUiNumber(n, locale),
+    dir: localeDir(locale),
+  };
 }
 
 /** Convenience hook for components that only need the lookup. */

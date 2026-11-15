@@ -1,4 +1,5 @@
 import { TranslationNotice } from "../components/TranslationNotice";
+import { textDir } from "../text-direction";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -48,6 +49,8 @@ import { AyahView, type TrLine } from "../components/AyahView";
 import { recordMushafPage } from "../reading-goals";
 import { readActivePlan, todayProgress, todayStr, type ActivePlan } from "../plans";
 import type { ReadStackParamList } from "../navigation/types";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "SurahReader">;
 
@@ -57,6 +60,8 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   const n = Number(route.params.surah);
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, num, dir, locale } = useIntl();
+  const rtl = dir === "rtl";
   const settings = useSettings();
   const {
     editions,
@@ -178,16 +183,21 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           onPress={() => setGotoOpen(true)}
           style={styles.titleBtn}
           accessibilityRole="button"
-          accessibilityLabel={`${meta.transliteration}, surah ${meta.number}, āyah ${currentAya || 1} of ${meta.ayahCount}. Go to another āyah, juz or page`}
+          accessibilityLabel={tf("rd.reader.titleA11y", {
+            name: meta.transliteration,
+            surah: meta.number,
+            n: currentAya || 1,
+            total: meta.ayahCount,
+          })}
         >
           <View style={styles.titleRow}>
             <Text style={styles.titleText} numberOfLines={1}>
-              {meta.number} · {meta.transliteration}
+              {num(meta.number)} · {meta.transliteration}
             </Text>
             <Icon name="chevD" size={16} color={colors.fg} sw={2} />
           </View>
           <Text style={styles.titleSub} numberOfLines={1}>
-            Āyah {currentAya || 1} of {meta.ayahCount}
+            {tf("rd.ayahOf", { n: currentAya || 1, total: meta.ayahCount })}
           </Text>
         </Pressable>
       ),
@@ -196,14 +206,14 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           onPress={openMushaf}
           style={styles.headerBtn}
           accessibilityRole="button"
-          accessibilityLabel="Open in Mushaf page view"
+          accessibilityLabel={t("rd.reader.mushafA11y")}
         >
           <Icon name="layers" size={20} color={colors.accent} sw={1.8} />
-          <Text style={styles.headerBtnText}>Mushaf</Text>
+          <Text style={styles.headerBtnText}>{t("rd.reader.mushaf")}</Text>
         </Pressable>
       ),
     });
-  }, [navigation, meta, colors, styles, openMushaf, error, currentAya]);
+  }, [navigation, meta, colors, styles, openMushaf, error, currentAya, t, tf, num]);
 
   // Mark continue-reading and stop audio when leaving the surah. Guarded the
   // same way as the fetch effect below — an out-of-range `n` (a malformed
@@ -457,9 +467,12 @@ export function SurahReaderScreen({ navigation, route }: Props) {
 
   // Track the topmost visible āyah for "open in Mushaf" and reading-plan
   // auto-advance. Kept in a ref because RN forbids changing the handler.
+  // The āyah actually at the top of the list, as measured (not as intended).
+  const viewTopRef = useRef(0);
   const onViewable = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     const aya = (viewableItems[0]?.item as { aya?: number } | undefined)?.aya;
     const s = nRef.current;
+    if (aya != null) viewTopRef.current = aya;
     if (aya != null && s >= 1 && s <= TOTAL_SURAHS) {
       topAyaRef.current = aya;
       setCurrentAya(aya);
@@ -499,6 +512,13 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   // Scroll an āyah to the top of the verse list. The continuous reading modes
   // have no per-āyah rows to measure, so a jump switches to verse-by-verse.
   const pendingJump = useRef<number | null>(null);
+  const jumpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (jumpTimer.current) clearTimeout(jumpTimer.current);
+    },
+    [],
+  );
   const scrollToAya = useCallback(
     (aya: number) => {
       const index = indexOfKey.get(verseKeyOf({ sura: n, aya }));
@@ -510,11 +530,26 @@ export function SurahReaderScreen({ navigation, route }: Props) {
       pendingJump.current = null;
       topAyaRef.current = aya;
       setCurrentAya(aya);
-      try {
-        listRef.current?.scrollToIndex({ index, animated, viewPosition: 0.05 });
-      } catch {
-        /* retried by onScrollToIndexFailed */
-      }
+      // Rows have different heights and aren't measured until rendered, so the
+      // first scroll to a far āyah lands near it, not on it. Check where it
+      // actually landed and correct until the target āyah is at the top.
+      if (jumpTimer.current) clearTimeout(jumpTimer.current);
+      let tries = 0;
+      const attempt = () => {
+        try {
+          listRef.current?.scrollToIndex({ index, animated: false, viewPosition: 0.05 });
+        } catch {
+          /* retried by onScrollToIndexFailed */
+        }
+        jumpTimer.current = setTimeout(() => {
+          const off = viewTopRef.current - aya;
+          if (off !== 0 && off !== -1 && tries < 6) {
+            tries++;
+            attempt();
+          }
+        }, 450);
+      };
+      attempt();
     },
     [indexOfKey, n, readingMode, setReadingMode, animated],
   );
@@ -568,7 +603,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>Couldn’t load this surah.</Text>
+        <Text style={styles.error}>{t("rd.reader.loadErr")}</Text>
       </View>
     );
   }
@@ -597,16 +632,18 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         <Pressable
           onPress={() => setGotoOpen(true)}
           accessibilityRole="button"
-          accessibilityLabel="Go to another āyah, juz or page"
+          accessibilityLabel={t("rd.reader.gotoA11y")}
           style={styles.nameBtn}
         >
           <Text style={styles.nameEn}>
-            {meta.transliteration} · {meta.englishName}
+            {meta.transliteration}
+            {locale === "en" ? ` · ${meta.englishName}` : ""}
           </Text>
         </Pressable>
         <Text style={styles.sub}>
-          Surah {meta.number} · {meta.ayahCount} verses ·{" "}
-          {meta.revelationPlace === "meccan" ? "Meccan" : "Medinan"}
+          {tf("rd.search.surahRef", { n: meta.number })} ·{" "}
+          {tf("rd.versesCount", { n: meta.ayahCount })} ·{" "}
+          {meta.revelationPlace === "meccan" ? t("rd.meccan") : t("rd.medinan")}
         </Text>
       </View>
 
@@ -635,9 +672,11 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           style={styles.navBtn}
           onPress={() => navigation.replace("SurahReader", { surah: n - 1 })}
           accessibilityRole="button"
-          accessibilityLabel="Previous surah"
+          accessibilityLabel={t("rd.reader.prevSurah")}
         >
-          <Text style={styles.navText}>← Previous surah</Text>
+          <Text style={styles.navText}>
+            {rtl ? "→" : "←"} {t("rd.reader.prevSurah")}
+          </Text>
         </Pressable>
       ) : (
         <View />
@@ -647,9 +686,11 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           style={styles.navBtn}
           onPress={() => navigation.replace("SurahReader", { surah: n + 1 })}
           accessibilityRole="button"
-          accessibilityLabel="Next surah"
+          accessibilityLabel={t("rd.reader.nextSurah")}
         >
-          <Text style={styles.navText}>Next surah →</Text>
+          <Text style={styles.navText}>
+            {t("rd.reader.nextSurah")} {rtl ? "←" : "→"}
+          </Text>
         </Pressable>
       ) : (
         <View />
@@ -731,7 +772,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
             <Text
               style={[
                 styles.mushaf,
-                script === "indopak" && { fontFamily: FONT.arIndopak },
+                script === "indopak" && { fontFamily: FONT.arIndopak, direction: "ltr" },
                 { fontSize: 26 * scale, lineHeight: (script === "indopak" ? 66 : 52) * scale },
               ]}
             >
@@ -751,6 +792,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
             <Text
               style={[
                 styles.flow,
+                textDir(metaById.get(activeTr)?.direction),
                 comfort.trEmphasis === "soft" && styles.flowSoft,
                 { fontSize: 17 * comfort.trScale, lineHeight: 30 * comfort.trScale },
               ]}
@@ -759,7 +801,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
                 const text = trMap.get(activeTr)?.get(a.aya);
                 return text ? (
                   <Text key={a.aya}>
-                    <Text style={styles.flowNum}>{a.aya}. </Text>
+                    <Text style={styles.flowNum}>{num(a.aya)}. </Text>
                     {text}
                     {"  "}
                   </Text>
@@ -780,7 +822,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         verses={verses}
         surah={n}
         reciterName={reciter.name}
-        positionLabel={`Āyah ${currentAya || 1} of ${meta.ayahCount} · Juz ${safeJuz(n, currentAya || 1)}`}
+        positionLabel={`${tf("rd.ayahOf", { n: currentAya || 1, total: meta.ayahCount })} · ${tf("rd.juzN", { n: safeJuz(n, currentAya || 1) })}`}
         startVerse={() =>
           readingMode === "translation" && currentAya > 0 ? { sura: n, aya: currentAya } : null
         }
@@ -789,7 +831,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           <>
             {backTo != null && (
               <BackToRow
-                label={`Back to ${n}:${backTo}`}
+                label={tf("rd.backTo", { ref: `${num(n)}:${num(backTo)}` })}
                 onBack={() => {
                   const to = backTo;
                   setBackTo(null);
@@ -848,12 +890,12 @@ function safeJuz(sura: number, aya: number): number {
   }
 }
 
-const UNIT_LABEL: Record<string, string> = {
-  juz: "juzʾ",
-  hizb: "ḥizb",
-  page: "pages",
-  surah: "sūrahs",
-  ayah: "ayahs",
+const UNIT_LABEL: Record<string, MessageKey> = {
+  juz: "rd.unit.juz",
+  hizb: "rd.unit.hizb",
+  page: "rd.unit.page",
+  surah: "rd.unit.surah",
+  ayah: "rd.unit.ayah",
 };
 
 /**
@@ -870,20 +912,23 @@ function PlanChip({
   styles: ReturnType<typeof makeStyles>;
   colors: Palette;
 }) {
+  const { t, tf } = useIntl();
   const { done, total } = todayProgress(plan, todayStr());
   if (total === 0) return null;
   const complete = done >= total;
-  const unit = UNIT_LABEL[plan.template.range.unit] ?? "units";
+  const unitKey = UNIT_LABEL[plan.template.range.unit];
+  const unit = unitKey ? t(unitKey) : t("rd.unit.units");
   return (
     <View style={[styles.chip, complete && styles.chipDone]}>
       {complete ? (
         <>
           <Icon name="check" size={13} color={colors.accent} sw={2} />
-          <Text style={[styles.chipText, styles.chipTextDone]}>Today’s portion done</Text>
+          <Text style={[styles.chipText, styles.chipTextDone]}>{t("rd.plan.done")}</Text>
         </>
       ) : (
         <Text style={styles.chipText}>
-          <Text style={styles.chipLabel}>Plan</Text> · {done} of {total} {unit} today
+          <Text style={styles.chipLabel}>{t("rd.plan")}</Text> ·{" "}
+          {tf("rd.plan.progress", { done, total, unit })}
         </Text>
       )}
     </View>
@@ -933,6 +978,7 @@ function makeStyles(c: Palette) {
       writingDirection: "rtl",
       marginVertical: 12,
       fontFamily: FONT.arQuran,
+      direction: "ltr",
     },
     mushaf: {
       paddingVertical: 4,
@@ -941,8 +987,9 @@ function makeStyles(c: Palette) {
       writingDirection: "rtl",
       marginTop: 8,
       fontFamily: FONT.arQuran,
+      direction: "ltr",
     },
-    endMarker: { color: c.accent, fontSize: 18, fontFamily: FONT.arQuran },
+    endMarker: { color: c.accent, fontSize: 18, fontFamily: FONT.arQuran, direction: "ltr" },
     flow: { color: c.fg, marginTop: 4 },
     flowSoft: { color: c.muted },
     flowNum: { color: c.accent, fontWeight: "700" },

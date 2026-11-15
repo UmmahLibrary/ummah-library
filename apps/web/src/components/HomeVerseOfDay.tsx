@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DEFAULT_EDITIONS, EDITIONS_KEY, readEditions } from "../lib/editions";
+import { fetchEditionSurah } from "../lib/catalogue";
 import Link from "next/link";
 import { ayahKey, verseOfDay } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
@@ -56,20 +58,35 @@ export function HomeVerseOfDay({ nameOf }: { nameOf: (sura: number) => string })
   useEffect(() => {
     const ref = verseOfDay(today());
     let cancelled = false;
-    fetch(`/api/v1/surahs/${ref.sura}/ayahs/${ref.aya}?edition=eng-khattab`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { ayah?: { text?: string }; translation?: { text?: string } } | null) => {
+    // The translation follows the reader's choice (ADR 0041): none for
+    // "None — Arabic only", otherwise their first chosen edition's text.
+    const load = async () => {
+      try {
+        const r = await fetch(`/api/v1/surahs/${ref.sura}/ayahs/${ref.aya}?edition=eng-khattab`);
+        const data = (r.ok ? await r.json() : null) as {
+          ayah?: { text?: string };
+          translation?: { text?: string };
+        } | null;
         if (cancelled || !data?.ayah?.text) return;
-        setV({
-          sura: ref.sura,
-          aya: ref.aya,
-          arabic: data.ayah.text,
-          translation: data.translation?.text ?? null,
-        });
-      })
-      .catch(() => {});
+        const ids = await readEditions();
+        let translation: string | null = null;
+        if (ids.length > 0) {
+          translation =
+            ids[0] === DEFAULT_EDITIONS[0]
+              ? (data.translation?.text ?? null)
+              : ((await fetchEditionSurah(ids[0]!, ref.sura)).get(ref.aya) ?? null);
+        }
+        if (cancelled) return;
+        setV({ sura: ref.sura, aya: ref.aya, arabic: data.ayah.text, translation });
+      } catch {
+        /* offline: keep the skeleton */
+      }
+    };
+    void load();
+    window.addEventListener(EDITIONS_KEY, load);
     return () => {
       cancelled = true;
+      window.removeEventListener(EDITIONS_KEY, load);
     };
   }, []);
 

@@ -17,12 +17,22 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useLibrary } from "../state/LibraryContext";
 import { useSettings } from "../state/SettingsContext";
+import { useIntl } from "../i18n/I18nProvider";
 import { localISODate } from "../utils";
 import { AyahBadge } from "../components/AyahBadge";
-import { relativeDue, surahProgressMap, type SurahProgress } from "../hifz";
+import { surahProgressMap, type SurahProgress } from "../hifz";
 import type { HifzStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<HifzStackParamList, "HifzDashboard">;
+
+/** Localized "Today" / "Tomorrow" / "In 3d" for a card's next due date. */
+function relativeDue(intl: ReturnType<typeof useIntl>, nextDue: string | null, now: Date): string {
+  if (!nextDue) return "—";
+  const diff = Math.round((new Date(nextDue).getTime() - now.getTime()) / 86_400_000);
+  if (diff <= 0) return intl.t("mem.hifz.dueToday");
+  if (diff === 1) return intl.t("mem.hifz.dueTomorrow");
+  return intl.tf("mem.hifz.dueIn", { n: diff });
+}
 
 interface QueueItem extends SurahProgress {
   transliteration: string;
@@ -34,6 +44,8 @@ export function HifzDashboardScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
+  const intl = useIntl();
+  const { t, tf, num } = intl;
   const { ready, allRecords, trackedCount, dueRecords, streak, reviewLog } = useLibrary();
   // Gentle consistency (ADR 0041): "days this week" unless the reader opted in
   // to a "days in a row" count.
@@ -113,43 +125,48 @@ export function HifzDashboardScreen({ navigation }: Props) {
     return out;
   }, [heatmap]);
 
-  const memorizedPct =
-    trackedCount === 0 ? "0%" : `${Math.round((trackedCount / TOTAL_AYAHS) * 100)}%`;
+  const memorizedPct = `${num(trackedCount === 0 ? 0 : Math.round((trackedCount / TOTAL_AYAHS) * 100))}%`;
+  const [emptyBefore = "", emptyAfter = ""] = t("mem.hifz.emptyBody").split("{button}");
 
   return (
     <ScrollView contentContainerStyle={[styles.screen, { paddingTop: insets.top + 18 }]}>
-      <Text style={styles.h1}>Hifz</Text>
-      <Text style={styles.subtitle}>Memorize the Quran with spaced repetition</Text>
+      <Text style={styles.h1}>{t("mem.hifz.title")}</Text>
+      <Text style={styles.subtitle}>{t("mem.hifz.subtitle")}</Text>
 
       {!ready ? (
         <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
       ) : trackedCount === 0 ? (
         <View style={styles.empty}>
           <Khatam size={72} color={colors.accent} sw={1.2} opacity={0.5} />
-          <Text style={styles.emptyTitle}>Begin your ḥifẓ journey</Text>
+          <Text style={styles.emptyTitle}>{t("mem.hifz.emptyTitle")}</Text>
           <Text style={styles.emptyBody}>
-            Open a surah and tap <Text style={styles.accentInline}>＋ Hifz</Text> on any āyah — it
-            will appear here on a spaced-repetition schedule tuned to your recall.
+            {emptyBefore}
+            <Text style={styles.accentInline}>＋ {t("ayah.memorize")}</Text>
+            {emptyAfter}
           </Text>
         </View>
       ) : (
         <>
           {/* Stats */}
           <View style={styles.statsRow}>
-            <Stat value={memorizedPct} label="Memorized" colors={colors} />
-            <Stat value={String(dueCount)} label="Due today" colors={colors} />
+            <Stat value={memorizedPct} label={t("mem.hifz.statMemorized")} colors={colors} />
+            <Stat value={num(dueCount)} label={t("mem.hifz.statDue")} colors={colors} />
           </View>
           <View style={styles.statsRow}>
             {comfort.showStreaks ? (
               <Stat
-                value={streak.count > 0 ? String(streak.count) : "—"}
-                label="Days in a row"
+                value={streak.count > 0 ? num(streak.count) : "—"}
+                label={t("mem.hifz.statStreak")}
                 colors={colors}
               />
             ) : (
-              <Stat value={`${reviewDaysThisWeek} of 7`} label="Days this week" colors={colors} />
+              <Stat
+                value={tf("mem.hifz.weekValue", { n: reviewDaysThisWeek })}
+                label={t("mem.hifz.statWeek")}
+                colors={colors}
+              />
             )}
-            <Stat value={String(trackedCount)} label="Āyāt tracked" colors={colors} />
+            <Stat value={num(trackedCount)} label={t("mem.hifz.statTracked")} colors={colors} />
           </View>
 
           {/* CTA */}
@@ -157,18 +174,22 @@ export function HifzDashboardScreen({ navigation }: Props) {
             <View style={styles.cta}>
               <View style={styles.ctaText}>
                 <Text style={styles.ctaTitle}>
-                  {dueCount} {dueCount === 1 ? "āyah" : "āyāt"} ready for review
+                  {tf(dueCount === 1 ? "mem.hifz.ctaOne" : "mem.hifz.ctaOther", { n: dueCount })}
                 </Text>
-                <Text style={styles.ctaSub}>A few minutes is all it takes.</Text>
+                <Text style={styles.ctaSub}>{t("mem.hifz.ctaSub")}</Text>
               </View>
-              <Pressable style={styles.ctaBtn} onPress={() => navigation.navigate("HifzReview")}>
-                <Text style={styles.ctaBtnText}>▶ Start review</Text>
+              <Pressable
+                style={styles.ctaBtn}
+                accessibilityRole="button"
+                onPress={() => navigation.navigate("HifzReview")}
+              >
+                <Text style={styles.ctaBtnText}>{t("mem.hifz.startReview")}</Text>
               </Pressable>
             </View>
           )}
 
           {/* Queue */}
-          <Text style={styles.sectionLabel}>Review queue</Text>
+          <Text style={styles.sectionLabel}>{t("mem.hifz.queue")}</Text>
           {surahs === null ? (
             <ActivityIndicator color={colors.accent} style={{ marginTop: 12 }} />
           ) : (
@@ -187,15 +208,23 @@ export function HifzDashboardScreen({ navigation }: Props) {
                           ]}
                         />
                       </View>
-                      <Text style={styles.queueMeta}>
-                        {item.trackedCount}/{item.ayahCount} · {Math.round(item.avgStrength * 100)}%
+                      <Text
+                        style={styles.queueMeta}
+                        accessibilityLabel={tf("mem.hifz.strengthA11y", {
+                          tracked: item.trackedCount,
+                          total: item.ayahCount,
+                          pct: Math.round(item.avgStrength * 100),
+                        })}
+                      >
+                        {num(item.trackedCount)}/{num(item.ayahCount)} ·{" "}
+                        {num(Math.round(item.avgStrength * 100))}%
                       </Text>
                     </View>
                   </View>
                   {item.dueCount > 0 ? (
-                    <Text style={styles.dueBadge}>{item.dueCount} due</Text>
+                    <Text style={styles.dueBadge}>{tf("mem.hifz.due", { n: item.dueCount })}</Text>
                   ) : (
-                    <Text style={styles.nextDue}>{relativeDue(item.nextDue, now)}</Text>
+                    <Text style={styles.nextDue}>{relativeDue(intl, item.nextDue, now)}</Text>
                   )}
                 </View>
               ))}
@@ -203,7 +232,7 @@ export function HifzDashboardScreen({ navigation }: Props) {
           )}
 
           {/* Review activity heatmap */}
-          <Text style={styles.sectionLabel}>Review activity</Text>
+          <Text style={styles.sectionLabel}>{t("mem.hifz.activity")}</Text>
           <View style={styles.heatCard}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.heatGrid}>
@@ -221,14 +250,16 @@ export function HifzDashboardScreen({ navigation }: Props) {
             </ScrollView>
             <View style={styles.heatFooter}>
               <Text style={styles.heatCaption}>
-                Longest streak: {longestStreak} day{longestStreak === 1 ? "" : "s"}
+                {tf(longestStreak === 1 ? "mem.hifz.longestOne" : "mem.hifz.longestOther", {
+                  n: longestStreak,
+                })}
               </Text>
               <View style={styles.legendRow}>
-                <Text style={styles.legendText}>Less</Text>
+                <Text style={styles.legendText}>{t("mem.hifz.less")}</Text>
                 {[0, 1, 2, 3, 4].map((l) => (
                   <View key={l} style={[styles.heatCell, { backgroundColor: levelColors[l] }]} />
                 ))}
-                <Text style={styles.legendText}>More</Text>
+                <Text style={styles.legendText}>{t("mem.hifz.more")}</Text>
               </View>
             </View>
           </View>
@@ -236,7 +267,7 @@ export function HifzDashboardScreen({ navigation }: Props) {
           {/* Needs attention — weakest surahs */}
           {weak.length > 0 && (
             <>
-              <Text style={styles.sectionLabel}>Needs attention</Text>
+              <Text style={styles.sectionLabel}>{t("mem.hifz.attention")}</Text>
               <View style={{ gap: 10 }}>
                 {weak.map((item) => (
                   <View key={item.surahNumber} style={styles.queueRow}>
@@ -252,9 +283,16 @@ export function HifzDashboardScreen({ navigation }: Props) {
                             ]}
                           />
                         </View>
-                        <Text style={styles.queueMeta}>
-                          {item.trackedCount}/{item.ayahCount} ·{" "}
-                          {Math.round(item.avgStrength * 100)}%
+                        <Text
+                          style={styles.queueMeta}
+                          accessibilityLabel={tf("mem.hifz.strengthA11y", {
+                            tracked: item.trackedCount,
+                            total: item.ayahCount,
+                            pct: Math.round(item.avgStrength * 100),
+                          })}
+                        >
+                          {num(item.trackedCount)}/{num(item.ayahCount)} ·{" "}
+                          {num(Math.round(item.avgStrength * 100))}%
                         </Text>
                       </View>
                     </View>

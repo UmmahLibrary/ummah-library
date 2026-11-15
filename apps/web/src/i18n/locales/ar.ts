@@ -354,4 +354,8 @@ export const ar: Record<MessageKey, string> = {
   "ayah.stopMemorize": "إيقاف الحفظ",
   "ayah.reflection": "أضف تأملًا",
   "onb.translation": "أي ترجمة تفضّل؟",
+  "goto.ayah": "{surah} · الآية {aya}",
+  "goto.juz": "الجزء {n} · يبدأ عند {surah} {key}",
+  "goto.hizb": "الحزب {n} · يبدأ عند {surah} {key}",
+  "goto.page": "الصفحة {n} · تبدأ عند {surah} {key}",
 };

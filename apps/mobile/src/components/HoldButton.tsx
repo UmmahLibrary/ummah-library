@@ -4,6 +4,7 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { targetSize } from "../comfort";
+import { useT } from "../i18n/I18nProvider";
 
 /** How long the press must be held (ms). */
 export const HOLD_MS = 2000;
@@ -16,6 +17,7 @@ export const HOLD_MS = 2000;
 export function HoldButton({ label, onHold }: { label: string; onHold: () => void }) {
   const { colors } = useTheme();
   const { comfort } = useSettings();
+  const t = useT();
   const min = targetSize(comfort);
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const progress = useRef(new Animated.Value(0)).current;
@@ -47,7 +49,7 @@ export function HoldButton({ label, onHold }: { label: string; onHold: () => voi
       }}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint="Press and hold for two seconds"
+      accessibilityHint={t("home.hold.hint")}
     >
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <Animated.View
@@ -59,7 +61,7 @@ export function HoldButton({ label, onHold }: { label: string; onHold: () => voi
           ]}
         />
       </View>
-      <Text style={styles.text}>{holding ? "Keep holding…" : label}</Text>
+      <Text style={styles.text}>{holding ? t("home.hold.keep") : label}</Text>
     </Pressable>
   );
 }

@@ -33,7 +33,13 @@ function familyFor(style: TextProps["style"] | TextInputProps["style"]): string 
   const w = String(f?.fontWeight ?? "400");
   const heavy = w === "700" || w === "800" || w === "900" || w === "bold";
   if (f?.writingDirection === "rtl") {
-    return heavy ? FONT.arBold : w === "600" ? FONT.arSemibold : w === "500" ? FONT.arMedium : FONT.ar;
+    return heavy
+      ? FONT.arBold
+      : w === "600"
+        ? FONT.arSemibold
+        : w === "500"
+          ? FONT.arMedium
+          : FONT.ar;
   }
   if (w === "800" || w === "900") return FONT.extrabold;
   if (heavy) return FONT.bold;
@@ -42,7 +48,10 @@ function familyFor(style: TextProps["style"] | TextInputProps["style"]): string 
   return FONT.regular;
 }
 
-const Text = forwardRef<ComponentRef<typeof RNText>, TextProps>(function Text({ style, ...rest }, ref) {
+const Text = forwardRef<ComponentRef<typeof RNText>, TextProps>(function Text(
+  { style, ...rest },
+  ref,
+) {
   const nested = useContext(InsideText);
   const injected = nested ? null : { fontFamily: familyFor(style) };
   return (

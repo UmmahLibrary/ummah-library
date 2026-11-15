@@ -6,6 +6,7 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { HoldButton } from "./HoldButton";
+import { useIntl } from "../i18n/I18nProvider";
 
 /**
  * Easy mode Home (ADR 0041), after Apple's Assistive Access: three large,
@@ -32,6 +33,7 @@ export function EasyHome({
 }) {
   const { colors } = useTheme();
   const { setComfort } = useSettings();
+  const { t, tf } = useIntl();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const surah = lastRead != null ? surahs?.find((s) => s.number === lastRead) : undefined;
   const aya = lastReadAya ?? 1;
@@ -57,24 +59,25 @@ export function EasyHome({
   return (
     <ScrollView contentContainerStyle={styles.body}>
       <Text style={styles.hello} accessibilityRole="header">
-        As-salāmu ʿalaykum
+        {t("home.greeting")}
       </Text>
-      {nextPrayer && <Text style={styles.prayer}>Next prayer: {nextPrayer}</Text>}
+      {nextPrayer && (
+        <Text style={styles.prayer}>{tf("home.easy.nextPrayer", { prayer: nextPrayer })}</Text>
+      )}
       {tile(
         "book",
-        surah ? "Continue" : "Read",
-        surah ? `${surah.transliteration} · āyah ${aya}` : "Al-Fātiḥah",
+        surah ? t("home.continue") : t("tab.read"),
+        surah
+          ? tf("home.easy.resumeSub", { surah: surah.transliteration, aya })
+          : t("home.easy.fatiha"),
         () => (surah ? onRead(surah.number, aya) : onRead(1)),
       )}
-      {tile("headphones", "Listen", "Recitation with translation", () =>
+      {tile("headphones", t("home.listen"), t("home.easy.listenSub"), () =>
         surah ? onListen(surah.number, aya) : onListen(1),
       )}
-      {tile("grid", "Choose a surah", "All 114, in a big list", onChoose)}
+      {tile("grid", t("home.easy.choose"), tf("home.easy.chooseSub", { n: 114 }), onChoose)}
       <View style={styles.leave}>
-        <HoldButton
-          label="Hold to leave Easy mode"
-          onHold={() => setComfort({ mode: "standard" })}
-        />
+        <HoldButton label={t("home.easy.leave")} onHold={() => setComfort({ mode: "standard" })} />
       </View>
     </ScrollView>
   );

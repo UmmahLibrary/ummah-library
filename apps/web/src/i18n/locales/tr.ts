@@ -354,4 +354,8 @@ export const tr: Record<MessageKey, string> = {
   "ayah.stopMemorize": "Ezberi bırak",
   "ayah.reflection": "Bir düşünce ekle",
   "onb.translation": "Hangi meali istersiniz?",
+  "goto.ayah": "{surah} · {aya}. ayet",
+  "goto.juz": "{n}. cüz · {surah} {key} ile başlar",
+  "goto.hizb": "{n}. hizip · {surah} {key} ile başlar",
+  "goto.page": "Sayfa {n} · {surah} {key} ile başlar",
 };
