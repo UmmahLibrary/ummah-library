@@ -90,3 +90,40 @@ export function useIntl(): Intl18n {
     num: (n) => formatNumber(n, locale),
   };
 }
+
+/**
+ * Set the browser tab title in the interface language. Page metadata is built
+ * in English at build time; this replaces it once the reader's locale is known
+ * and again whenever it changes. The brand name stays as it is.
+ */
+export function useDocumentTitle(title: string): void {
+  useEffect(() => {
+    const want = `${title} · Ummah Library`;
+    const apply = () => {
+      if (document.title !== want) document.title = want;
+    };
+    // Next.js re-asserts its build-time <title> after hydration and on
+    // navigation (and React may render that element in <body>, not <head>), so
+    // watch the title element itself and put the translated text back.
+    const observer = new MutationObserver(apply);
+    const watch = () => {
+      observer.disconnect();
+      document
+        .querySelectorAll("title")
+        .forEach((el) =>
+          observer.observe(el, { childList: true, subtree: true, characterData: true }),
+        );
+    };
+    apply();
+    watch();
+    // A new <title> element can appear on client navigation; re-attach then.
+    const t = window.setInterval(() => {
+      watch();
+      apply();
+    }, 1000);
+    return () => {
+      observer.disconnect();
+      window.clearInterval(t);
+    };
+  }, [title]);
+}

@@ -5,7 +5,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import type { QuranScript } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
-import { useT } from "../i18n/I18nProvider";
+import { useDocumentTitle, useT } from "../i18n/I18nProvider";
 import type { MessageKey } from "../i18n/messages";
 import { SCRIPT_INDOPAK_CLASS, readScript, writeScript } from "../lib/script";
 import { LanguagePicker } from "./LanguagePicker";
@@ -192,6 +192,7 @@ function ScriptChoice() {
 /** The settings page frame, with its title and subtitle in the interface language. */
 export function SettingsPageClient() {
   const t = useT();
+  useDocumentTitle(t("common.settings"));
   return (
     <NoorPageFrame
       title={t("common.settings")}
