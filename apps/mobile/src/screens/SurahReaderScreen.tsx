@@ -1,3 +1,4 @@
+import { TranslationNotice } from "../components/TranslationNotice";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -697,6 +698,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           ListHeaderComponent={
             <>
               {header}
+              <TranslationNotice onChange={() => setManagerOpen(true)} />
               {showBismillah && (
                 <Text style={[styles.basmala, { fontSize: 22 * scale, lineHeight: 44 * scale }]}>
                   {BISMILLAH}

@@ -1,3 +1,5 @@
+import { defaultTranslations } from "@ummahlibrary/core";
+
 /** The three reader presentations, mirroring the web `data-reading-mode`. */
 export type ReadingMode = "translation" | "reading" | "reading-tr";
 
@@ -5,24 +7,20 @@ export type ReadingMode = "translation" | "reading" | "reading-tr";
 export const DEFAULT_EDITION = "eng-mustafakhattaba";
 export const DEFAULT_EDITIONS = [DEFAULT_EDITION];
 
-// Muhammad Junagarhi — shown by default to users with an Urdu device locale,
-// mirroring apps/web/src/lib/editions.ts (#238: Urdu is a stated priority
-// language, not just English until a user goes looking for it).
-const URDU_DEFAULT_EDITIONS = ["urd-muhammadjunagar"];
-
 /**
- * The default edition set for a first-time user, chosen by device locale.
- * Always user-overridable — once they pick editions of their own, the stored
- * set wins (see SettingsContext).
+ * The translation shown before the reader chooses (ADR 0041): the interface
+ * language when it isn't English, otherwise the device's. The rule lives in
+ * core so web and mobile agree. Always user-overridable — once they pick
+ * (including "None"), the stored set wins (see SettingsContext).
  */
-export function defaultEditions(): string[] {
+export function defaultEditions(uiLocale?: string): string[] {
+  let device: string | undefined;
   try {
-    const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-    if (/^ur\b/i.test(locale)) return URDU_DEFAULT_EDITIONS;
+    device = Intl.DateTimeFormat().resolvedOptions().locale;
   } catch {
-    /* Intl unavailable — fall through */
+    /* Intl unavailable */
   }
-  return DEFAULT_EDITIONS;
+  return defaultTranslations(uiLocale, device);
 }
 
 // The catalogue edition for the per-āyah transliteration line (#150) — Tanzil's

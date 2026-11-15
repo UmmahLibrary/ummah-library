@@ -77,7 +77,11 @@ export function JuzReaderScreen({ route }: Props) {
   const audio = useSurahAudio(reciter);
 
   const juz = route.params.juz;
-  const edition = resolveActiveTranslation(editions, readingTranslation, DEFAULT_EDITION);
+  // "None — Arabic only" (ADR 0041): no translation at all, not an English fallback.
+  const edition =
+    editions.length === 0
+      ? null
+      : resolveActiveTranslation(editions, readingTranslation, DEFAULT_EDITION);
   const [lines, setLines] = useState<Line[] | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -105,7 +109,9 @@ export function JuzReaderScreen({ route }: Props) {
       parts.map(async (p) => {
         const [surah, tr, translit, wordTranslit, indopak] = await Promise.all([
           api.getSurah(p.sura),
-          api.getCatalogTranslation(edition, p.sura).catch(() => []),
+          edition
+            ? api.getCatalogTranslation(edition, p.sura).catch(() => [])
+            : Promise.resolve([]),
           transliteration
             ? api.getCatalogTranslation(TRANSLIT_EDITION, p.sura).catch(() => [])
             : Promise.resolve([]),

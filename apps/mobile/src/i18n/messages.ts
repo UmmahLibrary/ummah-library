@@ -27,7 +27,25 @@ export const en = {
   // Common chrome (kept in sync with apps/web/src/i18n/messages.ts)
   "common.settings": "Settings",
   "common.language": "Language",
-  "settings.languageHint": "Choose the language for the app's interface. Quran and translation text are unaffected.",
+  "settings.languageHint":
+    "Choose the language for the app's interface. Quran and translation text are unaffected.",
+  // Translation choice + verse actions (ADR 0041)
+  "tr.choose": "Which translation would you like?",
+  "tr.chooseNote": "You can change this any time.",
+  "tr.none": "None — Arabic only",
+  "tr.noneNote": "Read the Quran without a translation",
+  "tr.notice": "Translation: {name}",
+  "tr.noticeNone": "No translation is shown",
+  "tr.change": "Change",
+  "tr.keep": "Keep this",
+  "onb.start": "Start reading",
+  "onb.skip": "Skip",
+  "ayah.play": "Play",
+  "ayah.save": "Save",
+  "ayah.saved": "Saved",
+  "ayah.share": "Share",
+  "ayah.memorize": "Memorize",
+  "ayah.memorizing": "Memorizing",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -41,7 +59,24 @@ const ur: Record<MessageKey, string> = {
   "tab.more": "مزید",
   "common.settings": "ترتیبات",
   "common.language": "زبان",
-  "settings.languageHint": "ایپ کے انٹرفیس کی زبان منتخب کریں۔ قرآن اور ترجمے کا متن متاثر نہیں ہوگا۔",
+  "settings.languageHint":
+    "ایپ کے انٹرفیس کی زبان منتخب کریں۔ قرآن اور ترجمے کا متن متاثر نہیں ہوگا۔",
+  "tr.choose": "آپ کون سا ترجمہ پسند کریں گے؟",
+  "tr.chooseNote": "آپ اسے کسی بھی وقت بدل سکتے ہیں۔",
+  "tr.none": "کوئی نہیں — صرف عربی",
+  "tr.noneNote": "قرآن بغیر ترجمے کے پڑھیں",
+  "tr.notice": "ترجمہ: {name}",
+  "tr.noticeNone": "کوئی ترجمہ نہیں دکھایا جا رہا",
+  "tr.change": "تبدیل کریں",
+  "tr.keep": "یہی رکھیں",
+  "onb.start": "پڑھنا شروع کریں",
+  "onb.skip": "چھوڑیں",
+  "ayah.play": "سنیں",
+  "ayah.save": "محفوظ کریں",
+  "ayah.saved": "محفوظ",
+  "ayah.share": "شیئر کریں",
+  "ayah.memorize": "حفظ کریں",
+  "ayah.memorizing": "حفظ جاری",
 };
 
 export const MESSAGES: Record<Locale, Record<MessageKey, string>> = { en, ur };

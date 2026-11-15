@@ -1,3 +1,4 @@
+import { useT } from "../i18n/I18nProvider";
 import { memo, useEffect, useMemo, useState } from "react";
 import type { IconName } from "@ummahlibrary/ui";
 import { Pressable, Share, StyleSheet, Text, View } from "../Type";
@@ -91,6 +92,7 @@ function AyahViewImpl({
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { isTracked, setHifzCard, removeHifzCard } = useLibrary();
   const { comfort } = useSettings();
+  const t = useT();
   const min = targetSize(comfort);
   const softTr = comfort.trEmphasis === "soft";
 
@@ -150,10 +152,10 @@ function AyahViewImpl({
       <View style={styles.head}>
         <AyahBadge n={aya} size={30} />
         <View style={styles.actions}>
-          {action("play", "Play", () => onPlayOne(aya), playing, `Play āyah ${aya}`)}
+          {action("play", t("ayah.play"), () => onPlayOne(aya), playing, `Play āyah ${aya}`)}
           {action(
             "star",
-            memorized ? "Memorizing" : "Memorize",
+            memorized ? t("ayah.memorizing") : t("ayah.memorize"),
             () => (memorized ? removeHifzCard(ref) : setHifzCard(ref, createCard(new Date()))),
             memorized,
             memorized ? `Stop memorizing āyah ${aya}` : `Memorize āyah ${aya}`,
@@ -162,11 +164,17 @@ function AyahViewImpl({
             sura={sura}
             aya={aya}
             trigger={(open, saved) =>
-              action("bookmark", saved ? "Saved" : "Save", open, saved, `Save āyah ${aya}`)
+              action(
+                "bookmark",
+                saved ? t("ayah.saved") : t("ayah.save"),
+                open,
+                saved,
+                `Save āyah ${aya}`,
+              )
             }
           />
           <View>
-            {action("share", "Share", () => void share(), false, `Share āyah ${aya}`)}
+            {action("share", t("ayah.share"), () => void share(), false, `Share āyah ${aya}`)}
             {copied && (
               <View style={styles.copiedBubble} pointerEvents="none">
                 <Text style={styles.copiedText}>Copied</Text>
@@ -259,6 +267,7 @@ function AyahViewImpl({
                 { fontSize: 16 * trScale, lineHeight: 26 * trScale },
                 softTr && styles.trSoft,
                 t.direction === "rtl" && styles.rtl,
+                t.direction === "rtl" && { fontSize: 18 * trScale, lineHeight: 34 * trScale },
               ]}
             >
               {t.text}

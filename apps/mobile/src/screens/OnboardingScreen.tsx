@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "../Type";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Khatam } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
+import { useT } from "../i18n/I18nProvider";
+import { TranslationChoice } from "../components/TranslationChoice";
 
 const SLIDES = [
   {
@@ -24,9 +26,36 @@ const SLIDES = [
 export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const t = useT();
   const [i, setI] = useState(0);
+  // After the slides, one question (ADR 0041): which translation, or none.
+  const [askTranslation, setAskTranslation] = useState(false);
   const slide = SLIDES[i]!;
   const last = i === SLIDES.length - 1;
+
+  if (askTranslation) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <ScrollView contentContainerStyle={{ paddingVertical: 24, gap: 14 }}>
+          <Text style={[styles.title, { textAlign: "left", fontSize: 26, lineHeight: 32 }]}>
+            {t("tr.choose")}
+          </Text>
+          <Text style={[styles.body, { textAlign: "left", maxWidth: undefined }]}>
+            {t("tr.chooseNote")}
+          </Text>
+          <TranslationChoice />
+        </ScrollView>
+        <View style={styles.footer}>
+          <Pressable style={styles.btn} onPress={onDone} accessibilityRole="button">
+            <Text style={styles.btnText}>{t("onb.start")}</Text>
+          </Pressable>
+          <Pressable onPress={onDone} hitSlop={8} accessibilityRole="button">
+            <Text style={styles.skip}>{t("onb.skip")}</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -47,7 +76,10 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
             <View key={d} style={[styles.dot, d === i && styles.dotOn]} />
           ))}
         </View>
-        <Pressable style={styles.btn} onPress={() => (last ? onDone() : setI(i + 1))}>
+        <Pressable
+          style={styles.btn}
+          onPress={() => (last ? setAskTranslation(true) : setI(i + 1))}
+        >
           <Text style={styles.btnText}>{last ? "Get started" : "Continue"}</Text>
         </Pressable>
         <Pressable onPress={onDone} hitSlop={8}>

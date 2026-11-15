@@ -24,9 +24,14 @@ import { defaultEditions, MAX_SCALE, MIN_SCALE, type ReadingMode } from "../type
 import { ignoreStale } from "../utils";
 import { type Comfort, DEFAULT_COMFORT, mergeComfort } from "../comfort";
 import { readComfort, writeComfort } from "../comfort-store";
+import { useI18n } from "../i18n/I18nProvider";
 
 interface SettingsValue {
   editions: string[];
+  /** True once the reader has chosen translations (including none) — ADR 0041. */
+  editionsChosen: boolean;
+  /** Confirm the default shown before choosing, so it stops following the language. */
+  keepEditions: () => void;
   readingMode: ReadingMode;
   readingTranslation: string | null;
   reciterId: string;
@@ -68,7 +73,9 @@ const SettingsContext = createContext<SettingsValue | null>(null);
 const clampScale = (n: number): number => Math.min(MAX_SCALE, Math.max(MIN_SCALE, n));
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [editions, setEditionsState] = useState<string[]>(defaultEditions);
+  const { locale } = useI18n();
+  const [editions, setEditionsState] = useState<string[]>(() => defaultEditions());
+  const [editionsChosen, setEditionsChosen] = useState(false);
   const [readingMode, setReadingModeState] = useState<ReadingMode>("translation");
   const [readingTranslation, setReadingTranslationState] = useState<string | null>(null);
   const [reciterId, setReciterIdState] = useState<string>(RECITER.id);
@@ -95,8 +102,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const gen = writeGen.current;
     const currentGen = () => writeGen.current;
     const s = await store.read();
-    if (s.editions && s.editions.length > 0)
+    // A stored set (even [] = "None — Arabic only") is the reader's choice.
+    if (Array.isArray(s.editions)) {
       ignoreStale(currentGen, gen, setEditionsState)(s.editions);
+      ignoreStale(currentGen, gen, setEditionsChosen)(true);
+    }
     if (
       s.readingMode === "translation" ||
       s.readingMode === "reading" ||
@@ -134,11 +144,26 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return onSyncApplied(() => void loadPrefs());
   }, [loadPrefs]);
 
+  // Before a choice, the translation follows the interface language.
+  useEffect(() => {
+    if (!editionsChosen) setEditionsState(defaultEditions(locale));
+  }, [locale, editionsChosen]);
+
   const setEditions = useCallback((ids: string[]) => {
     writeGen.current++;
-    const next = ids.length > 0 ? ids : defaultEditions();
-    setEditionsState(next);
-    void store.writeEditions(next);
+    // [] is a real choice now: "None — Arabic only" (ADR 0041).
+    setEditionsState(ids);
+    setEditionsChosen(true);
+    void store.writeEditions(ids);
+  }, []);
+
+  const keepEditions = useCallback(() => {
+    writeGen.current++;
+    setEditionsChosen(true);
+    setEditionsState((cur) => {
+      void store.writeEditions(cur);
+      return cur;
+    });
   }, []);
 
   const setReadingMode = useCallback((mode: ReadingMode) => {
@@ -218,6 +243,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const value = useMemo<SettingsValue>(
     () => ({
       editions,
+      editionsChosen,
+      keepEditions,
       readingMode,
       readingTranslation,
       reciterId,
@@ -246,6 +273,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }),
     [
       editions,
+      editionsChosen,
+      keepEditions,
       readingMode,
       readingTranslation,
       reciterId,
