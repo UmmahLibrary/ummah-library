@@ -130,35 +130,6 @@ export function SettingsScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <Text style={styles.sectionLabel}>{t("set.appearance")}</Text>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>{t("set.theme")}</Text>
-          <View style={styles.swatchRow}>
-            {THEMES.map((th) => {
-              const on = th.key === themeKey;
-              return (
-                <Pressable
-                  key={th.key}
-                  onPress={() => setTheme(th.key)}
-                  style={[
-                    styles.swatch,
-                    {
-                      backgroundColor: noorThemes[th.key].bg,
-                      borderColor: on ? colors.accent : colors.border,
-                    },
-                  ]}
-                  accessibilityLabel={t(`set.theme.${th.key}` as MessageKey)}
-                  accessibilityState={{ selected: on }}
-                >
-                  <View
-                    style={[styles.swatchDot, { backgroundColor: noorThemes[th.key].accent }]}
-                  />
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
         <Text
           style={[
             styles.sectionLabel,
@@ -197,32 +168,39 @@ export function SettingsScreen() {
           </View>
         </View>
 
+        <Text style={styles.sectionLabel}>{t("set.appearance")}</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>{t("set.theme")}</Text>
+          <View style={styles.swatchRow}>
+            {THEMES.map((th) => {
+              const on = th.key === themeKey;
+              return (
+                <Pressable
+                  key={th.key}
+                  onPress={() => setTheme(th.key)}
+                  style={[
+                    styles.swatch,
+                    {
+                      backgroundColor: noorThemes[th.key].bg,
+                      borderColor: on ? colors.accent : colors.border,
+                    },
+                  ]}
+                  accessibilityLabel={t(`set.theme.${th.key}` as MessageKey)}
+                  accessibilityState={{ selected: on }}
+                >
+                  <View
+                    style={[styles.swatchDot, { backgroundColor: noorThemes[th.key].accent }]}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
         <Text style={styles.sectionLabel} accessibilityRole="header">
           {t("set.comfort")}
         </Text>
         <ComfortSettings />
-
-        <Text style={styles.sectionLabel}>{t("set.reciter")}</Text>
-        <View style={styles.card}>
-          {RECITERS.map((r, i) => {
-            const on = r.id === reciterId;
-            return (
-              <Pressable
-                key={r.id}
-                style={[styles.pickRow, i < RECITERS.length - 1 && styles.rowDivider]}
-                onPress={() => setReciterId(r.id)}
-              >
-                <View style={[styles.radio, on && styles.radioOn]}>
-                  {on && <View style={styles.radioDot} />}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.pickText, on && styles.pickTextOn]}>{r.name}</Text>
-                  <Text style={styles.pickSub}>{r.style}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
 
         <Text style={styles.sectionLabel}>{t("set.script")}</Text>
         <View style={styles.card}>
@@ -240,6 +218,28 @@ export function SettingsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.pickText, on && styles.pickTextOn]}>{s.label}</Text>
                   <Text style={styles.pickSub}>{t(s.sub)}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Text style={styles.sectionLabel}>{t("set.reciter")}</Text>
+        <View style={styles.card}>
+          {RECITERS.map((r, i) => {
+            const on = r.id === reciterId;
+            return (
+              <Pressable
+                key={r.id}
+                style={[styles.pickRow, i < RECITERS.length - 1 && styles.rowDivider]}
+                onPress={() => setReciterId(r.id)}
+              >
+                <View style={[styles.radio, on && styles.radioOn]}>
+                  {on && <View style={styles.radioDot} />}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pickText, on && styles.pickTextOn]}>{r.name}</Text>
+                  <Text style={styles.pickSub}>{r.style}</Text>
                 </View>
               </Pressable>
             );

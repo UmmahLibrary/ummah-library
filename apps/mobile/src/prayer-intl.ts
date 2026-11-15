@@ -49,13 +49,16 @@ export function fmtPrayerTimeIn(
   if (Number.isNaN(d.getTime())) return "—";
   const timeZone = timeZoneFor(coords);
   try {
-    return d.toLocaleTimeString(locale, {
-      hour: "2-digit",
-      minute: "2-digit",
-      ...(timeZone && { timeZone }),
-    });
+    return uiDigits(
+      d.toLocaleTimeString(locale, {
+        hour: "2-digit",
+        minute: "2-digit",
+        ...(timeZone && { timeZone }),
+      }),
+      locale,
+    );
   } catch {
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return uiDigits(d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), locale);
   }
 }
 
@@ -67,9 +70,11 @@ export function fmtCivilDateIn(
 ): string {
   const d = new Date(Date.UTC(g.year, g.month - 1, g.day));
   try {
-    return d.toLocaleDateString(locale, { ...opts, timeZone: "UTC" });
+    // Digits follow the interface's numbering (Urdu, Bengali, Arabic) even
+    // where the platform's date data would print Western ones.
+    return uiDigits(d.toLocaleDateString(locale, { ...opts, timeZone: "UTC" }), locale);
   } catch {
-    return d.toLocaleDateString(undefined, { ...opts, timeZone: "UTC" });
+    return uiDigits(d.toLocaleDateString(undefined, { ...opts, timeZone: "UTC" }), locale);
   }
 }
 

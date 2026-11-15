@@ -27,6 +27,7 @@ import {
   type Translation,
 } from "@ummahlibrary/core";
 import { Khatam, Icon } from "@ummahlibrary/ui";
+import { headerSides } from "../navigation/header-direction";
 import { api } from "../api";
 import { RECITER, RECITERS } from "../plugins";
 import { BISMILLAH, toArabicDigits } from "../format";
@@ -172,7 +173,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     // runs from the `meta` branch below, so without this the header would
     // keep showing whichever surah was open before the bad navigation.
     if (error) {
-      navigation.setOptions({ title: "", headerRight: undefined });
+      navigation.setOptions({ title: "", ...headerSides(rtl, undefined) });
       return;
     }
     if (!meta) return;
@@ -201,7 +202,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           </Text>
         </Pressable>
       ),
-      headerRight: () => (
+      ...headerSides(rtl, () => (
         <Pressable
           onPress={openMushaf}
           style={styles.headerBtn}
@@ -211,9 +212,9 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           <Icon name="layers" size={20} color={colors.accent} sw={1.8} />
           <Text style={styles.headerBtnText}>{t("rd.reader.mushaf")}</Text>
         </Pressable>
-      ),
+      )),
     });
-  }, [navigation, meta, colors, styles, openMushaf, error, currentAya, t, tf, num]);
+  }, [navigation, meta, colors, styles, openMushaf, error, currentAya, t, tf, num, rtl]);
 
   // Mark continue-reading and stop audio when leaving the surah. Guarded the
   // same way as the fetch effect below — an out-of-range `n` (a malformed

@@ -91,6 +91,9 @@ export function TopBar() {
           background: N.card,
           border: `1px solid ${N.border}`,
           flex: 1,
+          // minWidth 0 lets the box shrink below its placeholder's width, so
+          // a long translated placeholder never pushes the buttons off screen.
+          minWidth: 0,
           maxWidth: 460,
         }}
       >
@@ -104,6 +107,7 @@ export function TopBar() {
           aria-label={t("nav.search")}
           style={{
             flex: 1,
+            minWidth: 0,
             background: "none",
             border: "none",
             outline: "none",
