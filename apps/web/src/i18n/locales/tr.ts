@@ -330,4 +330,9 @@ export const tr: Record<MessageKey, string> = {
   "theme.desc.sepia": "Parşömen ve kehribar",
   "theme.desc.mint": "Serin açık ve camgöbeği",
   "theme.desc.rose": "Yumuşak açık ve gül",
+  "title.collections": "Koleksiyonlar",
+  "title.privacy": "Gizlilik Politikası",
+  "title.offline": "Çevrimdışı",
+  "title.juz": "Cüzler",
+  "title.tools": "İbadet ve Araçlar",
 };

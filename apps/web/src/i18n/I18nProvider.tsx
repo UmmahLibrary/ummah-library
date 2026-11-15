@@ -96,8 +96,9 @@ export function useIntl(): Intl18n {
  * in English at build time; this replaces it once the reader's locale is known
  * and again whenever it changes. The brand name stays as it is.
  */
-export function useDocumentTitle(title: string): void {
+export function useDocumentTitle(title: string | null): void {
   useEffect(() => {
+    if (!title) return;
     const want = `${title} · Ummah Library`;
     const apply = () => {
       if (document.title !== want) document.title = want;
@@ -126,4 +127,11 @@ export function useDocumentTitle(title: string): void {
       window.clearInterval(t);
     };
   }, [title]);
+}
+
+/** Tab title for the current app page, in the interface language (null = keep). */
+export function useRouteTitle(key: MessageKey | null): void {
+  const ctx = useContext(I18nContext);
+  const title = key ? (ctx ? ctx.t(key) : MESSAGES.en[key]) : null;
+  useDocumentTitle(title);
 }

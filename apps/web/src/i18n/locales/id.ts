@@ -338,4 +338,9 @@ export const id: Record<MessageKey, string> = {
   "theme.desc.sepia": "Perkamen & amber",
   "theme.desc.mint": "Terang sejuk & biru kehijauan",
   "theme.desc.rose": "Terang lembut & mawar",
+  "title.collections": "Koleksi",
+  "title.privacy": "Kebijakan Privasi",
+  "title.offline": "Luring",
+  "title.juz": "Juz",
+  "title.tools": "Ibadah & Alat",
 };

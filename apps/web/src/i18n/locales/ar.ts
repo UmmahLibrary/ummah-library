@@ -330,4 +330,9 @@ export const ar: Record<MessageKey, string> = {
   "theme.desc.sepia": "رقّ وكهرماني",
   "theme.desc.mint": "فاتح بارد وفيروزي",
   "theme.desc.rose": "فاتح ناعم ووردي",
+  "title.collections": "المجموعات",
+  "title.privacy": "سياسة الخصوصية",
+  "title.offline": "دون اتصال",
+  "title.juz": "الأجزاء",
+  "title.tools": "العبادة والأدوات",
 };

@@ -329,4 +329,9 @@ export const bn: Record<MessageKey, string> = {
   "theme.desc.sepia": "পার্চমেন্ট ও অ্যাম্বার",
   "theme.desc.mint": "শীতল হালকা ও নীলচে সবুজ",
   "theme.desc.rose": "কোমল হালকা ও গোলাপি",
+  "title.collections": "সংগ্রহ",
+  "title.privacy": "গোপনীয়তা নীতি",
+  "title.offline": "অফলাইন",
+  "title.juz": "পারা",
+  "title.tools": "ইবাদত ও সরঞ্জাম",
 };

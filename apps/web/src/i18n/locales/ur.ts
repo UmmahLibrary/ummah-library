@@ -325,4 +325,9 @@ export const ur: Record<MessageKey, string> = {
   "theme.desc.sepia": "پرانا کاغذ اور کہربائی",
   "theme.desc.mint": "ٹھنڈا ہلکا اور فیروزی",
   "theme.desc.rose": "نرم ہلکا اور گلابی",
+  "title.collections": "مجموعے",
+  "title.privacy": "رازداری کی پالیسی",
+  "title.offline": "آف لائن",
+  "title.juz": "پارے",
+  "title.tools": "عبادت اور اوزار",
 };
