@@ -11,6 +11,7 @@ import { DEFAULT_LOCALE, type Locale, localeDir } from "./config";
 import { type FmtVars, fmt, formatNumber } from "./format";
 import { readLocale, writeLocale } from "./locale-store";
 import { MESSAGES, type MessageKey } from "./messages";
+import { EDITIONS_KEY } from "../lib/editions";
 
 interface I18nValue {
   locale: Locale;
@@ -41,6 +42,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const setLocale = (next: Locale) => {
     setLocaleState(next);
     writeLocale(next);
+    // A reader who hasn't chosen a translation gets the new language's default;
+    // a chosen translation is never overridden (consumers re-read the choice).
+    window.dispatchEvent(new CustomEvent(EDITIONS_KEY));
   };
 
   const t = (key: MessageKey): string => lookup(locale, key);

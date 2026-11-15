@@ -13,6 +13,7 @@ import { type ReadingPath, writeComfort } from "../lib/comfort-store";
 import { writeTransliteration } from "../lib/transliteration";
 import { SAMPLE_FATIHA_2 } from "../lib/quran-samples";
 import { SizeControls } from "./SizeControls";
+import { TranslationChoice } from "./TranslationChoice";
 import { SpeakButton } from "./SpeakButton";
 
 /**
@@ -25,10 +26,11 @@ import { SpeakButton } from "./SpeakButton";
  * server-rendered veil covers the app until this overlay hydrates on top.
  */
 
-const STEPS = ["language", "script", "size", "theme", "path"] as const;
+const STEPS = ["language", "script", "translation", "size", "theme", "path"] as const;
 type Step = (typeof STEPS)[number];
 
 const TITLES: Record<Step, MessageKey> = {
+  translation: "onb.translation",
   language: "onb.titleLanguage",
   script: "onb.titleScript",
   size: "onb.titleSize",
@@ -160,6 +162,7 @@ export function Onboarding() {
         <div style={{ display: "grid", gap: 10 }}>
           {step === "language" && <LanguageStep onPick={next} />}
           {step === "script" && <ScriptStep onPick={next} />}
+          {step === "translation" && <TranslationChoice onPick={next} />}
           {step === "size" && <SizeControls />}
           {step === "theme" && <ThemeStep onPick={next} />}
           {step === "path" && <PathStep />}

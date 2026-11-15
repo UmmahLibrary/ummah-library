@@ -906,3 +906,17 @@ html:is([lang="ur"], [lang="ar"]) :is(.arabic, .ayah-ar, .mushaf, .basmala, [dat
   place-items: center;
   flex-shrink: 0;
 }
+
+/* Translation text uses the font for its own language, never the interface's:
+   in an Urdu or Arabic interface, an English translation and the Latin
+   transliteration stay in the Latin face (they were inheriting Nastaliq). */
+.ayah-tr:not([lang="ur"]):not([lang="ar"]):not([lang="fa"]):not([dir="rtl"]),
+.read-flow:not([lang="ur"]):not([lang="ar"]):not([lang="fa"]):not([dir="rtl"]),
+.ayah-translit {
+  font-family: var(--font-hanken, "Hanken Grotesk"), system-ui, sans-serif;
+  line-height: 1.65;
+}
+.read-flow[lang="ur"] {
+  font-family: var(--font-nastaliq, "Noto Nastaliq Urdu"), var(--font-amiri), serif;
+  line-height: 2.6;
+}

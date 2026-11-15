@@ -18,6 +18,7 @@ import { AyahWords } from "./AyahWords";
 import { AyahActions } from "./AyahActions";
 import { AyahStar } from "./AyahStar";
 import { GoToSheet } from "./GoToSheet";
+import { TranslationNotice } from "./TranslationNotice";
 import { AyahScrubber } from "./AyahScrubber";
 import { ReadingAudio } from "./ReadingAudio";
 import { MemorizeBar } from "./MemorizeBar";
@@ -132,7 +133,7 @@ export function SurahReaderClient({
   surahNames,
 }: Props) {
   const router = useRouter();
-  const { t, tf, num, dir } = useIntl();
+  const { t, tf, num, dir, locale } = useIntl();
   const rtl = dir === "rtl";
   const [gotoOpen, setGotoOpen] = useState(false);
   // After a jump, one tap returns to where you were (Kindle's "page flip" pin).
@@ -452,7 +453,7 @@ export function SurahReaderClient({
             {tf("reader.ayahOf", { aya: currentAya || 1, total: surah.ayahCount })}
             <span className="noor-hide-sm">
               {" "}
-              · {surah.englishName} ·{" "}
+              · {locale === "en" ? <>{surah.englishName} · </> : null}
               {surah.revelationPlace === "meccan" ? t("quran.meccan") : t("quran.medinan")}
             </span>
           </span>
@@ -570,7 +571,7 @@ export function SurahReaderClient({
                   textTransform: "uppercase",
                 }}
               >
-                {surah.englishName} ·{" "}
+                {locale === "en" ? <>{surah.englishName} · </> : null}
                 {surah.revelationPlace === "meccan" ? t("quran.meccan") : t("quran.medinan")} ·{" "}
                 {tf("reader.ayatCount", { n: surah.ayahCount })}
               </div>
@@ -579,6 +580,7 @@ export function SurahReaderClient({
             {/* Verse mode */}
             <div className="mode-translation">
               <WordByWord />
+              <TranslationNotice />
 
               {surah.hasBismillah && surah.number !== 1 && (
                 <p
@@ -623,6 +625,7 @@ export function SurahReaderClient({
                 style={{ height: 1, background: N.borderSoft, margin: "1.75rem 0 1.5rem" }}
                 aria-hidden="true"
               />
+              <TranslationNotice />
               <ReadingTranslationPicker />
               <ReadingTranslationFlow surah={surah.number} ayat={ayahs.map((a) => a.aya)} />
             </div>

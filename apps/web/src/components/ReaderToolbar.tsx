@@ -15,6 +15,7 @@ import { TAP_HEAR_CLASS, readTapToHear, writeTapToHear } from "../lib/tap-to-hea
 import { SCRIPT_INDOPAK_CLASS, readScript, writeScript } from "../lib/script";
 import { TranslationSettings } from "./TranslationSettings";
 import { SizeControls } from "./SizeControls";
+import { OPEN_TRANSLATIONS_EVENT } from "./TranslationNotice";
 import { TafsirPicker } from "./TafsirPicker";
 import { WBW_KEY } from "./WordByWord";
 import { useT } from "../i18n/I18nProvider";
@@ -60,6 +61,13 @@ export function ReaderToolbar({
   const [managing, setManaging] = useState(false);
   const [catalogue, setCatalogue] = useState<EditionChoice[]>([]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(DEFAULT_EDITIONS));
+
+  // "Change" on the translation notice above the first verse opens the chooser.
+  useEffect(() => {
+    const open = () => setManaging(true);
+    window.addEventListener(OPEN_TRANSLATIONS_EVENT, open);
+    return () => window.removeEventListener(OPEN_TRANSLATIONS_EVENT, open);
+  }, []);
 
   useEffect(() => {
     void readScale().then((s) => {

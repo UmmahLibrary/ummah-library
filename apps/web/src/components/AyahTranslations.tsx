@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { EditionChoice } from "../lib/editions";
-import { EDITIONS_KEY, readEditions } from "../lib/editions";
+import { EDITIONS_KEY, editionLangCode, readEditions } from "../lib/editions";
 import { fetchCatalogue, fetchEditionSurah } from "../lib/catalogue";
 
 interface Line {
@@ -10,6 +10,7 @@ interface Line {
   name: string;
   text: string;
   direction: "ltr" | "rtl";
+  lang: string | undefined;
 }
 
 /**
@@ -50,7 +51,13 @@ export function AyahTranslations({ surah, aya }: { surah: number; aya: number })
           .filter((e): e is [string, string] => Boolean(e[1]))
           .map(([id, text]) => {
             const meta: EditionChoice | undefined = metaById.get(id);
-            return { id, name: meta?.name ?? id, text, direction: meta?.direction ?? "ltr" };
+            return {
+              id,
+              name: meta?.name ?? id,
+              text,
+              direction: meta?.direction ?? "ltr",
+              lang: editionLangCode(meta?.language),
+            };
           }),
       );
       setLoading(false);
@@ -77,7 +84,7 @@ export function AyahTranslations({ surah, aya }: { surah: number; aya: number })
   return (
     <>
       {lines.map((l) => (
-        <p key={l.id} className="ayah-tr" data-edition={l.id} dir={l.direction}>
+        <p key={l.id} className="ayah-tr" data-edition={l.id} dir={l.direction} lang={l.lang}>
           {showName && <span className="tr-name">{l.name}</span>}
           {l.text}
         </p>
