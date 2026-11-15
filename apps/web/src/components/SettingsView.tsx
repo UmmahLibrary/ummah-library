@@ -14,6 +14,7 @@ import { ThemePicker } from "./ThemePicker";
 import { ComfortSettings } from "./ComfortSettings";
 import { SyncSettings } from "./SyncSettings";
 import { DataBackup } from "./DataBackup";
+import { NoorPageFrame } from "./NoorPageFrame";
 
 interface Section {
   id: string;
@@ -185,5 +186,21 @@ function ScriptChoice() {
         </button>
       ))}
     </div>
+  );
+}
+
+/** The settings page frame, with its title and subtitle in the interface language. */
+export function SettingsPageClient() {
+  const t = useT();
+  return (
+    <NoorPageFrame
+      title={t("common.settings")}
+      sub={t("settings.sub")}
+      glyph="⚙"
+      back="/"
+      maxW={680}
+    >
+      <SettingsView />
+    </NoorPageFrame>
   );
 }

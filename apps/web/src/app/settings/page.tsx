@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { NoorPageFrame } from "../../components/NoorPageFrame";
-import { SettingsView } from "../../components/SettingsView";
+import { SettingsPageClient } from "../../components/SettingsView";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -10,15 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function SettingsPage() {
-  return (
-    <NoorPageFrame
-      title="Settings"
-      sub="Tailor the app to your practice"
-      glyph="⚙"
-      back="/"
-      maxW={680}
-    >
-      <SettingsView />
-    </NoorPageFrame>
-  );
+  return <SettingsPageClient />;
 }
