@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -185,11 +184,9 @@ export function SurahListScreen({ navigation }: Props) {
               </Pressable>
             </View>
             {/* The rest of the Quran group, as on web (ADR 0042). */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.links}
-            >
+            {/* Wraps instead of scrolling: a horizontal scroll opens at its end
+                in right-to-left, hiding the first shortcut. */}
+            <View style={styles.links}>
               {QURAN_LINKS.map((l) => (
                 <Chip
                   key={l.screen}
@@ -200,7 +197,7 @@ export function SurahListScreen({ navigation }: Props) {
                   {t(l.title)}
                 </Chip>
               ))}
-            </ScrollView>
+            </View>
             <TextInput
               style={styles.search}
               placeholder={t("rd.list.searchPh")}
@@ -321,7 +318,7 @@ function makeStyles(c: Palette) {
       fontSize: 15,
       marginBottom: 14,
     },
-    links: { gap: 8, paddingBottom: 12 },
+    links: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingBottom: 12 },
     // The shared Seg draws its own track; this only spaces it.
     seg: { marginBottom: 6 },
     sectionLabel: {

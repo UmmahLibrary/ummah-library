@@ -43,7 +43,7 @@ export function HifzDashboardScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const intl = useIntl();
-  const { t, tf, num } = intl;
+  const { t, tf, num, dir } = intl;
   const { ready, allRecords, trackedCount, dueRecords, streak, reviewLog } = useLibrary();
   // Gentle consistency (ADR 0041): "days this week" unless the reader opted in
   // to a "days in a row" count.
@@ -140,7 +140,10 @@ export function HifzDashboardScreen({ navigation }: Props) {
           <Text style={styles.emptyTitle}>{t("mem.hifz.emptyTitle")}</Text>
           <Text style={styles.emptyBody}>
             {emptyBefore}
-            <Text style={styles.accentInline}>＋ {t("ayah.memorize")}</Text>
+            {/* Memorize lives under an āyah's More menu (ADR 0043). */}
+            <Text style={styles.accentInline}>
+              {t("ayah.more")} {dir === "rtl" ? "←" : "→"} {t("ayah.memorize")}
+            </Text>
             {emptyAfter}
           </Text>
         </View>

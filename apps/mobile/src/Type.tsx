@@ -119,6 +119,10 @@ function urduOverride(
   const size = f.fontSize ?? 14;
   return {
     fontFamily: weight,
+    // The family already is the weight. A bold fontWeight on top makes
+    // Android look for a bold variant Nastaʿlīq doesn't have and fall back to
+    // the system face.
+    fontWeight: "normal",
     lineHeight: Math.max(
       typeof f.lineHeight === "number" ? f.lineHeight : 0,
       Math.round(size * 1.9),
@@ -187,7 +191,23 @@ const TextInput = forwardRef<ComponentRef<typeof RNTextInput>, TextInputProps>(f
   { style, ...rest },
   ref,
 ) {
-  return <RNTextInput ref={ref} {...rest} style={[{ fontFamily: familyFor(style) }, style]} />;
+  const urduInterface = useContext(UiLocaleContext) === "ur";
+  const family = familyFor(style);
+  const f = (StyleSheet.flatten(style) ?? {}) as TextStyle;
+  // In the Urdu interface an empty field shows an Urdu placeholder, and Urdu
+  // typing is Arabic script: both get Nastaʿlīq. Latin search terms keep Hanken.
+  const value = rest.value ?? rest.defaultValue ?? "";
+  const nastaliq =
+    urduInterface &&
+    !(f.fontFamily && QURAN_FACES.has(f.fontFamily as string)) &&
+    (value === "" || ARABIC_SCRIPT.test(value));
+  return (
+    <RNTextInput
+      ref={ref}
+      {...rest}
+      style={[{ fontFamily: family }, style, nastaliq ? { fontFamily: FONT.ur } : null]}
+    />
+  );
 });
 
 export { Text, TextInput };

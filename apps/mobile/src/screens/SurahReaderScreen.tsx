@@ -210,7 +210,7 @@ export function SurahReaderScreen({ navigation, route }: Props) {
           accessibilityLabel={t("rd.reader.mushafA11y")}
         >
           <Icon name="layers" size={20} color={colors.accent} sw={1.8} />
-          <Text style={styles.headerBtnText}>{t("rd.reader.mushaf")}</Text>
+          <Text style={styles.headerBtnText}>{t("rd.reader.pages")}</Text>
         </Pressable>
       )),
     });

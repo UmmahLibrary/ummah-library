@@ -422,13 +422,7 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
         {variant === "quran" && (
           <nav
             aria-label={t("nav.quran")}
-            style={{
-              display: "flex",
-              gap: 8,
-              overflowX: "auto",
-              scrollbarWidth: "none",
-              margin: "-6px 0 18px",
-            }}
+            style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "-6px 0 18px" }}
           >
             {QURAN_ITEMS.map((item) => (
               <Chip key={item.href} href={item.href} linkAs={Link} icon={item.icon}>

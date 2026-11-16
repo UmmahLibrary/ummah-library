@@ -140,6 +140,8 @@ export const en = {
   "rd.reader.gotoA11y": "Go to another āyah, juz or page",
   "rd.reader.loadErr": "Couldn’t load this surah.",
   "rd.reader.mushaf": "Mushaf",
+  // The page-by-page view; "Mushaf" names the reading mode (ADR 0043).
+  "rd.reader.pages": "Pages",
   "rd.reader.mushafA11y": "Open in Mushaf page view",
   "rd.reader.nextSurah": "Next surah",
   "rd.reader.prevSurah": "Previous surah",
@@ -347,6 +349,8 @@ export const ar: Record<Key, string> = {
   "rd.reader.gotoA11y": "انتقل إلى آية أو جزء أو صفحة أخرى",
   "rd.reader.loadErr": "تعذّر تحميل هذه السورة.",
   "rd.reader.mushaf": "المصحف",
+  // The page-by-page view; "Mushaf" names the reading mode (ADR 0043).
+  "rd.reader.pages": "الصفحات",
   "rd.reader.mushafA11y": "افتح بعرض صفحات المصحف",
   "rd.reader.nextSurah": "السورة التالية",
   "rd.reader.prevSurah": "السورة السابقة",
@@ -552,6 +556,8 @@ export const ur: Record<Key, string> = {
   "rd.reader.gotoA11y": "کسی اور آیت، پارے یا صفحے پر جائیں",
   "rd.reader.loadErr": "یہ سورت لوڈ نہیں ہو سکی۔",
   "rd.reader.mushaf": "مصحف",
+  // The page-by-page view; "Mushaf" names the reading mode (ADR 0043).
+  "rd.reader.pages": "صفحات",
   "rd.reader.mushafA11y": "مصحف کے صفحے میں کھولیں",
   "rd.reader.nextSurah": "اگلی سورت",
   "rd.reader.prevSurah": "پچھلی سورت",
@@ -759,6 +765,8 @@ export const id: Record<Key, string> = {
   "rd.reader.gotoA11y": "Buka ayat, juz, atau halaman lain",
   "rd.reader.loadErr": "Tidak dapat memuat surah ini.",
   "rd.reader.mushaf": "Mushaf",
+  // The page-by-page view; "Mushaf" names the reading mode (ADR 0043).
+  "rd.reader.pages": "Halaman",
   "rd.reader.mushafA11y": "Buka dalam tampilan halaman Mushaf",
   "rd.reader.nextSurah": "Surah berikutnya",
   "rd.reader.prevSurah": "Surah sebelumnya",
@@ -965,6 +973,8 @@ export const bn: Record<Key, string> = {
   "rd.reader.gotoA11y": "অন্য আয়াত, পারা বা পৃষ্ঠায় যান",
   "rd.reader.loadErr": "এই সূরাটি লোড করা যায়নি।",
   "rd.reader.mushaf": "মুসহাফ",
+  // The page-by-page view; "Mushaf" names the reading mode (ADR 0043).
+  "rd.reader.pages": "পৃষ্ঠা",
   "rd.reader.mushafA11y": "মুসহাফ পৃষ্ঠা আকারে খুলুন",
   "rd.reader.nextSurah": "পরবর্তী সূরা",
   "rd.reader.prevSurah": "পূর্ববর্তী সূরা",
@@ -1171,6 +1181,8 @@ export const tr: Record<Key, string> = {
   "rd.reader.gotoA11y": "Başka bir ayete, cüze veya sayfaya git",
   "rd.reader.loadErr": "Bu sure yüklenemedi.",
   "rd.reader.mushaf": "Mushaf",
+  // The page-by-page view; "Mushaf" names the reading mode (ADR 0043).
+  "rd.reader.pages": "Sayfalar",
   "rd.reader.mushafA11y": "Mushaf sayfa görünümünde aç",
   "rd.reader.nextSurah": "Sonraki sure",
   "rd.reader.prevSurah": "Önceki sure",
