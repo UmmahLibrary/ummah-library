@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useNoorTheme } from "./NoorThemeContext";
+import { nativeText, radius, segment, space } from "./scale";
 
 type SegOption = string | { value: string; label: string };
 
@@ -12,15 +13,15 @@ interface SegProps {
 
 export function Seg({ options, value, onChange, size = "md" }: SegProps) {
   const c = useNoorTheme();
-  const py = size === "sm" ? 6 : 8;
-  const px = size === "sm" ? 12 : 15;
-  const fs = size === "sm" ? 13 : 14;
+  const z = segment[size];
+  const py = space[z.padY];
+  const px = space[z.padX];
 
   return (
     <View
       style={[
         styles.wrap,
-        { borderColor: c.border, backgroundColor: c.bgElev },
+        { borderColor: c.border, backgroundColor: c.bgElev, borderRadius: radius[z.radius] },
       ]}
     >
       {options.map((o) => {
@@ -40,7 +41,7 @@ export function Seg({ options, value, onChange, size = "md" }: SegProps) {
             <Text
               style={[
                 styles.label,
-                { fontSize: fs },
+                nativeText(z.text),
                 { color: active ? c.ink : c.muted, fontWeight: active ? "700" : "500" },
               ]}
             >
@@ -56,7 +57,6 @@ export function Seg({ options, value, onChange, size = "md" }: SegProps) {
 const styles = StyleSheet.create({
   wrap: {
     flexDirection: "row",
-    borderRadius: 10,
     borderWidth: 1,
     overflow: "hidden",
   },

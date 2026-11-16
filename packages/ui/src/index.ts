@@ -7,6 +7,34 @@ export function cn(...classes: Array<string | false | null | undefined>): string
 // Use these on mobile; the web consumes equivalent CSS custom properties.
 export { noorThemes, type Palette, type ThemeKey } from "./themes";
 
+// Scale tokens (ADR 0042) — type, spacing, radius, elevation, motion, icon and
+// touch-target sizes. Numbers for native; `sp`/`rad`/`text`/`shadow` give web
+// inline styles the matching CSS custom properties.
+export {
+  space,
+  radius,
+  type,
+  quranType,
+  scriptLeading,
+  scriptLineHeight,
+  iconSize,
+  target,
+  motion,
+  elevation,
+  nativeText,
+  nativeShadow,
+  control,
+  segment,
+  type SpaceStep,
+  type RadiusStep,
+  type TypeRole,
+  type TypeStyle,
+  type QuranRole,
+  type Script,
+  type ElevationLevel,
+} from "./scale";
+export { sp, rad, text, shadow } from "./scale-css";
+
 // Theme context — lets Noor components read the active palette on native.
 export { NoorThemeProvider, useNoorTheme } from "./NoorThemeContext";
 

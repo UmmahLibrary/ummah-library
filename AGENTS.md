@@ -73,6 +73,11 @@ follow it.
   custom properties are **generated** from `themes.ts` (ADR 0027); never hand-edit
   the `.css`. Web/extension import `noor-themes.css`; a drift test guards them.
 - `src/tokens.ts` — `N.*` CSS variable strings for web inline styles.
+- `src/scale.ts` — type ramp (incl. Arabic/Urdu/Quran roles), spacing, radius,
+  elevation, motion, icon and touch-target sizes (ADR 0042). Mobile uses the
+  numbers (`space[4]`, `nativeText("body")`); web uses `sp()`/`rad()`/`text()`
+  from `scale-css.ts`, which return the generated `--noor-*` variables. Use
+  these instead of raw sizes in new UI.
 - `src/NoorThemeContext.tsx` — `NoorThemeProvider` + `useNoorTheme()` for native.
 - `src/Btn.tsx` / `src/Btn.native.tsx` (and Seg, Icon, Khatam, Logo) — shared
   component primitives.
