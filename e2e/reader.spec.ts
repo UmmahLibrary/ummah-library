@@ -15,12 +15,14 @@ test.describe("Surah reader", () => {
     await page.goto("/surah/1");
 
     // Reader chrome is present.
-    await expect(page.getByRole("button", { name: "Verse" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Mushaf" })).toBeVisible();
+    // Reader chrome: the three reading modes (ADR 0043).
+    await expect(page.getByRole("button", { name: "Verse by verse" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Mushaf", exact: true })).toBeVisible();
 
-    // The audio dock's reciter selector lists all 8 reciters. (A select's text
-    // content includes its option labels, so filter by one reciter's name.)
-    const reciter = page.locator("select").filter({ hasText: "Mishary Rashid Alafasy" });
+    // The audio dock's reciter selector (in its labelled Options row) lists all
+    // 8 reciters.
+    await page.getByRole("button", { name: "Options" }).click();
+    const reciter = page.getByRole("combobox", { name: "Reciter" });
     await expect(reciter.locator("option")).toHaveCount(8);
 
     // Selecting a reciter persists the choice...
