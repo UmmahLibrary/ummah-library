@@ -185,7 +185,7 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
               <div
                 style={{
                   fontFamily: N.ui,
-                  fontSize: "clamp(22px, 3.4vw, 28px)",
+                  fontSize: "clamp(24px, 3.4vw, 28px)",
                   fontWeight: 800,
                   color: N.fg,
                 }}
@@ -196,7 +196,7 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
                 className="noor-ar"
                 lang="ar"
                 dir="rtl"
-                style={{ fontSize: 34, color: N.goldHi, lineHeight: 1.6 }}
+                style={{ fontSize: 32, color: N.goldHi, lineHeight: 1.7 }}
               >
                 {resumeSurah.name}
               </div>

@@ -3,11 +3,10 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, Vi
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { JUZ_STARTS, TOTAL_JUZ, type Surah } from "@ummahlibrary/core";
-import { Icon } from "@ummahlibrary/ui";
+import { Icon, ListRow, NumberBadge, Seg } from "@ummahlibrary/ui";
 import { api, ApiError } from "../api";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
-import { AyahBadge } from "../components/AyahBadge";
 import type { ReadStackParamList } from "../navigation/types";
 import { useIntl } from "../i18n/I18nProvider";
 
@@ -57,8 +56,10 @@ export function SurahListScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { t, tf, num, dir } = useIntl();
+  const { t, tf, num, dir, locale } = useIntl();
   const rtl = dir === "rtl";
+  // Shared rows lay out right to left (and use the Arabic face) in Arabic/Urdu.
+  const rowScript = rtl ? "arabic" : "latin";
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [query, setQuery] = useState("");
@@ -179,21 +180,15 @@ export function SurahListScreen({ navigation }: Props) {
               autoCorrect={false}
             />
             <View style={styles.seg}>
-              {(
-                [
-                  { v: "surah", l: "rd.surah" },
-                  { v: "juz", l: "rd.juz" },
-                  { v: "rev", l: "rd.list.revelation" },
-                ] as const
-              ).map((o) => (
-                <Pressable
-                  key={o.v}
-                  style={[styles.segItem, tab === o.v && styles.segItemOn]}
-                  onPress={() => setTab(o.v)}
-                >
-                  <Text style={[styles.segText, tab === o.v && styles.segTextOn]}>{t(o.l)}</Text>
-                </Pressable>
-              ))}
+              <Seg
+                value={tab}
+                onChange={(v) => setTab(v as typeof tab)}
+                options={[
+                  { value: "surah", label: t("rd.surah") },
+                  { value: "juz", label: t("rd.juz") },
+                  { value: "rev", label: t("rd.list.revelation") },
+                ]}
+              />
             </View>
             {error && tab === "surah" && (
               <View style={styles.errorRow}>
@@ -230,35 +225,41 @@ export function SurahListScreen({ navigation }: Props) {
                 ? first.transliteration
                 : `${first.transliteration} – ${last?.transliteration ?? ""}`;
             return (
-              <Pressable
-                style={styles.row}
+              <ListRow
+                divider
+                truncate
+                style={styles.listRow}
+                script={rowScript}
                 onPress={() => navigation.navigate("JuzReader", { juz: item.juz })}
-              >
-                <View style={styles.juzBadge}>
-                  <Text style={styles.juzBadgeText}>{num(item.juz)}</Text>
-                </View>
-                <View style={styles.rowMeta}>
-                  <Text style={styles.rowTitle}>{tf("rd.juzN", { n: item.juz })}</Text>
-                  <Text style={styles.rowSub} numberOfLines={1}>
-                    {span}
-                  </Text>
-                </View>
-              </Pressable>
+                leading={
+                  <View style={styles.juzBadge}>
+                    <Text style={styles.juzBadgeText}>{num(item.juz)}</Text>
+                  </View>
+                }
+                title={tf("rd.juzN", { n: item.juz })}
+                subtitle={span}
+              />
             );
           }
           const s = item.surah;
           return (
-            <Pressable style={styles.row} onPress={() => open(s.number)}>
-              <AyahBadge n={num(s.number)} size={40} />
-              <View style={styles.rowMeta}>
-                <Text style={styles.rowTitle}>{s.transliteration}</Text>
-                <Text style={styles.rowSub}>
-                  {s.revelationPlace === "meccan" ? t("rd.meccan") : t("rd.medinan")} ·{" "}
-                  {tf("rd.versesCount", { n: s.ayahCount })}
-                </Text>
-              </View>
-              <Text style={styles.rowArabic}>{s.name}</Text>
-            </Pressable>
+            <ListRow
+              divider
+              truncate
+              style={styles.listRow}
+              script={rowScript}
+              onPress={() => open(s.number)}
+              leading={<NumberBadge n={num(s.number)} />}
+              title={s.transliteration}
+              subtitle={[
+                locale === "en" ? s.englishName : null,
+                tf("rd.versesCount", { n: s.ayahCount }),
+                s.revelationPlace === "meccan" ? t("rd.meccan") : t("rd.medinan"),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              trailing={<Text style={styles.rowArabic}>{s.name}</Text>}
+            />
           );
         }}
       />
@@ -289,19 +290,8 @@ function makeStyles(c: Palette) {
       fontSize: 15,
       marginBottom: 14,
     },
-    seg: {
-      flexDirection: "row",
-      backgroundColor: c.bgElev,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: 10,
-      padding: 3,
-      marginBottom: 6,
-    },
-    segItem: { flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: "center" },
-    segItemOn: { backgroundColor: c.accent },
-    segText: { color: c.muted, fontSize: 13, fontFamily: FONT.semibold },
-    segTextOn: { color: c.ink, fontFamily: FONT.bold },
+    // The shared Seg draws its own track; this only spaces it.
+    seg: { marginBottom: 6 },
     sectionLabel: {
       color: c.faint,
       fontSize: 12,
@@ -329,18 +319,8 @@ function makeStyles(c: Palette) {
     chipText: { color: c.muted, fontSize: 13 },
     muted: { color: c.muted, marginTop: 16, fontSize: 14 },
     spinner: { marginTop: 32 },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 14,
-      paddingVertical: 13,
-      paddingHorizontal: 4,
-      borderBottomWidth: 1,
-      borderBottomColor: c.borderSoft,
-    },
-    rowMeta: { flex: 1, minWidth: 0 },
-    rowTitle: { color: c.fg, fontSize: 16, fontFamily: FONT.bold },
-    rowSub: { color: c.faint, fontSize: 13, marginTop: 2 },
+    // The list already has the screen gutter; rows keep a small inner edge.
+    listRow: { paddingHorizontal: 4 },
     rowArabic: {
       color: c.accentHi,
       fontSize: 22,

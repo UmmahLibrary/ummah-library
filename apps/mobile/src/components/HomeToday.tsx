@@ -7,7 +7,7 @@ import {
   lastSevenDays,
   type Surah,
 } from "@ummahlibrary/core";
-import { Icon, type IconName } from "@ummahlibrary/ui";
+import { Icon, nativeText, radius, space, type IconName } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
@@ -244,11 +244,12 @@ function makeStyles(c: Palette) {
       backgroundColor: c.bgElev,
       borderWidth: 1,
       borderColor: c.accent,
-      borderRadius: 18,
-      padding: 18,
-      gap: 10,
+      // Shared card surface (ADR 0042), as web's .nf-card.
+      borderRadius: radius.lg,
+      padding: space[4],
+      gap: space[2.5],
     },
-    heading: { color: c.fg, fontSize: 15, fontFamily: FONT.bold },
+    heading: { color: c.accent, fontSize: 15, fontFamily: FONT.bold },
     nameRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -256,12 +257,12 @@ function makeStyles(c: Palette) {
       gap: 12,
       flexWrap: "wrap",
     },
-    name: { color: c.fg, fontSize: 24, fontFamily: FONT.extrabold, flexShrink: 1 },
+    name: { color: c.fg, ...nativeText("title"), fontFamily: FONT.extrabold, flexShrink: 1 },
     // Surah name (UI Arabic face, not verse text) with an explicit line height.
     nameAr: {
       color: c.accentHi,
-      fontSize: 28,
-      lineHeight: 52,
+      fontSize: 32,
+      lineHeight: 56,
       writingDirection: "rtl",
       fontFamily: FONT.ar,
     },
@@ -296,9 +297,9 @@ function makeStyles(c: Palette) {
       backgroundColor: c.bgElev,
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 14,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
+      borderRadius: radius.lg,
+      paddingVertical: space[3.5],
+      paddingHorizontal: space[4],
       minHeight: 48,
     },
     weekTitle: { color: c.fg, fontSize: 15.5, fontFamily: FONT.bold },

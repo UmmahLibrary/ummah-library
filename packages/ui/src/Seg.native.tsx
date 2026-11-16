@@ -32,6 +32,8 @@ export function Seg({ options, value, onChange, size = "md" }: SegProps) {
           <Pressable
             key={v}
             onPress={() => onChange(v)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
             style={[
               styles.item,
               { paddingVertical: py, paddingHorizontal: px },

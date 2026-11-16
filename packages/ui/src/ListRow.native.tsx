@@ -2,8 +2,10 @@ import type { ReactNode } from "react";
 import { Pressable, View, type StyleProp, type ViewStyle } from "react-native";
 import { useNoorTheme } from "./NoorThemeContext";
 import { Icon } from "./Icon";
-import { iconSize, space, target, type Script } from "./scale";
+import { iconSize, radius, space, target, type Script } from "./scale";
 import { Text } from "./Text";
+
+export type ListRowSurface = "plain" | "card";
 
 export interface ListRowProps {
   title: ReactNode;
@@ -14,8 +16,12 @@ export interface ListRowProps {
   onPress?: () => void;
   /** Ignored on native — navigate in `onPress`. */
   href?: string;
+  /** Ignored on native — navigate in `onPress`. */
+  linkAs?: unknown;
+  surface?: ListRowSurface;
   divider?: boolean;
   label?: string;
+  truncate?: boolean;
   selected?: boolean;
   /** Arabic script also lays the row out right to left. */
   script?: Script;
@@ -30,34 +36,48 @@ export function ListRow({
   trailing,
   chevron,
   onPress,
+  surface = "plain",
   divider,
   label,
   selected,
+  truncate,
   script,
   style,
 }: ListRowProps) {
+  const card = surface === "card";
   const c = useNoorTheme();
   const rtl = script !== undefined && script !== "latin";
   const s: ViewStyle = {
     flexDirection: rtl ? "row-reverse" : "row",
     direction: "ltr",
     alignItems: "center",
-    gap: space[3],
+    gap: space[3.5],
     minHeight: target.default,
     paddingVertical: space[3],
-    paddingHorizontal: space[4],
-    borderBottomWidth: divider ? 1 : 0,
-    borderBottomColor: c.borderSoft,
+    paddingHorizontal: space[card ? 3.5 : 4],
+    ...(card
+      ? {
+          backgroundColor: c.bgElev,
+          borderWidth: 1,
+          borderColor: selected ? c.accent : c.border,
+          borderRadius: radius.md,
+        }
+      : { borderBottomWidth: divider ? 1 : 0, borderBottomColor: c.borderSoft }),
   };
   const body = (
     <>
       {leading}
       <View style={{ flex: 1, minWidth: 0, gap: space[0.5] }}>
-        <Text role="subheading" script={script} tone={selected ? "accent" : "fg"}>
+        <Text
+          role="subheading"
+          script={script}
+          tone={selected ? "accent" : "fg"}
+          numberOfLines={truncate ? 1 : undefined}
+        >
           {title}
         </Text>
         {subtitle ? (
-          <Text role="label" tone="muted" script={script}>
+          <Text role="label" tone="faint" script={script}>
             {subtitle}
           </Text>
         ) : null}

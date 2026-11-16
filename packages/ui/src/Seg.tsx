@@ -32,7 +32,9 @@ export function Seg({ options, value, onChange, size = "md" }: SegProps) {
         return (
           <button
             key={v}
+            type="button"
             onClick={() => onChange(v)}
+            aria-pressed={active}
             style={{
               padding: pad,
               ...text(z.text),

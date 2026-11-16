@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { JUZ_STARTS, TOTAL_JUZ } from "@ummahlibrary/core";
-import { N, Khatam, Icon } from "@ummahlibrary/ui";
+import { N, Icon, ListRow, NumberBadge, Seg } from "@ummahlibrary/ui";
 import { HomeToday } from "./HomeToday";
 import { EasyHome } from "./EasyHome";
 import { useRouter } from "next/navigation";
@@ -81,69 +81,39 @@ function startingJuz(surahNumber: number): number {
   return juz;
 }
 
+/**
+ * One surah in the index, drawn with the shared ListRow (ADR 0042) so it has
+ * the same anatomy, sizes and details as the mobile list. The English meaning
+ * of the name shows only in the English interface, as on mobile.
+ */
 function SurahCard({ s }: { s: Surah }) {
-  const { t, tf, num } = useIntl();
+  const { t, tf, num, locale } = useIntl();
+  const details = [
+    locale === "en" ? s.englishName : null,
+    tf("quran.ayahCount", { n: s.ayahCount }),
+    s.revelationPlace === "meccan" ? t("quran.meccan") : t("quran.medinan"),
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
-    <Link
+    <ListRow
       href={`/surah/${s.number}`}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        padding: "12px 14px",
-        borderRadius: 12,
-        background: N.card,
-        border: `1px solid ${N.border}`,
-        textDecoration: "none",
-        transition: "border-color .15s, transform .12s",
-      }}
-    >
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          flexShrink: 0,
-          position: "relative",
-          display: "grid",
-          placeItems: "center",
-        }}
-      >
-        <Khatam size={40} color={N.goldDim} sw={1.2} />
+      linkAs={Link}
+      surface="card"
+      truncate
+      leading={<NumberBadge n={num(s.number)} />}
+      title={s.transliteration}
+      subtitle={details}
+      trailing={
         <span
-          style={{
-            position: "absolute",
-            fontSize: 12.5,
-            fontWeight: 700,
-            color: N.gold,
-            fontFamily: N.ui,
-          }}
+          className="noor-ar"
+          lang="ar"
+          style={{ fontSize: 22, fontWeight: 600, color: N.goldHi, flexShrink: 0 }}
         >
-          {num(s.number)}
+          {s.name}
         </span>
-      </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            color: N.fg,
-            fontFamily: N.ui,
-          }}
-        >
-          {s.transliteration}
-        </div>
-        <div style={{ fontSize: 12.5, color: N.faint, fontFamily: N.ui }}>
-          {s.englishName} · {tf("quran.ayahCount", { n: s.ayahCount })} ·{" "}
-          {s.revelationPlace === "meccan" ? t("quran.meccan") : t("quran.medinan")}
-        </div>
-      </div>
-      <div className="noor-ar" style={{ fontSize: 22, color: N.muted, flexShrink: 0 }}>
-        {s.name}
-      </div>
-    </Link>
+      }
+    />
   );
 }
 
@@ -343,7 +313,7 @@ function RevGroups({ surahs }: { surahs: Surah[] }) {
 export function NoorHomePage({ surahs, variant = "home" }: Props) {
   const { query } = useSearch();
   const router = useRouter();
-  const { t, tf, num } = useIntl();
+  const { t, tf } = useIntl();
   // Easy mode gets its own three-tile Home; Kids mode opens the kids list.
   const [appMode, setAppMode] = useState<AppMode>("standard");
   useEffect(() => {
@@ -512,38 +482,17 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
                 gap: 10,
               }}
             >
-              <div style={{ fontSize: 18, fontWeight: 700, fontFamily: N.ui }}>
-                {t("quran.title")}
-              </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                {(
-                  [
-                    ["surah", t("quran.tabSurah")],
-                    ["juz", t("quran.tabJuz")],
-                    ["rev", t("quran.tabRevelation")],
-                  ] as const
-                ).map(([v, l]) => (
-                  <button
-                    key={v}
-                    type="button"
-                    aria-pressed={tab === v}
-                    onClick={() => setTab(v)}
-                    style={{
-                      padding: "7px 14px",
-                      borderRadius: 999,
-                      border: `1px solid ${tab === v ? N.gold : N.border}`,
-                      background: tab === v ? N.goldSoft : "transparent",
-                      color: tab === v ? N.gold : N.muted,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      fontFamily: N.ui,
-                    }}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
+              {/* The page's h1 already says "The Quran"; no second title here. */}
+              <Seg
+                size="sm"
+                value={tab}
+                onChange={(v) => setTab(v as typeof tab)}
+                options={[
+                  { value: "surah", label: t("quran.tabSurah") },
+                  { value: "juz", label: t("quran.tabJuz") },
+                  { value: "rev", label: t("quran.tabRevelation") },
+                ]}
+              />
             </div>
 
             {q && tab === "surah" && (
@@ -571,72 +520,7 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
                 }}
               >
                 {surahList.map((s) => (
-                  <Link
-                    key={s.number}
-                    href={`/surah/${s.number}`}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 14,
-                      padding: "12px 14px",
-                      borderRadius: 12,
-                      background: N.card,
-                      border: `1px solid ${N.border}`,
-                      textDecoration: "none",
-                      transition: "border-color .15s, transform .12s",
-                    }}
-                  >
-                    {/* Number badge */}
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        flexShrink: 0,
-                        position: "relative",
-                        display: "grid",
-                        placeItems: "center",
-                      }}
-                    >
-                      <Khatam size={40} color={N.goldDim} sw={1.2} />
-                      <span
-                        style={{
-                          position: "absolute",
-                          fontSize: 12.5,
-                          fontWeight: 700,
-                          color: N.gold,
-                          fontFamily: N.ui,
-                        }}
-                      >
-                        {num(s.number)}
-                      </span>
-                    </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div
-                        style={{
-                          fontSize: 15,
-                          fontWeight: 700,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          color: N.fg,
-                          fontFamily: N.ui,
-                        }}
-                      >
-                        {s.transliteration}
-                      </div>
-                      <div style={{ fontSize: 12.5, color: N.faint, fontFamily: N.ui }}>
-                        {`${s.englishName} · ${tf("quran.ayahCount", { n: s.ayahCount })} · ${
-                          s.revelationPlace === "meccan" ? t("quran.meccan") : t("quran.medinan")
-                        }`}
-                      </div>
-                    </div>
-                    <div
-                      className="noor-ar"
-                      style={{ fontSize: 22, color: N.muted, flexShrink: 0 }}
-                    >
-                      {s.name}
-                    </div>
-                  </Link>
+                  <SurahCard key={s.number} s={s} />
                 ))}
               </div>
             )}

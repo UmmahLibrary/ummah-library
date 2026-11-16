@@ -5,8 +5,8 @@ import { DEFAULT_EDITIONS, EDITIONS_KEY, readEditions } from "../lib/editions";
 import { fetchEditionSurah } from "../lib/catalogue";
 import Link from "next/link";
 import { ayahKey, verseOfDay } from "@ummahlibrary/core";
-import { N } from "@ummahlibrary/ui";
-import { useT } from "../i18n/I18nProvider";
+import { N, text } from "@ummahlibrary/ui";
+import { useIntl } from "../i18n/I18nProvider";
 
 interface Loaded {
   sura: number;
@@ -36,15 +36,14 @@ const cardStyle = {
   transition: "border-color .15s",
 } as const;
 
-const labelStyle = {
-  fontSize: 11.5,
-  letterSpacing: 1.2,
-  textTransform: "uppercase",
+/** The small gold label on the shared overline role (ADR 0042). Arabic-script
+ *  interfaces drop the capitals and letter spacing, which would break joins. */
+const labelFor = (dir: "ltr" | "rtl") => ({
+  ...text("overline"),
+  ...(dir === "rtl" && { letterSpacing: 0, textTransform: "none" as const }),
   color: N.gold,
-  fontWeight: 700,
-  marginBottom: 8,
   fontFamily: N.ui,
-} as const;
+});
 
 /**
  * The day's ayah — deterministic per calendar date (`verseOfDay`), resolved on the
@@ -53,7 +52,7 @@ const labelStyle = {
  */
 export function HomeVerseOfDay({ nameOf }: { nameOf: (sura: number) => string }) {
   const [v, setV] = useState<Loaded | null>(null);
-  const t = useT();
+  const { t, dir } = useIntl();
 
   useEffect(() => {
     const ref = verseOfDay(today());
@@ -101,7 +100,7 @@ export function HomeVerseOfDay({ nameOf }: { nameOf: (sura: number) => string })
           />
         </div>
         <div style={{ flex: "1 1 260px" }}>
-          <div style={labelStyle}>{t("vod.label")}</div>
+          <div style={{ ...labelFor(dir), marginBottom: 8 }}>{t("vod.label")}</div>
           <div className="skeleton-line" style={{ height: "1rem", marginBottom: 8 }} />
           <div className="skeleton-line" style={{ height: "1rem", width: "82%" }} />
         </div>
@@ -114,6 +113,9 @@ export function HomeVerseOfDay({ nameOf }: { nameOf: (sura: number) => string })
 
   return (
     <Link href={`/surah/${v.sura}#${key}`} style={cardStyle}>
+      {/* Label first, as on mobile (ADR 0042); wide screens keep the Arabic
+          and the translation side by side below it. */}
+      <div style={{ ...labelFor(dir), flexBasis: "100%" }}>{t("vod.label")}</div>
       <div
         className="noor-ar"
         style={{ flex: "1 1 280px", fontSize: 28, lineHeight: 2.1, color: N.fg }}
@@ -123,7 +125,6 @@ export function HomeVerseOfDay({ nameOf }: { nameOf: (sura: number) => string })
         {v.arabic}
       </div>
       <div style={{ flex: "1 1 260px" }}>
-        <div style={labelStyle}>{t("vod.label")}</div>
         {v.translation && (
           <div style={{ fontSize: 15.5, lineHeight: 1.65, color: N.muted, fontFamily: N.ui }}>
             {v.translation}

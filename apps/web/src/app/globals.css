@@ -424,14 +424,15 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   color: var(--muted);
 }
 
+/* Same frame as the shared AyahBlock (ADR 0042). */
 .ayah {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding: 1.25rem 0.75rem;
-  margin: 0 -0.75rem;
+  gap: var(--noor-space-2-5);
+  padding: var(--noor-space-5) var(--noor-space-3);
+  margin: 0 calc(-1 * var(--noor-space-3));
   border-bottom: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--noor-radius-md);
   transition: background 0.15s ease;
 }
 .ayah:hover {

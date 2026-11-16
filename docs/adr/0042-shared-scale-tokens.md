@@ -108,3 +108,38 @@ Two supporting changes:
 
 First uses: Settings section headings and the text-size steppers, on web and
 mobile.
+
+## Addendum (2026-11-16): screens on the shared parts
+
+Phase 3 moved the most-used screens onto the tokens and parts. The web reader is
+the reference (AGENTS.md), so mobile follows its layout.
+
+- **Surah list:** `ListRow` + `NumberBadge` on both platforms, with the same
+  details ("The Opening · 7 ayahs · Meccan", the English meaning only in the
+  English interface), a gold Arabic name, and the shared `Seg` tabs. Web dropped
+  its duplicated "The Quran" heading. The open card-or-row decision is now one
+  prop: `ListRow surface="card"` on web, `"plain"` on mobile.
+- **Reader:** `AyahBlock` now has the web reader's order: Arabic ending in its
+  ﴿n﴾ marker, transliteration, translations with the translator's name inline,
+  the action row (icon beside label), then tafsir.
+  - **Mobile:** the āyah is rebuilt on it; the number badge and actions moved
+    from the top. The Quran text paths (highlighting, word-by-word,
+    hide-and-peek) are unchanged; the marker is a separate tappable span.
+  - **Web:** the `.ayah` frame uses the same spacing tokens.
+  - **Size:** the shared verse size is web's 30px with a 64px line height.
+    Mobile's Arabic grows from 26px to it; only the size changes, never the text
+    or the font.
+- **Home:** both apps' cards use the shared surface (16px corners and padding,
+  previously 18). The "Continue reading" heading is gold on both. The verse of
+  the day shows its label first on both. Its label uses the overline role,
+  without capitals or letter spacing in Arabic-script interfaces.
+
+Still waiting on the owner's decisions:
+
+- the tab bar;
+- the reading modes (web: Mushaf; mobile: Translation);
+- the per-āyah action set (web: Play, Save, Tafsir, More; mobile: Play,
+  Memorize, Save, Share);
+- the Quran face;
+- Urdu Nastaʿlīq on mobile;
+- card or row lists.

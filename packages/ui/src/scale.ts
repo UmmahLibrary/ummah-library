@@ -75,7 +75,7 @@ export type TypeRole = keyof typeof type;
 /** Quranic text roles. Line height is 2× the size so harakāt above and below
  *  never touch or clip; the reader's own Arabic size setting multiplies both. */
 export const quranType = {
-  verse: { size: 28, lineHeight: 56 },
+  verse: { size: 30, lineHeight: 64 },
   sample: { size: 26, lineHeight: 52 },
   inline: { size: 22, lineHeight: 44 },
   title: { size: 34, lineHeight: 60 },

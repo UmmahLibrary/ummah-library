@@ -82,7 +82,7 @@ follow it.
 - `src/Btn.tsx` / `src/Btn.native.tsx` (and Seg, Icon, Khatam, Logo) — shared
   component primitives.
 - Shared parts (ADR 0042): `Text`, `Card`, `SectionHeader`, `ListRow`, `Chip`,
-  `Stepper`, `AyahBlock` — same anatomy and sizes on web and mobile. Reach for
+  `Stepper`, `NumberBadge`, `AyahBlock` — same anatomy and sizes on web and mobile. Reach for
   these before writing a new card, row, heading or stepper in an app.
   `AyahBlock` lays out an āyah; the reader still renders the Quranic text.
 

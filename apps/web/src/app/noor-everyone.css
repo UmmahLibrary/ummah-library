@@ -569,13 +569,14 @@ html.comfort-large .goto-cell {
 }
 
 /* ---- Shared building blocks for Home, modes and settings ---- */
+/* Same surface as the shared Card part (ADR 0042). */
 .nf-card {
   background: var(--noor-card);
   border: 1px solid var(--noor-border);
-  border-radius: 18px;
-  padding: 18px;
+  border-radius: var(--noor-radius-lg);
+  padding: var(--noor-space-4);
   display: grid;
-  gap: 10px;
+  gap: var(--noor-space-2-5);
 }
 .nf-btn {
   display: inline-flex;

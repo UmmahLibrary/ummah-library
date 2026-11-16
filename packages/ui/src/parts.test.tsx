@@ -126,8 +126,8 @@ describe("AyahBlock", () => {
     render(
       <AyahBlock
         label="Al-Fātiḥah, āyah 2"
-        number={<span>2</span>}
         arabic={<span data-testid="ar">{AYAH}</span>}
+        actions={<button type="button">Play</button>}
         translations={[
           { key: "en", label: "Mustafa Khattab", text: "All praise is for Allah", lang: "en" },
           { key: "ur", text: "سب تعریفیں اللہ کے لیے ہیں", lang: "ur", dir: "rtl" },
@@ -139,15 +139,27 @@ describe("AyahBlock", () => {
     expect(ar.parentElement?.getAttribute("dir")).toBe("rtl");
     expect(ar.parentElement?.getAttribute("lang")).toBe("ar");
     expect(screen.getByRole("article", { name: "Al-Fātiḥah, āyah 2" })).toBeTruthy();
-    const ur = screen.getByText("سب تعریفیں اللہ کے لیے ہیں").parentElement!;
+    const ur = screen.getByText("سب تعریفیں اللہ کے لیے ہیں");
     expect(ur.getAttribute("dir")).toBe("rtl");
     expect(ur.getAttribute("lang")).toBe("ur");
+    // Web reader order: Arabic, translations, then the action row.
+    const order = [
+      screen.getByTestId("ar"),
+      screen.getByText(/All praise is for Allah/),
+      screen.getByRole("button", { name: "Play" }),
+    ];
+    for (let i = 1; i < order.length; i++) {
+      expect(
+        order[i - 1]!.compareDocumentPosition(order[i]!) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+    // Two translations: each names its translator.
+    expect(screen.getByText("Mustafa Khattab")).toBeTruthy();
   });
 
   it("scales translations with the reader's translation size", () => {
     render(
       <AyahBlock
-        number={null}
         arabic={null}
         translationScale={1.2}
         translations={[{ key: "en", text: "Indeed" }]}
