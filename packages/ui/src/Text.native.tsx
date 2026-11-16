@@ -23,7 +23,7 @@ export interface TextProps {
   style?: StyleProp<TextStyle>;
 }
 
-const ARABIC_SCRIPT = /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/;
+const ARABIC_SCRIPT = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/;
 function hasArabicScript(node: ReactNode): boolean {
   if (typeof node === "string") return ARABIC_SCRIPT.test(node);
   if (Array.isArray(node)) return node.some(hasArabicScript);

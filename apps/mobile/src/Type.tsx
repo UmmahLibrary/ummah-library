@@ -64,8 +64,8 @@ function familyFor(style: TextProps["style"] | TextInputProps["style"]): string 
 }
 
 /** Letters only Urdu (and Persian) use: ٹ ڈ ڑ ں ھ ہ ۃ ی ے ۓ ک گ ۔ */
-const URDU = /[ٹڈڑںھہۃیےۓکگ۔]/;
-const ARABIC_SCRIPT = /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/;
+const URDU = /[\u0679\u0688\u0691\u06BA\u06BE\u06C1\u06C3\u06CC\u06D2\u06D3\u06A9\u06AF\u06D4]/;
+const ARABIC_SCRIPT = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/;
 const QURAN_FACES = new Set<string>([FONT.arQuran, FONT.arIndopak]);
 /** Faces a style names on purpose for Arabic content (e.g. surah names). */
 const ARABIC_FACES = new Set<string>([FONT.ar, FONT.arMedium, FONT.arSemibold, FONT.arBold]);
