@@ -5,6 +5,7 @@ import { Pressable, StyleSheet } from "../Type";
 import { useTheme } from "../theme";
 import { useI18n, useIntl } from "../i18n/I18nProvider";
 import { localeDir } from "../i18n/config";
+import { FONT } from "../fonts";
 
 /** True when the interface language reads right to left (Arabic, Urdu). */
 export function useIsRtl(): boolean {
@@ -73,3 +74,12 @@ export function headerSides(
 const styles = StyleSheet.create({
   back: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
 });
+
+/** The face for native header titles and tab labels in the interface
+ *  language: Hanken, IBM Plex Sans Arabic, or Nastaʿlīq for Urdu (ADR 0042). */
+export function useChromeFont(weight: "medium" | "bold" = "bold"): string {
+  const { locale } = useI18n();
+  if (locale === "ur") return weight === "bold" ? FONT.urBold : FONT.urMedium;
+  if (locale === "ar") return weight === "bold" ? FONT.arBold : FONT.arMedium;
+  return weight === "bold" ? FONT.bold : FONT.medium;
+}

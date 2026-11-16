@@ -25,8 +25,7 @@ import { useIntl } from "../i18n/I18nProvider";
 export function SizeControls({ sample = true }: { sample?: boolean }) {
   const { colors } = useTheme();
   const { scale, setScale, comfort, setComfort } = useSettings();
-  const { t, tf, dir } = useIntl();
-  const script = dir === "rtl" ? "arabic" : "latin";
+  const { t, tf, script } = useIntl();
   const min = targetSize(comfort);
   const styles = useMemo(() => makeStyles(colors), [colors]);
 

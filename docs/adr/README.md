@@ -51,6 +51,7 @@ through Phases 1–3; later decisions get their own record at the time they're m
 | [0040](0040-ui-localization.md)               | UI localization: in-house typed i18n + RTL; nav slice + Urdu (foundation)          | Accepted                                  |
 | [0041](0041-readable-for-everyone.md)         | Readable for everyone: labelled controls, comfort, modes, gentle consistency       | Accepted                                  |
 | [0042](0042-shared-scale-tokens.md)           | Shared scale tokens: type, spacing, radius, elevation, motion (extends 0023/0027)  | Accepted                                  |
+| [0043](0043-one-app-across-platforms.md)      | One app across platforms: tabs, modes, actions, Quran/Urdu faces, lists            | Accepted                                  |
 
 ## Writing a new ADR
 

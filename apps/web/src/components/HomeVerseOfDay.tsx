@@ -117,7 +117,7 @@ export function HomeVerseOfDay({ nameOf }: { nameOf: (sura: number) => string })
           and the translation side by side below it. */}
       <div style={{ ...labelFor(dir), flexBasis: "100%" }}>{t("vod.label")}</div>
       <div
-        className="noor-ar"
+        className="noor-quran"
         style={{ flex: "1 1 280px", fontSize: 28, lineHeight: 2.1, color: N.fg }}
         dir="rtl"
         lang="ar"

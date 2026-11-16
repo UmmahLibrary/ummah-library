@@ -5,6 +5,13 @@
  * release. Interface text only; never Quranic text.
  */
 export const en = {
+  "tab.today": "Today",
+  "tab.quran": "Quran",
+  "tab.prayer": "Prayer",
+  "tab.learn": "Learn",
+  "hub.prayerIntro": "Prayer times, your prayer log and the qibla.",
+  "hub.learnIntro": "Duʿās, adhkār, hadith and the beautiful names.",
+  "hub.moreIntro": "Settings, tools and your reading so far.",
   "tab.home": "Home",
   "tab.read": "Read",
   "tab.tools": "Tools",
@@ -24,6 +31,10 @@ export const en = {
   "tr.keep": "Keep this",
   "onb.start": "Start reading",
   "onb.skip": "Skip",
+  "ayah.tafsir": "Tafsir",
+  "ayah.more": "More",
+  "ayah.copyVerse": "Copy verse",
+  "ayah.stopMemorize": "Stop memorizing",
   "ayah.play": "Play",
   "ayah.save": "Save",
   "ayah.saved": "Saved",
@@ -35,6 +46,13 @@ export const en = {
 export type Key = keyof typeof en;
 
 export const ar: Record<Key, string> = {
+  "tab.today": "اليوم",
+  "tab.quran": "القرآن",
+  "tab.prayer": "الصلاة",
+  "tab.learn": "التعلّم",
+  "hub.prayerIntro": "مواقيت الصلاة وسجل صلواتك والقبلة.",
+  "hub.learnIntro": "الأدعية والأذكار والحديث والأسماء الحسنى.",
+  "hub.moreIntro": "الإعدادات والأدوات وقراءتك حتى الآن.",
   "tab.home": "الرئيسية",
   "tab.read": "اقرأ",
   "tab.tools": "أدوات",
@@ -53,6 +71,10 @@ export const ar: Record<Key, string> = {
   "tr.keep": "إبقاء هذه",
   "onb.start": "ابدأ القراءة",
   "onb.skip": "تخطَّ",
+  "ayah.tafsir": "التفسير",
+  "ayah.more": "المزيد",
+  "ayah.copyVerse": "نسخ الآية",
+  "ayah.stopMemorize": "إيقاف الحفظ",
   "ayah.play": "تشغيل",
   "ayah.save": "حفظ",
   "ayah.saved": "محفوظة",
@@ -62,6 +84,13 @@ export const ar: Record<Key, string> = {
 };
 
 export const ur: Record<Key, string> = {
+  "tab.today": "آج",
+  "tab.quran": "قرآن",
+  "tab.prayer": "نماز",
+  "tab.learn": "سیکھیں",
+  "hub.prayerIntro": "نماز کے اوقات، آپ کا نماز ریکارڈ اور قبلہ۔",
+  "hub.learnIntro": "دعائیں، اذکار، حدیث اور اسمائے حسنیٰ۔",
+  "hub.moreIntro": "ترتیبات، ٹولز اور اب تک آپ کا مطالعہ۔",
   "tab.home": "ہوم",
   "tab.read": "پڑھیں",
   "tab.tools": "اوزار",
@@ -81,6 +110,10 @@ export const ur: Record<Key, string> = {
   "tr.keep": "یہی رکھیں",
   "onb.start": "پڑھنا شروع کریں",
   "onb.skip": "چھوڑیں",
+  "ayah.tafsir": "تفسیر",
+  "ayah.more": "مزید",
+  "ayah.copyVerse": "آیت کاپی کریں",
+  "ayah.stopMemorize": "حفظ روکیں",
   "ayah.play": "سنیں",
   "ayah.save": "محفوظ کریں",
   "ayah.saved": "محفوظ",
@@ -90,6 +123,13 @@ export const ur: Record<Key, string> = {
 };
 
 export const id: Record<Key, string> = {
+  "tab.today": "Hari Ini",
+  "tab.quran": "Al-Qur'an",
+  "tab.prayer": "Salat",
+  "tab.learn": "Belajar",
+  "hub.prayerIntro": "Jadwal salat, catatan salatmu, dan arah kiblat.",
+  "hub.learnIntro": "Doa, zikir, hadis, dan nama-nama yang indah.",
+  "hub.moreIntro": "Pengaturan, fitur, dan bacaanmu sejauh ini.",
   "tab.home": "Beranda",
   "tab.read": "Baca",
   "tab.tools": "Alat",
@@ -109,6 +149,10 @@ export const id: Record<Key, string> = {
   "tr.keep": "Tetap ini",
   "onb.start": "Mulai membaca",
   "onb.skip": "Lewati",
+  "ayah.tafsir": "Tafsir",
+  "ayah.more": "Lainnya",
+  "ayah.copyVerse": "Salin ayat",
+  "ayah.stopMemorize": "Berhenti menghafal",
   "ayah.play": "Putar",
   "ayah.save": "Simpan",
   "ayah.saved": "Tersimpan",
@@ -118,6 +162,13 @@ export const id: Record<Key, string> = {
 };
 
 export const bn: Record<Key, string> = {
+  "tab.today": "আজ",
+  "tab.quran": "কুরআন",
+  "tab.prayer": "নামাজ",
+  "tab.learn": "শিখুন",
+  "hub.prayerIntro": "নামাজের সময়, আপনার নামাজের হিসাব ও কিবলা।",
+  "hub.learnIntro": "দোয়া, আযকার, হাদিস ও আল্লাহর সুন্দর নামসমূহ।",
+  "hub.moreIntro": "সেটিংস, টুল ও এ পর্যন্ত আপনার পড়া।",
   "tab.home": "হোম",
   "tab.read": "পড়ুন",
   "tab.tools": "সরঞ্জাম",
@@ -136,6 +187,10 @@ export const bn: Record<Key, string> = {
   "tr.keep": "এটিই রাখুন",
   "onb.start": "পড়া শুরু করুন",
   "onb.skip": "এড়িয়ে যান",
+  "ayah.tafsir": "তাফসির",
+  "ayah.more": "আরও",
+  "ayah.copyVerse": "আয়াত কপি করুন",
+  "ayah.stopMemorize": "মুখস্থ বন্ধ করুন",
   "ayah.play": "শুনুন",
   "ayah.save": "সংরক্ষণ",
   "ayah.saved": "সংরক্ষিত",
@@ -145,6 +200,13 @@ export const bn: Record<Key, string> = {
 };
 
 export const tr: Record<Key, string> = {
+  "tab.today": "Bugün",
+  "tab.quran": "Kur'an",
+  "tab.prayer": "Namaz",
+  "tab.learn": "Öğren",
+  "hub.prayerIntro": "Namaz vakitleri, namaz kaydın ve kıble.",
+  "hub.learnIntro": "Dualar, ezkâr, hadisler ve Esmâ-ül Hüsnâ.",
+  "hub.moreIntro": "Ayarlar, araçlar ve şimdiye kadarki okuman.",
   "tab.home": "Ana sayfa",
   "tab.read": "Oku",
   "tab.tools": "Araçlar",
@@ -163,6 +225,10 @@ export const tr: Record<Key, string> = {
   "tr.keep": "Bunu kullan",
   "onb.start": "Okumaya başla",
   "onb.skip": "Atla",
+  "ayah.tafsir": "Tefsir",
+  "ayah.more": "Daha fazla",
+  "ayah.copyVerse": "Ayeti kopyala",
+  "ayah.stopMemorize": "Ezberi bırak",
   "ayah.play": "Dinle",
   "ayah.save": "Kaydet",
   "ayah.saved": "Kaydedildi",

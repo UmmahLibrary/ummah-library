@@ -2,10 +2,10 @@ import { useIntl } from "../i18n/I18nProvider";
 import { LTR_TEXT } from "../text-direction";
 import { memo, useEffect, useMemo, useState } from "react";
 import type { IconName } from "@ummahlibrary/ui";
-import { Pressable, Share, StyleSheet, Text, View } from "../Type";
+import { Modal, Pressable, Share, StyleSheet, Text, View } from "../Type";
 import * as Clipboard from "expo-clipboard";
-import { createCard } from "@ummahlibrary/core";
-import { AyahBlock, Icon, quranType } from "@ummahlibrary/ui";
+import { createCard, editionLangCode } from "@ummahlibrary/core";
+import { AyahBlock, Icon, ListRow, quranType } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useLibrary } from "../state/LibraryContext";
@@ -92,7 +92,7 @@ function AyahViewImpl({
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { isTracked, setHifzCard, removeHifzCard } = useLibrary();
   const { comfort } = useSettings();
-  const { t, tf, dir } = useIntl();
+  const { t, tf, dir, script } = useIntl();
   const min = targetSize(comfort);
   const softTr = comfort.trEmphasis === "soft";
 
@@ -127,11 +127,21 @@ function AyahViewImpl({
   // does something, with a brief inline confirmation since Alert.alert() is a
   // no-op on web too.
   const [copied, setCopied] = useState(false);
+  const [tafsirOpen, setTafsirOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => {
     if (!copied) return;
     const id = setTimeout(() => setCopied(false), 2000);
     return () => clearTimeout(id);
   }, [copied]);
+
+  const copyVerse = async () => {
+    const block = [arabic, ...translations.map((tr) => tr.text), `— ${sura}:${aya}`]
+      .filter(Boolean)
+      .join("\n");
+    await Clipboard.setStringAsync(block);
+    setCopied(true);
+  };
 
   const share = async () => {
     const block = [arabic, ...translations.map((t) => t.text), `— ${sura}:${aya}`]
@@ -269,7 +279,8 @@ function AyahViewImpl({
               key: tr.id,
               label: tr.name,
               text: tr.text,
-              lang: tr.language,
+              // Catalogue names ("Urdu") → codes ("ur"), so each gets its own face.
+              lang: editionLangCode(tr.language) ?? tr.language,
               dir: tr.direction,
             }))
       }
@@ -284,13 +295,6 @@ function AyahViewImpl({
             playing,
             tf("rd.ayah.playA11y", { n: aya }),
           )}
-          {action(
-            "star",
-            memorized ? t("ayah.memorizing") : t("ayah.memorize"),
-            () => (memorized ? removeHifzCard(ref) : setHifzCard(ref, createCard(new Date()))),
-            memorized,
-            memorized ? tf("rd.ayah.stopMemA11y", { n: aya }) : tf("rd.ayah.memA11y", { n: aya }),
-          )}
           <SaveToCollection
             sura={sura}
             aya={aya}
@@ -304,23 +308,59 @@ function AyahViewImpl({
               )
             }
           />
+          {action(
+            "tafsir",
+            t("ayah.tafsir"),
+            () => setTafsirOpen((o) => !o),
+            tafsirOpen,
+            t("ayah.tafsir"),
+          )}
           <View>
-            {action(
-              "share",
-              t("ayah.share"),
-              () => void share(),
-              false,
-              tf("rd.ayah.shareA11y", { n: aya }),
-            )}
+            {action("more", t("ayah.more"), () => setMoreOpen(true), false, t("ayah.more"))}
             {copied && (
               <View style={styles.copiedBubble} pointerEvents="none">
                 <Text style={styles.copiedText}>{t("rd.copied")}</Text>
               </View>
             )}
           </View>
+          <Modal
+            visible={moreOpen}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setMoreOpen(false)}
+          >
+            <Pressable style={styles.scrim} onPress={() => setMoreOpen(false)}>
+              <View style={styles.sheet} accessibilityViewIsModal>
+                {(
+                  [
+                    ["share", t("ayah.share"), () => void share()],
+                    ["layers", t("ayah.copyVerse"), () => void copyVerse()],
+                    [
+                      "star",
+                      memorized ? t("ayah.stopMemorize") : t("ayah.memorize"),
+                      () =>
+                        memorized ? removeHifzCard(ref) : setHifzCard(ref, createCard(new Date())),
+                    ],
+                  ] as const
+                ).map(([icon, label, run]) => (
+                  <ListRow
+                    key={icon}
+                    divider
+                    script={script}
+                    leading={<Icon name={icon} size={20} color={colors.accent} sw={1.8} />}
+                    title={label}
+                    onPress={() => {
+                      setMoreOpen(false);
+                      run();
+                    }}
+                  />
+                ))}
+              </View>
+            </Pressable>
+          </Modal>
         </>
       }
-      footer={<AyahTafsir sura={sura} aya={aya} />}
+      footer={<AyahTafsir sura={sura} aya={aya} open={tafsirOpen} />}
     />
   );
 }
@@ -357,6 +397,15 @@ function makeStyles(c: Palette) {
       borderRadius: 6,
       paddingHorizontal: 8,
       paddingVertical: 4,
+    },
+    scrim: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+    sheet: {
+      backgroundColor: c.bgElev,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingTop: 8,
+      paddingBottom: 28,
+      paddingHorizontal: 8,
     },
     copiedText: { color: c.fg, fontSize: 13, fontFamily: FONT.medium },
     // Quran text: the Quran face, explicit line height (≥ 1.9× the size, set

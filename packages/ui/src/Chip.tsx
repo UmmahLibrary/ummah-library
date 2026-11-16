@@ -1,5 +1,5 @@
 "use client";
-import type { CSSProperties, MouseEventHandler, ReactNode } from "react";
+import type { CSSProperties, ElementType, MouseEventHandler, ReactNode } from "react";
 import { N } from "./tokens";
 import { Icon, type IconName } from "./Icon";
 import { iconSize, target, type Script } from "./scale";
@@ -11,6 +11,8 @@ export interface ChipProps {
   selected?: boolean;
   onPress?: MouseEventHandler<HTMLElement>;
   href?: string;
+  /** Web: the link component to render `href` with (e.g. Next's `Link`). */
+  linkAs?: ElementType;
   icon?: IconName;
   /** Accessible name when the visible text is not enough. */
   label?: string;
@@ -24,7 +26,17 @@ export interface ChipProps {
  * A pill for filters, language choices and jump links (ADR 0042). Selected
  * chips announce their state; every chip is at least 44px tall to tap.
  */
-export function Chip({ children, selected, onPress, href, icon, label, lang, style }: ChipProps) {
+export function Chip({
+  children,
+  selected,
+  onPress,
+  href,
+  linkAs,
+  icon,
+  label,
+  lang,
+  style,
+}: ChipProps) {
   const s: CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
@@ -48,12 +60,14 @@ export function Chip({ children, selected, onPress, href, icon, label, lang, sty
       {children}
     </>
   );
-  if (href)
+  if (href) {
+    const Link = linkAs ?? "a";
     return (
-      <a href={href} style={s} aria-label={label} lang={lang} onClick={onPress}>
+      <Link href={href} style={s} aria-label={label} lang={lang} onClick={onPress}>
         {body}
-      </a>
+      </Link>
     );
+  }
   return (
     <button
       type="button"

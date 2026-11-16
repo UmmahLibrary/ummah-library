@@ -25,11 +25,11 @@ import {
   writeKhatma,
   type ReadingState,
 } from "../reading-goals";
-import type { MoreStackParamList } from "../navigation/types";
+import type { ReadStackParamList } from "../navigation/types";
 import { useIntl } from "../i18n/I18nProvider";
 import type { MessageKey } from "../i18n/messages";
 
-type Props = NativeStackScreenProps<MoreStackParamList, "ReadingGoals">;
+type Props = NativeStackScreenProps<ReadStackParamList, "ReadingGoals">;
 
 const DAY_LABELS: MessageKey[] = [
   "mem.goals.dow0",

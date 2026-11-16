@@ -416,7 +416,7 @@
   font-variant-numeric: tabular-nums;
 }
 .goto-ar {
-  font-family: var(--font-amiri), "Amiri", serif;
+  font-family: var(--font-quran), var(--font-amiri), "Amiri Quran", "Amiri", serif;
   font-size: 20px;
   line-height: 1.9;
   color: var(--noor-gold);

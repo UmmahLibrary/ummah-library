@@ -226,3 +226,15 @@
 [dir="rtl"] .noor-mirror-rtl {
   transform: scaleX(-1);
 }
+
+@media (max-width: 699.98px) {
+  .noor-row-adaptive {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--noor-border-soft) !important;
+    border-radius: 0 !important;
+  }
+  .noor-rows-adaptive {
+    gap: 0 !important;
+  }
+}

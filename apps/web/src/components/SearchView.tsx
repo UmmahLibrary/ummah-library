@@ -559,7 +559,7 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
 
                   {r.ar && (
                     <div
-                      className="noor-ar"
+                      className={r.type === "ayah" ? "noor-quran" : "noor-ar"}
                       style={{
                         fontSize: r.type === "name" ? 26 : 21,
                         lineHeight: 1.9,

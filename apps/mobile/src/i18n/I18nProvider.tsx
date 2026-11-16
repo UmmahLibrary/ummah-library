@@ -14,9 +14,10 @@
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { type FmtVars, fmtMessage, formatUiNumber } from "@ummahlibrary/core";
-import { DEFAULT_LOCALE, type Locale, localeDir } from "./config";
+import { DEFAULT_LOCALE, type Locale, localeDir, localeScript } from "./config";
 import { readLocale, writeLocale } from "./locale-store";
 import { MESSAGES, type MessageKey } from "./messages";
+import { UiLocaleContext } from "./ui-locale";
 
 interface I18nContextValue {
   locale: Locale;
@@ -40,7 +41,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const t = (key: MessageKey): string => MESSAGES[locale]?.[key] ?? MESSAGES.en[key] ?? key;
 
-  return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
+  return (
+    <I18nContext.Provider value={{ locale, setLocale, t }}>
+      <UiLocaleContext.Provider value={locale}>{children}</UiLocaleContext.Provider>
+    </I18nContext.Provider>
+  );
 }
 
 export function useI18n(): I18nContextValue {
@@ -62,6 +67,8 @@ export function useIntl() {
     tf: (key: MessageKey, vars: FmtVars) => fmtMessage(t(key), vars, locale),
     num: (n: number) => formatUiNumber(n, locale),
     dir: localeDir(locale),
+    /** Script of the interface text, for the shared parts' `script` prop. */
+    script: localeScript(locale),
   };
 }
 

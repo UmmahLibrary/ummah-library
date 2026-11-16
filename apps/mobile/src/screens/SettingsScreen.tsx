@@ -43,7 +43,7 @@ export function SettingsScreen() {
   const { colors, themeKey, setTheme } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { locale, setLocale, t } = useI18n();
-  const { tf, num } = useIntl();
+  const { tf, num, script: intlScript } = useIntl();
   const { reciterId, setReciterId, tafsirId, tafsirs, setTafsirId, script, setScript } =
     useSettings();
 
@@ -126,7 +126,7 @@ export function SettingsScreen() {
 
   // Shared section heading (ADR 0042): icon tile, title and purpose, the
   // same anatomy as the web Settings sections.
-  const uiScript = localeDir(locale) === "rtl" ? "arabic" : "latin";
+  const uiScript = intlScript;
   const header = (icon: IconName, title: MessageKey, note?: MessageKey) => (
     <View style={styles.sectionHead}>
       <SectionHeader

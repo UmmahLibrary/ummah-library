@@ -1,6 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Hanken_Grotesk, IBM_Plex_Sans_Arabic, Amiri, Noto_Nastaliq_Urdu } from "next/font/google";
+import {
+  Hanken_Grotesk,
+  IBM_Plex_Sans_Arabic,
+  Amiri,
+  Amiri_Quran,
+  Noto_Nastaliq_Urdu,
+} from "next/font/google";
 import { ServiceWorkerRegister } from "../components/ServiceWorkerRegister";
 import { AdhkarReminderBanner } from "../components/AdhkarReminderBanner";
 import { PrayerReminderScheduler } from "../components/PrayerReminderScheduler";
@@ -37,6 +43,15 @@ const amiri = Amiri({
   subsets: ["arabic"],
   weight: ["400", "700"],
   variable: "--font-amiri",
+  display: "swap",
+});
+
+/* Quranic text (ADR 0042): Amiri Quran, drawn for the Quran's marks and the
+   same face the mobile app uses, so an āyah looks the same on both. */
+const amiriQuran = Amiri_Quran({
+  subsets: ["arabic"],
+  weight: "400",
+  variable: "--font-quran",
   display: "swap",
 });
 
@@ -123,7 +138,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       translate="no"
-      className={`${hanken.variable} ${ibmArabic.variable} ${amiri.variable} ${nastaliq.variable} notranslate`}
+      className={`${hanken.variable} ${ibmArabic.variable} ${amiri.variable} ${amiriQuran.variable} ${nastaliq.variable} notranslate`}
       suppressHydrationWarning
     >
       <head>

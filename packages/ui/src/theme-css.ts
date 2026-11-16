@@ -81,7 +81,21 @@ export function renderThemesCss(): string {
 
 /** Rules the shared web primitives rely on (ADR 0042): directional icons such
  *  as ListRow's chevron point the reading way in right-to-left pages. */
-const PRIMITIVE_RULES = `[dir="rtl"] .noor-mirror-rtl {\n  transform: scaleX(-1);\n}`;
+const PRIMITIVE_RULES = [
+  `[dir="rtl"] .noor-mirror-rtl {\n  transform: scaleX(-1);\n}`,
+  // Adaptive lists (ADR 0042): rows on phones, cards from 700px up.
+  `@media (max-width: 699.98px) {
+  .noor-row-adaptive {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--noor-border-soft) !important;
+    border-radius: 0 !important;
+  }
+  .noor-rows-adaptive {
+    gap: 0 !important;
+  }
+}`,
+].join("\n\n");
 
 /** Obsidian-only `:root` defaults (the design-sync entry + standalone fallback). */
 export function renderTokensCss(): string {

@@ -18,10 +18,10 @@ import { ignoreStale, localISODate } from "../utils";
 import { useIntl } from "../i18n/I18nProvider";
 import type { MessageKey } from "../i18n/messages";
 import { HIJRI_MONTH_KEY, fmtCountdownIn, fmtPrayerTimeIn, uiDigits } from "../prayer-intl";
-import type { ToolsStackParamList } from "../navigation/types";
+import type { PrayerStackParamList } from "../navigation/types";
 import { onSyncApplied } from "../lib/sync/sync-events";
 
-type Props = NativeStackScreenProps<ToolsStackParamList, "Ramadan">;
+type Props = NativeStackScreenProps<PrayerStackParamList, "Ramadan">;
 
 const WORSHIP: { key: string; label: MessageKey; icon: IconName }[] = [
   { key: "suhur", label: "pr.w.suhur", icon: "sun" },

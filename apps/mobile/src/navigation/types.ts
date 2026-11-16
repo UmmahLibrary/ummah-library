@@ -1,11 +1,16 @@
 import type { NavigatorScreenParams } from "@react-navigation/native";
 
-/** The Home tab's stack: the Today dashboard. */
+/**
+ * The five places, as on web (ADR 0041/0042): Today · Quran · Prayer · Learn ·
+ * More. Each tab is a stack; the groups match web's `lib/nav.ts`.
+ */
+
+/** Today: the dashboard. */
 export type HomeStackParamList = {
   Today: undefined;
 };
 
-/** The Read tab's stack: surah list → a surah, or a juzʾ. */
+/** Quran: surahs, reading, memorization, plans, goals, bookmarks, tafsir. */
 export type ReadStackParamList = {
   SurahList: undefined;
   /** `aya` opens at that āyah; `listen` starts the recitation there (Home's "Listen"). */
@@ -15,49 +20,53 @@ export type ReadStackParamList = {
   MushafPage: { page: number };
   Plans: undefined;
   PlanDetail: { id: string };
-};
-
-/** The Hifz tab's stack: memorization dashboard → review session. */
-export type HifzStackParamList = {
   HifzDashboard: undefined;
   HifzReview: undefined;
+  ReadingGoals: undefined;
+  Collections: undefined;
+  Tafsir: undefined;
 };
 
-/** The Tools tab's stack: tool list → individual tool screens. */
-export type ToolsStackParamList = {
-  ToolsList: undefined;
-  Tasbih: undefined;
-  Adhkar: undefined;
+/** Prayer: times, tracker, qibla, mosques, Ramadan. */
+export type PrayerStackParamList = {
+  PrayerHub: undefined;
   PrayerTimes: undefined;
   PrayerTracker: undefined;
   Qibla: undefined;
   Mosques: undefined;
+  Ramadan: undefined;
+};
+
+/** Learn: duʿās, adhkār, hadith, the beautiful names. */
+export type LearnStackParamList = {
+  LearnHub: undefined;
+  Duas: undefined;
+  Adhkar: undefined;
+  Hadith: undefined;
+  Names: undefined;
+};
+
+/** More: settings and tools. */
+export type MoreStackParamList = {
+  MoreHub: undefined;
+  Settings: undefined;
+  Tasbih: undefined;
   HijriCalendar: undefined;
   Zakat: undefined;
-  Ramadan: undefined;
-  Duas: undefined;
   Downloads: undefined;
-};
-
-/** The "More" tab's stack: a menu → secondary sections. */
-export type MoreStackParamList = {
-  MoreMenu: undefined;
   Profile: undefined;
-  Settings: undefined;
-  Names: undefined;
-  Hadith: undefined;
   Privacy: undefined;
-  Collections: undefined;
-  ReadingGoals: undefined;
-  Tafsir: undefined;
 };
 
-/** The bottom tabs — Home · Read · Tools · Memorize · More (Noor mobile design). */
+/** The memorization screens now live in the Quran tab, as on web. */
+export type HifzStackParamList = ReadStackParamList;
+
+/** The bottom tabs. Route names stay stable ("Home", "Read"); labels are Today and Quran. */
 export type RootTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList> | undefined;
   Read: NavigatorScreenParams<ReadStackParamList> | undefined;
-  Tools: NavigatorScreenParams<ToolsStackParamList> | undefined;
-  Memorize: NavigatorScreenParams<HifzStackParamList> | undefined;
+  Prayer: NavigatorScreenParams<PrayerStackParamList> | undefined;
+  Learn: NavigatorScreenParams<LearnStackParamList> | undefined;
   More: NavigatorScreenParams<MoreStackParamList> | undefined;
 };
 

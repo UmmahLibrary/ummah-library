@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "../Type";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from "../Type";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { JUZ_STARTS, TOTAL_JUZ, type Surah } from "@ummahlibrary/core";
-import { Icon, ListRow, NumberBadge, Seg } from "@ummahlibrary/ui";
+import { Chip, Icon, ListRow, NumberBadge, Seg } from "@ummahlibrary/ui";
+import { QURAN_LINKS, goTo } from "../navigation/routes";
 import { api, ApiError } from "../api";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
@@ -56,10 +67,12 @@ export function SurahListScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { t, tf, num, dir, locale } = useIntl();
+  const { t, tf, num, dir, locale, script } = useIntl();
   const rtl = dir === "rtl";
   // Shared rows lay out right to left (and use the Arabic face) in Arabic/Urdu.
-  const rowScript = rtl ? "arabic" : "latin";
+  const rowScript = script;
+  // Rows become cards from 700dp (adaptive ListRow); phone rows keep a small edge.
+  const wide = useWindowDimensions().width >= 700;
   const [surahs, setSurahs] = useState<Surah[] | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [query, setQuery] = useState("");
@@ -171,6 +184,23 @@ export function SurahListScreen({ navigation }: Props) {
                 <Icon name="search" size={22} color={colors.accent} sw={1.8} />
               </Pressable>
             </View>
+            {/* The rest of the Quran group, as on web (ADR 0042). */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.links}
+            >
+              {QURAN_LINKS.map((l) => (
+                <Chip
+                  key={l.screen}
+                  icon={l.icon}
+                  script={rowScript}
+                  onPress={() => goTo(navigation, l.screen)}
+                >
+                  {t(l.title)}
+                </Chip>
+              ))}
+            </ScrollView>
             <TextInput
               style={styles.search}
               placeholder={t("rd.list.searchPh")}
@@ -181,6 +211,7 @@ export function SurahListScreen({ navigation }: Props) {
             />
             <View style={styles.seg}>
               <Seg
+                script={script}
                 value={tab}
                 onChange={(v) => setTab(v as typeof tab)}
                 options={[
@@ -226,9 +257,9 @@ export function SurahListScreen({ navigation }: Props) {
                 : `${first.transliteration} – ${last?.transliteration ?? ""}`;
             return (
               <ListRow
-                divider
+                surface="adaptive"
                 truncate
-                style={styles.listRow}
+                style={wide ? undefined : styles.listRow}
                 script={rowScript}
                 onPress={() => navigation.navigate("JuzReader", { juz: item.juz })}
                 leading={
@@ -244,9 +275,9 @@ export function SurahListScreen({ navigation }: Props) {
           const s = item.surah;
           return (
             <ListRow
-              divider
+              surface="adaptive"
               truncate
-              style={styles.listRow}
+              style={wide ? undefined : styles.listRow}
               script={rowScript}
               onPress={() => open(s.number)}
               leading={<NumberBadge n={num(s.number)} />}
@@ -290,6 +321,7 @@ function makeStyles(c: Palette) {
       fontSize: 15,
       marginBottom: 14,
     },
+    links: { gap: 8, paddingBottom: 12 },
     // The shared Seg draws its own track; this only spaces it.
     seg: { marginBottom: 6 },
     sectionLabel: {

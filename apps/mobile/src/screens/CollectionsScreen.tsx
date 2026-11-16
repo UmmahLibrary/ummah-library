@@ -19,10 +19,10 @@ import { FONT } from "../fonts";
 import { DEFAULT_EDITION } from "../types";
 import { useTheme, type Palette } from "../theme";
 import { useLibrary, newCollectionId } from "../state/LibraryContext";
-import type { MoreStackParamList } from "../navigation/types";
+import type { ReadStackParamList } from "../navigation/types";
 import { useIntl } from "../i18n/I18nProvider";
 
-type Props = NativeStackScreenProps<MoreStackParamList, "Collections">;
+type Props = NativeStackScreenProps<ReadStackParamList, "Collections">;
 
 interface AyahText {
   ar: string;

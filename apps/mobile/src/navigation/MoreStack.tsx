@@ -1,24 +1,24 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
-import { useRtlHeaderOptions } from "./header-direction";
-import { FONT } from "../fonts";
+import { useChromeFont, useRtlHeaderOptions } from "./header-direction";
 import { useT } from "../i18n/I18nProvider";
-import { MoreMenuScreen } from "../screens/MoreMenuScreen";
-import { ProfileScreen } from "../screens/ProfileScreen";
+import { MoreHubScreen } from "../screens/HubScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
-import { NamesScreen } from "../screens/NamesScreen";
-import { HadithScreen } from "../screens/HadithScreen";
+import { TasbihScreen } from "../screens/TasbihScreen";
+import { HijriCalendarScreen } from "../screens/HijriCalendarScreen";
+import { ZakatScreen } from "../screens/ZakatScreen";
+import { DownloadsScreen } from "../screens/DownloadsScreen";
+import { ProfileScreen } from "../screens/ProfileScreen";
 import { PrivacyScreen } from "../screens/PrivacyScreen";
-import { CollectionsScreen } from "../screens/CollectionsScreen";
-import { ReadingGoalsScreen } from "../screens/ReadingGoalsScreen";
-import { TafsirScreen } from "../screens/TafsirScreen";
 import type { MoreStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<MoreStackParamList>();
 
+/** The More tab (ADR 0042): settings and tools, grouped as on web. */
 export function MoreStack() {
   const { colors } = useTheme();
   const rtlHeader = useRtlHeaderOptions();
+  const titleFont = useChromeFont();
   const t = useT();
   return (
     <Stack.Navigator
@@ -26,14 +26,31 @@ export function MoreStack() {
         ...rtlHeader,
         headerStyle: { backgroundColor: colors.bg },
         headerTintColor: colors.accent,
-        headerTitleStyle: { color: colors.fg, fontFamily: FONT.bold },
+        headerTitleStyle: { color: colors.fg, fontFamily: titleFont },
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
+      <Stack.Screen name="MoreHub" component={MoreHubScreen} options={{ headerShown: false }} />
       <Stack.Screen
-        name="MoreMenu"
-        component={MoreMenuScreen}
-        options={{ headerShown: false, title: t("tab.more") }}
+        name="Settings"
+        component={SettingsScreen}
+        options={{ title: t("common.settings") }}
+      />
+      <Stack.Screen
+        name="Tasbih"
+        component={TasbihScreen}
+        options={{ title: t("pr.tool.tasbih") }}
+      />
+      <Stack.Screen
+        name="HijriCalendar"
+        component={HijriCalendarScreen}
+        options={{ title: t("pr.tool.hijri") }}
+      />
+      <Stack.Screen name="Zakat" component={ZakatScreen} options={{ title: t("pr.nav.zakat") }} />
+      <Stack.Screen
+        name="Downloads"
+        component={DownloadsScreen}
+        options={{ title: t("pr.tool.downloads") }}
       />
       <Stack.Screen
         name="Profile"
@@ -41,39 +58,9 @@ export function MoreStack() {
         options={{ title: t("home.more.journey") }}
       />
       <Stack.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ title: t("common.settings") }}
-      />
-      <Stack.Screen
-        name="Names"
-        component={NamesScreen}
-        options={{ title: t("home.more.names") }}
-      />
-      <Stack.Screen
-        name="Hadith"
-        component={HadithScreen}
-        options={{ title: t("home.more.hadith") }}
-      />
-      <Stack.Screen
         name="Privacy"
         component={PrivacyScreen}
         options={{ title: t("home.more.privacy") }}
-      />
-      <Stack.Screen
-        name="Collections"
-        component={CollectionsScreen}
-        options={{ title: t("home.more.bookmarks") }}
-      />
-      <Stack.Screen
-        name="ReadingGoals"
-        component={ReadingGoalsScreen}
-        options={{ title: t("home.more.goals") }}
-      />
-      <Stack.Screen
-        name="Tafsir"
-        component={TafsirScreen}
-        options={{ title: t("home.more.tafsir") }}
       />
     </Stack.Navigator>
   );

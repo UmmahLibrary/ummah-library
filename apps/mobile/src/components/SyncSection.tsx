@@ -20,7 +20,7 @@ import { SectionHeader } from "@ummahlibrary/ui";
 export function SyncSection() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { t, tf, dir } = useIntl();
+  const { t, tf, script } = useIntl();
   const SERVER_DOWN = t("set.sync.serverDown");
   const outcomeMessage = (outcome: SyncOutcome | null): string => {
     if (!outcome) return t("set.sync.off");
@@ -100,11 +100,7 @@ export function SyncSection() {
     <View>
       {/* Shared section heading (ADR 0042), like the other Settings sections. */}
       <View style={styles.head}>
-        <SectionHeader
-          icon="repeat"
-          title={t("set.sync.title")}
-          script={dir === "rtl" ? "arabic" : "latin"}
-        />
+        <SectionHeader icon="repeat" title={t("set.sync.title")} script={script} />
       </View>
       <Text style={styles.intro}>{t("set.sync.intro")}</Text>
 

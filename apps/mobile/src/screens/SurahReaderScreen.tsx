@@ -699,6 +699,27 @@ export function SurahReaderScreen({ navigation, route }: Props) {
     </View>
   );
 
+  // Continuous Arabic for the Reading and Mushaf modes (Quran text unchanged).
+  const continuousArabic = (
+    <Text
+      style={[
+        styles.mushaf,
+        script === "indopak" && { fontFamily: FONT.arIndopak, direction: "ltr" },
+        { fontSize: 26 * scale, lineHeight: (script === "indopak" ? 66 : 52) * scale },
+      ]}
+    >
+      {ayahs.map((a) => {
+        const ipk = script === "indopak" ? indopakMap.get(a.aya) : null;
+        return (
+          <Text key={a.aya} onPress={() => playFrom(a.aya)}>
+            {ipk ? ipk.join(" ") : a.text}
+            <Text style={styles.endMarker}> ﴿{toArabicDigits(a.aya)}﴾ </Text>
+          </Text>
+        );
+      })}
+    </Text>
+  );
+
   return (
     <View style={styles.screen}>
       {readingMode === "translation" ? (
@@ -754,61 +775,53 @@ export function SurahReaderScreen({ navigation, route }: Props) {
         <ScrollView contentContainerStyle={styles.content}>
           {header}
 
-          {readingMode === "reading-tr" && (
-            <ReadingTranslationPicker
-              shortlist={shortlist}
-              activeId={activeTr}
-              onPick={setReadingTranslation}
-              onManage={() => setManagerOpen(true)}
-            />
-          )}
-
-          {showBismillah && readingMode === "reading" && (
+          {/* The web reader's modes (ADR 0042): Reading is the continuous
+              Arabic, then the continuous translation; Mushaf is the Arabic
+              alone on a framed page. */}
+          {showBismillah && (
             <Text style={[styles.basmala, { fontSize: 22 * scale, lineHeight: 44 * scale }]}>
               {BISMILLAH}
             </Text>
           )}
 
-          {readingMode === "reading" && (
-            <Text
-              style={[
-                styles.mushaf,
-                script === "indopak" && { fontFamily: FONT.arIndopak, direction: "ltr" },
-                { fontSize: 26 * scale, lineHeight: (script === "indopak" ? 66 : 52) * scale },
-              ]}
-            >
-              {ayahs.map((a) => {
-                const ipk = script === "indopak" ? indopakMap.get(a.aya) : null;
-                return (
-                  <Text key={a.aya} onPress={() => playFrom(a.aya)}>
-                    {ipk ? ipk.join(" ") : a.text}
-                    <Text style={styles.endMarker}> ﴿{toArabicDigits(a.aya)}﴾ </Text>
-                  </Text>
-                );
-              })}
-            </Text>
+          {readingMode === "reading-tr" ? (
+            <View style={styles.mushafPage}>
+              {continuousArabic}
+              <Text style={styles.mushafName}>﴿ {meta.name} ﴾</Text>
+            </View>
+          ) : (
+            continuousArabic
           )}
 
-          {readingMode === "reading-tr" && (
-            <Text
-              style={[
-                styles.flow,
-                textDir(metaById.get(activeTr)?.direction),
-                comfort.trEmphasis === "soft" && styles.flowSoft,
-                { fontSize: 17 * comfort.trScale, lineHeight: 30 * comfort.trScale },
-              ]}
-            >
-              {ayahs.map((a) => {
-                const text = trMap.get(activeTr)?.get(a.aya);
-                return text ? (
-                  <Text key={a.aya}>
-                    <Text style={styles.flowNum}>{num(a.aya)}. </Text>
-                    {text}
-                    {"  "}
-                  </Text>
-                ) : null;
-              })}
-            </Text>
+          {readingMode === "reading" && (
+            <>
+              <View style={styles.modeDivider} />
+              <ReadingTranslationPicker
+                shortlist={shortlist}
+                activeId={activeTr}
+                onPick={setReadingTranslation}
+                onManage={() => setManagerOpen(true)}
+              />
+              <Text
+                style={[
+                  styles.flow,
+                  textDir(metaById.get(activeTr)?.direction),
+                  comfort.trEmphasis === "soft" && styles.flowSoft,
+                  { fontSize: 17 * comfort.trScale, lineHeight: 30 * comfort.trScale },
+                ]}
+              >
+                {ayahs.map((a) => {
+                  const text = trMap.get(activeTr)?.get(a.aya);
+                  return text ? (
+                    <Text key={a.aya}>
+                      <Text style={styles.flowNum}>{num(a.aya)}. </Text>
+                      {text}
+                      {"  "}
+                    </Text>
+                  ) : null;
+                })}
+              </Text>
+            </>
           )}
 
           {footer}
@@ -992,6 +1005,25 @@ function makeStyles(c: Palette) {
     },
     endMarker: { color: c.accent, fontSize: 18, fontFamily: FONT.arQuran, direction: "ltr" },
     flow: { color: c.fg, marginTop: 4 },
+    modeDivider: { height: 1, backgroundColor: c.borderSoft, marginTop: 28, marginBottom: 20 },
+    mushafPage: {
+      marginTop: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 16,
+      backgroundColor: c.bgElev,
+    },
+    mushafName: {
+      marginTop: 12,
+      color: c.accent,
+      fontSize: 20,
+      textAlign: "center",
+      fontFamily: FONT.arQuran,
+      writingDirection: "rtl",
+      direction: "ltr",
+    },
     flowSoft: { color: c.muted },
     flowNum: { color: c.accent, fontWeight: "700" },
     nav: {

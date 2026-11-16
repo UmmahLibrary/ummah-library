@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { goTo } from "../navigation/routes";
 import { LTR_TEXT } from "../text-direction";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -147,15 +148,13 @@ export function HomeScreen({ navigation }: Props) {
   // Cross-tab navigation helpers.
   const toRead = (params?: { screen: string; params?: object }) =>
     navigation.getParent()?.navigate("Read", params as never);
-  const toTools = (screen: string) =>
-    navigation.getParent()?.navigate("Tools", { screen } as never);
+  const toTools = (screen: Parameters<typeof goTo>[1]) => goTo(navigation, screen);
   const openSurah = (surah: number, aya?: number, listen = false) =>
     toRead({
       screen: "SurahReader",
       params: { surah, ...(aya && aya > 1 ? { aya } : {}), ...(listen ? { listen: true } : {}) },
     });
-  const toGoals = () =>
-    navigation.getParent()?.navigate("More", { screen: "ReadingGoals" } as never);
+  const toGoals = () => goTo(navigation, "ReadingGoals");
 
   const quick: { icon: Parameters<typeof Icon>[0]["name"]; label: string; onPress: () => void }[] =
     [

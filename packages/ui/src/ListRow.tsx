@@ -6,7 +6,9 @@ import { iconSize, target, type Script } from "./scale";
 import { rad, sp } from "./scale-css";
 import { Text } from "./Text";
 
-export type ListRowSurface = "plain" | "card";
+/** `plain`: a row in a list. `card`: its own bordered card. `adaptive`: a row
+ *  on phones and a card from 700px up (the list-style rule, ADR 0042). */
+export type ListRowSurface = "plain" | "card" | "adaptive";
 
 export interface ListRowProps {
   title: ReactNode;
@@ -21,8 +23,6 @@ export interface ListRowProps {
   href?: string;
   /** Web: the link component to render `href` with (e.g. Next's `Link`). */
   linkAs?: ElementType;
-  /** `plain`: a row in a list, with an optional divider. `card`: its own
-   *  bordered card, for grids of rows on wide screens. */
   surface?: ListRowSurface;
   /** Line under a plain row, for rows stacked inside one card. */
   divider?: boolean;
@@ -56,7 +56,9 @@ export function ListRow({
   script,
   style,
 }: ListRowProps) {
-  const card = surface === "card";
+  // Adaptive rows are drawn as cards; below 700px the generated stylesheet
+  // turns them back into plain rows (.noor-row-adaptive).
+  const card = surface !== "plain";
   const s: CSSProperties = {
     display: "flex",
     alignItems: "center",
@@ -111,11 +113,13 @@ export function ListRow({
       )}
     </>
   );
+  const className = surface === "adaptive" ? "noor-row-adaptive" : undefined;
   if (href) {
     const Link = linkAs ?? "a";
     return (
       <Link
         href={href}
+        className={className}
         style={s}
         aria-label={label}
         aria-current={selected || undefined}
@@ -127,9 +131,20 @@ export function ListRow({
   }
   if (onPress)
     return (
-      <button type="button" style={s} aria-label={label} aria-pressed={selected} onClick={onPress}>
+      <button
+        type="button"
+        className={className}
+        style={s}
+        aria-label={label}
+        aria-pressed={selected}
+        onClick={onPress}
+      >
         {body}
       </button>
     );
-  return <div style={s}>{body}</div>;
+  return (
+    <div className={className} style={s}>
+      {body}
+    </div>
+  );
 }

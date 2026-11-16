@@ -29,6 +29,12 @@ export function isLocale(value: string): value is Locale {
   return LOCALES.some((l) => l.code === value);
 }
 
+/** The script of the interface text: Urdu is set in Nastaʿlīq, Arabic in
+ *  Naskh, everything else in Latin (ADR 0042). */
+export function localeScript(code: Locale): "latin" | "arabic" | "nastaliq" {
+  return code === "ur" ? "nastaliq" : code === "ar" ? "arabic" : "latin";
+}
+
 export function localeDir(code: Locale): "ltr" | "rtl" {
   return LOCALES.find((l) => l.code === code)?.dir ?? "ltr";
 }

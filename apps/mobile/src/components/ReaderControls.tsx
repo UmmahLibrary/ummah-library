@@ -14,7 +14,8 @@ import type { MessageKey } from "../i18n/messages";
 const MODES: { mode: ReadingMode; label: MessageKey }[] = [
   { mode: "translation", label: "rd.mode.verse" },
   { mode: "reading", label: "rd.mode.reading" },
-  { mode: "reading-tr", label: "rd.mode.translation" },
+  // Same three modes and names as the web reader (ADR 0042).
+  { mode: "reading-tr", label: "rd.reader.mushaf" },
 ];
 
 /**

@@ -1,6 +1,6 @@
 "use client";
 import { N } from "./tokens";
-import { segment } from "./scale";
+import { segment, type Script } from "./scale";
 import { rad, sp, text } from "./scale-css";
 
 type SegOption = string | { value: string; label: string };
@@ -10,6 +10,8 @@ interface SegProps {
   value: string;
   onChange: (value: string) => void;
   size?: "sm" | "md";
+  /** Native uses it to pick the labels' face; web takes the page's font. */
+  script?: Script;
 }
 
 export function Seg({ options, value, onChange, size = "md" }: SegProps) {

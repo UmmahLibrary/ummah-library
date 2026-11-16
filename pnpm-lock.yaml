@@ -122,6 +122,9 @@ importers:
       '@expo-google-fonts/ibm-plex-sans-arabic':
         specifier: ^0.4.2
         version: 0.4.2
+      '@expo-google-fonts/noto-nastaliq-urdu':
+        specifier: 0.4.2
+        version: 0.4.2
       '@expo/metro-runtime':
         specifier: ~6.1.2
         version: 6.1.2(expo@54.0.35)(react-dom@19.1.0(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.2.3)(react@19.1.0))(react@19.1.0)
@@ -1375,6 +1378,9 @@ packages:
 
   '@expo-google-fonts/ibm-plex-sans-arabic@0.4.2':
     resolution: {integrity: sha512-Cx24iSo/4pWBKHVf69tbVLDUiHWCSTHrhKPw/+SYWLDnyiX10WXh+amNWRSo9N3ruwd+qk9AQgDaIY1KO0u1Ig==}
+
+  '@expo-google-fonts/noto-nastaliq-urdu@0.4.2':
+    resolution: {integrity: sha512-ciSPIxljdusLFb66Ov5uP8vXNuP2/CPAxwHqF2lIHqQwxZ8YtYf1B9VGiK0hcwp4XqmX6/hog8QNgViWoY9KGg==}
 
   '@expo/cli@54.0.25':
     resolution: {integrity: sha512-WnUqIb8oMBhtwSfIqdCHCzcaDIpLNXItRVd5miuvWi4GO0SGo89PSsAkbVJ+LJgcaY+v5rbgMELJS9I/CqOulA==}
@@ -3771,6 +3777,7 @@ packages:
   eslint@9.39.4:
     resolution: {integrity: sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -7383,6 +7390,8 @@ snapshots:
   '@expo-google-fonts/hanken-grotesk@0.4.3': {}
 
   '@expo-google-fonts/ibm-plex-sans-arabic@0.4.2': {}
+
+  '@expo-google-fonts/noto-nastaliq-urdu@0.4.2': {}
 
   '@expo/cli@54.0.25(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.2.3)(react@19.1.0))(typescript@5.9.3)':
     dependencies:

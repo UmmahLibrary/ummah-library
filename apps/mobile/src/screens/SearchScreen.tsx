@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { goTo } from "../navigation/routes";
 import {
   ActivityIndicator,
   Pressable,
@@ -261,9 +262,9 @@ export function SearchScreen({ navigation }: Props) {
     if ((r.type === "ayah" || r.type === "surah") && r.surah) {
       navigation.navigate("SurahReader", { surah: r.surah });
     } else if (r.type === "name") {
-      navigation.getParent()?.navigate("Names");
+      goTo(navigation, "Names");
     } else if (r.type === "adhkar") {
-      navigation.getParent()?.navigate("Tools", { screen: "Adhkar" });
+      goTo(navigation, "Adhkar");
     }
   }
 

@@ -6,32 +6,35 @@ import type { MessageKey } from "../i18n/messages";
 import { FONT } from "../fonts";
 import { HomeStack } from "./HomeStack";
 import { ReadStack } from "./ReadStack";
-import { ToolsStack } from "./ToolsStack";
-import { HifzStack } from "./HifzStack";
+import { PrayerStack } from "./PrayerStack";
+import { LearnStack } from "./LearnStack";
 import { MoreStack } from "./MoreStack";
+import { useChromeFont } from "./header-direction";
 import type { RootTabParamList } from "./types";
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
+// The same five places, icons and names as the web tab bar (ADR 0042).
 const ICONS: Record<keyof RootTabParamList, IconName> = {
   Home: "home",
   Read: "book",
-  Tools: "grid",
-  Memorize: "star",
+  Prayer: "compass",
+  Learn: "layers",
   More: "menu",
 };
 
 const LABEL_KEYS: Record<keyof RootTabParamList, MessageKey> = {
-  Home: "tab.home",
-  Read: "tab.read",
-  Tools: "tab.tools",
-  Memorize: "tab.memorize",
+  Home: "tab.today",
+  Read: "tab.quran",
+  Prayer: "tab.prayer",
+  Learn: "tab.learn",
   More: "tab.more",
 };
 
 export function RootTabs() {
   const { colors } = useTheme();
   const t = useT();
+  const labelFont = useChromeFont("medium");
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -40,7 +43,12 @@ export function RootTabs() {
         tabBarStyle: { backgroundColor: colors.bg, borderTopColor: colors.border },
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontFamily: FONT.medium, fontSize: 11 },
+        // Nastaʿlīq needs a taller line or its tails clip (ADR 0042).
+        tabBarLabelStyle: {
+          fontFamily: labelFont,
+          fontSize: 11,
+          ...(labelFont === FONT.urMedium && { lineHeight: 22 }),
+        },
         tabBarIcon: ({ color }) => (
           <Icon name={ICONS[route.name]} size={22} color={color} sw={1.8} />
         ),
@@ -49,8 +57,8 @@ export function RootTabs() {
     >
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Read" component={ReadStack} />
-      <Tab.Screen name="Tools" component={ToolsStack} />
-      <Tab.Screen name="Memorize" component={HifzStack} />
+      <Tab.Screen name="Prayer" component={PrayerStack} />
+      <Tab.Screen name="Learn" component={LearnStack} />
       <Tab.Screen name="More" component={MoreStack} />
     </Tab.Navigator>
   );

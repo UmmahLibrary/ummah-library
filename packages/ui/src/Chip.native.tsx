@@ -11,6 +11,8 @@ export interface ChipProps {
   onPress?: () => void;
   /** Ignored on native — navigate in `onPress`. */
   href?: string;
+  /** Ignored on native. */
+  linkAs?: unknown;
   icon?: IconName;
   label?: string;
   lang?: string;

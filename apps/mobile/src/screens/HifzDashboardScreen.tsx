@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   TOTAL_AYAHS,
@@ -43,7 +42,6 @@ interface QueueItem extends SurahProgress {
 export function HifzDashboardScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const insets = useSafeAreaInsets();
   const intl = useIntl();
   const { t, tf, num } = intl;
   const { ready, allRecords, trackedCount, dueRecords, streak, reviewLog } = useLibrary();
@@ -129,7 +127,8 @@ export function HifzDashboardScreen({ navigation }: Props) {
   const [emptyBefore = "", emptyAfter = ""] = t("mem.hifz.emptyBody").split("{button}");
 
   return (
-    <ScrollView contentContainerStyle={[styles.screen, { paddingTop: insets.top + 18 }]}>
+    // Opened from the Quran tab under a header now (ADR 0042): no status-bar gap.
+    <ScrollView contentContainerStyle={[styles.screen, { paddingTop: 4 }]}>
       <Text style={styles.h1}>{t("mem.hifz.title")}</Text>
       <Text style={styles.subtitle}>{t("mem.hifz.subtitle")}</Text>
 

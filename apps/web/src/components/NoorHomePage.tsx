@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { JUZ_STARTS, TOTAL_JUZ } from "@ummahlibrary/core";
-import { N, Icon, ListRow, NumberBadge, Seg } from "@ummahlibrary/ui";
+import { N, Chip, Icon, ListRow, NumberBadge, Seg } from "@ummahlibrary/ui";
+import { NAV_DESTINATIONS } from "../lib/nav";
 import { HomeToday } from "./HomeToday";
 import { EasyHome } from "./EasyHome";
 import { useRouter } from "next/navigation";
@@ -11,6 +12,11 @@ import { HomeVerseOfDay } from "./HomeVerseOfDay";
 import { useSearch } from "./shell/SearchContext";
 import { useIntl } from "../i18n/I18nProvider";
 import type { MessageKey } from "../i18n/messages";
+
+/** The Quran group's places other than this index (web nav model). */
+const QURAN_ITEMS = (NAV_DESTINATIONS.find((d) => d.key === "quran")?.items ?? []).filter(
+  (i) => i.href !== "/quran",
+);
 
 interface Surah {
   number: number;
@@ -99,7 +105,7 @@ function SurahCard({ s }: { s: Surah }) {
     <ListRow
       href={`/surah/${s.number}`}
       linkAs={Link}
-      surface="card"
+      surface="adaptive"
       truncate
       leading={<NumberBadge n={num(s.number)} />}
       title={s.transliteration}
@@ -244,6 +250,7 @@ function JuzGroups({ surahs }: { surahs: Surah[] }) {
               </Link>
             ) : (
               <div
+                className="noor-rows-adaptive"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
@@ -287,6 +294,7 @@ function RevGroups({ surahs }: { surahs: Surah[] }) {
           <div key={g.place}>
             <GroupHeader kicker={num(list.length)} title={g.title} ar={g.ar} note={g.desc} />
             <div
+              className="noor-rows-adaptive"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
@@ -409,6 +417,27 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
           </h1>
         )}
 
+        {/* The rest of the Quran group, as on mobile (ADR 0042): on a phone
+            the sidebar is hidden, so these are how readers reach them. */}
+        {variant === "quran" && (
+          <nav
+            aria-label={t("nav.quran")}
+            style={{
+              display: "flex",
+              gap: 8,
+              overflowX: "auto",
+              scrollbarWidth: "none",
+              margin: "-6px 0 18px",
+            }}
+          >
+            {QURAN_ITEMS.map((item) => (
+              <Chip key={item.href} href={item.href} linkAs={Link} icon={item.icon}>
+                {t(item.label)}
+              </Chip>
+            ))}
+          </nav>
+        )}
+
         {/* Quick tools strip (Today screen only) */}
         {variant === "home" && appMode !== "easy" && (
           <div
@@ -513,6 +542,7 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
             {/* Surah index */}
             {tab === "surah" && (
               <div
+                className="noor-rows-adaptive"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",

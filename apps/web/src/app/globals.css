@@ -110,7 +110,7 @@ a {
 
 /* ---- Arabic ---- */
 .arabic {
-  font-family: var(--font-amiri), "Amiri", "Scheherazade New", serif;
+  font-family: var(--font-quran), var(--font-amiri), "Amiri Quran", "Amiri", serif;
   direction: rtl;
 }
 
@@ -365,7 +365,7 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-size: 0.85em;
 }
 .mushaf {
-  font-family: var(--font-amiri), serif;
+  font-family: var(--font-quran), var(--font-amiri), "Amiri Quran", "Amiri", serif;
   direction: rtl;
   text-align: justify;
   text-align-last: center;
@@ -1521,7 +1521,7 @@ body.peek-on.peek-hide-tr .ayah-tr {
   color: inherit;
 }
 .votd-ar {
-  font-family: var(--font-amiri), serif;
+  font-family: var(--font-quran), var(--font-amiri), "Amiri Quran", "Amiri", serif;
   font-size: 1.7rem;
   line-height: 2.2;
   margin: 0 0 0.5rem;
@@ -2368,6 +2368,13 @@ body {
 }
 .noor-scroll::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* Quranic text outside the reader (verse of the day, saved and searched
+   āyāt): the Quran face, never the interface Arabic face. */
+.noor-quran {
+  font-family: var(--font-quran), var(--font-amiri), "Amiri Quran", "Amiri", serif;
+  direction: rtl;
 }
 
 /* Arabic text */

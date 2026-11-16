@@ -23,6 +23,13 @@ export interface TextProps {
   style?: StyleProp<TextStyle>;
 }
 
+const ARABIC_SCRIPT = /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/;
+function hasArabicScript(node: ReactNode): boolean {
+  if (typeof node === "string") return ARABIC_SCRIPT.test(node);
+  if (Array.isArray(node)) return node.some(hasArabicScript);
+  return true; // elements: assume the interface script
+}
+
 const toneColor = (c: Palette, tone: TextTone) =>
   ({ fg: c.fg, muted: c.muted, faint: c.faint, accent: c.accent, ink: c.ink })[tone];
 
@@ -46,6 +53,9 @@ export function Text({
   style,
 }: TextProps) {
   const c = useNoorTheme();
+  // Nastaʿlīq has no Latin letters: a Latin string in an Urdu interface (a
+  // surah's transliterated name) keeps the Latin face and its layout.
+  const face: Script = script === "nastaliq" && !hasArabicScript(children) ? "latin" : script;
   const rtl = dir === "rtl" || (dir === undefined && script !== "latin");
   const textAlign: TextStyle["textAlign"] =
     align === "center"
@@ -62,9 +72,9 @@ export function Text({
       accessibilityRole={header ? "header" : undefined}
       numberOfLines={numberOfLines}
       style={[
-        nativeText(role, script),
+        nativeText(role, face),
         {
-          fontFamily: nativeFamily(type[role].weight, script),
+          fontFamily: nativeFamily(type[role].weight, face),
           color: toneColor(c, tone),
           direction: "ltr",
           writingDirection: rtl ? "rtl" : "ltr",

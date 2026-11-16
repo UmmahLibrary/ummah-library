@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import { Pressable, View, type StyleProp, type ViewStyle } from "react-native";
+import { Pressable, View, useWindowDimensions, type StyleProp, type ViewStyle } from "react-native";
 import { useNoorTheme } from "./NoorThemeContext";
 import { Icon } from "./Icon";
 import { iconSize, radius, space, target, type Script } from "./scale";
 import { Text } from "./Text";
 
-export type ListRowSurface = "plain" | "card";
+export type ListRowSurface = "plain" | "card" | "adaptive";
 
 export interface ListRowProps {
   title: ReactNode;
@@ -28,6 +28,9 @@ export interface ListRowProps {
   style?: StyleProp<ViewStyle>;
 }
 
+/** Width where adaptive rows become cards (matches the web breakpoint). */
+const ADAPTIVE_MIN = 700;
+
 /** One row of a list (ADR 0042), matching the web row. */
 export function ListRow({
   title,
@@ -44,7 +47,9 @@ export function ListRow({
   script,
   style,
 }: ListRowProps) {
-  const card = surface === "card";
+  const { width } = useWindowDimensions();
+  // Adaptive: a row on phones, a card from 700dp up (ADR 0042), as on web.
+  const card = surface === "card" || (surface === "adaptive" && width >= ADAPTIVE_MIN);
   const c = useNoorTheme();
   const rtl = script !== undefined && script !== "latin";
   const s: ViewStyle = {
@@ -61,8 +66,12 @@ export function ListRow({
           borderWidth: 1,
           borderColor: selected ? c.accent : c.border,
           borderRadius: radius.md,
+          ...(surface === "adaptive" && { marginBottom: space[3] }),
         }
-      : { borderBottomWidth: divider ? 1 : 0, borderBottomColor: c.borderSoft }),
+      : {
+          borderBottomWidth: divider || surface === "adaptive" ? 1 : 0,
+          borderBottomColor: c.borderSoft,
+        }),
   };
   const body = (
     <>

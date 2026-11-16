@@ -20,6 +20,7 @@
     "@expo-google-fonts/amiri-quran": "0.4.1",
     "@expo-google-fonts/hanken-grotesk": "^0.4.3",
     "@expo-google-fonts/ibm-plex-sans-arabic": "^0.4.2",
+    "@expo-google-fonts/noto-nastaliq-urdu": "0.4.2",
     "@expo/metro-runtime": "~6.1.2",
     "@noble/ciphers": "^2.2.0",
     "@noble/hashes": "^2.2.0",

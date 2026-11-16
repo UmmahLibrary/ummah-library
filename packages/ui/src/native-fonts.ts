@@ -18,11 +18,21 @@ export const NATIVE_FONT = {
   arMedium: "IBMPlexSansArabic_500Medium",
   arSemibold: "IBMPlexSansArabic_600SemiBold",
   arBold: "IBMPlexSansArabic_700Bold",
+  ur: "NotoNastaliqUrdu_400Regular",
+  urMedium: "NotoNastaliqUrdu_500Medium",
+  urSemibold: "NotoNastaliqUrdu_600SemiBold",
+  urBold: "NotoNastaliqUrdu_700Bold",
 } as const;
 
-/** The interface family for a weight in a script. Arabic-script text (Arabic
- *  and, for now, Urdu) uses IBM Plex Sans Arabic, which has no 800 weight. */
+/** The interface family for a weight in a script: Hanken Grotesk (Latin),
+ *  IBM Plex Sans Arabic (Arabic) or Noto Nastaliq Urdu (Urdu), as on web. */
 export function nativeFamily(weight: number, script: Script = "latin"): string {
+  if (script === "nastaliq") {
+    if (weight >= 700) return NATIVE_FONT.urBold;
+    if (weight >= 600) return NATIVE_FONT.urSemibold;
+    if (weight >= 500) return NATIVE_FONT.urMedium;
+    return NATIVE_FONT.ur;
+  }
   if (script !== "latin") {
     if (weight >= 700) return NATIVE_FONT.arBold;
     if (weight >= 600) return NATIVE_FONT.arSemibold;

@@ -175,6 +175,7 @@ describe("native font families", () => {
     expect(nativeFamily(400)).toBe(NATIVE_FONT.regular);
     expect(nativeFamily(800)).toBe(NATIVE_FONT.extrabold);
     expect(nativeFamily(800, "arabic")).toBe(NATIVE_FONT.arBold);
-    expect(nativeFamily(500, "nastaliq")).toBe(NATIVE_FONT.arMedium);
+    expect(nativeFamily(500, "nastaliq")).toBe(NATIVE_FONT.urMedium);
+    expect(nativeFamily(700, "nastaliq")).toBe(NATIVE_FONT.urBold);
   });
 });

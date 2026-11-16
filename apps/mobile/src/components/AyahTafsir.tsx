@@ -35,7 +35,17 @@ interface Loaded {
  * "parallel columns"). The selection persists (`ul.tafsirCompare`); an empty set
  * falls back to the single chosen tafsir — the original one-edition behaviour.
  */
-export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
+export function AyahTafsir({
+  sura,
+  aya,
+  open: openProp,
+}: {
+  sura: number;
+  aya: number;
+  /** Controlled by the āyah's Tafsir action (as on web); the inline toggle
+   *  line is then hidden. Uncontrolled when omitted. */
+  open?: boolean;
+}) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { tafsirId, tafsirCompare, tafsirs, setTafsirCompare } = useSettings();
@@ -51,7 +61,9 @@ export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
     return sel.length > 0 ? sel : tafsirId ? [tafsirId] : [];
   }, [tafsirCompare, tafsirId, allTafsirs]);
 
-  const [open, setOpen] = useState(false);
+  const [openState, setOpen] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp : openState;
   const [loaded, setLoaded] = useState<Record<string, Loaded>>({});
 
   useEffect(() => {
@@ -87,13 +99,20 @@ export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
       ? tf("rd.tafsir.comparing", { n: editions.length })
       : tf("rd.tafsir.named", { name: nameOf(editions[0] ?? "") });
 
+  if (controlled && !open) return null;
   return (
     <View style={styles.wrap}>
-      <Pressable onPress={() => setOpen((o) => !o)}>
-        <Text style={styles.toggle}>
-          {open ? "▾" : dir === "rtl" ? "◂" : "▸"} {header}
-        </Text>
-      </Pressable>
+      {controlled ? (
+        open ? (
+          <Text style={styles.toggle}>{header}</Text>
+        ) : null
+      ) : (
+        <Pressable onPress={() => setOpen((o) => !o)}>
+          <Text style={styles.toggle}>
+            {open ? "▾" : dir === "rtl" ? "◂" : "▸"} {header}
+          </Text>
+        </Pressable>
+      )}
       {open && (
         <View style={styles.body}>
           {allTafsirs.length > 1 && (

@@ -68,17 +68,20 @@ export function AyahBlock({
       {below}
       {translations.map((t) => {
         const rtl = t.dir === "rtl";
+        const urdu = t.lang === "ur";
+        const script = urdu ? "nastaliq" : rtl ? "arabic" : "latin";
         // Web reader sizes: 18 at 1.65; right-to-left translations larger with
-        // taller lines (the Naskh face needs less than web's Nastaʿlīq).
+        // taller lines, Urdu (Nastaʿlīq) the tallest.
         const size = (rtl ? 21 : 18) * translationScale;
+        const leading = urdu ? 2.2 : rtl ? 1.75 : 1.65;
         return (
           <Text
             key={t.key}
             style={{
               color: translationTone === "muted" ? c.muted : c.fg,
               fontSize: size,
-              lineHeight: Math.round(size * (rtl ? 1.75 : 1.65)),
-              fontFamily: nativeFamily(400, rtl ? "arabic" : "latin"),
+              lineHeight: Math.round(size * leading),
+              fontFamily: nativeFamily(400, script),
               // Pinned ltr so Android never mirrors it under the RTL root;
               // writingDirection and textAlign place it.
               direction: "ltr",
@@ -91,7 +94,7 @@ export function AyahBlock({
                 style={{
                   color: c.faint,
                   fontSize: 13,
-                  fontFamily: nativeFamily(500, rtl ? "arabic" : "latin"),
+                  fontFamily: nativeFamily(500, script),
                 }}
               >
                 {t.label}
