@@ -3,7 +3,11 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-native",
-    "moduleSuffixes": [".native", ""]
+    "moduleSuffixes": [".native", ""],
+    "paths": {
+      "react-native": ["./node_modules/react-native"],
+      "react-native-svg": ["./node_modules/react-native-svg"]
+    }
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules", ".expo"]
