@@ -165,7 +165,8 @@ describe("AyahBlock", () => {
         translations={[{ key: "en", text: "Indeed" }]}
       />,
     );
-    expect(styleOf(screen.getByText("Indeed"))).toContain("* 1.2");
+    // 1.125rem × 1.2 (jsdom simplifies the calc).
+    expect(styleOf(screen.getByText("Indeed"))).toContain("1.35rem");
   });
 });
 
