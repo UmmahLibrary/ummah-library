@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { N } from "@ummahlibrary/ui";
+import { N, Stepper, target } from "@ummahlibrary/ui";
 import { SCALE_EVENT, readScale, writeScale } from "../lib/reader-prefs";
 import {
   AR_SCALE_MAX,
@@ -26,6 +26,7 @@ const round = (n: number) => Math.round(n * 10) / 10;
 export function SizeControls({ sample = true }: { sample?: boolean }) {
   const [ar, setAr] = useState(1);
   const [tr, setTr] = useState(1);
+  const [size, setSize] = useState<number>(target.default);
   const { t, tf } = useIntl();
 
   useEffect(() => {
@@ -34,7 +35,12 @@ export function SizeControls({ sample = true }: { sample?: boolean }) {
         setAr(s);
         document.documentElement.style.setProperty("--reading-scale", String(s));
       });
-    const syncTr = () => setTr(readComfort().trScale);
+    const syncTr = () => {
+      const c = readComfort();
+      setTr(c.trScale);
+      // Same touch-target rule as mobile: easy mode and large buttons grow.
+      setSize(c.mode === "easy" ? target.easy : c.largeButtons ? target.large : target.default);
+    };
     syncAr();
     syncTr();
     window.addEventListener(SCALE_EVENT, syncAr);
@@ -57,58 +63,30 @@ export function SizeControls({ sample = true }: { sample?: boolean }) {
     writeComfort({ trScale: next });
   }
 
-  const label = { fontFamily: N.ui, fontSize: 14.5, fontWeight: 700, color: N.fg } as const;
-
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={{ display: "grid", gap: 6 }}>
-        <span style={label} id="size-ar-label">
-          {t("size.arabic")}
-        </span>
-        <div className="nf-stepper" role="group" aria-labelledby="size-ar-label">
-          <button
-            type="button"
-            onClick={() => stepAr(-0.1)}
-            disabled={ar <= AR_SCALE_MIN}
-            aria-label={t("size.smallerArabic")}
-          >
-            −
-          </button>
-          <output aria-live="polite">{tf("dock.percent", { n: Math.round(ar * 100) })}</output>
-          <button
-            type="button"
-            onClick={() => stepAr(0.1)}
-            disabled={ar >= AR_SCALE_MAX}
-            aria-label={t("size.biggerArabic")}
-          >
-            +
-          </button>
-        </div>
-      </div>
-      <div style={{ display: "grid", gap: 6 }}>
-        <span style={label} id="size-tr-label">
-          {t("size.translation")}
-        </span>
-        <div className="nf-stepper" role="group" aria-labelledby="size-tr-label">
-          <button
-            type="button"
-            onClick={() => stepTr(-0.1)}
-            disabled={tr <= TR_SCALE_MIN}
-            aria-label={t("size.smallerTranslation")}
-          >
-            −
-          </button>
-          <output aria-live="polite">{tf("dock.percent", { n: Math.round(tr * 100) })}</output>
-          <button
-            type="button"
-            onClick={() => stepTr(0.1)}
-            disabled={tr >= TR_SCALE_MAX}
-            aria-label={t("size.biggerTranslation")}
-          >
-            +
-          </button>
-        </div>
-      </div>
+      <Stepper
+        label={t("size.arabic")}
+        value={tf("dock.percent", { n: Math.round(ar * 100) })}
+        onDecrease={() => stepAr(-0.1)}
+        onIncrease={() => stepAr(0.1)}
+        canDecrease={ar > AR_SCALE_MIN}
+        canIncrease={ar < AR_SCALE_MAX}
+        decreaseLabel={t("size.smallerArabic")}
+        increaseLabel={t("size.biggerArabic")}
+        size={size}
+      />
+      <Stepper
+        label={t("size.translation")}
+        value={tf("dock.percent", { n: Math.round(tr * 100) })}
+        onDecrease={() => stepTr(-0.1)}
+        onIncrease={() => stepTr(0.1)}
+        canDecrease={tr > TR_SCALE_MIN}
+        canIncrease={tr < TR_SCALE_MAX}
+        decreaseLabel={t("size.smallerTranslation")}
+        increaseLabel={t("size.biggerTranslation")}
+        size={size}
+      />
       {sample && (
         <div
           style={{

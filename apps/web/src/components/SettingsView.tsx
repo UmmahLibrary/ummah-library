@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { type ReactNode, useEffect, useState } from "react";
 import type { QuranScript } from "@ummahlibrary/core";
-import { N, Icon } from "@ummahlibrary/ui";
+import { N, Icon, SectionHeader } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
 import { useT } from "../i18n/I18nProvider";
 import type { MessageKey } from "../i18n/messages";
@@ -125,22 +125,7 @@ export function SettingsView() {
           aria-labelledby={`${s.id}-title`}
           className="nf-card settings-section"
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span className="settings-ic" aria-hidden="true">
-              <Icon name={s.icon} size={20} />
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <h2
-                id={`${s.id}-title`}
-                style={{ margin: 0, fontFamily: N.ui, fontSize: 18, fontWeight: 800, color: N.fg }}
-              >
-                {t(s.title)}
-              </h2>
-              <p style={{ margin: "2px 0 0", fontFamily: N.ui, fontSize: 14, color: N.muted }}>
-                {t(s.note)}
-              </p>
-            </div>
-          </div>
+          <SectionHeader id={`${s.id}-title`} icon={s.icon} title={t(s.title)} note={t(s.note)} />
           {s.body}
         </section>
       ))}

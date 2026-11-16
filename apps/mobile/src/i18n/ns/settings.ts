@@ -6,6 +6,13 @@
  */
 export const en = {
   // Settings sections
+  "set.note.language": "Choose the language you read best.",
+  "set.note.appearance": "Colours for day and night.",
+  "set.note.comfort": "Make reading comfortable for your eyes.",
+  "set.note.script": "How the Arabic of the Quran is written.",
+  "set.note.reciter": "The voice you hear when you press play.",
+  "set.note.tafsir": "The commentary shown under each āyah.",
+  "set.note.data": "Everything stays on this device unless you choose to sync or back up.",
   "set.appearance": "Appearance",
   "set.theme": "Theme",
   "set.theme.obsidian": "Obsidian",
@@ -115,6 +122,13 @@ export const en = {
 export type Key = keyof typeof en;
 
 export const ar: Record<Key, string> = {
+  "set.note.language": "اختر اللغة التي تقرأ بها أفضل.",
+  "set.note.appearance": "ألوان للنهار والليل.",
+  "set.note.comfort": "اجعل القراءة مريحة لعينيك.",
+  "set.note.script": "طريقة كتابة نص القرآن.",
+  "set.note.reciter": "الصوت الذي تسمعه عند التشغيل.",
+  "set.note.tafsir": "التفسير الذي يظهر تحت كل آية.",
+  "set.note.data": "يبقى كل شيء على هذا الجهاز ما لم تختر المزامنة أو النسخ الاحتياطي.",
   "set.appearance": "المظهر",
   "set.theme": "السمة",
   "set.theme.obsidian": "أوبسيديان",
@@ -218,6 +232,13 @@ export const ar: Record<Key, string> = {
 };
 
 export const ur: Record<Key, string> = {
+  "set.note.language": "وہ زبان منتخب کریں جو آپ بہتر پڑھتے ہیں۔",
+  "set.note.appearance": "دن اور رات کے لیے رنگ۔",
+  "set.note.comfort": "پڑھنے کو آنکھوں کے لیے آرام دہ بنائیں۔",
+  "set.note.script": "قرآن کی عربی کس رسم الخط میں لکھی جائے۔",
+  "set.note.reciter": "وہ آواز جو چلانے پر سنائی دیتی ہے۔",
+  "set.note.tafsir": "ہر آیت کے نیچے دکھائی جانے والی تفسیر۔",
+  "set.note.data": "سب کچھ اسی ڈیوائس پر رہتا ہے، جب تک آپ سنک یا بیک اپ نہ کریں۔",
   "set.appearance": "ظاہری شکل",
   "set.theme": "تھیم",
   "set.theme.obsidian": "اوبسیڈین",
@@ -325,6 +346,13 @@ export const ur: Record<Key, string> = {
 };
 
 export const id: Record<Key, string> = {
+  "set.note.language": "Pilih bahasa yang paling mudah Anda baca.",
+  "set.note.appearance": "Warna untuk siang dan malam.",
+  "set.note.comfort": "Buat bacaan nyaman di mata.",
+  "set.note.script": "Cara penulisan teks Arab Al-Qur'an.",
+  "set.note.reciter": "Suara yang Anda dengar saat memutar.",
+  "set.note.tafsir": "Tafsir yang tampil di bawah setiap ayat.",
+  "set.note.data": "Semua tetap di perangkat ini kecuali Anda memilih sinkronisasi atau cadangan.",
   "set.appearance": "Tampilan",
   "set.theme": "Tema",
   "set.theme.obsidian": "Obsidian",
@@ -434,6 +462,13 @@ export const id: Record<Key, string> = {
 };
 
 export const bn: Record<Key, string> = {
+  "set.note.language": "যে ভাষা সবচেয়ে ভালো পড়েন তা বেছে নিন।",
+  "set.note.appearance": "দিন ও রাতের রং।",
+  "set.note.comfort": "চোখের জন্য পড়া আরামদায়ক করুন।",
+  "set.note.script": "কুরআনের আরবি কোন লিপিতে লেখা হবে।",
+  "set.note.reciter": "চালু করলে যে কণ্ঠ শুনবেন।",
+  "set.note.tafsir": "প্রতিটি আয়াতের নিচে দেখানো তাফসির।",
+  "set.note.data": "আপনি সিঙ্ক বা ব্যাকআপ না করলে সবকিছু এই ডিভাইসেই থাকে।",
   "set.appearance": "চেহারা",
   "set.theme": "থিম",
   "set.theme.obsidian": "অবসিডিয়ান",
@@ -539,6 +574,13 @@ export const bn: Record<Key, string> = {
 };
 
 export const tr: Record<Key, string> = {
+  "set.note.language": "En iyi okuduğunuz dili seçin.",
+  "set.note.appearance": "Gündüz ve gece için renkler.",
+  "set.note.comfort": "Okumayı gözleriniz için rahat hale getirin.",
+  "set.note.script": "Kur'an'ın Arapça yazı biçimi.",
+  "set.note.reciter": "Oynat'a bastığınızda duyduğunuz ses.",
+  "set.note.tafsir": "Her ayetin altında gösterilen tefsir.",
+  "set.note.data": "Eşitleme veya yedekleme seçmedikçe her şey bu cihazda kalır.",
   "set.appearance": "Görünüm",
   "set.theme": "Tema",
   "set.theme.obsidian": "Obsidyen",

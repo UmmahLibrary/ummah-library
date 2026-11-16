@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "../Type";
 import { useTheme, type Palette } from "../theme";
@@ -48,7 +49,7 @@ function Switch({
  * transliteration, larger buttons, reduced motion, Easy mode, and gentle habit
  * tracking ("days in a row" off by default; pause any time).
  */
-export function ComfortSettings() {
+export function ComfortSettings({ header }: { header?: ReactNode } = {}) {
   const { colors } = useTheme();
   const { comfort, setComfort, transliteration, setTransliteration } = useSettings();
   const t = useT();
@@ -67,7 +68,8 @@ export function ComfortSettings() {
   );
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, header ? { marginTop: 20 } : null]}>
+      {header}
       <SizeControls />
       <View style={styles.group}>
         {sw(t("set.c.softTr"), t("set.c.softTrNote"), comfort.trEmphasis === "soft", (v) =>

@@ -15,11 +15,12 @@ import { generateRecoveryPhrase } from "../lib/sync/noble-cipher";
 import { disableSync, enableSync, isSyncEnabled, readSyncSecret } from "../lib/sync/sync-settings";
 import { resetSyncRuntime, syncIfEnabled } from "../lib/sync/sync-runtime";
 import { useIntl } from "../i18n/I18nProvider";
+import { SectionHeader } from "@ummahlibrary/ui";
 
 export function SyncSection() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { t, tf } = useIntl();
+  const { t, tf, dir } = useIntl();
   const SERVER_DOWN = t("set.sync.serverDown");
   const outcomeMessage = (outcome: SyncOutcome | null): string => {
     if (!outcome) return t("set.sync.off");
@@ -97,9 +98,14 @@ export function SyncSection() {
 
   return (
     <View>
-      <Text style={styles.sectionLabel} accessibilityRole="header">
-        {t("set.sync.title")}
-      </Text>
+      {/* Shared section heading (ADR 0042), like the other Settings sections. */}
+      <View style={styles.head}>
+        <SectionHeader
+          icon="repeat"
+          title={t("set.sync.title")}
+          script={dir === "rtl" ? "arabic" : "latin"}
+        />
+      </View>
       <Text style={styles.intro}>{t("set.sync.intro")}</Text>
 
       {enabled ? (
@@ -188,15 +194,7 @@ export function SyncSection() {
 
 function makeStyles(c: Palette) {
   return StyleSheet.create({
-    sectionLabel: {
-      color: c.faint,
-      fontSize: 12,
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
-      fontFamily: FONT.bold,
-      marginTop: 22,
-      marginBottom: 11,
-    },
+    head: { marginTop: 20, marginBottom: 12 },
     intro: { color: c.muted, fontSize: 14, lineHeight: 21, marginBottom: 14 },
     card: {
       backgroundColor: c.bgElev,

@@ -12,7 +12,7 @@ import {
 } from "../Type";
 import Constants from "expo-constants";
 import type { MergeStrategy, QuranScript } from "@ummahlibrary/core";
-import { noorThemes } from "@ummahlibrary/ui";
+import { noorThemes, SectionHeader, type IconName } from "@ummahlibrary/ui";
 import { useTheme, THEMES, type Palette } from "../theme";
 import { useI18n, useIntl } from "../i18n/I18nProvider";
 import type { MessageKey } from "../i18n/messages";
@@ -124,29 +124,28 @@ export function SettingsScreen() {
     ]);
   }
 
+  // Shared section heading (ADR 0042): icon tile, title and purpose, the
+  // same anatomy as the web Settings sections.
+  const uiScript = localeDir(locale) === "rtl" ? "arabic" : "latin";
+  const header = (icon: IconName, title: MessageKey, note?: MessageKey) => (
+    <View style={styles.sectionHead}>
+      <SectionHeader
+        icon={icon}
+        title={t(title)}
+        note={note ? t(note) : undefined}
+        script={uiScript}
+      />
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <Text
-          style={[
-            styles.sectionLabel,
-            // sectionLabel hardcodes fontFamily: FONT.bold, which — unlike
-            // every other Text in this app — bypasses Type.tsx's dynamic,
-            // writingDirection-based font selection entirely (it wins the
-            // style-array merge). writingDirection alone flips the reading
-            // order but silently keeps rendering Urdu script in the Latin
-            // typeface; override the family too when the locale is RTL.
-            localeDir(locale) === "rtl"
-              ? { writingDirection: "rtl", fontFamily: FONT.arBold }
-              : null,
-          ]}
-        >
-          {t("common.language")}
-        </Text>
-        <View style={styles.card}>
+        <View style={[styles.card, styles.firstSection]}>
+          {header("globe", "common.language", "set.note.language")}
           <Text style={[styles.pickSub, { writingDirection: localeDir(locale) }]}>
             {t("settings.languageHint")}
           </Text>
@@ -168,8 +167,8 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>{t("set.appearance")}</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, styles.section]}>
+          {header("sun", "set.appearance", "set.note.appearance")}
           <Text style={styles.cardLabel}>{t("set.theme")}</Text>
           <View style={styles.swatchRow}>
             {THEMES.map((th) => {
@@ -197,13 +196,10 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionLabel} accessibilityRole="header">
-          {t("set.comfort")}
-        </Text>
-        <ComfortSettings />
+        <ComfortSettings header={header("type", "set.comfort", "set.note.comfort")} />
 
-        <Text style={styles.sectionLabel}>{t("set.script")}</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, styles.section]}>
+          {header("book", "set.script", "set.note.script")}
           {SCRIPTS.map((s, i) => {
             const on = s.id === script;
             return (
@@ -224,8 +220,8 @@ export function SettingsScreen() {
           })}
         </View>
 
-        <Text style={styles.sectionLabel}>{t("set.reciter")}</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, styles.section]}>
+          {header("headphones", "set.reciter", "set.note.reciter")}
           {RECITERS.map((r, i) => {
             const on = r.id === reciterId;
             return (
@@ -246,8 +242,8 @@ export function SettingsScreen() {
           })}
         </View>
 
-        <Text style={styles.sectionLabel}>{t("set.tafsir")}</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, styles.section]}>
+          {header("tafsir", "set.tafsir", "set.note.tafsir")}
           {tafsirs.length === 0 ? (
             <Text style={styles.muted}>{t("set.tafsirLoading")}</Text>
           ) : (
@@ -272,8 +268,8 @@ export function SettingsScreen() {
           )}
         </View>
 
-        <Text style={styles.sectionLabel}>{t("set.data")}</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, styles.section]}>
+          {header("download", "set.data", "set.note.data")}
           <View style={[styles.row, styles.rowLast]}>
             <View style={{ flex: 1 }}>
               <Text style={styles.rowLabel}>{t("set.cached")}</Text>
@@ -363,7 +359,7 @@ export function SettingsScreen() {
 
         <SyncSection />
 
-        <Text style={styles.sectionLabel}>{t("set.about")}</Text>
+        <View style={styles.section}>{header("heart", "set.about")}</View>
         <Text style={styles.muted}>{tf("set.aboutText", { reciter: RECITER.name })}</Text>
         <Text style={styles.version}>Ummah Library · v{Constants.expoConfig?.version ?? "—"}</Text>
       </ScrollView>
@@ -375,15 +371,9 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.bg },
     content: { padding: 18, paddingBottom: 32 },
-    sectionLabel: {
-      color: c.faint,
-      fontSize: 12,
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
-      fontFamily: FONT.bold,
-      marginTop: 22,
-      marginBottom: 11,
-    },
+    firstSection: { marginTop: 4 },
+    section: { marginTop: 20 },
+    sectionHead: { marginBottom: 14 },
     card: {
       backgroundColor: c.bgElev,
       borderWidth: 1,

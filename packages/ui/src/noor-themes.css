@@ -222,3 +222,7 @@
   --noor-ink: #fff0f4;
   color-scheme: light;
 }
+
+[dir="rtl"] .noor-mirror-rtl {
+  transform: scaleX(-1);
+}

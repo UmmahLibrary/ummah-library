@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { LTR_TEXT } from "../text-direction";
-import { Pressable, StyleSheet, Text, View } from "../Type";
+import { StyleSheet, Text, View } from "../Type";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
@@ -13,6 +13,7 @@ import {
   targetSize,
 } from "../comfort";
 import { SAMPLE_FATIHA_2 } from "../quran-samples";
+import { Stepper } from "@ummahlibrary/ui";
 import { useIntl } from "../i18n/I18nProvider";
 
 /**
@@ -24,67 +25,41 @@ import { useIntl } from "../i18n/I18nProvider";
 export function SizeControls({ sample = true }: { sample?: boolean }) {
   const { colors } = useTheme();
   const { scale, setScale, comfort, setComfort } = useSettings();
-  const { t, tf } = useIntl();
+  const { t, tf, dir } = useIntl();
+  const script = dir === "rtl" ? "arabic" : "latin";
   const min = targetSize(comfort);
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const stepper = (
-    title: string,
-    value: number,
-    lo: number,
-    hi: number,
-    onStep: (delta: number) => void,
-    smallerLabel: string,
-    biggerLabel: string,
-  ) => (
-    <View style={styles.row}>
-      <Text style={styles.label}>{title}</Text>
-      <View style={styles.stepper}>
-        <Pressable
-          style={[styles.step, { minHeight: min, minWidth: min }, value <= lo && styles.disabled]}
-          disabled={value <= lo}
-          onPress={() => onStep(-0.1)}
-          accessibilityRole="button"
-          accessibilityLabel={smallerLabel}
-        >
-          <Text style={styles.stepText}>−</Text>
-        </Pressable>
-        <Text style={styles.value} accessibilityLiveRegion="polite">
-          {tf("set.s.percent", { n: Math.round(value * 100) })}
-        </Text>
-        <Pressable
-          style={[styles.step, { minHeight: min, minWidth: min }, value >= hi && styles.disabled]}
-          disabled={value >= hi}
-          onPress={() => onStep(0.1)}
-          accessibilityRole="button"
-          accessibilityLabel={biggerLabel}
-        >
-          <Text style={styles.stepText}>+</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-
   return (
     <View style={styles.wrap}>
-      {stepper(
-        t("set.s.arabic"),
-        scale,
-        AR_SCALE_MIN,
-        AR_SCALE_MAX,
-        (d) => setScale((prev) => stepScale(prev, d, AR_SCALE_MIN, AR_SCALE_MAX)),
-        t("set.s.arSmaller"),
-        t("set.s.arBigger"),
-      )}
-      {stepper(
-        t("set.s.translation"),
-        comfort.trScale,
-        TR_SCALE_MIN,
-        TR_SCALE_MAX,
-        (d) => setComfort({ trScale: stepScale(comfort.trScale, d, TR_SCALE_MIN, TR_SCALE_MAX) }),
-        t("set.s.trSmaller"),
-        t("set.s.trBigger"),
-      )}
+      <Stepper
+        label={t("set.s.arabic")}
+        value={tf("set.s.percent", { n: Math.round(scale * 100) })}
+        onDecrease={() => setScale((prev) => stepScale(prev, -0.1, AR_SCALE_MIN, AR_SCALE_MAX))}
+        onIncrease={() => setScale((prev) => stepScale(prev, 0.1, AR_SCALE_MIN, AR_SCALE_MAX))}
+        canDecrease={scale > AR_SCALE_MIN}
+        canIncrease={scale < AR_SCALE_MAX}
+        decreaseLabel={t("set.s.arSmaller")}
+        increaseLabel={t("set.s.arBigger")}
+        size={min}
+        script={script}
+      />
+      <Stepper
+        label={t("set.s.translation")}
+        value={tf("set.s.percent", { n: Math.round(comfort.trScale * 100) })}
+        onDecrease={() =>
+          setComfort({ trScale: stepScale(comfort.trScale, -0.1, TR_SCALE_MIN, TR_SCALE_MAX) })
+        }
+        onIncrease={() =>
+          setComfort({ trScale: stepScale(comfort.trScale, 0.1, TR_SCALE_MIN, TR_SCALE_MAX) })
+        }
+        canDecrease={comfort.trScale > TR_SCALE_MIN}
+        canIncrease={comfort.trScale < TR_SCALE_MAX}
+        decreaseLabel={t("set.s.trSmaller")}
+        increaseLabel={t("set.s.trBigger")}
+        size={min}
+        script={script}
+      />
       {sample && (
         <View style={styles.sample}>
           {/* Quran text: the Quran font, explicit line height ≥ 1.9× and
@@ -118,26 +93,6 @@ export function SizeControls({ sample = true }: { sample?: boolean }) {
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     wrap: { gap: 12 },
-    row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-    label: { color: c.fg, fontSize: 15.5, fontFamily: FONT.semibold, flexShrink: 1 },
-    stepper: { flexDirection: "row", alignItems: "center", gap: 10 },
-    step: {
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: c.border,
-      backgroundColor: c.bg,
-    },
-    stepText: { color: c.fg, fontSize: 22, fontFamily: FONT.bold },
-    value: {
-      color: c.fg,
-      fontSize: 15,
-      minWidth: 52,
-      textAlign: "center",
-      fontFamily: FONT.semibold,
-    },
-    disabled: { opacity: 0.4 },
     sample: {
       borderWidth: 1,
       borderColor: c.border,

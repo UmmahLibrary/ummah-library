@@ -41,4 +41,20 @@ config.resolver.blockList = [
   new RegExp(`${escapeRegExp(path.join(workspaceRoot, "apps", "web", "out"))}.*`),
 ];
 
+// 4. One React for the whole bundle. Workspace packages (packages/ui) keep
+//    their own React as a dev dependency for their tests; if Metro resolved
+//    `react` from there, shared components that use hooks would run against a
+//    second React and crash ("Cannot read property 'useContext' of null").
+//    Resolve these singletons as if every import came from the app itself.
+const SINGLETONS = ["react", "react-native", "react-native-svg"];
+const appOrigin = path.join(projectRoot, "package.json");
+const upstreamResolve = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  const singleton = SINGLETONS.some((m) => moduleName === m || moduleName.startsWith(`${m}/`));
+  const ctx = singleton ? { ...context, originModulePath: appOrigin } : context;
+  return upstreamResolve
+    ? upstreamResolve(ctx, moduleName, platform)
+    : context.resolveRequest(ctx, moduleName, platform);
+};
+
 module.exports = config;

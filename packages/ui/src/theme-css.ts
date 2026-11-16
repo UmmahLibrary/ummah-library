@@ -75,8 +75,13 @@ export function renderThemesCss(): string {
       key === "ivory" ? '[data-theme="ivory"],\n[data-theme="light"]' : `[data-theme="${key}"]`;
     blocks.push(`${selector} {\n${paletteBlock(noorThemes[key])}\n}`);
   }
+  blocks.push(PRIMITIVE_RULES);
   return `${HEADER}\n\n${blocks.join("\n\n")}\n`;
 }
+
+/** Rules the shared web primitives rely on (ADR 0042): directional icons such
+ *  as ListRow's chevron point the reading way in right-to-left pages. */
+const PRIMITIVE_RULES = `[dir="rtl"] .noor-mirror-rtl {\n  transform: scaleX(-1);\n}`;
 
 /** Obsidian-only `:root` defaults (the design-sync entry + standalone fallback). */
 export function renderTokensCss(): string {

@@ -47,3 +47,13 @@ export { Khatam } from "./Khatam";
 export { Logo } from "./Logo";
 export { Btn } from "./Btn";
 export { Seg } from "./Seg";
+
+// Shared parts (ADR 0042): same anatomy, sizes and names on web and mobile.
+export { Text, type TextProps, type TextTone } from "./Text";
+export { Card, type CardProps, type CardTone } from "./Card";
+export { SectionHeader, type SectionHeaderProps } from "./SectionHeader";
+export { ListRow, type ListRowProps } from "./ListRow";
+export { Chip, type ChipProps } from "./Chip";
+export { Stepper, type StepperProps } from "./Stepper";
+export { AyahBlock, type AyahBlockProps, type AyahTranslation } from "./AyahBlock";
+export { NATIVE_FONT, nativeFamily } from "./native-fonts";

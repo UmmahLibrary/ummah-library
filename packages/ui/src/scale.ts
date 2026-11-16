@@ -62,7 +62,7 @@ export interface TypeStyle {
 export const type = {
   display: { size: 30, lineHeight: 36, weight: 800 },
   title: { size: 24, lineHeight: 30, weight: 800 },
-  heading: { size: 18, lineHeight: 24, weight: 700 },
+  heading: { size: 18, lineHeight: 24, weight: 800 },
   subheading: { size: 16, lineHeight: 22, weight: 700 },
   body: { size: 15, lineHeight: 23, weight: 400 },
   bodySm: { size: 14, lineHeight: 21, weight: 400 },

@@ -75,3 +75,36 @@ never the font, the text or its marks.
   - one Quran face (Amiri on web, Amiri Quran on mobile);
   - Nastaʿlīq for the Urdu interface on mobile;
   - card or row lists.
+
+## Addendum (2026-11-16): shared parts
+
+Phase 2 added the parts both apps draw most, each as `Foo.tsx` +
+`Foo.native.tsx` on these tokens:
+
+- **Text:** the type ramp with tone and script.
+- **Card**
+- **SectionHeader:** icon tile, title and purpose line. Replaces mobile's
+  uppercase labels.
+- **ListRow**
+- **Chip**
+- **Stepper**
+- **AyahBlock:** number, actions, Quranic text, translations. Layout only; the
+  reader passes the Quranic text in already rendered.
+
+Native parts take font family names from `native-fonts.ts`; a mobile test keeps
+them equal to the families the app loads.
+
+Two supporting changes:
+
+- **Native files are type-checked.** `apps/mobile/tsconfig.json` sets
+  `moduleSuffixes: [".native", ""]`, so `pnpm typecheck` checks
+  `packages/ui/*.native.tsx` the way Metro resolves them. Before this, nothing
+  checked them until bundling.
+- **One React in the mobile bundle.** `metro.config.js` resolves `react`,
+  `react-native` and `react-native-svg` from the app for every file.
+  `packages/ui` keeps its own React as a test dev dependency. Metro picked that
+  copy for files inside the package, so the first shared part with a hook
+  crashed on Android ("Cannot read property 'useContext' of null").
+
+First uses: Settings section headings and the text-size steppers, on web and
+mobile.
