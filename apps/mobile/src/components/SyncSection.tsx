@@ -12,26 +12,22 @@ import type { SyncOutcome } from "@ummahlibrary/core";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { generateRecoveryPhrase } from "../lib/sync/noble-cipher";
-import {
-  disableSync,
-  enableSync,
-  isSyncEnabled,
-  readSyncSecret,
-} from "../lib/sync/sync-settings";
+import { disableSync, enableSync, isSyncEnabled, readSyncSecret } from "../lib/sync/sync-settings";
 import { resetSyncRuntime, syncIfEnabled } from "../lib/sync/sync-runtime";
-
-const SERVER_DOWN = "Couldn’t reach the sync server — your data is safe on this device.";
-
-function outcomeMessage(outcome: SyncOutcome | null): string {
-  if (!outcome) return "Sync is off.";
-  if (outcome.applied === 0) return "Up to date — nothing new from your other devices.";
-  const n = outcome.applied;
-  return `Synced — ${n} item${n === 1 ? "" : "s"} brought in from your other devices.`;
-}
+import { useIntl } from "../i18n/I18nProvider";
+import { SectionHeader } from "@ummahlibrary/ui";
 
 export function SyncSection() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, script } = useIntl();
+  const SERVER_DOWN = t("set.sync.serverDown");
+  const outcomeMessage = (outcome: SyncOutcome | null): string => {
+    if (!outcome) return t("set.sync.off");
+    if (outcome.applied === 0) return t("set.sync.upToDate");
+    const n = outcome.applied;
+    return tf(n === 1 ? "set.sync.syncedOne" : "set.sync.syncedOther", { n });
+  };
 
   const [enabled, setEnabled] = useState(false);
   const [secret, setSecret] = useState<string | null>(null);
@@ -79,25 +75,21 @@ export function SyncSection() {
   }
 
   function turnOff() {
-    Alert.alert(
-      "Turn off sync?",
-      "This removes the recovery phrase from this device. Your local data stays untouched.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Turn off",
-          style: "destructive",
-          onPress: () => {
-            void disableSync();
-            resetSyncRuntime();
-            setEnabled(false);
-            setSecret(null);
-            setReveal(false);
-            setStatus(null);
-          },
+    Alert.alert(t("set.sync.turnOffTitle"), t("set.sync.turnOffMsg"), [
+      { text: t("set.cancel"), style: "cancel" },
+      {
+        text: t("set.sync.turnOffBtn"),
+        style: "destructive",
+        onPress: () => {
+          void disableSync();
+          resetSyncRuntime();
+          setEnabled(false);
+          setSecret(null);
+          setReveal(false);
+          setStatus(null);
         },
-      ],
-    );
+      },
+    ]);
   }
 
   function copyPhrase() {
@@ -106,18 +98,15 @@ export function SyncSection() {
 
   return (
     <View>
-      <Text style={styles.sectionLabel}>Sync across devices</Text>
-      <Text style={styles.intro}>
-        Keep your bookmarks, reading position and preferences in step across your devices —
-        end-to-end encrypted, with no account. Off by default; the app works fully offline without
-        it.
-      </Text>
+      {/* Shared section heading (ADR 0042), like the other Settings sections. */}
+      <View style={styles.head}>
+        <SectionHeader icon="repeat" title={t("set.sync.title")} script={script} />
+      </View>
+      <Text style={styles.intro}>{t("set.sync.intro")}</Text>
 
       {enabled ? (
         <View style={styles.card}>
-          <Text style={styles.cardBody}>
-            Your data syncs across every device that uses your recovery phrase.
-          </Text>
+          <Text style={styles.cardBody}>{t("set.sync.enabledBody")}</Text>
           <View style={styles.btnRow}>
             <Pressable
               style={[styles.primaryBtn, busy && styles.dim]}
@@ -127,11 +116,13 @@ export function SyncSection() {
               {busy ? (
                 <ActivityIndicator color={colors.ink} size="small" />
               ) : (
-                <Text style={styles.primaryText}>Sync now</Text>
+                <Text style={styles.primaryText}>{t("set.sync.now")}</Text>
               )}
             </Pressable>
             <Pressable style={styles.secondaryBtn} onPress={() => setReveal((r) => !r)}>
-              <Text style={styles.secondaryText}>{reveal ? "Hide phrase" : "Show phrase"}</Text>
+              <Text style={styles.secondaryText}>
+                {reveal ? t("set.sync.hidePhrase") : t("set.sync.showPhrase")}
+              </Text>
             </Pressable>
           </View>
           {reveal && secret && (
@@ -140,24 +131,22 @@ export function SyncSection() {
                 {secret}
               </Text>
               <Pressable style={styles.copyBtn} onPress={copyPhrase}>
-                <Text style={styles.secondaryText}>Copy</Text>
+                <Text style={styles.secondaryText}>{t("set.sync.copy")}</Text>
               </Pressable>
             </View>
           )}
           <Pressable style={styles.dangerBtn} onPress={turnOff}>
-            <Text style={styles.dangerText}>Turn off sync</Text>
+            <Text style={styles.dangerText}>{t("set.sync.turnOff")}</Text>
           </Pressable>
         </View>
       ) : (
         <View style={styles.card}>
-          <Text style={styles.cardBody}>
-            Generate a recovery phrase on your first device, then enter the same phrase on each
-            other device to link them. It’s the only key — pick it once and keep it.
-          </Text>
+          <Text style={styles.cardBody}>{t("set.sync.setupBody")}</Text>
           <TextInput
             value={phrase}
             onChangeText={setPhrase}
-            placeholder="Enter or generate a phrase"
+            placeholder={t("set.sync.placeholder")}
+            accessibilityLabel={t("set.sync.placeholder")}
             placeholderTextColor={colors.faint}
             autoCapitalize="characters"
             autoCorrect={false}
@@ -165,8 +154,11 @@ export function SyncSection() {
             style={styles.input}
           />
           <View style={styles.btnRow}>
-            <Pressable style={styles.secondaryBtn} onPress={() => void generateRecoveryPhrase().then(setPhrase)}>
-              <Text style={styles.secondaryText}>Generate</Text>
+            <Pressable
+              style={styles.secondaryBtn}
+              onPress={() => void generateRecoveryPhrase().then(setPhrase)}
+            >
+              <Text style={styles.secondaryText}>{t("set.sync.generate")}</Text>
             </Pressable>
             <Pressable
               style={[styles.primaryBtn, (!phrase.trim() || busy) && styles.dim]}
@@ -176,7 +168,7 @@ export function SyncSection() {
               {busy ? (
                 <ActivityIndicator color={colors.ink} size="small" />
               ) : (
-                <Text style={styles.primaryText}>Turn on sync</Text>
+                <Text style={styles.primaryText}>{t("set.sync.turnOn")}</Text>
               )}
             </Pressable>
           </View>
@@ -190,11 +182,7 @@ export function SyncSection() {
       )}
 
       <View style={styles.warnCard}>
-        <Text style={styles.warnText}>
-          ⚠ Your recovery phrase is the only key to your synced data. We can’t see it or recover it
-          — if you lose it, the data can’t be decrypted. Keep a copy somewhere safe (your exported
-          backup file is a good place).
-        </Text>
+        <Text style={styles.warnText}>{t("set.sync.warn")}</Text>
       </View>
     </View>
   );
@@ -202,15 +190,7 @@ export function SyncSection() {
 
 function makeStyles(c: Palette) {
   return StyleSheet.create({
-    sectionLabel: {
-      color: c.faint,
-      fontSize: 12,
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
-      fontFamily: FONT.bold,
-      marginTop: 22,
-      marginBottom: 11,
-    },
+    head: { marginTop: 20, marginBottom: 12 },
     intro: { color: c.muted, fontSize: 14, lineHeight: 21, marginBottom: 14 },
     card: {
       backgroundColor: c.bgElev,
@@ -285,7 +265,13 @@ function makeStyles(c: Palette) {
       paddingHorizontal: 14,
     },
     status: { fontSize: 13.5, lineHeight: 20, marginTop: 12, fontFamily: FONT.medium },
-    warnCard: { marginTop: 14, borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 14 },
+    warnCard: {
+      marginTop: 14,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 12,
+      padding: 14,
+    },
     warnText: { color: c.faint, fontSize: 12.5, lineHeight: 19 },
   });
 }

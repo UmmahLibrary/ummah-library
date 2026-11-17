@@ -3,6 +3,8 @@
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import { Icon, N } from "@ummahlibrary/ui";
+import { useT } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
 import {
   THEMES,
   applyTheme,
@@ -12,9 +14,9 @@ import {
   type ThemeMode,
 } from "../lib/themes";
 
-const GROUPS: { mode: ThemeMode; label: string; icon: "moon" | "sun" }[] = [
-  { mode: "dark", label: "Dark", icon: "moon" },
-  { mode: "light", label: "Light", icon: "sun" },
+const GROUPS: { mode: ThemeMode; label: "theme.dark" | "theme.light"; icon: "moon" | "sun" }[] = [
+  { mode: "dark", label: "theme.dark", icon: "moon" },
+  { mode: "light", label: "theme.light", icon: "sun" },
 ];
 
 /**
@@ -32,6 +34,7 @@ function ThemeSwatch({
   active: boolean;
   onClick: () => void;
 }) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -128,7 +131,7 @@ function ThemeSwatch({
               textOverflow: "ellipsis",
             }}
           >
-            {theme.desc}
+            {t(`theme.desc.${theme.key}` as MessageKey)}
           </div>
         </div>
         {active && (
@@ -152,6 +155,7 @@ function ThemeSwatch({
 }
 
 export function ThemePicker() {
+  const t = useT();
   const [active, setActive] = useState<ThemeKey>("obsidian");
 
   useEffect(() => {
@@ -173,7 +177,7 @@ export function ThemePicker() {
   };
 
   return (
-    <section aria-label="Theme" style={{ marginBottom: 22 }}>
+    <section aria-label={t("theme.heading")} style={{ marginBottom: 22 }}>
       <div
         style={{
           display: "flex",
@@ -182,8 +186,8 @@ export function ThemePicker() {
           marginBottom: 10,
         }}
       >
-        <h2 style={sectionLabel}>Theme</h2>
-        <span style={{ fontSize: 12, color: N.faint }}>Applies across the whole app</span>
+        <h2 style={sectionLabel}>{t("theme.heading")}</h2>
+        <span style={{ fontSize: 12, color: N.faint }}>{t("theme.applies")}</span>
       </div>
       {GROUPS.map((group) => (
         <div key={group.mode} style={{ marginBottom: 16 }}>
@@ -200,7 +204,7 @@ export function ThemePicker() {
               marginBottom: 10,
             }}
           >
-            <Icon name={group.icon} size={14} /> {group.label}
+            <Icon name={group.icon} size={14} /> {t(group.label)}
           </div>
           <div
             style={{

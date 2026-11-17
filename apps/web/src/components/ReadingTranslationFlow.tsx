@@ -6,6 +6,7 @@ import {
   DEFAULT_EDITIONS,
   EDITIONS_KEY,
   READING_TR_KEY,
+  editionLangCode,
   readEditions,
   readReadingTranslation,
 } from "../lib/editions";
@@ -20,18 +21,30 @@ import { fetchCatalogue, fetchEditionSurah } from "../lib/catalogue";
 export function ReadingTranslationFlow({ surah, ayat }: { surah: number; ayat: number[] }) {
   const [lines, setLines] = useState<{ aya: number; text: string }[]>([]);
   const [dir, setDir] = useState<"ltr" | "rtl">("ltr");
+  const [lang, setLang] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let active = true;
     async function load() {
       const ids = await readEditions();
-      const activeId = resolveActiveTranslation(ids, await readReadingTranslation(), DEFAULT_EDITIONS[0]!);
+      // "None — Arabic only": no translation flow at all.
+      if (ids.length === 0) {
+        if (active) setLines([]);
+        return;
+      }
+      const activeId = resolveActiveTranslation(
+        ids,
+        await readReadingTranslation(),
+        DEFAULT_EDITIONS[0]!,
+      );
       const [catalogue, textByAya] = await Promise.all([
         fetchCatalogue(),
         fetchEditionSurah(activeId, surah),
       ]);
       if (!active) return;
-      setDir(catalogue.find((e) => e.id === activeId)?.direction ?? "ltr");
+      const meta = catalogue.find((e) => e.id === activeId);
+      setDir(meta?.direction ?? "ltr");
+      setLang(editionLangCode(meta?.language));
       setLines(
         ayat
           .map((aya) => ({ aya, text: textByAya.get(aya) }))
@@ -50,7 +63,7 @@ export function ReadingTranslationFlow({ surah, ayat }: { surah: number; ayat: n
   }, [surah, ayat]);
 
   return (
-    <div className="read-flow" dir={dir}>
+    <div className="read-flow" dir={dir} lang={lang}>
       {lines.map((l) => (
         <span key={l.aya} className="read-tr">
           <sup className="read-num">{l.aya}</sup> {l.text}{" "}

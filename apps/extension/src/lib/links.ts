@@ -10,6 +10,14 @@ export function surahUrl(sura: number, aya?: number): string {
   return aya ? `${BASE_URL}/surah/${sura}#${ayahKey({ sura, aya })}` : `${BASE_URL}/surah/${sura}`;
 }
 
+/**
+ * Deep link into the web Listen page, starting at an āyah via the `#aya` hash
+ * (e.g. `/listen/36#12`).
+ */
+export function listenUrl(sura: number, aya?: number): string {
+  return aya ? `${BASE_URL}/listen/${sura}#${aya}` : `${BASE_URL}/listen/${sura}`;
+}
+
 export const homeUrl = (): string => BASE_URL;
 export const settingsUrl = (): string => `${BASE_URL}/settings`;
 

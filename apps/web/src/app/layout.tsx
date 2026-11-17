@@ -1,6 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Hanken_Grotesk, IBM_Plex_Sans_Arabic, Amiri } from "next/font/google";
+import {
+  Hanken_Grotesk,
+  IBM_Plex_Sans_Arabic,
+  Amiri,
+  Amiri_Quran,
+  Noto_Nastaliq_Urdu,
+} from "next/font/google";
 import { ServiceWorkerRegister } from "../components/ServiceWorkerRegister";
 import { AdhkarReminderBanner } from "../components/AdhkarReminderBanner";
 import { PrayerReminderScheduler } from "../components/PrayerReminderScheduler";
@@ -10,10 +16,12 @@ import { AppShellWrapper } from "../components/AppShellWrapper";
 import { I18nProvider } from "../i18n/I18nProvider";
 import { Onboarding } from "../components/Onboarding";
 import { SITE_URL } from "../lib/site";
+import { COMFORT_BOOTSTRAP } from "../lib/comfort-store";
 // Noor palette (all themes) — generated from packages/ui/src/themes.ts (ADR 0027).
 // Imported before globals.css so the web's next/font overrides for --noor-ui/--noor-ar win.
 import "@ummahlibrary/ui/noor-themes.css";
 import "./globals.css";
+import "./noor-everyone.css";
 
 /* ── Noor fonts ── */
 const hanken = Hanken_Grotesk({
@@ -36,6 +44,25 @@ const amiri = Amiri({
   weight: ["400", "700"],
   variable: "--font-amiri",
   display: "swap",
+});
+
+/* Quranic text (ADR 0042): Amiri Quran, drawn for the Quran's marks and the
+   same face the mobile app uses, so an āyah looks the same on both. */
+const amiriQuran = Amiri_Quran({
+  subsets: ["arabic"],
+  weight: "400",
+  variable: "--font-quran",
+  display: "swap",
+});
+
+/* Urdu interface text (html[lang="ur"], noor-everyone.css) and Urdu translations.
+   Not preloaded: only fetched when an Urdu reader actually needs it. */
+const nastaliq = Noto_Nastaliq_Urdu({
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  variable: "--font-nastaliq",
+  display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -82,14 +109,18 @@ export const viewport: Viewport = {
   themeColor: "#0A0B0F",
 };
 
-/* Apply saved theme before first paint to avoid flash. Defaults to Obsidian (Noor
-   is dark-first); maps the legacy "dark"/"light" values and sets data-mode. */
+/* Apply saved theme before first paint to avoid flash. With no saved choice it
+   follows the device's light/dark setting (Ivory or Obsidian) until the reader
+   picks a theme; maps the legacy "dark"/"light" values and sets data-mode.
+   Comfort settings (translation size, larger buttons, Easy/Kids mode) apply here
+   too, so large-text readers never see a flash of small text. */
 const themeScript = `(function(){try{
   var d=document.documentElement;
   var legacy={dark:"obsidian",light:"ivory"};
   var light={ivory:1,sepia:1,mint:1,rose:1};
   var dark={obsidian:1,midnight:1,emerald:1,ocean:1};
-  var raw=localStorage.getItem("ul.theme")||"obsidian";
+  var osLight=false;try{osLight=window.matchMedia("(prefers-color-scheme: light)").matches;}catch(e){}
+  var raw=localStorage.getItem("ul.theme")||(osLight?"ivory":"obsidian");
   var t=(dark[raw]||light[raw])?raw:(legacy[raw]||"obsidian");
   d.dataset.theme=t;
   d.dataset.mode=light[t]?"light":"dark";
@@ -99,6 +130,7 @@ const themeScript = `(function(){try{
   /* Noor: set CSS var font families after font vars are available */
   d.style.setProperty("--noor-ui","'Hanken Grotesk', system-ui, sans-serif");
   d.style.setProperty("--noor-ar","'IBM Plex Sans Arabic', serif");
+  ${COMFORT_BOOTSTRAP}
 }catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -106,7 +138,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       translate="no"
-      className={`${hanken.variable} ${ibmArabic.variable} ${amiri.variable} notranslate`}
+      className={`${hanken.variable} ${ibmArabic.variable} ${amiri.variable} ${amiriQuran.variable} ${nastaliq.variable} notranslate`}
       suppressHydrationWarning
     >
       <head>
@@ -119,12 +151,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* Pre-hydration cover for the first-run overlay (shown only when
             data-onboard="1"); the Onboarding component draws the slides on top. */}
         <div id="ul-onboard-veil" aria-hidden="true" />
-        <Onboarding />
         <AdhkarReminderBanner />
         <PrayerReminderScheduler />
         <PlanReminderScheduler />
         <SyncBootstrap />
         <I18nProvider>
+          <Onboarding />
           <AppShellWrapper>{children}</AppShellWrapper>
         </I18nProvider>
         <ServiceWorkerRegister />

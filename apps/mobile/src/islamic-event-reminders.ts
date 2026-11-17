@@ -13,7 +13,10 @@ export async function readEventReminders(): Promise<Record<string, boolean>> {
 }
 
 /** Toggle one event's reminder, persisting the updated map (off = removed) and re-syncing. */
-export async function setEventReminder(eventId: string, on: boolean): Promise<Record<string, boolean>> {
+export async function setEventReminder(
+  eventId: string,
+  on: boolean,
+): Promise<Record<string, boolean>> {
   const prefs = { ...(await readEventReminders()) };
   if (on) prefs[eventId] = true;
   else delete prefs[eventId];

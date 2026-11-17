@@ -33,4 +33,11 @@ describe("Seg", () => {
     await userEvent.click(screen.getByRole("button", { name: "b" }));
     expect(onChange).toHaveBeenCalledWith("b");
   });
+
+  it("takes its size from the shared scale tokens (ADR 0042)", () => {
+    render(<Seg options={["A", "B"]} value="A" onChange={() => {}} />);
+    const style = screen.getByRole("button", { name: "A" }).getAttribute("style") ?? "";
+    expect(style).toContain("var(--noor-text-body-sm)");
+    expect(style).toContain("var(--noor-space-2) var(--noor-space-3-5)");
+  });
 });

@@ -16,6 +16,7 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import type { ReadStackParamList } from "../navigation/types";
+import { useIntl } from "../i18n/I18nProvider";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "MushafPage">;
 
@@ -34,12 +35,15 @@ export function MushafPageScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { scale } = useSettings();
+  const { t, tf, dir } = useIntl();
+  const rtl = dir === "rtl";
+  const title = isValidPageNumber(n) ? tf("rd.pageN", { n }) : t("rd.page");
   const [sections, setSections] = useState<Section[] | null>(null);
   const [error, setError] = useState(false);
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: isValidPageNumber(n) ? `Page ${n}` : "Page" });
-  }, [navigation, n]);
+    navigation.setOptions({ title });
+  }, [navigation, title]);
 
   useEffect(() => {
     if (!isValidPageNumber(n)) {
@@ -83,7 +87,7 @@ export function MushafPageScreen({ navigation, route }: Props) {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>Couldn’t load page {n}.</Text>
+        <Text style={styles.error}>{tf("rd.mushaf.loadErr", { n })}</Text>
       </View>
     );
   }
@@ -101,7 +105,7 @@ export function MushafPageScreen({ navigation, route }: Props) {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageMeta}>
-          Juzʾ {juz} · Page {n} / {TOTAL_PAGES_MADANI}
+          {tf("rd.juzN", { n: juz })} · {tf("rd.mushaf.pageOf", { n, total: TOTAL_PAGES_MADANI })}
         </Text>
         <View style={styles.page}>
           {sections.map((s, i) => (
@@ -126,14 +130,18 @@ export function MushafPageScreen({ navigation, route }: Props) {
         <View style={styles.nav}>
           {n > 1 ? (
             <Pressable onPress={() => navigation.replace("MushafPage", { page: n - 1 })}>
-              <Text style={styles.navText}>← Previous</Text>
+              <Text style={styles.navText}>
+                {rtl ? "→" : "←"} {t("rd.previous")}
+              </Text>
             </Pressable>
           ) : (
             <View />
           )}
           {n < TOTAL_PAGES_MADANI ? (
             <Pressable onPress={() => navigation.replace("MushafPage", { page: n + 1 })}>
-              <Text style={styles.navText}>Next →</Text>
+              <Text style={styles.navText}>
+                {t("rd.next")} {rtl ? "←" : "→"}
+              </Text>
             </Pressable>
           ) : (
             <View />
@@ -181,9 +189,16 @@ function makeStyles(c: Palette) {
       writingDirection: "rtl",
       marginVertical: 10,
       fontFamily: FONT.arQuran,
+      direction: "ltr",
     },
-    mushaf: { color: c.fg, textAlign: "justify", writingDirection: "rtl", fontFamily: FONT.arQuran },
-    endMarker: { color: c.accent, fontSize: 18, fontFamily: FONT.arQuran },
+    mushaf: {
+      color: c.fg,
+      textAlign: "justify",
+      writingDirection: "rtl",
+      fontFamily: FONT.arQuran,
+      direction: "ltr",
+    },
+    endMarker: { color: c.accent, fontSize: 18, fontFamily: FONT.arQuran, direction: "ltr" },
     // The Arabic surah name in ornamental brackets, centred at the foot of the
     // surah's block — mirrors the web reader's `.mushaf-surah-name`.
     surahNameFoot: {
@@ -192,6 +207,7 @@ function makeStyles(c: Palette) {
       textAlign: "center",
       writingDirection: "rtl",
       fontFamily: FONT.arQuran,
+      direction: "ltr",
       marginTop: 22,
     },
     nav: {

@@ -1,14 +1,18 @@
+import { useIntl } from "../i18n/I18nProvider";
+import { LTR_TEXT } from "../text-direction";
 import { memo, useEffect, useMemo, useState } from "react";
-import { Pressable, Share, StyleSheet, Text, View } from "../Type";
+import type { IconName } from "@ummahlibrary/ui";
+import { Modal, Pressable, Share, StyleSheet, Text, View } from "../Type";
 import * as Clipboard from "expo-clipboard";
-import { createCard } from "@ummahlibrary/core";
-import { Icon } from "@ummahlibrary/ui";
+import { createCard, editionLangCode } from "@ummahlibrary/core";
+import { AyahBlock, Icon, ListRow, quranType } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useLibrary } from "../state/LibraryContext";
-import { AyahBadge } from "./AyahBadge";
 import { SaveToCollection } from "./SaveToCollection";
 import { AyahTafsir } from "./AyahTafsir";
+import { useSettings } from "../state/SettingsContext";
+import { targetSize } from "../comfort";
 
 export interface TrLine {
   id: string;
@@ -35,7 +39,10 @@ interface Props {
   onPlayWord?: (aya: number, wordIndex: number) => void;
   activeWord: number;
   playing: boolean;
+  /** Arabic size multiplier (font size + proportional line height only). */
   scale: number;
+  /** Translation / transliteration size multiplier, independent of the Arabic. */
+  trScale?: number;
   onPlayFrom: (aya: number) => void;
   onPlayOne: (aya: number) => void;
   /** Memorize / hide-and-peek (#134). */
@@ -52,9 +59,9 @@ interface Props {
 }
 
 /**
- * One verse-by-verse āyah in the Noor reader layout: a khatam number badge and
- * an icon action row (play · memorize · save · share) on top, then the
- * highlightable Arabic, the translations, and collapsible tafsīr. Memoized so
+ * One verse-by-verse āyah, laid out like the web reader (ADR 0042): the
+ * highlightable Arabic ending in its ﴿n﴾ marker, the translations, then a
+ * labelled action row (play · memorize · save · share) and collapsible tafsīr. Memoized so
  * only the playing āyah re-renders as the recitation moves word to word.
  */
 function AyahViewImpl({
@@ -71,6 +78,7 @@ function AyahViewImpl({
   activeWord,
   playing,
   scale,
+  trScale = 1,
   onPlayFrom,
   onPlayOne,
   peek = false,
@@ -83,6 +91,34 @@ function AyahViewImpl({
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { isTracked, setHifzCard, removeHifzCard } = useLibrary();
+  const { comfort } = useSettings();
+  const { t, tf, dir, script } = useIntl();
+  const min = targetSize(comfort);
+  const softTr = comfort.trEmphasis === "soft";
+
+  // A labelled per-āyah action (ADR 0041): icon + 14sp word, ≥ 48dp tall.
+  const action = (
+    icon: IconName,
+    label: string,
+    onPress: () => void,
+    on: boolean,
+    a11y: string,
+  ) => (
+    <Pressable
+      style={({ pressed }) => [
+        styles.act,
+        { minHeight: min, minWidth: min },
+        on && styles.actOn,
+        pressed && styles.pressed,
+      ]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={a11y}
+    >
+      <Icon name={icon} size={16} color={on ? colors.accent : colors.fg} sw={1.8} />
+      <Text style={styles.actText}>{label}</Text>
+    </Pressable>
+  );
   const ref = { sura, aya };
   const memorized = isTracked(ref);
 
@@ -91,11 +127,21 @@ function AyahViewImpl({
   // does something, with a brief inline confirmation since Alert.alert() is a
   // no-op on web too.
   const [copied, setCopied] = useState(false);
+  const [tafsirOpen, setTafsirOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => {
     if (!copied) return;
     const id = setTimeout(() => setCopied(false), 2000);
     return () => clearTimeout(id);
   }, [copied]);
+
+  const copyVerse = async () => {
+    const block = [arabic, ...translations.map((tr) => tr.text), `— ${sura}:${aya}`]
+      .filter(Boolean)
+      .join("\n");
+    await Clipboard.setStringAsync(block);
+    setCopied(true);
+  };
 
   const share = async () => {
     const block = [arabic, ...translations.map((t) => t.text), `— ${sura}:${aya}`]
@@ -111,158 +157,240 @@ function AyahViewImpl({
     }
   };
 
+  // End-of-āyah marker ﴿n﴾, as in the web reader: a tappable number that plays
+  // from this āyah. It is interface, not Quran text, so it sits in its own span.
+  const marker = (
+    <Text
+      style={[styles.marker, { fontSize: 18 * scale }]}
+      onPress={() => onPlayFrom(aya)}
+      accessibilityRole="button"
+      accessibilityLabel={tf("rd.ayah.playA11y", { n: aya })}
+    >
+      {" \uFD3F" + toArabicDigits(aya) + "\uFD3E"}
+    </Text>
+  );
+
   return (
-    <View style={[styles.ayah, playing && styles.ayahPlaying]}>
-      <View style={styles.head}>
-        <AyahBadge n={aya} size={30} />
-        <View style={styles.actions}>
-          {/* 17px icon + hitSlop was a 33×33 tap target, short of the
-              44×44dp minimum (see iteration 27, which fixed the sibling
-              SaveToCollection icon in this exact row but missed these
-              three) — 14 on each side reaches 45×45. This row renders once
-              per āyah throughout the entire reading experience. */}
-          <Pressable onPress={() => onPlayOne(aya)} hitSlop={14} accessibilityLabel="Play āyah">
-            <Icon name="play" size={17} color={playing ? colors.accent : colors.faint} />
-          </Pressable>
-          <Pressable
-            onPress={() =>
-              memorized ? removeHifzCard(ref) : setHifzCard(ref, createCard(new Date()))
+    // Shared āyah frame (ADR 0042), in the web reader's order: Arabic with its
+    // marker, transliteration, translations, then the labelled action row.
+    <AyahBlock
+      highlighted={playing}
+      label={tf("rd.ayah.label", { n: aya })}
+      arabic={
+        <>
+          {((translitWords && translitWords.length > 0) || tapToHear) && !peek ? (
+            // Word-by-word view (#144 transliteration + #145 tap-to-hear): each word
+            // is a tap target stacked over its Latin reading. A tap plays just that
+            // word when tap-to-hear is on, else it plays from the āyah.
+            // Under an RTL interface (ar/ur) Yoga flips row-reverse to left-to-right, so
+            // the Arabic word order is kept right-to-left by switching to "row" there.
+            <View style={[styles.wbwRow, dir === "rtl" && { flexDirection: "row" }]}>
+              {words.map((w, i) => (
+                <Pressable
+                  key={i}
+                  style={styles.wbwUnit}
+                  onPress={() => (tapToHear && onPlayWord ? onPlayWord(aya, i) : onPlayFrom(aya))}
+                >
+                  <Text
+                    style={[
+                      styles.wbwAr,
+                      indopak && styles.arabicIndopak,
+                      { fontSize: 26 * scale, lineHeight: (indopak ? 64 : 50) * scale },
+                    ]}
+                  >
+                    {w}
+                  </Text>
+                  {translitWords?.[i] ? (
+                    <Text
+                      style={[styles.wbwTr, { fontSize: 13 * trScale, lineHeight: 18 * trScale }]}
+                    >
+                      {translitWords[i]}
+                    </Text>
+                  ) : null}
+                </Pressable>
+              ))}
+              <Pressable style={styles.wbwUnit} onPress={() => onPlayFrom(aya)}>
+                {marker}
+              </Pressable>
+            </View>
+          ) : (
+            <Text
+              style={[
+                styles.arabic,
+                indopak && styles.arabicIndopak,
+                {
+                  fontSize: quranType.verse.size * scale,
+                  lineHeight: (indopak ? 74 : quranType.verse.lineHeight) * scale,
+                },
+              ]}
+              onPress={peek ? undefined : () => onPlayFrom(aya)}
+            >
+              {/* In peek mode every word is a tappable span — concealed until the
+                reveal cursor reaches it or it's tapped. Otherwise only the playing
+                āyah splits into per-word spans (for highlighting); every other āyah
+                renders as a single text node, which keeps long surahs cheap to scroll. */}
+              {peek
+                ? words.map((w, i) => {
+                    const gi = peekStart + i;
+                    const shown = gi < peekRevealed || peekExtra?.has(gi);
+                    return (
+                      <Text
+                        key={i}
+                        onPress={() => onPeekWord?.(gi)}
+                        style={shown ? undefined : styles.wordHidden}
+                      >
+                        {w}
+                        {i < words.length - 1 ? " " : ""}
+                      </Text>
+                    );
+                  })
+                : playing
+                  ? words.map((w, i) => (
+                      <Text key={i} style={i === activeWord ? styles.wordActive : undefined}>
+                        {w}
+                        {i < words.length - 1 ? " " : ""}
+                      </Text>
+                    ))
+                  : arabic}
+              {marker}
+            </Text>
+          )}
+        </>
+      }
+      below={
+        <>
+          {transliteration && !peekHideTr ? (
+            <Text
+              style={[
+                styles.translit,
+                LTR_TEXT,
+                { fontSize: 14 * trScale, lineHeight: 22 * trScale },
+              ]}
+            >
+              {transliteration}
+            </Text>
+          ) : null}
+        </>
+      }
+      translations={
+        peekHideTr
+          ? []
+          : translations.map((tr) => ({
+              key: tr.id,
+              label: tr.name,
+              text: tr.text,
+              // Catalogue names ("Urdu") → codes ("ur"), so each gets its own face.
+              lang: editionLangCode(tr.language) ?? tr.language,
+              dir: tr.direction,
+            }))
+      }
+      translationTone={softTr ? "muted" : "fg"}
+      translationScale={trScale}
+      actions={
+        <>
+          {action(
+            "play",
+            t("ayah.play"),
+            () => onPlayOne(aya),
+            playing,
+            tf("rd.ayah.playA11y", { n: aya }),
+          )}
+          <SaveToCollection
+            sura={sura}
+            aya={aya}
+            trigger={(open, saved) =>
+              action(
+                "bookmark",
+                saved ? t("ayah.saved") : t("ayah.save"),
+                open,
+                saved,
+                tf("rd.ayah.saveA11y", { n: aya }),
+              )
             }
-            hitSlop={14}
-            accessibilityLabel={memorized ? "Stop memorizing" : "Memorize āyah"}
-          >
-            <Icon name="star" size={17} color={memorized ? colors.accent : colors.faint} sw={1.8} />
-          </Pressable>
-          <SaveToCollection sura={sura} aya={aya} asIcon />
+          />
+          {action(
+            "tafsir",
+            t("ayah.tafsir"),
+            () => setTafsirOpen((o) => !o),
+            tafsirOpen,
+            t("ayah.tafsir"),
+          )}
           <View>
-            <Pressable onPress={() => void share()} hitSlop={14} accessibilityLabel="Share āyah">
-              <Icon name="share" size={17} color={colors.faint} sw={1.8} />
-            </Pressable>
+            {action("more", t("ayah.more"), () => setMoreOpen(true), false, t("ayah.more"))}
             {copied && (
               <View style={styles.copiedBubble} pointerEvents="none">
-                <Text style={styles.copiedText}>Copied</Text>
+                <Text style={styles.copiedText}>{t("rd.copied")}</Text>
               </View>
             )}
           </View>
-        </View>
-      </View>
-
-      {((translitWords && translitWords.length > 0) || tapToHear) && !peek ? (
-        // Word-by-word view (#144 transliteration + #145 tap-to-hear): each word
-        // is a tap target stacked over its Latin reading. A tap plays just that
-        // word when tap-to-hear is on, else it plays from the āyah.
-        <View style={styles.wbwRow}>
-          {words.map((w, i) => (
-            <Pressable
-              key={i}
-              style={styles.wbwUnit}
-              onPress={() => (tapToHear && onPlayWord ? onPlayWord(aya, i) : onPlayFrom(aya))}
-            >
-              <Text
-                style={[
-                  styles.wbwAr,
-                  indopak && styles.arabicIndopak,
-                  { fontSize: 26 * scale, lineHeight: (indopak ? 52 : 40) * scale },
-                ]}
-              >
-                {w}
-              </Text>
-              {translitWords?.[i] ? (
-                <Text style={[styles.wbwTr, { fontSize: 12 * scale }]}>{translitWords[i]}</Text>
-              ) : null}
+          <Modal
+            visible={moreOpen}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setMoreOpen(false)}
+          >
+            <Pressable style={styles.scrim} onPress={() => setMoreOpen(false)}>
+              <View style={styles.sheet} accessibilityViewIsModal>
+                {(
+                  [
+                    ["share", t("ayah.share"), () => void share()],
+                    ["layers", t("ayah.copyVerse"), () => void copyVerse()],
+                    [
+                      "star",
+                      memorized ? t("ayah.stopMemorize") : t("ayah.memorize"),
+                      () =>
+                        memorized ? removeHifzCard(ref) : setHifzCard(ref, createCard(new Date())),
+                    ],
+                  ] as const
+                ).map(([icon, label, run]) => (
+                  <ListRow
+                    key={icon}
+                    divider
+                    script={script}
+                    leading={<Icon name={icon} size={20} color={colors.accent} sw={1.8} />}
+                    title={label}
+                    onPress={() => {
+                      setMoreOpen(false);
+                      run();
+                    }}
+                  />
+                ))}
+              </View>
             </Pressable>
-          ))}
-        </View>
-      ) : (
-        <Text
-          style={[
-            styles.arabic,
-            indopak && styles.arabicIndopak,
-            { fontSize: 26 * scale, lineHeight: (indopak ? 64 : 50) * scale },
-          ]}
-          onPress={peek ? undefined : () => onPlayFrom(aya)}
-        >
-          {/* In peek mode every word is a tappable span — concealed until the
-            reveal cursor reaches it or it's tapped. Otherwise only the playing
-            āyah splits into per-word spans (for highlighting); every other āyah
-            renders as a single text node, which keeps long surahs cheap to scroll. */}
-          {peek
-            ? words.map((w, i) => {
-                const gi = peekStart + i;
-                const shown = gi < peekRevealed || peekExtra?.has(gi);
-                return (
-                  <Text
-                    key={i}
-                    onPress={() => onPeekWord?.(gi)}
-                    style={shown ? undefined : styles.wordHidden}
-                  >
-                    {w}
-                    {i < words.length - 1 ? " " : ""}
-                  </Text>
-                );
-              })
-            : playing
-              ? words.map((w, i) => (
-                  <Text key={i} style={i === activeWord ? styles.wordActive : undefined}>
-                    {w}
-                    {i < words.length - 1 ? " " : ""}
-                  </Text>
-                ))
-              : arabic}
-        </Text>
-      )}
-
-      {transliteration && !peekHideTr ? (
-        <Text style={[styles.translit, { fontSize: 14 * scale, lineHeight: 22 * scale }]}>
-          {transliteration}
-        </Text>
-      ) : null}
-
-      {!peekHideTr &&
-        translations.map((t) => (
-          <View key={t.id} style={styles.tr}>
-            {translations.length > 1 && <Text style={styles.trName}>{t.name}</Text>}
-            <Text
-              style={[
-                styles.trText,
-                { fontSize: 15 * scale, lineHeight: 24 * scale },
-                t.direction === "rtl" && styles.rtl,
-              ]}
-            >
-              {t.text}
-            </Text>
-          </View>
-        ))}
-
-      <AyahTafsir sura={sura} aya={aya} />
-    </View>
+          </Modal>
+        </>
+      }
+      footer={<AyahTafsir sura={sura} aya={aya} open={tafsirOpen} />}
+    />
   );
 }
 
 export const AyahView = memo(AyahViewImpl);
 
+const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+/** Āyah numbers in the marker use Arabic-Indic digits in every language, as on web. */
+function toArabicDigits(n: number): string {
+  return String(n).replace(/[0-9]/g, (d) => ARABIC_DIGITS[Number(d)]!);
+}
+
 function makeStyles(c: Palette) {
   return StyleSheet.create({
-    ayah: {
-      paddingVertical: 18,
-      paddingHorizontal: 10,
-      marginHorizontal: -10,
-      borderRadius: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: c.borderSoft,
-    },
-    ayahPlaying: { backgroundColor: c.bgElev, borderBottomColor: "transparent" },
-    head: {
+    // Icon beside its word, as in the web reader's action row (ADR 0042).
+    act: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 14,
+      justifyContent: "center",
+      paddingHorizontal: 10,
+      borderRadius: 12,
+      gap: 6,
     },
-    actions: { flexDirection: "row", alignItems: "center", gap: 20 },
+    actOn: { backgroundColor: c.accentSoft },
+    pressed: { opacity: 0.7 },
+    actText: { color: c.fg, fontSize: 14, fontFamily: FONT.medium },
     copiedBubble: {
       position: "absolute",
-      bottom: 24,
-      right: -8,
+      bottom: 52,
+      end: 0,
       backgroundColor: c.bgElev,
       borderWidth: 1,
       borderColor: c.border,
@@ -270,14 +398,34 @@ function makeStyles(c: Palette) {
       paddingHorizontal: 8,
       paddingVertical: 4,
     },
-    copiedText: { color: c.fg, fontSize: 11, fontFamily: FONT.medium },
-    arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.arQuran },
+    scrim: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+    sheet: {
+      backgroundColor: c.bgElev,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingTop: 8,
+      paddingBottom: 28,
+      paddingHorizontal: 8,
+    },
+    copiedText: { color: c.fg, fontSize: 13, fontFamily: FONT.medium },
+    // Quran text: the Quran face, explicit line height (≥ 1.9× the size, set
+    // inline) and vertical padding so stacked marks never clip on Android.
+    arabic: {
+      color: c.fg,
+      textAlign: "right",
+      writingDirection: "rtl",
+      fontFamily: FONT.arQuran,
+      direction: "ltr",
+      paddingVertical: 4,
+    },
     // IndoPak Nastaʿlīq face (ADR 0035) — applied over `arabic`/`wbwAr`.
-    arabicIndopak: { fontFamily: FONT.arIndopak },
+    arabicIndopak: { fontFamily: FONT.arIndopak, direction: "ltr" },
     wordActive: { color: c.accent },
+    // ﴿n﴾ marker: accent, in the Quran face's companion (as web pins Amiri).
+    marker: { color: c.accent, fontFamily: FONT.arQuran },
     // Concealed word: keep its footprint (a hint of length) but hide the glyphs.
     wordHidden: { color: "transparent", backgroundColor: c.borderSoft },
-    translit: { color: c.faint, marginTop: 10, fontStyle: "italic", fontFamily: FONT.medium },
+    translit: { color: c.muted, marginTop: 10, fontStyle: "italic", fontFamily: FONT.medium },
     // Word-by-word transliteration (#144): RTL flow of stacked word units.
     wbwRow: {
       flexDirection: "row-reverse",
@@ -287,11 +435,14 @@ function makeStyles(c: Palette) {
       gap: 12,
     },
     wbwUnit: { alignItems: "center" },
-    wbwAr: { color: c.fg, fontFamily: FONT.arQuran, textAlign: "center" },
-    wbwTr: { color: c.faint, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
-    tr: { marginTop: 12 },
-    trName: { color: c.faint, fontSize: 12, marginBottom: 3, fontFamily: FONT.medium },
-    trText: { color: c.muted },
-    rtl: { textAlign: "right", writingDirection: "rtl" },
+    wbwAr: {
+      color: c.fg,
+      fontFamily: FONT.arQuran,
+      direction: "ltr",
+      textAlign: "center",
+      paddingVertical: 2,
+    },
+    wbwTr: { color: c.muted, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
+    // Equal emphasis by default; "softer" (Reading comfort) quiets it to muted.
   });
 }

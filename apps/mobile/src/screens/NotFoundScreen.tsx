@@ -5,6 +5,7 @@ import { Khatam } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import type { RootStackParamList } from "../navigation/types";
+import { useT } from "../i18n/I18nProvider";
 
 type Props = NativeStackScreenProps<RootStackParamList, "NotFound">;
 
@@ -12,14 +13,21 @@ type Props = NativeStackScreenProps<RootStackParamList, "NotFound">;
 export function NotFoundScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const t = useT();
 
   return (
     <View style={styles.screen}>
       <Khatam size={72} color={colors.accent} sw={1.1} opacity={0.5} />
-      <Text style={styles.title}>Page not found</Text>
-      <Text style={styles.body}>Couldn’t find what you were looking for.</Text>
-      <Pressable style={styles.btn} onPress={() => navigation.navigate("Tabs", { screen: "Home" })}>
-        <Text style={styles.btnText}>Go to Today</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        {t("home.nf.title")}
+      </Text>
+      <Text style={styles.body}>{t("home.nf.body")}</Text>
+      <Pressable
+        style={styles.btn}
+        onPress={() => navigation.navigate("Tabs", { screen: "Home" })}
+        accessibilityRole="button"
+      >
+        <Text style={styles.btnText}>{t("home.nf.go")}</Text>
       </Pressable>
     </View>
   );
@@ -27,7 +35,14 @@ export function NotFoundScreen({ navigation }: Props) {
 
 function makeStyles(c: Palette) {
   return StyleSheet.create({
-    screen: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24, backgroundColor: c.bg },
+    screen: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 12,
+      padding: 24,
+      backgroundColor: c.bg,
+    },
     title: { color: c.fg, fontSize: 20, fontFamily: FONT.bold, marginTop: 8 },
     body: { color: c.muted, fontSize: 14.5, textAlign: "center" },
     btn: {

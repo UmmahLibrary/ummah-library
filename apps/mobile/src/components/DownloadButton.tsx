@@ -9,6 +9,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from "../Type";
 import { Icon } from "@ummahlibrary/ui";
 import type { Palette } from "../theme";
 import type { SurahAudio } from "../audio/useSurahAudio";
+import { useIntl } from "../i18n/I18nProvider";
 
 export function DownloadButton({
   audio,
@@ -20,6 +21,7 @@ export function DownloadButton({
   colors: Palette;
 }) {
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf } = useIntl();
   if (surahs.length === 0) return null;
 
   const allSaved = surahs.every((s) => audio.savedSurahs.has(s));
@@ -27,12 +29,12 @@ export function DownloadButton({
     ? Math.round((audio.downloadProgress.done / Math.max(1, audio.downloadProgress.total)) * 100)
     : 0;
   const label = audio.downloadProgress
-    ? `Downloading ${pct}%`
+    ? tf("rd.dl.progress", { pct })
     : allSaved
-      ? "Saved for offline listening"
+      ? t("rd.dl.saved")
       : audio.downloadError
-        ? "Download failed — tap to retry"
-        : "Download for offline listening";
+        ? t("rd.dl.failed")
+        : t("rd.dl.download");
 
   return (
     <Pressable
@@ -46,9 +48,14 @@ export function DownloadButton({
       {audio.downloadProgress ? (
         <ActivityIndicator size="small" color={colors.accent} />
       ) : (
-        <Icon name={allSaved ? "check" : "download"} size={19} color={allSaved ? colors.accent : colors.muted} sw={1.8} />
+        <Icon
+          name={allSaved ? "check" : "download"}
+          size={19}
+          color={allSaved ? colors.accent : colors.muted}
+          sw={1.8}
+        />
       )}
-      {audio.downloadProgress && <Text style={styles.pct}>{pct}%</Text>}
+      {audio.downloadProgress && <Text style={styles.pct}>{tf("rd.pct", { pct })}</Text>}
     </Pressable>
   );
 }

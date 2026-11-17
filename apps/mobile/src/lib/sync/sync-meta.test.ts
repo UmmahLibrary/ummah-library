@@ -57,7 +57,13 @@ describe("reconcileMeta", () => {
     const meta: Meta = {};
     reconcileMeta(meta, ["ul.x"], new Map([["ul.x", "v"]]), NOW, "n1");
     const first = meta["ul.x"];
-    const changed = reconcileMeta(meta, ["ul.x"], new Map([["ul.x", "v"]]), new Date(NOW.getTime() + 9999), "n1");
+    const changed = reconcileMeta(
+      meta,
+      ["ul.x"],
+      new Map([["ul.x", "v"]]),
+      new Date(NOW.getTime() + 9999),
+      "n1",
+    );
     expect(changed).toBe(false);
     expect(meta["ul.x"]).toBe(first);
   });
@@ -70,7 +76,9 @@ describe("reconcileMeta", () => {
   });
 
   it("preserves pushedHash across a clock bump (a local edit doesn't un-push a prior push)", () => {
-    const meta: Meta = { "ul.x": { hlc: { millis: 1, counter: 0, node: "n1" }, hash: "a", pushedHash: "a" } };
+    const meta: Meta = {
+      "ul.x": { hlc: { millis: 1, counter: 0, node: "n1" }, hash: "a", pushedHash: "a" },
+    };
     reconcileMeta(meta, ["ul.x"], new Map([["ul.x", "b"]]), NOW, "n1");
     expect(meta["ul.x"]!.pushedHash).toBe("a");
     expect(meta["ul.x"]!.hash).not.toBe(meta["ul.x"]!.pushedHash);
@@ -130,7 +138,9 @@ describe("loadMeta / saveMeta", () => {
 
   it("migrates the legacy `millis:counter:node` string clock", async () => {
     mem.set("ul.sync.meta", JSON.stringify({ "ul.x": { hlc: "7:1:node9", hash: "h" } }));
-    expect(await loadMeta()).toEqual({ "ul.x": { hlc: { millis: 7, counter: 1, node: "node9" }, hash: "h" } });
+    expect(await loadMeta()).toEqual({
+      "ul.x": { hlc: { millis: 7, counter: 1, node: "node9" }, hash: "h" },
+    });
   });
 
   it("drops entries with a corrupt clock or hash rather than trusting them", async () => {

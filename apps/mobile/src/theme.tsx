@@ -18,12 +18,7 @@ import {
   type ReactNode,
 } from "react";
 import { Appearance } from "react-native";
-import {
-  NoorThemeProvider,
-  noorThemes,
-  type Palette,
-  type ThemeKey,
-} from "@ummahlibrary/ui";
+import { NoorThemeProvider, noorThemes, type Palette, type ThemeKey } from "@ummahlibrary/ui";
 import { KEYS, getString, setString } from "./storage";
 import { onSyncApplied } from "./lib/sync/sync-events";
 import { ignoreStale } from "./utils";
@@ -44,7 +39,10 @@ export const THEMES: { key: ThemeKey; label: string; mode: ThemeMode }[] = [
   { key: "rose", label: "Rose", mode: "light" },
 ];
 
-const MODE_OF = Object.fromEntries(THEMES.map((t) => [t.key, t.mode])) as Record<ThemeKey, ThemeMode>;
+const MODE_OF = Object.fromEntries(THEMES.map((t) => [t.key, t.mode])) as Record<
+  ThemeKey,
+  ThemeMode
+>;
 const VALID = new Set<string>(THEMES.map((t) => t.key));
 /** Legacy stored values from before per-theme selection. */
 const LEGACY: Record<string, ThemeKey> = { dark: "obsidian", light: "ivory" };

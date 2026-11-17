@@ -45,9 +45,7 @@ function parseJson(raw: string | null): unknown {
 }
 
 /** Build a state store over the given managed keys (defaults to {@link MANAGED_KEYS}). */
-export function createMobileSyncStateStore(
-  keys: readonly string[] = MANAGED_KEYS,
-): SyncStateStore {
+export function createMobileSyncStateStore(keys: readonly string[] = MANAGED_KEYS): SyncStateStore {
   const keySet = new Set(keys);
   return {
     all: async () => {

@@ -1,5 +1,7 @@
 "use client";
 import { N } from "./tokens";
+import { segment, type Script } from "./scale";
+import { rad, sp, text } from "./scale-css";
 
 type SegOption = string | { value: string; label: string };
 
@@ -8,16 +10,18 @@ interface SegProps {
   value: string;
   onChange: (value: string) => void;
   size?: "sm" | "md";
+  /** Native uses it to pick the labels' face; web takes the page's font. */
+  script?: Script;
 }
 
 export function Seg({ options, value, onChange, size = "md" }: SegProps) {
-  const pad = size === "sm" ? "6px 12px" : "8px 15px";
-  const fs = size === "sm" ? 13 : 14;
+  const z = segment[size];
+  const pad = `${sp(z.padY)} ${sp(z.padX)}`;
   return (
     <div
       style={{
         display: "flex",
-        borderRadius: 10,
+        borderRadius: rad(z.radius),
         border: `1px solid ${N.border}`,
         overflow: "hidden",
         background: N.card,
@@ -30,10 +34,12 @@ export function Seg({ options, value, onChange, size = "md" }: SegProps) {
         return (
           <button
             key={v}
+            type="button"
             onClick={() => onChange(v)}
+            aria-pressed={active}
             style={{
               padding: pad,
-              fontSize: fs,
+              ...text(z.text),
               fontFamily: N.ui,
               fontWeight: active ? 700 : 500,
               color: active ? N.ink : N.muted,
@@ -41,7 +47,8 @@ export function Seg({ options, value, onChange, size = "md" }: SegProps) {
               border: "none",
               cursor: "pointer",
               whiteSpace: "nowrap",
-              transition: "background .15s, color .15s",
+              transition:
+                "background var(--noor-dur-base) var(--noor-ease), color var(--noor-dur-base) var(--noor-ease)",
             }}
           >
             {label}

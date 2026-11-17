@@ -10,7 +10,14 @@ import {
   weakestSurahs,
 } from "@ummahlibrary/core";
 import { N, Khatam, Btn } from "@ummahlibrary/ui";
-import { HIFZ_EVENT, allRecords, dueRecords, surahProgressMap, type SurahProgress } from "../lib/hifz-store";
+import { useT } from "../i18n/I18nProvider";
+import {
+  HIFZ_EVENT,
+  allRecords,
+  dueRecords,
+  surahProgressMap,
+  type SurahProgress,
+} from "../lib/hifz-store";
 import { getStreak } from "../lib/hifz-streak";
 import { readReviewLog } from "../lib/hifz-review-log-store";
 
@@ -39,7 +46,14 @@ function StrengthBar({ value }: { value: number }) {
   const color = value > 0.65 ? N.gold : value > 0.35 ? "#C9A24B" : N.goldDim;
   return (
     <div style={{ flex: 1, maxWidth: 100, height: 4, borderRadius: 2, background: N.border }}>
-      <div style={{ width: `${Math.round(value * 100)}%`, height: "100%", borderRadius: 2, background: color }} />
+      <div
+        style={{
+          width: `${Math.round(value * 100)}%`,
+          height: "100%",
+          borderRadius: 2,
+          background: color,
+        }}
+      />
     </div>
   );
 }
@@ -91,7 +105,15 @@ function StatCard({ value, label }: { value: string; label: string }) {
         padding: "18px 20px",
       }}
     >
-      <div style={{ fontSize: 26, fontWeight: 800, color: N.gold, letterSpacing: -1, fontFamily: N.ui }}>
+      <div
+        style={{
+          fontSize: 26,
+          fontWeight: 800,
+          color: N.gold,
+          letterSpacing: -1,
+          fontFamily: N.ui,
+        }}
+      >
         {value}
       </div>
       <div style={{ fontSize: 12.5, color: N.faint, marginTop: 3, fontFamily: N.ui }}>{label}</div>
@@ -100,6 +122,7 @@ function StatCard({ value, label }: { value: string; label: string }) {
 }
 
 export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
+  const t = useT();
   const [ready, setReady] = useState(false);
   const [totalTracked, setTotalTracked] = useState(0);
   const [dueCount, setDueCount] = useState(0);
@@ -121,7 +144,12 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
         const withMeta = (p: SurahProgress): QueueItem | null => {
           const meta = surahByNum.get(p.surahNumber);
           return meta
-            ? { ...p, name: meta.name, transliteration: meta.transliteration, ayahCount: meta.ayahCount }
+            ? {
+                ...p,
+                name: meta.name,
+                transliteration: meta.transliteration,
+                ayahCount: meta.ayahCount,
+              }
             : null;
         };
 
@@ -157,23 +185,44 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
 
   if (!ready) {
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px,1fr))", gap: 12 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(140px,1fr))",
+          gap: 12,
+        }}
+      >
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} style={{ background: N.card, border: `1px solid ${N.border}`, borderRadius: 14, padding: "18px 20px", height: 72, opacity: 0.4 }} />
+          <div
+            key={i}
+            style={{
+              background: N.card,
+              border: `1px solid ${N.border}`,
+              borderRadius: 14,
+              padding: "18px 20px",
+              height: 72,
+              opacity: 0.4,
+            }}
+          />
         ))}
       </div>
     );
   }
 
-  const memorizedPct = totalTracked === 0 ? "0%" : `${Math.round((totalTracked / TOTAL_AYAHS) * 100)}%`;
+  const memorizedPct =
+    totalTracked === 0 ? "0%" : `${Math.round((totalTracked / TOTAL_AYAHS) * 100)}%`;
 
   if (totalTracked === 0) {
     return (
       <div style={{ textAlign: "center", padding: "56px 20px 32px" }}>
-        <div style={{ display: "inline-grid", placeItems: "center", marginBottom: 18, opacity: 0.45 }}>
+        <div
+          style={{ display: "inline-grid", placeItems: "center", marginBottom: 18, opacity: 0.45 }}
+        >
           <Khatam size={72} color={N.goldDim} sw={1.2} />
         </div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: N.fg, marginBottom: 10, fontFamily: N.ui }}>
+        <div
+          style={{ fontSize: 20, fontWeight: 800, color: N.fg, marginBottom: 10, fontFamily: N.ui }}
+        >
           Begin your ḥifẓ journey
         </div>
         <div
@@ -190,8 +239,11 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
           <Link href="/" style={{ color: N.gold, fontWeight: 600 }}>
             surah
           </Link>{" "}
-          and tap <strong style={{ color: N.gold }}>＋ Hifz</strong> on any āyah — it will appear here
-          on a spaced-repetition schedule tuned to your recall.
+          and tap{" "}
+          <strong style={{ color: N.gold }}>
+            {t("ayah.more")} → {t("ayah.memorize")}
+          </strong>{" "}
+          on any āyah — it will appear here on a spaced-repetition schedule tuned to your recall.
         </div>
       </div>
     );
@@ -200,7 +252,13 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px,1fr))", gap: 12 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(140px,1fr))",
+          gap: 12,
+        }}
+      >
         <StatCard value={memorizedPct} label="Quran memorized" />
         <StatCard value={String(dueCount)} label="Due today" />
         <StatCard value={streak > 0 ? `${streak} 🔥` : "—"} label="Day streak" />
@@ -273,11 +331,24 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
               >
                 {/* Surah number badge */}
                 <div
-                  style={{ width: 38, height: 38, position: "relative", display: "grid", placeItems: "center", flexShrink: 0 }}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    position: "relative",
+                    display: "grid",
+                    placeItems: "center",
+                    flexShrink: 0,
+                  }}
                 >
                   <Khatam size={38} color={N.goldDim} sw={1.2} />
                   <span
-                    style={{ position: "absolute", fontSize: 11.5, fontWeight: 700, color: N.gold, fontFamily: N.ui }}
+                    style={{
+                      position: "absolute",
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: N.gold,
+                      fontFamily: N.ui,
+                    }}
                   >
                     {item.surahNumber}
                   </span>
@@ -288,11 +359,16 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
                   <div style={{ fontSize: 15, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
                     {item.transliteration}
                   </div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}
-                  >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
                     <StrengthBar value={item.avgStrength} />
-                    <span style={{ fontSize: 12, color: N.faint, fontFamily: N.ui, whiteSpace: "nowrap" }}>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: N.faint,
+                        fontFamily: N.ui,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {item.trackedCount} / {item.ayahCount} āyāt ·{" "}
                       {Math.round(item.avgStrength * 100)}% strength
                     </span>
@@ -317,7 +393,9 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
                       {item.dueCount} due
                     </span>
                   ) : (
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: N.faint, fontFamily: N.ui }}>
+                    <span
+                      style={{ fontSize: 12.5, fontWeight: 600, color: N.faint, fontFamily: N.ui }}
+                    >
                       {relativeDue(item.nextDue)}
                     </span>
                   )}
@@ -343,7 +421,14 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
         >
           Review activity
         </div>
-        <div style={{ background: N.card, border: `1px solid ${N.border}`, borderRadius: 14, padding: "16px 18px" }}>
+        <div
+          style={{
+            background: N.card,
+            border: `1px solid ${N.border}`,
+            borderRadius: 14,
+            padding: "16px 18px",
+          }}
+        >
           <HeatmapGrid days={heatmap} />
           <div
             style={{
@@ -361,10 +446,22 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
                 {longestStreak} day{longestStreak === 1 ? "" : "s"}
               </strong>
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: N.faint, fontFamily: N.ui }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 11.5,
+                color: N.faint,
+                fontFamily: N.ui,
+              }}
+            >
               Less
               {[0, 1, 2, 3, 4].map((l) => (
-                <span key={l} style={{ width: 11, height: 11, borderRadius: 2, background: levelColor(l) }} />
+                <span
+                  key={l}
+                  style={{ width: 11, height: 11, borderRadius: 2, background: levelColor(l) }}
+                />
               ))}
               More
             </span>
@@ -390,7 +487,11 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {weak.map((item) => (
-              <Link key={item.surahNumber} href={`/surah/${item.surahNumber}`} style={{ textDecoration: "none" }}>
+              <Link
+                key={item.surahNumber}
+                href={`/surah/${item.surahNumber}`}
+                style={{ textDecoration: "none" }}
+              >
                 <div
                   style={{
                     background: N.card,
@@ -402,9 +503,26 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
                     gap: 14,
                   }}
                 >
-                  <div style={{ width: 38, height: 38, position: "relative", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  <div
+                    style={{
+                      width: 38,
+                      height: 38,
+                      position: "relative",
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
                     <Khatam size={38} color={N.goldDim} sw={1.2} />
-                    <span style={{ position: "absolute", fontSize: 11.5, fontWeight: 700, color: N.gold, fontFamily: N.ui }}>
+                    <span
+                      style={{
+                        position: "absolute",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        color: N.gold,
+                        fontFamily: N.ui,
+                      }}
+                    >
                       {item.surahNumber}
                     </span>
                   </div>
@@ -414,8 +532,16 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
                       <StrengthBar value={item.avgStrength} />
-                      <span style={{ fontSize: 12, color: N.faint, fontFamily: N.ui, whiteSpace: "nowrap" }}>
-                        {item.trackedCount} / {item.ayahCount} āyāt · {Math.round(item.avgStrength * 100)}% strength
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: N.faint,
+                          fontFamily: N.ui,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {item.trackedCount} / {item.ayahCount} āyāt ·{" "}
+                        {Math.round(item.avgStrength * 100)}% strength
                       </span>
                     </div>
                   </div>

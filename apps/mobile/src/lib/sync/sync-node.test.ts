@@ -12,7 +12,10 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
   },
 }));
 let issued = 0;
-vi.mock("./crypto-random", () => ({ randomId: () => `node-${++issued}`, randomBytes: () => new Uint8Array(0) }));
+vi.mock("./crypto-random", () => ({
+  randomId: () => `node-${++issued}`,
+  randomBytes: () => new Uint8Array(0),
+}));
 
 import { getNodeId } from "./sync-node";
 

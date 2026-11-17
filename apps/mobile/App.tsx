@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { AppState, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -14,7 +14,8 @@ import {
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeProvider, useTheme } from "./src/theme";
 import { ErrorBoundary } from "./src/ErrorBoundary";
-import { I18nProvider } from "./src/i18n/I18nProvider";
+import { I18nProvider, useI18n } from "./src/i18n/I18nProvider";
+import { localeDir } from "./src/i18n/config";
 import { SettingsProvider } from "./src/state/SettingsContext";
 import { LibraryProvider } from "./src/state/LibraryContext";
 import { RootTabs } from "./src/navigation/RootTabs";
@@ -57,35 +58,42 @@ const linking: LinkingOptions<RootStackParamList> = {
               MushafPage: "page/:page",
               Plans: "plans",
               PlanDetail: "plans/:id",
+              HifzDashboard: "hifz",
+              HifzReview: "hifz/review",
+              ReadingGoals: "goals",
+              Collections: "bookmarks",
+              Tafsir: "tafsir",
             },
           },
-          Tools: {
+          Prayer: {
             screens: {
-              ToolsList: "tools",
-              Tasbih: "tasbih",
-              Adhkar: "adhkar",
+              PrayerHub: "prayer",
               PrayerTimes: "prayer-times",
               PrayerTracker: "tracker",
               Qibla: "qibla",
-              HijriCalendar: "calendar",
-              Zakat: "zakat",
+              Mosques: "mosques",
               Ramadan: "ramadan",
-              Duas: "duas",
             },
           },
-          Memorize: {
-            screens: { HifzDashboard: "hifz", HifzReview: "hifz/review" },
+          Learn: {
+            screens: {
+              LearnHub: "learn",
+              Duas: "duas",
+              Adhkar: "adhkar",
+              Hadith: "hadith",
+              Names: "names",
+            },
           },
           More: {
             screens: {
-              MoreMenu: "more",
-              Profile: "profile",
+              MoreHub: "more",
               Settings: "settings",
-              Names: "names",
-              Hadith: "hadith",
-              Collections: "bookmarks",
-              ReadingGoals: "goals",
-              Tafsir: "tafsir",
+              Tasbih: "tasbih",
+              HijriCalendar: "calendar",
+              Zakat: "zakat",
+              Downloads: "downloads",
+              Profile: "profile",
+              Privacy: "privacy",
             },
           },
         },
@@ -99,6 +107,7 @@ const linking: LinkingOptions<RootStackParamList> = {
 };
 
 function NavRoot() {
+  const { t } = useI18n();
   const { mode, colors } = useTheme();
   const base = mode === "dark" ? DarkTheme : DefaultTheme;
   const navTheme: Theme = {
@@ -128,7 +137,7 @@ function NavRoot() {
         <RootStack.Screen
           name="NotFound"
           component={NotFoundScreen}
-          options={{ headerShown: true, title: "Not found" }}
+          options={{ headerShown: true, title: t("home.nf.title") }}
         />
       </RootStack.Navigator>
     </NavigationContainer>
@@ -158,6 +167,16 @@ function AppGate() {
     );
   }
   return <NavRoot />;
+}
+
+/**
+ * Lays the whole app out right-to-left for Arabic and Urdu (ADR 0041) with the
+ * `direction` style — no `I18nManager.forceRTL`, so switching language never
+ * needs an app restart. Quranic text keeps its own explicit RTL styles.
+ */
+function DirectionRoot({ children }: { children: ReactNode }) {
+  const { locale } = useI18n();
+  return <View style={{ flex: 1, direction: localeDir(locale) }}>{children}</View>;
 }
 
 export default function App() {
@@ -208,11 +227,13 @@ export default function App() {
       <ErrorBoundary>
         <ThemeProvider>
           <I18nProvider>
-            <SettingsProvider>
-              <LibraryProvider>
-                <AppGate />
-              </LibraryProvider>
-            </SettingsProvider>
+            <DirectionRoot>
+              <SettingsProvider>
+                <LibraryProvider>
+                  <AppGate />
+                </LibraryProvider>
+              </SettingsProvider>
+            </DirectionRoot>
           </I18nProvider>
         </ThemeProvider>
       </ErrorBoundary>

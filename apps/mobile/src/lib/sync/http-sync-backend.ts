@@ -74,7 +74,9 @@ export function createHttpSyncBackend(options: HttpSyncBackendOptions = {}): Syn
         entries: Array.isArray(data.entries) ? data.entries.filter(isValidEntry) : [],
         cursor: typeof data.cursor === "number" ? data.cursor : undefined,
         more: data.more === true,
-        rejected: Array.isArray(data.rejected) ? data.rejected.filter((id) => typeof id === "string") : undefined,
+        rejected: Array.isArray(data.rejected)
+          ? data.rejected.filter((id) => typeof id === "string")
+          : undefined,
       };
     },
   };

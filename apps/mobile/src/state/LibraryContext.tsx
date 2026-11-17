@@ -46,9 +46,15 @@ interface LibraryValue {
   ready: boolean;
   bookmarks: number[];
   lastRead: number | null;
+  /** The āyah last reached in `lastRead` (web-compatible `ul.lastRead.aya`), or null. */
+  lastReadAya: number | null;
   isBookmarked: (surah: number) => boolean;
   toggleBookmark: (surah: number) => void;
-  setLastRead: (surah: number) => void;
+  /**
+   * Record the last-read position. A surah-only write keeps an āyah already
+   * stored for that same surah (mirrors web's `writeLastRead`).
+   */
+  setLastRead: (surah: number, aya?: number) => void;
   isTracked: (ref: VerseKey) => boolean;
   getCard: (ref: VerseKey) => HifzCard | null;
   setHifzCard: (ref: VerseKey, card: HifzCard) => void;
@@ -79,6 +85,8 @@ const LibraryContext = createContext<LibraryValue | null>(null);
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const [bookmarks, setBookmarks] = useState<number[]>([]);
   const [lastRead, setLastReadState] = useState<number | null>(null);
+  const [lastReadAya, setLastReadAya] = useState<number | null>(null);
+  const lastReadRef = useRef<{ surah: number; aya?: number } | null>(null);
   const [hifz, setHifz] = useState<HifzStore>({});
   const [streak, setStreak] = useState<StreakData>(EMPTY_STREAK);
   const [reviewLog, setReviewLog] = useState<HifzActivityLog>({});
@@ -100,7 +108,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     const currentGen = () => writeGen.current;
     const [bm, lr, hz, st, log, cols, nts] = await Promise.all([
       library.readBookmarks(),
-      getJSON<{ surah: number } | null>(KEYS.lastRead, null, isObjectRecord),
+      getJSON<{ surah: number; aya?: unknown } | null>(KEYS.lastRead, null, isObjectRecord),
       getJSON<HifzStore>(KEYS.hifz, {}, isObjectRecord),
       getJSON<StreakData>(
         KEYS.hifzStreak,
@@ -115,7 +123,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       library.readNotes(),
     ]);
     ignoreStale(currentGen, gen, setBookmarks)(bm);
-    ignoreStale(currentGen, gen, setLastReadState)(lr?.surah ?? null);
+    const lrSurah = typeof lr?.surah === "number" ? lr.surah : null;
+    const lrAya = lrSurah != null && typeof lr?.aya === "number" ? lr.aya : null;
+    if (currentGen() === gen) {
+      lastReadRef.current =
+        lrSurah != null ? { surah: lrSurah, ...(lrAya ? { aya: lrAya } : {}) } : null;
+    }
+    ignoreStale(currentGen, gen, setLastReadState)(lrSurah);
+    ignoreStale(currentGen, gen, setLastReadAya)(lrAya);
     ignoreStale(currentGen, gen, setHifz)(hz);
     ignoreStale(currentGen, gen, setStreak)(st);
     ignoreStale(currentGen, gen, setReviewLog)(log);
@@ -175,10 +190,16 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const setLastRead = useCallback((surah: number) => {
+  const setLastRead = useCallback((surah: number, aya?: number) => {
+    const prev = lastReadRef.current;
+    const keepAya = aya ?? (prev?.surah === surah ? prev.aya : undefined);
+    if (prev && prev.surah === surah && prev.aya === keepAya) return;
     writeGen.current++;
+    const rec = keepAya != null ? { surah, aya: keepAya } : { surah };
+    lastReadRef.current = rec;
     setLastReadState(surah);
-    void setJSON(KEYS.lastRead, { surah });
+    setLastReadAya(keepAya ?? null);
+    void setJSON(KEYS.lastRead, rec);
   }, []);
 
   const setHifzCard = useCallback((ref: VerseKey, card: HifzCard) => {
@@ -213,6 +234,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       ready,
       bookmarks,
       lastRead,
+      lastReadAya,
       isBookmarked: (surah) => bookmarks.includes(surah),
       toggleBookmark,
       setLastRead,
@@ -236,6 +258,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       ready,
       bookmarks,
       lastRead,
+      lastReadAya,
       hifz,
       streak,
       reviewLog,

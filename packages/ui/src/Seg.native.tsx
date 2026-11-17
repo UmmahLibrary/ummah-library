@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useNoorTheme } from "./NoorThemeContext";
+import { nativeText, radius, segment, space, type Script } from "./scale";
+import { nativeFamily } from "./native-fonts";
 
 type SegOption = string | { value: string; label: string };
 
@@ -8,19 +10,21 @@ interface SegProps {
   value: string;
   onChange: (value: string) => void;
   size?: "sm" | "md";
+  /** Script of the labels, for their face (Urdu → Nastaʿlīq). */
+  script?: Script;
 }
 
-export function Seg({ options, value, onChange, size = "md" }: SegProps) {
+export function Seg({ options, value, onChange, size = "md", script = "latin" }: SegProps) {
   const c = useNoorTheme();
-  const py = size === "sm" ? 6 : 8;
-  const px = size === "sm" ? 12 : 15;
-  const fs = size === "sm" ? 13 : 14;
+  const z = segment[size];
+  const py = space[z.padY];
+  const px = space[z.padX];
 
   return (
     <View
       style={[
         styles.wrap,
-        { borderColor: c.border, backgroundColor: c.bgElev },
+        { borderColor: c.border, backgroundColor: c.bgElev, borderRadius: radius[z.radius] },
       ]}
     >
       {options.map((o) => {
@@ -31,6 +35,8 @@ export function Seg({ options, value, onChange, size = "md" }: SegProps) {
           <Pressable
             key={v}
             onPress={() => onChange(v)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
             style={[
               styles.item,
               { paddingVertical: py, paddingHorizontal: px },
@@ -40,8 +46,11 @@ export function Seg({ options, value, onChange, size = "md" }: SegProps) {
             <Text
               style={[
                 styles.label,
-                { fontSize: fs },
-                { color: active ? c.ink : c.muted, fontWeight: active ? "700" : "500" },
+                nativeText(z.text, script),
+                {
+                  color: active ? c.ink : c.muted,
+                  fontFamily: nativeFamily(active ? 700 : 500, script),
+                },
               ]}
             >
               {label}
@@ -56,7 +65,6 @@ export function Seg({ options, value, onChange, size = "md" }: SegProps) {
 const styles = StyleSheet.create({
   wrap: {
     flexDirection: "row",
-    borderRadius: 10,
     borderWidth: 1,
     overflow: "hidden",
   },

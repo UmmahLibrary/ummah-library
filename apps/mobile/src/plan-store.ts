@@ -9,7 +9,8 @@ import { KEYS, getJSON, setJSON } from "./storage";
 
 export const mobilePlanStore: PlanStore = {
   // Drop a corrupt/peer-synced plan so it can't reach planDuration and throw at render.
-  read: () => getJSON<ActivePlan | null>(KEYS.readingPlan, null, (v) => v === null || isActivePlan(v)),
+  read: () =>
+    getJSON<ActivePlan | null>(KEYS.readingPlan, null, (v) => v === null || isActivePlan(v)),
   write: (plan) => setJSON(KEYS.readingPlan, plan),
   clear: () => setJSON(KEYS.readingPlan, null),
 };

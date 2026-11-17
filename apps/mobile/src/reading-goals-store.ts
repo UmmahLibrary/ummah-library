@@ -13,8 +13,10 @@ export const mobileReadingGoalsStore: ReadingGoalsStore = {
       getJSON<{ target: number } | null>(KEYS.readingGoal, null, isObjectRecord),
       getJSON<string[]>(KEYS.readingActive, [], Array.isArray),
       getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord),
-      getJSON<{ date: string; pages: number[] }>(KEYS.readingPages, { date: "", pages: [] }, (v) =>
-        isObjectRecord(v) && Array.isArray((v as { pages?: unknown }).pages),
+      getJSON<{ date: string; pages: number[] }>(
+        KEYS.readingPages,
+        { date: "", pages: [] },
+        (v) => isObjectRecord(v) && Array.isArray((v as { pages?: unknown }).pages),
       ),
       getJSON<KhatmaPlan | null>(KEYS.khatma, null, isObjectRecord),
     ]);

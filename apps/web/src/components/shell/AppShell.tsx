@@ -4,6 +4,7 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { TabBar } from "./TabBar";
 import { SearchProvider } from "./SearchContext";
+import { EasyBar } from "../EasyBar";
 import { N } from "@ummahlibrary/ui";
 
 interface AppShellProps {
@@ -53,6 +54,8 @@ export function AppShell({ children }: AppShellProps) {
           <div className="noor-tabbar">
             <TabBar />
           </div>
+          {/* Easy mode: big Back + Home instead of the tabs, on every size */}
+          <EasyBar />
         </div>
       </div>
     </SearchProvider>

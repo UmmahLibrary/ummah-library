@@ -10,13 +10,7 @@ const Ctx = createContext<Palette | null>(null);
  * the active Noor theme.  On web, CSS variables handle theming automatically
  * and this provider is not required (but harmless if you add it).
  */
-export function NoorThemeProvider({
-  theme,
-  children,
-}: {
-  theme: Palette;
-  children: ReactNode;
-}) {
+export function NoorThemeProvider({ theme, children }: { theme: Palette; children: ReactNode }) {
   return <Ctx.Provider value={theme}>{children}</Ctx.Provider>;
 }
 

@@ -54,8 +54,8 @@ export class ErrorBoundary extends Component<Props, State> {
         <SafeAreaView style={styles.container}>
           <Text style={styles.title}>Something went wrong</Text>
           <Text style={styles.message}>
-            The app hit an unexpected error. Your data stays on this device either way —
-            tap below to try again.
+            The app hit an unexpected error. Your data stays on this device either way — tap below
+            to try again.
           </Text>
           <Pressable style={styles.button} onPress={this.reset} accessibilityRole="button">
             <Text style={styles.buttonText}>Try again</Text>
@@ -75,7 +75,13 @@ const styles = StyleSheet.create({
     padding: 28,
     backgroundColor: "#0a0b0f",
   },
-  title: { fontSize: 20, fontWeight: "700", color: "#f2f2f2", marginBottom: 10, textAlign: "center" },
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#f2f2f2",
+    marginBottom: 10,
+    textAlign: "center",
+  },
   message: {
     fontSize: 14,
     color: "#b7b7b7",
@@ -84,6 +90,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     maxWidth: 320,
   },
-  button: { backgroundColor: "#e6b855", paddingVertical: 13, paddingHorizontal: 28, borderRadius: 10 },
+  button: {
+    backgroundColor: "#e6b855",
+    paddingVertical: 13,
+    paddingHorizontal: 28,
+    borderRadius: 10,
+  },
   buttonText: { color: "#1a1404", fontWeight: "700", fontSize: 15 },
 });

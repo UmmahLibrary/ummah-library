@@ -6,7 +6,7 @@
  */
 /** Every UI locale the app can render in. Adding one extends this union, which
  *  forces its message catalogue to be complete (see `messages.ts`). */
-export type Locale = "en" | "ur";
+export type Locale = "en" | "ar" | "ur" | "id" | "bn" | "tr";
 
 export interface LocaleMeta {
   code: Locale;
@@ -15,9 +15,14 @@ export interface LocaleMeta {
   dir: "ltr" | "rtl";
 }
 
+/** Wave 1 interface languages. */
 export const LOCALES: readonly LocaleMeta[] = [
   { code: "en", label: "English", dir: "ltr" },
+  { code: "ar", label: "العربية", dir: "rtl" },
   { code: "ur", label: "اردو", dir: "rtl" },
+  { code: "id", label: "Bahasa Indonesia", dir: "ltr" },
+  { code: "bn", label: "বাংলা", dir: "ltr" },
+  { code: "tr", label: "Türkçe", dir: "ltr" },
 ];
 
 export const DEFAULT_LOCALE: Locale = "en";

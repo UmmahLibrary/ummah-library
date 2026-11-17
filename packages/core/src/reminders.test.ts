@@ -17,7 +17,9 @@ import {
   SUNNAH_FAST_REMINDER_ID,
   adhkarReminderId,
   islamicEventReminderId,
+  isPrayerAnchor,
   prayerReminderId,
+  resolveReminderTime,
   syncAdhkarReminder,
   syncIslamicEventReminders,
   syncPlanReminder,
@@ -70,7 +72,9 @@ const fakePlans = (plan: ActivePlan | null): PlanStore => ({
   clear: async () => {},
 });
 
-const provider = (t: PrayerTimings | null): PrayerTimingsProvider => ({ getTodaysTimings: async () => t });
+const provider = (t: PrayerTimings | null): PrayerTimingsProvider => ({
+  getTodaysTimings: async () => t,
+});
 
 const TIMINGS: PrayerTimings = {
   fajr: "2026-06-21T03:00:00.000Z",
@@ -102,13 +106,22 @@ describe("syncPlanReminder", () => {
     const cases: Array<[Partial<ReminderPrefs>, NotifyPermission, ActivePlan | null]> = [
       [{ plan: { on: false, time: "20:00" } }, "granted", activePlan()],
       [{ plan: { on: true, time: "20:00" } }, "denied", activePlan()],
-      [{ plan: { on: true, time: "20:00" } }, "granted", { ...activePlan(), pausedOn: "2026-06-20" }],
+      [
+        { plan: { on: true, time: "20:00" } },
+        "granted",
+        { ...activePlan(), pausedOn: "2026-06-20" },
+      ],
       [{ plan: { on: true, time: "20:00" } }, "granted", null],
       [{ plan: { on: true, time: "99:99" } }, "granted", activePlan()],
     ];
     for (const [prefs, perm, plan] of cases) {
       const { notifier, scheduled } = fakeNotifier(perm);
-      await syncPlanReminder({ notifier, reminders: fakeReminders(prefs), plans: fakePlans(plan), now });
+      await syncPlanReminder({
+        notifier,
+        reminders: fakeReminders(prefs),
+        plans: fakePlans(plan),
+        now,
+      });
       expect(scheduled.has(PLAN_REMINDER_ID)).toBe(false);
     }
   });
@@ -117,8 +130,15 @@ describe("syncPlanReminder", () => {
 describe("syncAdhkarReminder", () => {
   it("schedules the next occasion and clears both occasion ids", async () => {
     const { notifier, scheduled, cancelled } = fakeNotifier();
-    await syncAdhkarReminder({ notifier, reminders: fakeReminders({ adhkarOn: true }), timings: provider(TIMINGS), now });
-    expect(cancelled).toEqual(expect.arrayContaining([adhkarReminderId("morning"), adhkarReminderId("evening")]));
+    await syncAdhkarReminder({
+      notifier,
+      reminders: fakeReminders({ adhkarOn: true }),
+      timings: provider(TIMINGS),
+      now,
+    });
+    expect(cancelled).toEqual(
+      expect.arrayContaining([adhkarReminderId("morning"), adhkarReminderId("evening")]),
+    );
     // morning (fajr 03:00Z) has passed → next is evening (asr 15:30Z).
     expect(scheduled.has(adhkarReminderId("evening"))).toBe(true);
     expect(scheduled.has(adhkarReminderId("morning"))).toBe(false);
@@ -126,24 +146,44 @@ describe("syncAdhkarReminder", () => {
 
   it("is a no-op when off or without a location", async () => {
     const off = fakeNotifier();
-    await syncAdhkarReminder({ notifier: off.notifier, reminders: fakeReminders({ adhkarOn: false }), timings: provider(TIMINGS), now });
+    await syncAdhkarReminder({
+      notifier: off.notifier,
+      reminders: fakeReminders({ adhkarOn: false }),
+      timings: provider(TIMINGS),
+      now,
+    });
     expect(off.scheduled.size).toBe(0);
 
     const noLoc = fakeNotifier();
-    await syncAdhkarReminder({ notifier: noLoc.notifier, reminders: fakeReminders({ adhkarOn: true }), timings: provider(null), now });
+    await syncAdhkarReminder({
+      notifier: noLoc.notifier,
+      reminders: fakeReminders({ adhkarOn: true }),
+      timings: provider(null),
+      now,
+    });
     expect(noLoc.scheduled.size).toBe(0);
   });
 
   it("does not schedule when enabled but permission is not granted", async () => {
     // Pins the `... || permission !== "granted"` guard: enabled alone must not schedule.
     const { notifier, scheduled } = fakeNotifier("denied");
-    await syncAdhkarReminder({ notifier, reminders: fakeReminders({ adhkarOn: true }), timings: provider(TIMINGS), now });
+    await syncAdhkarReminder({
+      notifier,
+      reminders: fakeReminders({ adhkarOn: true }),
+      timings: provider(TIMINGS),
+      now,
+    });
     expect(scheduled.size).toBe(0);
   });
 
   it("schedules the evening occasion with the exact label, emoji and copy", async () => {
     const { notifier, scheduled } = fakeNotifier();
-    await syncAdhkarReminder({ notifier, reminders: fakeReminders({ adhkarOn: true }), timings: provider(TIMINGS), now });
+    await syncAdhkarReminder({
+      notifier,
+      reminders: fakeReminders({ adhkarOn: true }),
+      timings: provider(TIMINGS),
+      now,
+    });
     const n = scheduled.get(adhkarReminderId("evening"))!;
     expect(n.title).toBe("Time for evening adhkar 🌆");
     expect(n.body).toBe("Tap to open your remembrances on Ummah Library.");
@@ -155,7 +195,12 @@ describe("syncAdhkarReminder", () => {
     // entries (the evening test alone leaves the morning row unexercised).
     const { notifier, scheduled } = fakeNotifier();
     const earlyNow = () => new Date("2026-06-21T01:00:00.000Z"); // before fajr 03:00Z
-    await syncAdhkarReminder({ notifier, reminders: fakeReminders({ adhkarOn: true }), timings: provider(TIMINGS), now: earlyNow });
+    await syncAdhkarReminder({
+      notifier,
+      reminders: fakeReminders({ adhkarOn: true }),
+      timings: provider(TIMINGS),
+      now: earlyNow,
+    });
     const n = scheduled.get(adhkarReminderId("morning"))!;
     expect(n.title).toBe("Time for morning adhkar 🌅");
     expect(n.tag).toBe(adhkarReminderId("morning"));
@@ -181,24 +226,44 @@ describe("syncPrayerReminders", () => {
 
   it("is a no-op when no prayer is enabled", async () => {
     const { notifier, scheduled } = fakeNotifier();
-    await syncPrayerReminders({ notifier, reminders: fakeReminders({ prayers: {} }), timings: provider(TIMINGS), now });
+    await syncPrayerReminders({
+      notifier,
+      reminders: fakeReminders({ prayers: {} }),
+      timings: provider(TIMINGS),
+      now,
+    });
     expect(scheduled.size).toBe(0);
   });
 
   it("does not schedule when enabled but permission is denied, or without a location", async () => {
     // Pins the `!some(enabled) || permission !== "granted"` guard and the `!today` guard.
     const denied = fakeNotifier("denied");
-    await syncPrayerReminders({ notifier: denied.notifier, reminders: fakeReminders({ prayers: { dhuhr: true } }), timings: provider(TIMINGS), now });
+    await syncPrayerReminders({
+      notifier: denied.notifier,
+      reminders: fakeReminders({ prayers: { dhuhr: true } }),
+      timings: provider(TIMINGS),
+      now,
+    });
     expect(denied.scheduled.size).toBe(0);
 
     const noLoc = fakeNotifier();
-    await syncPrayerReminders({ notifier: noLoc.notifier, reminders: fakeReminders({ prayers: { dhuhr: true } }), timings: provider(null), now });
+    await syncPrayerReminders({
+      notifier: noLoc.notifier,
+      reminders: fakeReminders({ prayers: { dhuhr: true } }),
+      timings: provider(null),
+      now,
+    });
     expect(noLoc.scheduled.size).toBe(0);
   });
 
   it("schedules a prayer with the exact label, copy and time", async () => {
     const { notifier, scheduled } = fakeNotifier();
-    await syncPrayerReminders({ notifier, reminders: fakeReminders({ prayers: { dhuhr: true } }), timings: provider(TIMINGS), now });
+    await syncPrayerReminders({
+      notifier,
+      reminders: fakeReminders({ prayers: { dhuhr: true } }),
+      timings: provider(TIMINGS),
+      now,
+    });
     const n = scheduled.get(prayerReminderId("dhuhr"))!;
     expect(n.title).toBe("Dhuhr — time to pray");
     expect(n.body).toBe("It’s time for prayer. Tap to open Ummah Library.");
@@ -210,7 +275,11 @@ describe("syncPrayerReminders", () => {
 describe("syncSunnahFastReminder", () => {
   it("schedules the next fast's reminder when enabled and granted", async () => {
     const { notifier, scheduled, cancelled } = fakeNotifier();
-    await syncSunnahFastReminder({ notifier, reminders: fakeReminders({ sunnahFastOn: true }), now });
+    await syncSunnahFastReminder({
+      notifier,
+      reminders: fakeReminders({ sunnahFastOn: true }),
+      now,
+    });
     expect(cancelled).toContain(SUNNAH_FAST_REMINDER_ID); // cancels before scheduling (idempotent)
     const n = scheduled.get(SUNNAH_FAST_REMINDER_ID)!;
     expect(n.body).toBe("Make your intention tonight and plan suhoor. Tap to open Ummah Library.");
@@ -222,11 +291,19 @@ describe("syncSunnahFastReminder", () => {
 
   it("is a no-op when off, or enabled without permission", async () => {
     const off = fakeNotifier();
-    await syncSunnahFastReminder({ notifier: off.notifier, reminders: fakeReminders({ sunnahFastOn: false }), now });
+    await syncSunnahFastReminder({
+      notifier: off.notifier,
+      reminders: fakeReminders({ sunnahFastOn: false }),
+      now,
+    });
     expect(off.scheduled.size).toBe(0);
 
     const denied = fakeNotifier("denied");
-    await syncSunnahFastReminder({ notifier: denied.notifier, reminders: fakeReminders({ sunnahFastOn: true }), now });
+    await syncSunnahFastReminder({
+      notifier: denied.notifier,
+      reminders: fakeReminders({ sunnahFastOn: true }),
+      now,
+    });
     expect(denied.scheduled.size).toBe(0);
   });
 });
@@ -236,7 +313,11 @@ describe("syncIslamicEventReminders", () => {
     // Enable every event; those whose next occurrence is >1 day out schedule.
     const all = Object.fromEntries(ISLAMIC_EVENTS.map((e) => [e.id, true]));
     const { notifier, scheduled, cancelled } = fakeNotifier();
-    await syncIslamicEventReminders({ notifier, reminders: fakeReminders({ islamicEvents: all }), now });
+    await syncIslamicEventReminders({
+      notifier,
+      reminders: fakeReminders({ islamicEvents: all }),
+      now,
+    });
 
     // Clears every known event id first (idempotent), then schedules.
     expect(cancelled).toContain(islamicEventReminderId("eid-al-fitr"));
@@ -251,12 +332,20 @@ describe("syncIslamicEventReminders", () => {
 
   it("is a no-op when none are enabled, or enabled without permission", async () => {
     const none = fakeNotifier();
-    await syncIslamicEventReminders({ notifier: none.notifier, reminders: fakeReminders({ islamicEvents: {} }), now });
+    await syncIslamicEventReminders({
+      notifier: none.notifier,
+      reminders: fakeReminders({ islamicEvents: {} }),
+      now,
+    });
     expect(none.scheduled.size).toBe(0);
 
     const denied = fakeNotifier("denied");
     const all = Object.fromEntries(ISLAMIC_EVENTS.map((e) => [e.id, true]));
-    await syncIslamicEventReminders({ notifier: denied.notifier, reminders: fakeReminders({ islamicEvents: all }), now });
+    await syncIslamicEventReminders({
+      notifier: denied.notifier,
+      reminders: fakeReminders({ islamicEvents: all }),
+      now,
+    });
     expect(denied.scheduled.size).toBe(0);
   });
 });
@@ -283,5 +372,39 @@ describe("reminder families are independent (cancel-by-id, not cancelAll)", () =
     await syncAdhkarReminder({ notifier, reminders, timings: provider(TIMINGS), now });
     expect(scheduled.has(prayerReminderId("dhuhr"))).toBe(true); // not wiped by adhkar's cancels
     expect(scheduled.has(adhkarReminderId("evening"))).toBe(true);
+  });
+});
+
+describe("prayer-anchored reading reminders (ADR 0041)", () => {
+  const timings = {
+    fajr: "2026-11-14T05:10:00",
+    sunrise: "2026-11-14T06:30:00",
+    dhuhr: "2026-11-14T12:05:00",
+    asr: "2026-11-14T15:20:00",
+    maghrib: "2026-11-14T17:40:00",
+    isha: "2026-11-14T19:00:00",
+  };
+
+  it("recognises prayer anchors", () => {
+    expect(isPrayerAnchor("after:maghrib")).toBe(true);
+    expect(isPrayerAnchor("20:00")).toBe(false);
+    expect(isPrayerAnchor("after:sunrise")).toBe(false);
+  });
+
+  it("resolves to the prayer time plus the offset", () => {
+    const at = resolveReminderTime("after:maghrib", timings, new Date("2026-11-14T10:00:00"));
+    expect(at?.getTime()).toBe(new Date("2026-11-14T17:55:00").getTime());
+  });
+
+  it("rolls to tomorrow once today's anchor has passed", () => {
+    const at = resolveReminderTime("after:fajr", timings, new Date("2026-11-14T10:00:00"));
+    expect(at?.getTime()).toBe(new Date("2026-11-15T05:25:00").getTime());
+  });
+
+  it("needs timings for an anchor, but not for a clock time", () => {
+    expect(resolveReminderTime("after:isha", null, new Date("2026-11-14T10:00:00"))).toBeNull();
+    expect(resolveReminderTime("20:00", null, new Date("2026-11-14T10:00:00"))?.getHours()).toBe(
+      20,
+    );
   });
 });

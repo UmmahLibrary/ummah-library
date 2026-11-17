@@ -13,6 +13,7 @@ import type { IconName } from "@ummahlibrary/ui";
 import { newId, readCollections, readNote, writeCollections, writeNote } from "../lib/collections";
 import { HIFZ_EVENT, isTracked, removeCard, setCard } from "../lib/hifz-store";
 import { TafsirCompare } from "./TafsirCompare";
+import { useT } from "../i18n/I18nProvider";
 
 interface TafsirMeta {
   id: string;
@@ -101,6 +102,7 @@ export function AyahActions({
   aya: number;
   tafsirs: TafsirMeta[];
 }) {
+  const t = useT();
   const ref = { sura: surah, aya };
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -132,7 +134,9 @@ export function AyahActions({
     const block = containerRef.current?.closest<HTMLElement>(".ayah");
     if (!block) return;
     block.classList.toggle("ayah-hifz", tracked);
-    return () => { block.classList.remove("ayah-hifz"); };
+    return () => {
+      block.classList.remove("ayah-hifz");
+    };
   }, [tracked]);
 
   function flash(message: string) {
@@ -168,7 +172,9 @@ export function AyahActions({
   function readAyahText(): { arabic: string; translations: string[] } {
     const block = document.getElementById(`${surah}:${aya}`);
     if (!block) return { arabic: "", translations: [] };
-    const arEl = block.querySelector<HTMLElement>(".ayah-ar")?.cloneNode(true) as HTMLElement | null;
+    const arEl = block
+      .querySelector<HTMLElement>(".ayah-ar")
+      ?.cloneNode(true) as HTMLElement | null;
     arEl?.querySelector(".ayah-marker")?.remove();
     const arabic = arEl?.textContent?.trim() ?? "";
     const translations = [...block.querySelectorAll<HTMLElement>(".ayah-tr")].map((node) => {
@@ -247,20 +253,30 @@ export function AyahActions({
       >
         <BarBtn
           icon="play"
-          label="Play"
+          label={t("ayah.play")}
           data-play-one={`${surah}:${aya}`}
           aria-label={`Play āyah ${aya}`}
         />
         <BarBtn
           icon="bookmark"
-          label={saved ? "Saved" : "Save"}
+          label={saved ? t("ayah.saved") : t("ayah.save")}
           active={saved}
           aria-expanded={saveOpen}
           onClick={openSave}
         />
-        <BarBtn icon="tafsir" label="Tafsir" active={tafsirOpen} onClick={() => setTafsirOpen((o) => !o)} />
+        <BarBtn
+          icon="tafsir"
+          label={t("ayah.tafsir")}
+          active={tafsirOpen}
+          onClick={() => setTafsirOpen((o) => !o)}
+        />
         <div style={{ position: "relative", display: "inline-flex" }}>
-          <BarBtn icon="more" label="More" active={moreOpen} onClick={() => setMoreOpen((o) => !o)} />
+          <BarBtn
+            icon="more"
+            label={t("ayah.more")}
+            active={moreOpen}
+            onClick={() => setMoreOpen((o) => !o)}
+          />
           {moreOpen && (
             <>
               <div
@@ -284,15 +300,15 @@ export function AyahActions({
                   boxShadow: "0 12px 32px rgba(0,0,0,.35)",
                 }}
               >
-                <MenuRow icon="layers" label="Copy verse" onClick={copyVerse} />
-                <MenuRow icon="share" label="Copy link" onClick={copyLink} />
-                <MenuRow icon="download" label="Share as image" onClick={shareImage} />
+                <MenuRow icon="layers" label={t("ayah.copyVerse")} onClick={copyVerse} />
+                <MenuRow icon="share" label={t("ayah.copyLink")} onClick={copyLink} />
+                <MenuRow icon="download" label={t("ayah.shareImage")} onClick={shareImage} />
                 <MenuRow
                   icon={tracked ? "check" : "star"}
-                  label={tracked ? "Stop memorizing" : "Memorize"}
+                  label={tracked ? t("ayah.stopMemorize") : t("ayah.memorize")}
                   onClick={toggleMemorize}
                 />
-                <MenuRow icon="type" label="Add a reflection" onClick={addReflection} />
+                <MenuRow icon="type" label={t("ayah.reflection")} onClick={addReflection} />
               </div>
             </>
           )}
@@ -329,7 +345,11 @@ export function AyahActions({
             )}
             {collections.map((c) => (
               <label key={c.id} className="ayah-save-col">
-                <input type="checkbox" checked={savedIds.has(c.id)} onChange={() => toggleCol(c.id)} />
+                <input
+                  type="checkbox"
+                  checked={savedIds.has(c.id)}
+                  onChange={() => toggleCol(c.id)}
+                />
                 <span>{c.name}</span>
               </label>
             ))}
@@ -344,7 +364,12 @@ export function AyahActions({
                 if (e.key === "Enter" && newName.trim()) addCollection();
               }}
             />
-            <button type="button" className="hifz-btn" disabled={!newName.trim()} onClick={addCollection}>
+            <button
+              type="button"
+              className="hifz-btn"
+              disabled={!newName.trim()}
+              onClick={addCollection}
+            >
               Add
             </button>
           </div>
