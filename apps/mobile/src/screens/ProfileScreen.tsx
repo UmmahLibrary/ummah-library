@@ -118,7 +118,7 @@ export function ProfileScreen() {
     return () => {
       cancelled = true;
     };
-  }, [trackedCount, surahsStarted, prayer.streak, bestStreak, names, saved]);
+  }, [trackedCount, surahsStarted, prayer.streak, bestStreak, names, saved, showStreaks]);
 
   useEffect(() => {
     if (!toast) return;
