@@ -289,10 +289,10 @@ export function ProfileView() {
                 flexDirection: "column",
                 alignItems: "center",
                 gap: 9,
-                opacity: unlocked ? 1 : 0.55,
               }}
             >
               <div
+                aria-hidden="true"
                 style={{
                   width: 48,
                   height: 48,
@@ -302,6 +302,9 @@ export function ProfileView() {
                   fontSize: 22,
                   background: unlocked ? N.goldSoft : "transparent",
                   border: `1px solid ${unlocked ? N.gold : N.border}`,
+                  // Dim only the decorative glyph, never the card: a card-wide
+                  // opacity blended the "Locked" caption to 2.32:1.
+                  opacity: unlocked ? 1 : 0.55,
                 }}
               >
                 {badge.glyph}
@@ -321,7 +324,7 @@ export function ProfileView() {
                 style={{
                   fontSize: 10.5,
                   fontWeight: 600,
-                  color: unlocked ? N.gold : N.faint,
+                  color: unlocked ? N.gold : N.muted,
                   fontFamily: N.ui,
                 }}
               >

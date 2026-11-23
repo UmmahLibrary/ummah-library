@@ -30,3 +30,10 @@ describe("Btn", () => {
     expect(style).toContain("var(--noor-text-label)");
   });
 });
+
+describe("Btn — icon-only", () => {
+  it("can be named with ariaLabel", () => {
+    render(<Btn icon="play" ariaLabel="Play" onClick={() => {}} />);
+    expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
+  });
+});

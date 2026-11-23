@@ -17,6 +17,8 @@ interface BtnProps {
   icon?: IconName;
   disabled?: boolean;
   type?: "button" | "submit" | "reset";
+  /** Accessible name — needed for an icon-only button, which otherwise has none. */
+  ariaLabel?: string;
 }
 
 const VARIANTS: Record<BtnVariant, CSSProperties> = {
@@ -55,6 +57,7 @@ export function Btn({
   icon,
   disabled,
   type = "button",
+  ariaLabel,
 }: BtnProps) {
   const z = control[size];
   return (
@@ -62,6 +65,7 @@ export function Btn({
       type={type}
       onClick={onClick}
       disabled={disabled}
+      aria-label={ariaLabel}
       style={{
         display: "inline-flex",
         alignItems: "center",
