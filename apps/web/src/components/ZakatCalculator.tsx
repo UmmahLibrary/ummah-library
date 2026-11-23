@@ -117,6 +117,7 @@ function Field({
           onChange={(e) => onChange(e.target.value)}
           style={{
             flex: 1,
+            minWidth: 0,
             background: "none",
             border: "none",
             outline: "none",
