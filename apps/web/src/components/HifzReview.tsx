@@ -43,6 +43,17 @@ export function HifzReview({
   const [revealed, setRevealed] = useState(false);
   const [arabic, setArabic] = useState<string | null>(null);
   const streakTouched = useRef(false);
+  // Keyboard/screen-reader flow: the Reveal button disappears on reveal and the
+  // rating buttons on grading, so focus is moved on deliberately (only after
+  // the reader has acted — never on first load).
+  const acted = useRef(false);
+  const revealBtn = useRef<HTMLButtonElement>(null);
+  const ayahText = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (!acted.current) return;
+    if (revealed) ayahText.current?.focus();
+    else revealBtn.current?.focus();
+  }, [revealed, index]);
 
   useEffect(() => {
     const all = allRecords();
@@ -62,11 +73,14 @@ export function HifzReview({
     void loadSurahArabic(current.ref.sura).then((m) => {
       if (active) setArabic(m.get(current.ref.aya) ?? "");
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [current]);
 
   function rate(rating: ReviewRating) {
     if (!current) return;
+    acted.current = true;
     setCard(current.ref, reviewByRating(current.card, rating, new Date()));
     recordReview(); // every rating counts toward today's heatmap cell
     if (!streakTouched.current) {
@@ -85,15 +99,30 @@ export function HifzReview({
   if (total === 0) {
     return (
       <div style={{ textAlign: "center", padding: "56px 20px 32px" }}>
-        <div style={{ display: "inline-grid", placeItems: "center", marginBottom: 18, opacity: 0.45 }}>
+        <div
+          style={{ display: "inline-grid", placeItems: "center", marginBottom: 18, opacity: 0.45 }}
+        >
           <Khatam size={72} color={N.goldDim} sw={1.2} />
         </div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: N.fg, marginBottom: 10, fontFamily: N.ui }}>
+        <div
+          style={{ fontSize: 20, fontWeight: 800, color: N.fg, marginBottom: 10, fontFamily: N.ui }}
+        >
           Nothing to review yet
         </div>
-        <div style={{ fontSize: 14.5, color: N.muted, maxWidth: 400, margin: "0 auto", lineHeight: 1.65, fontFamily: N.ui }}>
+        <div
+          style={{
+            fontSize: 14.5,
+            color: N.muted,
+            maxWidth: 400,
+            margin: "0 auto",
+            lineHeight: 1.65,
+            fontFamily: N.ui,
+          }}
+        >
           Open a{" "}
-          <Link href="/" style={{ color: N.gold, fontWeight: 600 }}>surah</Link>{" "}
+          <Link href="/" style={{ color: N.gold, fontWeight: 600 }}>
+            surah
+          </Link>{" "}
           and tap <strong style={{ color: N.gold }}>＋ Hifz</strong> on an āyah to start.
         </div>
       </div>
@@ -105,7 +134,9 @@ export function HifzReview({
     return (
       <div style={{ textAlign: "center", padding: "48px 20px 32px" }}>
         <div style={{ fontSize: 40, marginBottom: 14 }}>🎉</div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: N.fg, marginBottom: 8, fontFamily: N.ui }}>
+        <div
+          style={{ fontSize: 20, fontWeight: 800, color: N.fg, marginBottom: 8, fontFamily: N.ui }}
+        >
           All caught up!
         </div>
         <div style={{ fontSize: 14.5, color: N.muted, marginBottom: 28, fontFamily: N.ui }}>
@@ -168,12 +199,28 @@ export function HifzReview({
         }}
       >
         {/* Decorative star */}
-        <div style={{ position: "absolute", right: -20, top: -20, opacity: 0.06, pointerEvents: "none" }}>
+        <div
+          style={{
+            position: "absolute",
+            right: -20,
+            top: -20,
+            opacity: 0.06,
+            pointerEvents: "none",
+          }}
+        >
           <Khatam size={140} color={N.gold} sw={1} />
         </div>
 
         {/* Surah reference */}
-        <div style={{ fontSize: 12.5, color: N.faint, letterSpacing: 0.8, fontFamily: N.ui, marginBottom: 6 }}>
+        <div
+          style={{
+            fontSize: 12.5,
+            color: N.faint,
+            letterSpacing: 0.8,
+            fontFamily: N.ui,
+            marginBottom: 6,
+          }}
+        >
           {surahMeta?.transliteration ?? `Surah ${current.ref.sura}`} · Āyah {current.ref.aya}
         </div>
         {surahMeta && (
@@ -184,8 +231,11 @@ export function HifzReview({
 
         {revealed ? (
           <p
+            ref={ayahText}
+            tabIndex={-1}
             className="arabic"
             style={{
+              outline: "none",
               fontSize: "clamp(26px, 5vw, 38px)",
               lineHeight: 2,
               color: N.fg,
@@ -197,8 +247,12 @@ export function HifzReview({
           </p>
         ) : (
           <button
+            ref={revealBtn}
             type="button"
-            onClick={() => setRevealed(true)}
+            onClick={() => {
+              acted.current = true;
+              setRevealed(true);
+            }}
             style={{
               margin: "16px auto",
               padding: "13px 32px",
@@ -222,7 +276,11 @@ export function HifzReview({
 
       {/* Rating buttons */}
       {revealed && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+        <div
+          role="group"
+          aria-label="How well did you remember it?"
+          style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}
+        >
           {RATINGS.map(({ rating, label, color }) => (
             <button
               key={rating}
