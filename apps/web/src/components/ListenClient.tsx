@@ -102,7 +102,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
         </Link>
       </div>
 
-      <div className="noor-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <main id="main" className="noor-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         <div
           style={{
             maxWidth: 760,
@@ -233,7 +233,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
             )}
           </nav>
         </div>
-      </div>
+      </main>
 
       <ReadingAudio
         verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}

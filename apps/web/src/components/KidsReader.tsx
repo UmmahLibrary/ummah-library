@@ -65,7 +65,7 @@ export function KidsReader({
         </span>
       </div>
 
-      <div className="noor-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <main id="main" className="noor-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         <div
           className="mode-translation"
           style={{
@@ -155,7 +155,7 @@ export function KidsReader({
             </Link>
           </div>
         </div>
-      </div>
+      </main>
 
       <ReadingAudio
         verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}
