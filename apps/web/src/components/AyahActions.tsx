@@ -150,15 +150,52 @@ export function AyahActions({
     };
   }, [tracked]);
 
-  // Escape closes the More menu, as it does every other popup in the reader.
+  const moreButton = () =>
+    containerRef.current?.querySelector<HTMLButtonElement>("[aria-haspopup=menu]") ?? null;
+  const menuItems = () => [
+    ...(containerRef.current?.querySelectorAll<HTMLButtonElement>("[role=menuitem]") ?? []),
+  ];
+
+  // A menu takes focus to its first item; Escape closes it and returns focus
+  // to the More button, as every other popup in the reader does.
   useEffect(() => {
     if (!moreOpen) return;
+    menuItems()[0]?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMoreOpen(false);
+      if (e.key !== "Escape") return;
+      setMoreOpen(false);
+      moreButton()?.focus();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [moreOpen]);
+
+  // Escape also closes the Save panel, giving focus back to its button.
+  useEffect(() => {
+    if (!saveOpen) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setSaveOpen(false);
+      if (opener && opener !== document.body && opener.isConnected) opener.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [saveOpen]);
+
+  /** Arrow keys, Home and End move between the menu's items. */
+  function onMenuKey(e: React.KeyboardEvent<HTMLDivElement>) {
+    const items = menuItems();
+    const at = items.indexOf(document.activeElement as HTMLButtonElement);
+    const go = (i: number) => {
+      e.preventDefault();
+      items[(i + items.length) % items.length]?.focus();
+    };
+    if (e.key === "ArrowDown") go(at + 1);
+    else if (e.key === "ArrowUp") go(at - 1);
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(items.length - 1);
+  }
 
   function toggleMore(e: React.MouseEvent<HTMLButtonElement>) {
     if (!moreOpen) {
@@ -324,6 +361,7 @@ export function AyahActions({
               />
               <div
                 role="menu"
+                onKeyDown={onMenuKey}
                 style={{
                   position: "absolute",
                   ...(moreUp ? { bottom: "100%", marginBottom: 8 } : { top: "100%", marginTop: 8 }),

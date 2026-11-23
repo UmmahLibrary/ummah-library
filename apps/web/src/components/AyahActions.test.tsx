@@ -76,3 +76,33 @@ describe("AyahActions — More menu", () => {
     expect(screen.getByRole("menu").style.left).toBe("0px");
   });
 });
+
+describe("AyahActions — keyboard", () => {
+  it("moves focus into the More menu, arrows through it, and Escape returns to More", async () => {
+    render(<AyahActions surah={1} aya={1} tafsirs={[]} />);
+    await userEvent.click(moreButton());
+
+    expect(screen.getByRole("menuitem", { name: "Copy verse" })).toHaveFocus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(screen.getByRole("menuitem", { name: "Copy link" })).toHaveFocus();
+    await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+    expect(screen.getByRole("menuitem", { name: "Add a reflection" })).toHaveFocus();
+    await userEvent.keyboard("{Home}");
+    expect(screen.getByRole("menuitem", { name: "Copy verse" })).toHaveFocus();
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(moreButton()).toHaveFocus();
+  });
+
+  it("Escape closes the Save panel and gives focus back to Save", async () => {
+    render(<AyahActions surah={1} aya={1} tafsirs={[]} />);
+    const save = screen.getByRole("button", { name: "Save" });
+    await userEvent.click(save);
+    expect(screen.getByRole("dialog", { name: "Save āyah" })).toBeInTheDocument();
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Save āyah" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Save" })).toHaveFocus();
+  });
+});
