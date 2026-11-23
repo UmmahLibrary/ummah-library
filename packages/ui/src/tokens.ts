@@ -20,6 +20,8 @@ export const N = {
   goldDim: "var(--noor-gold-dim)",
   goldSoft: "var(--noor-gold-soft)",
   goldGrad: "var(--noor-gold-grad)",
+  /** Destructive / error text, readable on every theme. */
+  error: "var(--noor-error)",
   ink: "var(--noor-ink)",
   ui: "var(--noor-ui)",
   ar: "var(--noor-ar)",

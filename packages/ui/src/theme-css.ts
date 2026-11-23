@@ -12,8 +12,8 @@ import { scaleLines } from "./scale-css";
 import type { Palette, ThemeKey } from "./themes";
 
 /** Palette field → CSS custom property, in the order they are emitted.
- *  `scheme` is emitted as `color-scheme`; `error` has no CSS var (native-only). */
-type CssKey = Exclude<keyof Palette, "scheme" | "error">;
+ *  `scheme` is emitted as `color-scheme`. */
+type CssKey = Exclude<keyof Palette, "scheme">;
 const CSS_TOKENS: ReadonlyArray<readonly [CssKey, string]> = [
   ["bg", "--noor-bg"],
   ["bg2", "--noor-bg2"],
@@ -30,6 +30,7 @@ const CSS_TOKENS: ReadonlyArray<readonly [CssKey, string]> = [
   ["accentSoft", "--noor-gold-soft"],
   ["accentGrad", "--noor-gold-grad"],
   ["ink", "--noor-ink"],
+  ["error", "--noor-error"],
 ];
 
 /** Non-themed base fonts (plain fallbacks). The web overrides these with

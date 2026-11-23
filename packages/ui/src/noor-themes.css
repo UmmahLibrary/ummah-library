@@ -79,13 +79,14 @@
   --noor-border-soft: #1b2029;
   --noor-fg: #f4f1ea;
   --noor-muted: #9aa0b2;
-  --noor-faint: #7d8392;
+  --noor-faint: #7f8593;
   --noor-gold: #e6b855;
   --noor-gold-hi: #f4d58a;
   --noor-gold-dim: #a98432;
   --noor-gold-soft: rgba(230,184,85,0.12);
   --noor-gold-grad: linear-gradient(180deg,#f4d58a,#e6b855);
   --noor-ink: #1a1404;
+  --noor-error: #ff8a7e;
   color-scheme: dark;
 }
 
@@ -98,13 +99,14 @@
   --noor-border-soft: #16171d;
   --noor-fg: #ffffff;
   --noor-muted: #b7bbc7;
-  --noor-faint: #6b707d;
+  --noor-faint: #7a7f8d;
   --noor-gold: #f0c868;
   --noor-gold-hi: #ffe39a;
   --noor-gold-dim: #b9933f;
   --noor-gold-soft: rgba(240,200,104,0.15);
   --noor-gold-grad: linear-gradient(180deg,#ffe39a,#f0c868);
   --noor-ink: #15100a;
+  --noor-error: #ff8a7e;
   color-scheme: dark;
 }
 
@@ -117,13 +119,14 @@
   --noor-border-soft: #16281e;
   --noor-fg: #eff4ee;
   --noor-muted: #94ac9f;
-  --noor-faint: #557064;
+  --noor-faint: #719384;
   --noor-gold: #e3b756;
   --noor-gold-hi: #f2d184;
   --noor-gold-dim: #a07e32;
   --noor-gold-soft: rgba(227,183,86,0.13);
   --noor-gold-grad: linear-gradient(180deg,#f2d184,#e3b756);
   --noor-ink: #11200a;
+  --noor-error: #ff8a7e;
   color-scheme: dark;
 }
 
@@ -136,13 +139,14 @@
   --noor-border-soft: #182838;
   --noor-fg: #ecf2f6;
   --noor-muted: #93a6b5;
-  --noor-faint: #556979;
+  --noor-faint: #7c91a3;
   --noor-gold: #45c7bd;
   --noor-gold-hi: #74e2d9;
   --noor-gold-dim: #2c8a83;
   --noor-gold-soft: rgba(69,199,189,0.14);
   --noor-gold-grad: linear-gradient(180deg,#74e2d9,#45c7bd);
   --noor-ink: #04201d;
+  --noor-error: #ff8a7e;
   color-scheme: dark;
 }
 
@@ -156,13 +160,14 @@
   --noor-border-soft: #f0e9da;
   --noor-fg: #1f1b12;
   --noor-muted: #6e6757;
-  --noor-faint: #a99e86;
-  --noor-gold: #b0842a;
-  --noor-gold-hi: #c99a3a;
+  --noor-faint: #746952;
+  --noor-gold: #876520;
+  --noor-gold-hi: #a78030;
   --noor-gold-dim: #cbb488;
   --noor-gold-soft: rgba(176,132,40,0.14);
   --noor-gold-grad: linear-gradient(180deg,#f4d58a,#e6b855);
   --noor-ink: #2a1f08;
+  --noor-error: #c0392b;
   color-scheme: light;
 }
 
@@ -175,13 +180,14 @@
   --noor-border-soft: #eaddc0;
   --noor-fg: #3a2e1b;
   --noor-muted: #6e5c3f;
-  --noor-faint: #a0895f;
-  --noor-gold: #a6781e;
-  --noor-gold-hi: #c2933a;
+  --noor-faint: #716143;
+  --noor-gold: #815d17;
+  --noor-gold-hi: #9f7930;
   --noor-gold-dim: #c8b07a;
   --noor-gold-soft: rgba(166,120,30,0.16);
   --noor-gold-grad: linear-gradient(180deg,#e7c572,#c99a3a);
   --noor-ink: #2a1e08;
+  --noor-error: #b53629;
   color-scheme: light;
 }
 
@@ -194,13 +200,14 @@
   --noor-border-soft: #e6f0eb;
   --noor-fg: #16241d;
   --noor-muted: #5a6e64;
-  --noor-faint: #93a89c;
-  --noor-gold: #13857a;
-  --noor-gold-hi: #1ba192;
+  --noor-faint: #5a6f63;
+  --noor-gold: #11776d;
+  --noor-gold-hi: #199789;
   --noor-gold-dim: #7fb3a9;
   --noor-gold-soft: rgba(19,133,122,0.13);
   --noor-gold-grad: linear-gradient(180deg,#2fb3a4,#13857a);
   --noor-ink: #eafbf6;
+  --noor-error: #c0392b;
   color-scheme: light;
 }
 
@@ -213,13 +220,14 @@
   --noor-border-soft: #f4e6e2;
   --noor-fg: #271a18;
   --noor-muted: #6e5a56;
-  --noor-faint: #ae968f;
-  --noor-gold: #b14a6b;
+  --noor-faint: #7c6159;
+  --noor-gold: #a84666;
   --noor-gold-hi: #c76283;
   --noor-gold-dim: #c99aa6;
   --noor-gold-soft: rgba(177,74,107,0.12);
   --noor-gold-grad: linear-gradient(180deg,#ce6e8c,#b14a6b);
   --noor-ink: #fff0f4;
+  --noor-error: #bc382a;
   color-scheme: light;
 }
 

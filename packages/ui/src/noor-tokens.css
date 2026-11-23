@@ -75,12 +75,13 @@
   --noor-border-soft: #1b2029;
   --noor-fg: #f4f1ea;
   --noor-muted: #9aa0b2;
-  --noor-faint: #7d8392;
+  --noor-faint: #7f8593;
   --noor-gold: #e6b855;
   --noor-gold-hi: #f4d58a;
   --noor-gold-dim: #a98432;
   --noor-gold-soft: rgba(230,184,85,0.12);
   --noor-gold-grad: linear-gradient(180deg,#f4d58a,#e6b855);
   --noor-ink: #1a1404;
+  --noor-error: #ff8a7e;
   color-scheme: dark;
 }
