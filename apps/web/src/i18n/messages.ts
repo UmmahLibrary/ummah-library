@@ -201,6 +201,7 @@ export const en = {
   "dock.saveOffline": "Save offline",
   "dock.ayahN": "Āyah {aya}",
   "dock.paused": "Paused",
+  "dock.cantPlay": "Couldn’t play — check your connection, or save this surah for offline",
   "dock.pauseAria": "Pause recitation",
   "dock.playAria": "Listen — play recitation",
   "dock.listening": "Listening",

@@ -127,6 +127,9 @@ export function ReadingAudio({
   const { t, tf } = useIntl();
   const [current, setCurrent] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  // The recitation couldn't load (offline without a download, a failed stream):
+  // say so instead of a Play button that silently does nothing.
+  const [failed, setFailed] = useState(false);
   const [loop, setLoop] = useState(false);
   const [rate, setRate] = useState(1);
   // A→B range-repeat UI state (the panel + the chosen bounds/count).
@@ -345,7 +348,13 @@ export function ReadingAudio({
       src = local;
       segments = await bundledSegments(reciter.id, verse.sura, verse.aya);
     } else {
-      const timing = await getTiming(reciter, key);
+      let timing: Timing;
+      try {
+        timing = await getTiming(reciter, key);
+      } catch {
+        if (token === tokenRef.current) fail();
+        return;
+      }
       if (token !== tokenRef.current) return;
       src = timing.url;
       segments = timing.segments.length ? timing.segments : null;
@@ -372,16 +381,29 @@ export function ReadingAudio({
       if (loopRef.current && list[0]) return void play(list[0], true);
       stop();
     };
-    audio.onerror = () => stop();
+    audio.onerror = () => {
+      if (token === tokenRef.current) fail();
+    };
     void audio.play().then(
       () => {
+        setFailed(false);
         setCurrent(key);
         setIsPlaying(true);
         highlightAyah(key);
         onAyah?.(verse);
       },
-      () => stop(),
+      (err: unknown) => {
+        // A blocked autoplay or an interrupted load isn't a failure to report.
+        const name = err instanceof DOMException ? err.name : "";
+        if (name === "NotAllowedError" || name === "AbortError") stop();
+        else if (token === tokenRef.current) fail();
+      },
     );
+  }
+
+  function fail() {
+    stop();
+    setFailed(true);
   }
 
   /**
@@ -783,12 +805,17 @@ export function ReadingAudio({
     ) : null;
     const status = isPlaying
       ? `${reciterName}${currentAya ? ` · ${tf("dock.ayahN", { aya: currentAya })}` : ""}`
-      : (positionLabel ?? (current ? t("dock.paused") : reciterName));
+      : failed
+        ? t("dock.cantPlay")
+        : (positionLabel ?? (current ? t("dock.paused") : reciterName));
     return (
       <div
         className="reader-dock"
         style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}
       >
+        <span className="sr-only" role="status">
+          {failed && !isPlaying ? t("dock.cantPlay") : ""}
+        </span>
         {above}
         {rangePanel}
         {optionsRow}
@@ -820,7 +847,7 @@ export function ReadingAudio({
             <div
               style={{
                 fontSize: 13.5,
-                color: N.muted,
+                color: failed && !isPlaying ? N.error : N.muted,
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -860,6 +887,9 @@ export function ReadingAudio({
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
+      <span className="sr-only" role="status">
+        {failed && !isPlaying ? t("dock.cantPlay") : ""}
+      </span>
       <div className="audio-bar">
         <button type="button" className="audio-play" onClick={toggle} aria-pressed={isPlaying}>
           {isPlaying ? "❚❚ Pause" : "▶ Play"}
@@ -877,7 +907,11 @@ export function ReadingAudio({
         {rangeButton}
         {downloadButton}
         <span className="audio-status">
-          {current ? `Playing ${current}` : "Tap ▶ to play one āyah, or its number to play on"}
+          {current
+            ? `Playing ${current}`
+            : failed
+              ? t("dock.cantPlay")
+              : "Tap ▶ to play one āyah, or its number to play on"}
         </span>
         {reciters.length > 1 && (
           <select

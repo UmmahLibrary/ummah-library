@@ -187,6 +187,7 @@ export const bn: Record<MessageKey, string> = {
   "dock.saveOffline": "অফলাইনে সংরক্ষণ করুন",
   "dock.ayahN": "আয়াত {aya}",
   "dock.paused": "থামানো",
+  "dock.cantPlay": "চালানো গেল না — সংযোগ দেখুন, অথবা সূরাটি অফলাইনের জন্য সংরক্ষণ করুন",
   "dock.pauseAria": "তিলাওয়াত থামান",
   "dock.playAria": "শুনুন — তিলাওয়াত চালান",
   "dock.listening": "শুনছেন",

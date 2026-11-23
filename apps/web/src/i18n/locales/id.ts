@@ -189,6 +189,7 @@ export const id: Record<MessageKey, string> = {
   "dock.saveOffline": "Simpan offline",
   "dock.ayahN": "Ayat {aya}",
   "dock.paused": "Dijeda",
+  "dock.cantPlay": "Tidak bisa diputar — periksa koneksi, atau simpan surah ini untuk offline",
   "dock.pauseAria": "Jeda murattal",
   "dock.playAria": "Dengarkan — putar murattal",
   "dock.listening": "Mendengarkan",

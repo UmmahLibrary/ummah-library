@@ -187,6 +187,7 @@ export const tr: Record<MessageKey, string> = {
   "dock.saveOffline": "Çevrimdışı kaydet",
   "dock.ayahN": "Ayet {aya}",
   "dock.paused": "Duraklatıldı",
+  "dock.cantPlay": "Oynatılamadı — bağlantınızı kontrol edin ya da sureyi çevrimdışı için kaydedin",
   "dock.pauseAria": "Tilaveti duraklat",
   "dock.playAria": "Dinle — tilaveti oynat",
   "dock.listening": "Dinleniyor",

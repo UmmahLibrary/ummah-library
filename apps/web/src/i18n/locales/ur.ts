@@ -181,6 +181,7 @@ export const ur: Record<MessageKey, string> = {
   "dock.saveOffline": "آف لائن محفوظ کریں",
   "dock.ayahN": "آیت {aya}",
   "dock.paused": "رکا ہوا",
+  "dock.cantPlay": "چل نہیں سکی — کنکشن دیکھیں، یا سورت آف لائن کے لیے محفوظ کریں",
   "dock.pauseAria": "تلاوت روکیں",
   "dock.playAria": "سنیں — تلاوت چلائیں",
   "dock.listening": "سن رہے ہیں",

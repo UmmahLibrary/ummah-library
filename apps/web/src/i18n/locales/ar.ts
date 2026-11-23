@@ -187,6 +187,7 @@ export const ar: Record<MessageKey, string> = {
   "dock.saveOffline": "احفظ دون اتصال",
   "dock.ayahN": "الآية {aya}",
   "dock.paused": "متوقف مؤقتًا",
+  "dock.cantPlay": "تعذّر التشغيل — تحقّق من الاتصال، أو احفظ السورة للاستماع دون اتصال",
   "dock.pauseAria": "إيقاف التلاوة مؤقتًا",
   "dock.playAria": "استمع — شغّل التلاوة",
   "dock.listening": "جارٍ الاستماع",
