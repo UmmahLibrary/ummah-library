@@ -22,6 +22,10 @@ import { localISODate } from "../utils";
 import { onSyncApplied } from "../lib/sync/sync-events";
 import { useIntl } from "../i18n/I18nProvider";
 import { badgeName } from "../i18n/memorize-text";
+import { useSettings } from "../state/SettingsContext";
+
+/** Badges that count days in a row — hidden unless streaks are switched on. */
+const STREAK_METRICS: ReadonlySet<string> = new Set(["bestStreak", "prayerStreak"]);
 
 /**
  * "Your journey" — a progress dashboard derived entirely from the local-first
@@ -34,6 +38,8 @@ export function ProfileScreen() {
   const intl = useIntl();
   const { t, tf, num } = intl;
   const { allRecords, trackedCount, streak, collections } = useLibrary();
+  // Streak counts are opt-in (ADR 0041), as on the Hifz screen.
+  const showStreaks = useSettings().comfort.showStreaks;
 
   const [names, setNames] = useState(0);
   const [prayer, setPrayer] = useState({ streak: 0, best: 0 });
@@ -66,10 +72,14 @@ export function ProfileScreen() {
   const bestStreak = Math.max(streak.count, prayer.streak, prayer.best, reading.streak);
 
   const stats: [string, string][] = [
-    [num(streak.count), t("mem.profile.hifzStreak")],
+    ...(showStreaks
+      ? ([[num(streak.count), t("mem.profile.hifzStreak")]] as [string, string][])
+      : []),
     [num(trackedCount), t("mem.profile.memorized")],
     [num(surahsStarted), t("mem.profile.surahs")],
-    [num(prayer.streak), t("mem.profile.prayerStreak")],
+    ...(showStreaks
+      ? ([[num(prayer.streak), t("mem.profile.prayerStreak")]] as [string, string][])
+      : []),
     [`${num(names)}/${num(99)}`, t("mem.profile.names")],
     [num(saved), t("mem.profile.saved")],
   ];
@@ -82,7 +92,9 @@ export function ProfileScreen() {
     namesLearned: names,
     savedVerses: saved,
   };
-  const badges = evaluateBadges(badgeStats);
+  const badges = evaluateBadges(badgeStats).filter(
+    (b) => showStreaks || !STREAK_METRICS.has(b.badge.metric),
+  );
   const earned = badges.filter((b) => b.unlocked).length;
 
   // Celebrate newly-unlocked badges once (persist the acknowledged ids).
@@ -90,7 +102,9 @@ export function ProfileScreen() {
     let cancelled = false;
     void achievementsStore.read().then((ack) => {
       if (cancelled) return;
-      const fresh = newlyUnlocked(badgeStats, ack);
+      const fresh = newlyUnlocked(badgeStats, ack).filter(
+        (b) => showStreaks || !STREAK_METRICS.has(b.metric),
+      );
       if (fresh.length > 0) {
         const first = fresh[0];
         setToast(

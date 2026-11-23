@@ -5,7 +5,9 @@ import Link from "next/link";
 import {
   TOTAL_AYAHS,
   type HeatmapDay,
+  activityDateKey,
   activityHeatmap,
+  daysThisWeek,
   hifzStreaks,
   weakestSurahs,
 } from "@ummahlibrary/core";
@@ -20,6 +22,7 @@ import {
 } from "../lib/hifz-store";
 import { getStreak } from "../lib/hifz-streak";
 import { readReviewLog } from "../lib/hifz-review-log-store";
+import { useShowStreaks } from "../lib/use-show-streaks";
 
 export interface SurahMeta {
   number: number;
@@ -130,6 +133,8 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [heatmap, setHeatmap] = useState<HeatmapDay[]>([]);
   const [longestStreak, setLongestStreak] = useState(0);
+  const [reviewDays, setReviewDays] = useState(0);
+  const showStreaks = useShowStreaks();
   const [weak, setWeak] = useState<QueueItem[]>([]);
 
   useEffect(() => {
@@ -174,6 +179,12 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
         const log = readReviewLog();
         setHeatmap(activityHeatmap(log, now));
         setLongestStreak(hifzStreaks(log, now).longest);
+        setReviewDays(
+          daysThisWeek(
+            Object.keys(log).filter((d) => (log[d] ?? 0) > 0),
+            activityDateKey(now),
+          ),
+        );
       } finally {
         setReady(true);
       }
@@ -261,7 +272,12 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
       >
         <StatCard value={memorizedPct} label="Quran memorized" />
         <StatCard value={String(dueCount)} label="Due today" />
-        <StatCard value={streak > 0 ? `${streak} 🔥` : "—"} label="Day streak" />
+        {/* Streak counts are opt-in (ADR 0041); otherwise a gentle weekly count. */}
+        {showStreaks ? (
+          <StatCard value={streak > 0 ? String(streak) : "—"} label="Days in a row" />
+        ) : (
+          <StatCard value={`${reviewDays} of 7`} label="Days this week" />
+        )}
         <StatCard value={String(totalTracked)} label="Āyāt tracked" />
       </div>
 
@@ -285,7 +301,7 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
               {dueCount} {dueCount === 1 ? "āyah" : "āyāt"} ready for review
             </div>
             <div style={{ fontSize: 13, color: N.muted, marginTop: 4, fontFamily: N.ui }}>
-              Keep your streak alive — a few minutes is all it takes.
+              A few minutes is all it takes.
             </div>
           </div>
           <Link href="/hifz/review">
@@ -440,12 +456,16 @@ export function HifzDashboard({ surahs }: { surahs: SurahMeta[] }) {
               marginTop: 12,
             }}
           >
-            <span style={{ fontSize: 12.5, color: N.faint, fontFamily: N.ui }}>
-              Longest streak:{" "}
-              <strong style={{ color: N.gold }}>
-                {longestStreak} day{longestStreak === 1 ? "" : "s"}
-              </strong>
-            </span>
+            {showStreaks ? (
+              <span style={{ fontSize: 12.5, color: N.faint, fontFamily: N.ui }}>
+                Longest streak:{" "}
+                <strong style={{ color: N.gold }}>
+                  {longestStreak} day{longestStreak === 1 ? "" : "s"}
+                </strong>
+              </span>
+            ) : (
+              <span />
+            )}
             <span
               style={{
                 display: "inline-flex",

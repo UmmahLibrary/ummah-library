@@ -19,6 +19,7 @@ import {
 import { Icon, N } from "@ummahlibrary/ui";
 import { PRAYER_TRACKER_EVENT, cyclePrayer, readPrayerLog, today } from "../lib/prayer-tracker";
 import { HAID_EVENT, readHaid } from "../lib/haid";
+import { useShowStreaks } from "../lib/use-show-streaks";
 
 // A warm bronze for "late", distinct from the gold used for "on time".
 const LATE = "#C98A57";
@@ -50,6 +51,7 @@ export function PrayerTracker() {
   const [log, setLog] = useState<PrayerTrackerLog>({});
   const [haid, setHaid] = useState<HaidLog>([]);
   const [todayStr, setTodayStr] = useState("");
+  const showStreaks = useShowStreaks();
 
   useEffect(() => {
     setTodayStr(today());
@@ -72,11 +74,16 @@ export function PrayerTracker() {
   const todayLog = log[todayStr];
   const days = recentDays(log, todayStr, 7);
 
+  // Streak counts are opt-in (ADR 0041) — and never with a fire emoji.
   const stats: [string, string][] = [
     [`${prayedCount(todayLog)}/5`, "Prayed today"],
-    [`${prayerStreakWithPause(log, haid, todayStr)} 🔥`, "Day streak"],
+    ...(showStreaks
+      ? ([[`${prayerStreakWithPause(log, haid, todayStr)}`, "Days in a row"]] as [string, string][])
+      : []),
     [`${onTimeRate(log, todayStr)}%`, "On time (30d)"],
-    [`${longestPrayerStreakWithPause(log, haid)}`, "Best streak"],
+    ...(showStreaks
+      ? ([[`${longestPrayerStreakWithPause(log, haid)}`, "Best streak"]] as [string, string][])
+      : []),
   ];
 
   return (
@@ -148,7 +155,9 @@ export function PrayerTracker() {
                     />
                   )}
                 </span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: N.fg }}>{PRAYER_LABELS[p]}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: N.fg }}>
+                  {PRAYER_LABELS[p]}
+                </span>
                 <span style={{ fontSize: 11, color: lit ? N.gold : N.faint, fontWeight: 600 }}>
                   {statusLabel(st)}
                 </span>
