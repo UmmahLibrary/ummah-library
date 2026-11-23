@@ -17,13 +17,52 @@ interface Collection {
 }
 
 /** Display metadata (names with diacritics, author, count, short label, order). */
-const META: Record<string, { name: string; short: string; by: string; count: string; order: number }> = {
-  "eng-bukhari": { name: "Ṣaḥīḥ al-Bukhārī", short: "Bukhārī", by: "Imam al-Bukhārī", count: "7,563", order: 0 },
-  "eng-muslim": { name: "Ṣaḥīḥ Muslim", short: "Muslim", by: "Imam Muslim", count: "7,500", order: 1 },
-  "eng-abudawud": { name: "Sunan Abī Dāwūd", short: "Abū Dāwūd", by: "Abū Dāwūd", count: "5,274", order: 2 },
-  "eng-tirmidhi": { name: "Jāmiʿ at-Tirmidhī", short: "Tirmidhī", by: "At-Tirmidhī", count: "3,956", order: 3 },
-  "eng-nasai": { name: "Sunan an-Nasāʾī", short: "Nasāʾī", by: "An-Nasāʾī", count: "5,761", order: 4 },
-  "eng-ibnmajah": { name: "Sunan Ibn Mājah", short: "Ibn Mājah", by: "Ibn Mājah", count: "4,341", order: 5 },
+const META: Record<
+  string,
+  { name: string; short: string; by: string; count: string; order: number }
+> = {
+  "eng-bukhari": {
+    name: "Ṣaḥīḥ al-Bukhārī",
+    short: "Bukhārī",
+    by: "Imam al-Bukhārī",
+    count: "7,563",
+    order: 0,
+  },
+  "eng-muslim": {
+    name: "Ṣaḥīḥ Muslim",
+    short: "Muslim",
+    by: "Imam Muslim",
+    count: "7,500",
+    order: 1,
+  },
+  "eng-abudawud": {
+    name: "Sunan Abī Dāwūd",
+    short: "Abū Dāwūd",
+    by: "Abū Dāwūd",
+    count: "5,274",
+    order: 2,
+  },
+  "eng-tirmidhi": {
+    name: "Jāmiʿ at-Tirmidhī",
+    short: "Tirmidhī",
+    by: "At-Tirmidhī",
+    count: "3,956",
+    order: 3,
+  },
+  "eng-nasai": {
+    name: "Sunan an-Nasāʾī",
+    short: "Nasāʾī",
+    by: "An-Nasāʾī",
+    count: "5,761",
+    order: 4,
+  },
+  "eng-ibnmajah": {
+    name: "Sunan Ibn Mājah",
+    short: "Ibn Mājah",
+    by: "Ibn Mājah",
+    count: "4,341",
+    order: 5,
+  },
 };
 const ORDER = (id: string): number => META[id]?.order ?? 99;
 const shortName = (id: string): string => META[id]?.short ?? id;
@@ -59,10 +98,19 @@ function highlight(text: string, q: string): React.ReactNode {
   );
 }
 
-function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+function Chip({
+  on,
+  onClick,
+  children,
+}: {
+  on: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
+      aria-pressed={on}
       onClick={onClick}
       style={{
         padding: "7px 14px",
@@ -126,7 +174,9 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
       pool.push(...loaded[id]!.hadiths);
     }
     const filtered =
-      grade === "all" ? pool : pool.filter((h) => hadithGradeCategory(h.collectionId, h.grades) === grade);
+      grade === "all"
+        ? pool
+        : pool.filter((h) => hadithGradeCategory(h.collectionId, h.grades) === grade);
     return q.length >= 2 ? searchText(filtered, q, 300) : filtered;
   }, [loaded, book, grade, q]);
 
@@ -147,7 +197,15 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
     <div>
       {/* Search field */}
       <div
-        style={{ ...card, display: "flex", alignItems: "center", gap: 12, padding: "0 18px", height: 56, marginBottom: 14 }}
+        style={{
+          ...card,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "0 18px",
+          height: 56,
+          marginBottom: 14,
+        }}
       >
         <Icon name="search" size={22} color={N.muted} />
         <input
@@ -156,14 +214,28 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
           onChange={(e) => run(e.target.value)}
           placeholder="Search hadith — a word, phrase, narrator, or reference…"
           aria-label="Search hadith"
-          style={{ flex: 1, background: "none", border: "none", outline: "none", color: N.fg, fontFamily: N.ui, fontSize: 16 }}
+          style={{
+            flex: 1,
+            background: "none",
+            border: "none",
+            outline: "none",
+            color: N.fg,
+            fontFamily: N.ui,
+            fontSize: 16,
+          }}
         />
         {query && (
           <button
             type="button"
             onClick={() => run("")}
             aria-label="Clear search"
-            style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 0 }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              padding: 0,
+            }}
           >
             <Icon name="close" size={18} color={N.faint} />
           </button>
@@ -171,8 +243,20 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
       </div>
 
       {/* BOOK + GRADE filters */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8, alignItems: "center" }}>
-        <span style={{ fontSize: 12, color: N.faint, fontWeight: 700, marginRight: 2, fontFamily: N.ui }}>BOOK</span>
+      <div
+        style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8, alignItems: "center" }}
+      >
+        <span
+          style={{
+            fontSize: 12,
+            color: N.faint,
+            fontWeight: 700,
+            marginRight: 2,
+            fontFamily: N.ui,
+          }}
+        >
+          BOOK
+        </span>
         <Chip on={book === "all"} onClick={() => setBook("all")}>
           All
         </Chip>
@@ -182,8 +266,26 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
           </Chip>
         ))}
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18, alignItems: "center" }}>
-        <span style={{ fontSize: 12, color: N.faint, fontWeight: 700, marginRight: 2, fontFamily: N.ui }}>GRADE</span>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+          marginBottom: 18,
+          alignItems: "center",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 12,
+            color: N.faint,
+            fontWeight: 700,
+            marginRight: 2,
+            fontFamily: N.ui,
+          }}
+        >
+          GRADE
+        </span>
         {GRADE_FILTERS.map((g) => (
           <Chip key={g.key} on={grade === g.key} onClick={() => setGrade(g.key)}>
             {g.label}
@@ -207,7 +309,13 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
           >
             Collections
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+              gap: 14,
+            }}
+          >
             {ordered.map((c) => {
               const meta = META[c.id];
               return (
@@ -216,9 +324,23 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
                   type="button"
                   onClick={() => setBook(c.id)}
                   className="noor-press"
-                  style={{ ...card, padding: 22, textAlign: "left", cursor: "pointer", color: N.fg, display: "block", width: "100%" }}
+                  style={{
+                    ...card,
+                    padding: 22,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    color: N.fg,
+                    display: "block",
+                    width: "100%",
+                  }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
                     <span
                       style={{
                         width: 44,
@@ -235,11 +357,29 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
                     </span>
                     <Icon name="arrowR" size={18} color={N.faint} />
                   </div>
-                  <div style={{ fontSize: 16.5, fontWeight: 700, marginTop: 16, color: N.fg, fontFamily: N.ui }}>
+                  <div
+                    style={{
+                      fontSize: 16.5,
+                      fontWeight: 700,
+                      marginTop: 16,
+                      color: N.fg,
+                      fontFamily: N.ui,
+                    }}
+                  >
                     {meta?.name ?? c.name}
                   </div>
-                  <div style={{ fontSize: 13, color: N.faint, marginTop: 3, fontFamily: N.ui }}>{meta?.by ?? ""}</div>
-                  <div style={{ fontSize: 13, color: N.gold, marginTop: 10, fontWeight: 600, fontFamily: N.ui }}>
+                  <div style={{ fontSize: 13, color: N.faint, marginTop: 3, fontFamily: N.ui }}>
+                    {meta?.by ?? ""}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: N.gold,
+                      marginTop: 10,
+                      fontWeight: 600,
+                      fontFamily: N.ui,
+                    }}
+                  >
                     {meta?.count ?? loaded[c.id]?.hadiths.length ?? ""} hadith
                   </div>
                 </button>
@@ -250,9 +390,19 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
       ) : (
         /* ── Active: results ── */
         <>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 14,
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
             <div style={{ fontSize: 13.5, color: N.muted, fontFamily: N.ui }}>
-              <span style={{ color: N.fg, fontWeight: 700 }}>{results.length}</span> result{results.length !== 1 ? "s" : ""}
+              <span style={{ color: N.fg, fontWeight: 700 }}>{results.length}</span> result
+              {results.length !== 1 ? "s" : ""}
               {q && (
                 <>
                   {" "}
@@ -289,8 +439,24 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
               const section = sectionName(h);
               return (
                 <div key={`${h.collectionId}:${h.number}`} style={{ ...card, padding: 22 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
-                    <span style={{ fontSize: 12.5, color: N.muted, fontWeight: 600, fontFamily: N.ui, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 12.5,
+                        color: N.muted,
+                        fontWeight: 600,
+                        fontFamily: N.ui,
+                        minWidth: 0,
+                      }}
+                    >
                       {shortName(h.collectionId)}
                       {section && <span style={{ color: N.faint }}> · {section}</span>}
                     </span>
@@ -315,12 +481,26 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
                       className="arabic"
                       dir="rtl"
                       lang="ar"
-                      style={{ margin: "0 0 14px", fontSize: 22, lineHeight: 2.1, color: N.fg, textAlign: "right" }}
+                      style={{
+                        margin: "0 0 14px",
+                        fontSize: 22,
+                        lineHeight: 2.1,
+                        color: N.fg,
+                        textAlign: "right",
+                      }}
                     >
                       {h.arabic}
                     </p>
                   )}
-                  <p style={{ margin: 0, fontSize: 15.5, lineHeight: 1.7, color: N.fg, fontFamily: N.ui }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 15.5,
+                      lineHeight: 1.7,
+                      color: N.fg,
+                      fontFamily: N.ui,
+                    }}
+                  >
                     {highlight(h.text, q)}
                   </p>
                   <div
@@ -335,7 +515,9 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
                       flexWrap: "wrap",
                     }}
                   >
-                    <span style={{ fontSize: 13, color: N.gold, fontWeight: 600, fontFamily: N.ui }}>
+                    <span
+                      style={{ fontSize: 13, color: N.gold, fontWeight: 600, fontFamily: N.ui }}
+                    >
                       Book {h.reference.book} · Hadith {h.reference.hadith}
                     </span>
                     {h.grades.length > 0 && (
@@ -371,10 +553,19 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
 
           {allLoaded && results.length === 0 && (
             <div style={{ textAlign: "center", padding: "50px 20px" }}>
-              <div style={{ display: "inline-grid", placeItems: "center", marginBottom: 14, opacity: 0.5 }}>
+              <div
+                style={{
+                  display: "inline-grid",
+                  placeItems: "center",
+                  marginBottom: 14,
+                  opacity: 0.5,
+                }}
+              >
                 <Khatam size={54} color={N.goldDim} sw={1.2} />
               </div>
-              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6, fontFamily: N.ui }}>No hadith found</div>
+              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6, fontFamily: N.ui }}>
+                No hadith found
+              </div>
               <div style={{ fontSize: 14, color: N.muted, fontFamily: N.ui }}>
                 Try a different word, or remove a filter.
               </div>

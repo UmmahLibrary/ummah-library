@@ -49,7 +49,9 @@ export function TasbihPageClient() {
       void writeTasbih(next);
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
         // count wraps to 0 exactly when a round completes
-        navigator.vibrate(tasbihState(nextProgress.total, nextProgress.target).count === 0 ? 60 : 12);
+        navigator.vibrate(
+          tasbihState(nextProgress.total, nextProgress.target).count === 0 ? 60 : 12,
+        );
       }
       return next;
     });
@@ -116,6 +118,8 @@ export function TasbihPageClient() {
               return (
                 <button
                   key={p.id}
+                  type="button"
+                  aria-pressed={active}
                   onClick={() => selectPhrase(p.id)}
                   style={{
                     padding: "9px 16px",

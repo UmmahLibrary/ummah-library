@@ -379,6 +379,7 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
               <button
                 key={f.key}
                 type="button"
+                aria-pressed={on}
                 onClick={() => {
                   setFilter(f.key);
                   setShown(PAGE);
