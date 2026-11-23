@@ -73,7 +73,9 @@ export function AyahTranslations({ surah, aya }: { surah: number; aya: number })
 
   if (loading && lines.length === 0) {
     return (
-      <p className="ayah-tr" aria-busy="true" aria-label="Loading translation">
+      // role="status": ARIA forbids aria-label on a bare <p>, and it announces
+      // the swap when the translation arrives.
+      <p className="ayah-tr" role="status" aria-busy="true" aria-label="Loading translation">
         <span className="skeleton-line" style={{ display: "block", maxWidth: "82%" }} />
       </p>
     );

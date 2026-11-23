@@ -139,6 +139,7 @@ export const en = {
   "quran.tabSurah": "Surah",
   "quran.tabJuz": "Juzʾ",
   "quran.tabRevelation": "Revelation",
+  "quran.browseBy": "Browse by",
   "quran.ayahCount": "{n} ayahs",
   "quran.meccan": "Meccan",
   "quran.medinan": "Medinan",

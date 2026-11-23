@@ -126,6 +126,7 @@ export const id: Record<MessageKey, string> = {
   "quran.tabSurah": "Surah",
   "quran.tabJuz": "Juz",
   "quran.tabRevelation": "Turunnya",
+  "quran.browseBy": "Telusuri menurut",
   "quran.ayahCount": "{n} ayat",
   "quran.meccan": "Makkiyah",
   "quran.medinan": "Madaniyah",

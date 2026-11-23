@@ -12,13 +12,17 @@ interface SegProps {
   size?: "sm" | "md";
   /** Native uses it to pick the labels' face; web takes the page's font. */
   script?: Script;
+  /** Names the group for assistive tech (e.g. "Index by"). */
+  ariaLabel?: string;
 }
 
-export function Seg({ options, value, onChange, size = "md" }: SegProps) {
+export function Seg({ options, value, onChange, size = "md", ariaLabel }: SegProps) {
   const z = segment[size];
   const pad = `${sp(z.padY)} ${sp(z.padX)}`;
   return (
     <div
+      role="group"
+      aria-label={ariaLabel}
       style={{
         display: "flex",
         borderRadius: rad(z.radius),

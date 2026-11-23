@@ -16,6 +16,8 @@ interface BtnProps {
   disabled?: boolean;
   /** Ignored on native — type attribute is web-only. */
   type?: "button" | "submit" | "reset";
+  /** Accessible name — needed for an icon-only button; mirrors the web prop. */
+  ariaLabel?: string;
 }
 
 export function Btn({
@@ -25,6 +27,7 @@ export function Btn({
   onClick,
   icon,
   disabled,
+  ariaLabel,
 }: BtnProps) {
   const c = useNoorTheme();
   const z = control[size];
@@ -51,6 +54,8 @@ export function Btn({
     <Pressable
       onPress={onClick}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={ariaLabel}
       style={[
         styles.base,
         {

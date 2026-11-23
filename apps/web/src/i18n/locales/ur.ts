@@ -119,6 +119,7 @@ export const ur: Record<MessageKey, string> = {
   "quran.tabSurah": "سورت",
   "quran.tabJuz": "پارہ",
   "quran.tabRevelation": "نزول",
+  "quran.browseBy": "اس لحاظ سے دیکھیں",
   "quran.ayahCount": "{n} آیات",
   "quran.meccan": "مکی",
   "quran.medinan": "مدنی",

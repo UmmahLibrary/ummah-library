@@ -650,6 +650,7 @@ export function PlansView() {
           }}
         >
           <Seg
+            ariaLabel="Plan by"
             options={[
               { value: "date", label: "By date" },
               { value: "pace", label: "Pages a day" },
