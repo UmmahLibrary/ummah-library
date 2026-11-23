@@ -276,6 +276,7 @@ a {
   margin: 0.25rem 0;
 }
 .reader-head .name-en {
+  margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
 }

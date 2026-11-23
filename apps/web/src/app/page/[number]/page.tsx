@@ -81,7 +81,7 @@ export default async function MushafPage({ params }: { params: Promise<{ number:
         ← Home
       </Link>
       <header className="reader-head">
-        <div className="name-en">Mushaf</div>
+        <h1 className="name-en">Mushaf</h1>
         <div className="sub">
           Page {n} of {TOTAL_PAGES_MADANI} · Juzʾ {juz}
         </div>
