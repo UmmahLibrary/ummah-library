@@ -112,6 +112,27 @@ describe("NoorHomePage Today card", () => {
 
   it("keeps the full surah index off the Today screen", () => {
     render(<NoorHomePage surahs={surahs} />);
-    expect(screen.queryByRole("button", { name: "Juzʾ" })).toBeNull();
+    expect(screen.queryByText("Juzʾ")).toBeNull();
+  });
+});
+
+describe("NoorHomePage in Easy mode", () => {
+  afterEach(() => localStorage.clear());
+
+  it("the Quran index is one big list — no feature chips or index tabs", async () => {
+    localStorage.setItem("ul.comfort", JSON.stringify({ mode: "easy" }));
+    const { container } = render(<NoorHomePage surahs={surahs} variant="quran" />);
+
+    // The list switches to a single column once the mode is read.
+    await vi.waitFor(() => expect(container.querySelector('[data-easy="true"]')).not.toBeNull());
+    expect(screen.queryByRole("navigation", { name: "Quran" })).toBeNull();
+    expect(screen.queryByText("Juzʾ")).toBeNull();
+    expect(screen.getByText("Al-Fātiḥah")).toBeInTheDocument();
+  });
+
+  it("standard mode keeps the chips and tabs", () => {
+    render(<NoorHomePage surahs={surahs} variant="quran" />);
+    expect(screen.getByRole("navigation", { name: "Quran" })).toBeInTheDocument();
+    expect(screen.getByText("Juzʾ")).toBeInTheDocument();
   });
 });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon, N } from "@ummahlibrary/ui";
+import { useT } from "../i18n/I18nProvider";
 import {
   applyTheme,
   lastThemeForMode,
@@ -17,6 +18,7 @@ import {
  */
 export function ThemeToggle() {
   const [mode, setMode] = useState<ThemeMode>("dark");
+  const t = useT();
 
   useEffect(() => {
     setMode(themeMode(normalizeTheme(document.documentElement.dataset.theme)));
@@ -28,13 +30,13 @@ export function ThemeToggle() {
     setMode(target);
   }
 
-  const next = mode === "dark" ? "light" : "dark";
+  const label = t(mode === "dark" ? "shell.toLight" : "shell.toDark");
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-label={`Switch to ${next} theme`}
-      title={`Switch to ${next} theme`}
+      aria-label={label}
+      title={label}
       style={{
         width: 40,
         height: 40,

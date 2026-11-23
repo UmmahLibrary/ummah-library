@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { pluginRegistry, quranRepository } from "@ummahlibrary/api";
 import { KidsReader } from "../../../components/KidsReader";
@@ -9,6 +10,20 @@ export const dynamicParams = false;
 
 export function generateStaticParams() {
   return KIDS_SURAHS.map((n) => ({ number: String(n) }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ number: string }>;
+}): Promise<Metadata> {
+  const { number } = await params;
+  const surah = await quranRepository.getSurah(Number(number));
+  if (!surah) return { title: "Not found" };
+  return {
+    title: `For children · ${surah.transliteration}`,
+    alternates: { canonical: `/kids/${surah.number}` },
+  };
 }
 
 export default async function KidsSurahPage({ params }: { params: Promise<{ number: string }> }) {

@@ -4,7 +4,7 @@
  * `I18nProvider`. A synced adapter (#25) could replace this without touching the
  * provider.
  */
-import { DEFAULT_LOCALE, type Locale, isLocale } from "./config";
+import { DEFAULT_LOCALE, LOCALES, type Locale, isLocale } from "./config";
 
 const KEY = "ul.locale";
 
@@ -24,3 +24,13 @@ export function writeLocale(locale: Locale): void {
     /* storage unavailable */
   }
 }
+
+/**
+ * Inline pre-paint snippet for the layout bootstrap: sets `lang`/`dir` on
+ * `<html>` from the saved locale before first paint, so an Arabic or Urdu
+ * reader never sees the page laid out left-to-right and then mirror itself
+ * once React hydrates. Mirrors `localeDir`; the provider keeps it in sync after.
+ */
+export const LOCALE_BOOTSTRAP = `try{var l=localStorage.getItem("${KEY}");var dirs=${JSON.stringify(
+  Object.fromEntries(LOCALES.map((l) => [l.code, l.dir])),
+)};if(l&&dirs[l]){d.lang=l;d.dir=dirs[l];}}catch(e){}`;
