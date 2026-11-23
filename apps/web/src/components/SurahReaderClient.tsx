@@ -550,8 +550,9 @@ export function SurahReaderClient({
                   {surah.name}
                 </span>
               </div>
-              <div
+              <h1
                 style={{
+                  margin: 0,
                   fontSize: 19,
                   fontWeight: 800,
                   fontFamily: N.ui,
@@ -560,7 +561,7 @@ export function SurahReaderClient({
                 }}
               >
                 {surah.transliteration}
-              </div>
+              </h1>
               <div
                 style={{
                   fontSize: 12.5,

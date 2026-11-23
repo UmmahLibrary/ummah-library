@@ -6,7 +6,7 @@ import { KidsReader } from "./KidsReader";
  * Full-screen readers render without the app shell, so they must provide the
  * page's `main` landmark (and the `#main` target of "Skip to content") themselves.
  */
-describe("full-screen readers expose the main landmark", () => {
+describe("full-screen readers expose the main landmark and a page heading", () => {
   it("Kids reader", () => {
     render(
       <KidsReader
@@ -24,5 +24,6 @@ describe("full-screen readers expose the main landmark", () => {
     const main = screen.getByRole("main");
     expect(main).toHaveAttribute("id", "main");
     expect(main).toHaveTextContent("قُلْ هُوَ ٱللَّهُ أَحَدٌ");
+    expect(screen.getByRole("heading", { level: 1, name: "Al-Ikhlaas" })).toBeInTheDocument();
   });
 });

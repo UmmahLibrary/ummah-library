@@ -88,8 +88,9 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
           <span>{t("easy.read")}</span>
         </Link>
         <div style={{ flex: 1, minWidth: 0, fontFamily: N.ui }}>
-          <div
+          <h1
             style={{
+              margin: 0,
               fontSize: 17,
               fontWeight: 800,
               whiteSpace: "nowrap",
@@ -98,7 +99,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
             }}
           >
             {t("nav.listen")} · {surah.transliteration}
-          </div>
+          </h1>
           <div style={{ fontSize: 13.5, color: N.muted }}>
             {tf("dock.position", {
               aya: current,
