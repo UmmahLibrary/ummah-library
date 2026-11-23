@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { readScroll, writeScroll } from "../lib/reader-prefs-store";
+import { scrollBehavior } from "../lib/motion";
 
 /**
  * Reader keyboard shortcuts, a top reading-progress bar, and scroll-position
@@ -41,7 +42,7 @@ export function ReaderShortcuts({ storageKey }: { storageKey: string }) {
       if (!target) return;
       ayat.forEach((el) => el.classList.remove("ayah--focus"));
       target.classList.add("ayah--focus");
-      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
     }
 
     function onKey(e: KeyboardEvent) {

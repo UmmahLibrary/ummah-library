@@ -16,6 +16,7 @@ import { LOOP_EVENT, readLoop, readRate, writeLoop, writeRate } from "../lib/rea
 import { type Segment, bundledSegments } from "../lib/audio-timing";
 import { webAudioStore } from "../lib/audio-store";
 import { useIntl } from "../i18n/I18nProvider";
+import { scrollBehavior } from "../lib/motion";
 
 const RECITER_KEY = "ul.reciter";
 
@@ -283,7 +284,7 @@ export function ReadingAudio({
     if (key === null) return;
     const el = document.getElementById(key);
     el?.classList.add("ayah--playing");
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
   }
 
   function onTimeUpdate() {

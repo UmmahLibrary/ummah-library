@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { N } from "@ummahlibrary/ui";
 import type { Heading } from "../../lib/blog/blocks";
+import { scrollBehavior } from "../../lib/motion";
 
 const SCROLL_PROBE_PX = 120;
 const SCROLL_OFFSET_PX = 84;
@@ -27,7 +28,7 @@ export function ArticleTOC({ headings }: { headings: Heading[] }) {
     const el = document.getElementById(id);
     if (!el) return;
     const top = el.getBoundingClientRect().top + window.pageYOffset - SCROLL_OFFSET_PX;
-    window.scrollTo({ top, behavior: "smooth" });
+    window.scrollTo({ top, behavior: scrollBehavior() });
   };
 
   return (
