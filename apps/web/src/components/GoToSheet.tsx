@@ -57,6 +57,16 @@ export function GoToSheet({
     };
   }, [open, onClose]);
 
+  // Give focus back to whatever opened the sheet (the surah title, the dock's
+  // chip…) when it closes, so a keyboard user keeps their place in the page.
+  useEffect(() => {
+    if (!open) return;
+    const opener = document.activeElement as HTMLElement | null;
+    return () => {
+      if (opener && opener !== document.body && opener.isConnected) opener.focus();
+    };
+  }, [open]);
+
   const target = useMemo(
     () => parseGoTo(query, names, { currentSurah }),
     [query, names, currentSurah],

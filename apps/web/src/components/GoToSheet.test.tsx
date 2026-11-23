@@ -46,3 +46,29 @@ describe("GoToSheet layout on phones", () => {
     expect(sheet).toMatch(/min-width:\s*0/);
   });
 });
+
+describe("GoToSheet focus", () => {
+  it("returns focus to what opened it when closed", async () => {
+    const { useState } = await import("react");
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Open Go to
+          </button>
+          <GoToSheet open={open} onClose={() => setOpen(false)} names={names} onGo={() => {}} />
+        </>
+      );
+    }
+    render(<Harness />);
+    const opener = screen.getByRole("button", { name: "Open Go to" });
+
+    await userEvent.click(opener);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(opener).toHaveFocus();
+  });
+});

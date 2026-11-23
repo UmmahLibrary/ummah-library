@@ -57,8 +57,11 @@ export function TranslationChoice({ onPick }: { onPick?: () => void }) {
     onPick?.();
   };
 
-  const Row = ({ id, title, sub }: { id: string; title: string; sub?: string }) => (
+  // A render function, not a nested component: a component declared here would be
+  // a new type every render, remounting the buttons (and dropping focus) on pick.
+  const row = ({ id, title, sub }: { id: string; title: string; sub?: string }) => (
     <button
+      key={id}
       type="button"
       role="radio"
       aria-checked={current === id}
@@ -84,15 +87,14 @@ export function TranslationChoice({ onPick }: { onPick?: () => void }) {
       aria-label={t("tr.choose")}
       style={{ display: "grid", gap: 8, maxHeight: "48dvh", overflowY: "auto" }}
     >
-      {options.map((e) => (
-        <Row
-          key={e.id}
-          id={e.id}
-          title={e.author}
-          sub={`${e.language}${e.name !== e.author ? ` · ${e.name}` : ""}`}
-        />
-      ))}
-      <Row id="none" title={t("tr.none")} sub={t("tr.noneNote")} />
+      {options.map((e) =>
+        row({
+          id: e.id,
+          title: e.author,
+          sub: `${e.language}${e.name !== e.author ? ` · ${e.name}` : ""}`,
+        }),
+      )}
+      {row({ id: "none", title: t("tr.none"), sub: t("tr.noneNote") })}
     </div>
   );
 }

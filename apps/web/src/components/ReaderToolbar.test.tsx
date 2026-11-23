@@ -23,4 +23,26 @@ describe("ReaderToolbar — Text panel placement", () => {
     expect(panel.className).not.toMatch(/pop-sm-left/);
     expect(container.querySelector(".noor-pop-sm-left")).toBeNull();
   });
+
+  it("closes on Escape and gives focus back to the Text button", () => {
+    render(
+      <ReaderToolbar
+        surahNumber={1}
+        reciters={[]}
+        tafsirs={[]}
+        segValue="translation"
+        segOptions={[{ value: "translation", label: "Verse by verse" }]}
+        onSeg={() => {}}
+      />,
+    );
+    const btn = screen.getByRole("button", { name: "Text size and display" });
+    btn.focus();
+    fireEvent.click(btn);
+    expect(btn).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(btn).toHaveAttribute("aria-pressed", "false");
+    expect(btn).toHaveFocus();
+  });
 });
