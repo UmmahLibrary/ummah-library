@@ -419,7 +419,8 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
 
         {/* The rest of the Quran group, as on mobile (ADR 0042): on a phone
             the sidebar is hidden, so these are how readers reach them. */}
-        {variant === "quran" && (
+        {/* Easy mode promises "all surahs in a big list": no extra chips. */}
+        {variant === "quran" && appMode !== "easy" && (
           <nav
             aria-label={t("nav.quran")}
             style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "-6px 0 18px" }}
@@ -506,16 +507,18 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
               }}
             >
               {/* The page's h1 already says "The Quran"; no second title here. */}
-              <Seg
-                size="sm"
-                value={tab}
-                onChange={(v) => setTab(v as typeof tab)}
-                options={[
-                  { value: "surah", label: t("quran.tabSurah") },
-                  { value: "juz", label: t("quran.tabJuz") },
-                  { value: "rev", label: t("quran.tabRevelation") },
-                ]}
-              />
+              {appMode !== "easy" && (
+                <Seg
+                  size="sm"
+                  value={tab}
+                  onChange={(v) => setTab(v as typeof tab)}
+                  options={[
+                    { value: "surah", label: t("quran.tabSurah") },
+                    { value: "juz", label: t("quran.tabJuz") },
+                    { value: "rev", label: t("quran.tabRevelation") },
+                  ]}
+                />
+              )}
             </div>
 
             {q && tab === "surah" && (
@@ -537,9 +540,11 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
             {tab === "surah" && (
               <div
                 className="noor-rows-adaptive"
+                data-easy={appMode === "easy" ? "true" : undefined}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                  gridTemplateColumns:
+                    appMode === "easy" ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
                   gap: 12,
                 }}
               >

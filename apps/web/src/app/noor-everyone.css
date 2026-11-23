@@ -245,6 +245,9 @@
   inset: 0;
   z-index: 80;
   display: grid;
+  /* One column no wider than the screen: an auto track would grow to the
+     content's min width and push the sheet off a phone screen. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
 }
 .goto-scrim {
@@ -254,6 +257,8 @@
 }
 .goto-sheet {
   position: relative;
+  min-width: 0;
+  box-sizing: border-box;
   width: min(560px, calc(100vw - 32px));
   max-height: min(720px, calc(100dvh - 48px));
   display: flex;
@@ -329,7 +334,7 @@
   font-weight: 800;
   cursor: pointer;
 }
-.goto-go:disabled {
+.goto-go[aria-disabled="true"] {
   opacity: 0.45;
   cursor: default;
 }

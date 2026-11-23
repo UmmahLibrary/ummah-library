@@ -19,7 +19,9 @@ export default function BlogLayout({ children }: { children: ReactNode }) {
       style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
     >
       <BlogHeader />
-      <div style={{ flex: 1 }}>{children}</div>
+      <main id="main" style={{ flex: 1 }}>
+        {children}
+      </main>
       <BlogFooter />
     </div>
   );

@@ -59,6 +59,17 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
 
   const verse = ayahs.find((a) => a.aya === current) ?? ayahs[0]!;
   const step = (d: number) => Math.min(surah.ayahCount, Math.max(1, current + d));
+  // Move the text straight away; the recitation follows when it can play. Without
+  // this, Previous/Next looked dead offline, on a failed stream or while it
+  // buffered. Deferred so the audio engine's document click handler still reads
+  // this click's `data-play-key` before the re-render changes it.
+  const moveTo = (aya: number) => {
+    setTimeout(() => {
+      startRef.current = aya;
+      setCurrent(aya);
+      history.replaceState(null, "", `#${aya}`);
+    }, 0);
+  };
 
   return (
     <div
@@ -77,8 +88,9 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
           <span>{t("easy.read")}</span>
         </Link>
         <div style={{ flex: 1, minWidth: 0, fontFamily: N.ui }}>
-          <div
+          <h1
             style={{
+              margin: 0,
               fontSize: 17,
               fontWeight: 800,
               whiteSpace: "nowrap",
@@ -87,7 +99,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
             }}
           >
             {t("nav.listen")} · {surah.transliteration}
-          </div>
+          </h1>
           <div style={{ fontSize: 13.5, color: N.muted }}>
             {tf("dock.position", {
               aya: current,
@@ -102,7 +114,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
         </Link>
       </div>
 
-      <div className="noor-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <main id="main" className="noor-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         <div
           style={{
             maxWidth: 760,
@@ -167,6 +179,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
                 className="nf-btn"
                 data-play-key={`${surah.number}:${step(-1)}`}
                 disabled={current <= 1}
+                onClick={() => moveTo(step(-1))}
                 style={{ minWidth: 120 }}
               >
                 ⏮ {t("reader.previous")}
@@ -184,6 +197,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
                 className="nf-btn"
                 data-play-key={`${surah.number}:${step(1)}`}
                 disabled={current >= surah.ayahCount}
+                onClick={() => moveTo(step(1))}
                 style={{ minWidth: 120 }}
               >
                 {t("reader.next")} ⏭
@@ -233,7 +247,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
             )}
           </nav>
         </div>
-      </div>
+      </main>
 
       <ReadingAudio
         verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}

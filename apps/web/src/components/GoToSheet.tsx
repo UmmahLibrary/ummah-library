@@ -57,6 +57,16 @@ export function GoToSheet({
     };
   }, [open, onClose]);
 
+  // Give focus back to whatever opened the sheet (the surah title, the dock's
+  // chip…) when it closes, so a keyboard user keeps their place in the page.
+  useEffect(() => {
+    if (!open) return;
+    const opener = document.activeElement as HTMLElement | null;
+    return () => {
+      if (opener && opener !== document.body && opener.isConnected) opener.focus();
+    };
+  }, [open]);
+
   const target = useMemo(
     () => parseGoTo(query, names, { currentSurah }),
     [query, names, currentSurah],
@@ -154,7 +164,9 @@ export function GoToSheet({
               setTried(false);
             }}
           />
-          <button type="submit" className="goto-go" disabled={!target}>
+          {/* Not `disabled`: a disabled default button blocks Enter-to-submit,
+              so an unrecognised entry would never show the "not found" hint. */}
+          <button type="submit" className="goto-go" aria-disabled={!target}>
             {tr("goto.go")}
           </button>
         </form>

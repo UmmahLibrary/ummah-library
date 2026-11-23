@@ -219,11 +219,15 @@ function highlight(text: string, q: string): React.ReactNode {
   );
 }
 
+/** Results render a page at a time; the count always reports every match. */
+const PAGE = 60;
+
 export function SearchView({ surahs }: { surahs: SurahRef[] }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | ResultType>("all");
   const [results, setResults] = useState<(SearchItem & { score: number })[]>([]);
   const [indexReady, setIndexReady] = useState(false);
+  const [shown, setShown] = useState(PAGE);
   const [history, setHistory] = useState<string[]>([]);
   const indexRef = useRef<SearchItem[] | null>(null);
   const queryRef = useRef("");
@@ -245,7 +249,7 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
       // If the user already typed (or arrived with ?q=) before the index
       // finished, search now.
       const pending = queryRef.current.trim();
-      if (pending.length >= 2) setResults(searchText(items, pending, 60));
+      if (pending.length >= 2) setResults(searchText(items, pending, Infinity));
     });
   }, [surahs]);
 
@@ -255,10 +259,11 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
     setQuery(value);
     queryRef.current = value;
     setFilter("all");
+    setShown(PAGE);
     if (debounce.current) clearTimeout(debounce.current);
     debounce.current = setTimeout(() => {
       const index = indexRef.current;
-      setResults(index && value.trim().length >= 2 ? searchText(index, value, 60) : []);
+      setResults(index && value.trim().length >= 2 ? searchText(index, value, Infinity) : []);
     }, 140);
   }
 
@@ -337,6 +342,7 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
           aria-label="Search"
           style={{
             flex: 1,
+            minWidth: 0,
             background: "none",
             border: "none",
             outline: "none",
@@ -374,7 +380,11 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
               <button
                 key={f.key}
                 type="button"
-                onClick={() => setFilter(f.key)}
+                aria-pressed={on}
+                onClick={() => {
+                  setFilter(f.key);
+                  setShown(PAGE);
+                }}
                 style={{
                   padding: "7px 14px",
                   borderRadius: 999,
@@ -504,7 +514,7 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-            {filtered.map((r, i) => {
+            {filtered.slice(0, shown).map((r, i) => {
               const m = TYPE_META[r.type];
               return (
                 <Link
@@ -606,6 +616,17 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
               );
             })}
           </div>
+
+          {filtered.length > shown && (
+            <button
+              type="button"
+              className="nf-btn"
+              style={{ marginTop: 14, width: "100%" }}
+              onClick={() => setShown((n) => n + PAGE)}
+            >
+              Show more ({filtered.length - shown} more)
+            </button>
+          )}
 
           {indexReady && filtered.length === 0 && (
             <div style={{ textAlign: "center", padding: "50px 20px" }}>

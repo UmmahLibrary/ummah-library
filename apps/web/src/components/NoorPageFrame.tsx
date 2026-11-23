@@ -66,7 +66,7 @@ export function NoorPageFrame({ title, sub, glyph, back, actions, maxW = 920, ch
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {glyph && <span style={{ fontSize: 22 }}>{glyph}</span>}
-                <h2
+                <h1
                   style={{
                     fontSize: "clamp(21px,3.4vw,26px)",
                     fontWeight: 800,
@@ -80,7 +80,7 @@ export function NoorPageFrame({ title, sub, glyph, back, actions, maxW = 920, ch
                   }}
                 >
                   {title}
-                </h2>
+                </h1>
               </div>
               {sub && (
                 <div style={{ fontSize: 13.5, color: N.muted, marginTop: 2, fontFamily: N.ui }}>

@@ -57,7 +57,7 @@ export function KidsReader({
           <span>{t("onb.back")}</span>
         </Link>
         <div style={{ flex: 1, minWidth: 0, fontFamily: N.ui }}>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>{surah.transliteration}</div>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{surah.transliteration}</h1>
           <div style={{ fontSize: 14, color: N.muted }}>{t("kids.tapWord")}</div>
         </div>
         <span className="noor-ar" lang="ar" dir="rtl" style={{ fontSize: 28, color: N.goldHi }}>
@@ -65,7 +65,7 @@ export function KidsReader({
         </span>
       </div>
 
-      <div className="noor-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <main id="main" className="noor-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         <div
           className="mode-translation"
           style={{
@@ -155,7 +155,7 @@ export function KidsReader({
             </Link>
           </div>
         </div>
-      </div>
+      </main>
 
       <ReadingAudio
         verses={ayahs.map((a) => ({ sura: surah.number, aya: a.aya }))}

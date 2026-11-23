@@ -42,3 +42,33 @@ describe("HifzReview", () => {
     expect(screen.queryByText(/āyahāt/)).not.toBeInTheDocument();
   });
 });
+
+describe("HifzReview — keyboard and screen-reader focus", () => {
+  it("moves focus to the revealed āyah, then to the next card's Reveal button", async () => {
+    localStorage.setItem("ul.hifz", JSON.stringify({ "1:1": card, "1:2": card }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ayahs: [
+              { aya: 1, text: "بِسْمِ ٱللَّهِ" },
+              { aya: 2, text: "ٱلْحَمْدُ لِلَّهِ" },
+            ],
+          }),
+      }),
+    );
+    const user = userEvent.setup();
+    render(<HifzReview surahNames={SURAH_NAMES} />);
+
+    await user.click(await screen.findByRole("button", { name: /Reveal āyah/ }));
+    expect(await screen.findByText("بِسْمِ ٱللَّهِ")).toHaveFocus();
+    expect(
+      screen.getByRole("group", { name: "How well did you remember it?" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Good" }));
+    expect(await screen.findByRole("button", { name: /Reveal āyah/ })).toHaveFocus();
+  });
+});

@@ -101,6 +101,8 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
   const weekCount = week.filter((d) => d.active).length;
   const paused = comfort?.trackingPaused ?? false;
   const showStreak = comfort?.showStreaks ?? false;
+  // "I mostly listen" in setup promises Home leads with recitation.
+  const listenFirst = comfort?.readingPath === "listen";
 
   const hrefFor = (sura: number, aya: number) =>
     aya > 1 ? `/surah/${sura}#${sura}:${aya}` : `/surah/${sura}`;
@@ -226,22 +228,14 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
               />
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link
-                href={hrefFor(action.at.sura, action.at.aya)}
-                className="nf-btn nf-btn--gold"
-                style={{ flex: "1 1 160px" }}
-              >
-                <Icon name="book" size={20} />
-                {tr("home.continue")}
-              </Link>
-              <Link
-                href={`/listen/${action.at.sura}#${action.at.aya}`}
-                className="nf-btn"
-                style={{ flex: "1 1 160px" }}
-              >
-                <Icon name="headphones" size={20} />
-                {tr("home.listenInstead")}
-              </Link>
+              <ReadListenPair
+                listenFirst={listenFirst}
+                read={{ href: hrefFor(action.at.sura, action.at.aya), label: tr("home.continue") }}
+                listen={{
+                  href: `/listen/${action.at.sura}#${action.at.aya}`,
+                  label: listenFirst ? tr("nav.listen") : tr("home.listenInstead"),
+                }}
+              />
             </div>
           </>
         )}
@@ -276,14 +270,11 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
               {tr("home.startHint")}
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link href="/surah/1" className="nf-btn nf-btn--gold" style={{ flex: "1 1 160px" }}>
-                <Icon name="book" size={20} />
-                {tr("home.readFatiha")}
-              </Link>
-              <Link href="/listen/112" className="nf-btn" style={{ flex: "1 1 160px" }}>
-                <Icon name="headphones" size={20} />
-                {tr("home.listenIkhlas")}
-              </Link>
+              <ReadListenPair
+                listenFirst={listenFirst}
+                read={{ href: "/surah/1", label: tr("home.readFatiha") }}
+                listen={{ href: "/listen/112", label: tr("home.listenIkhlas") }}
+              />
             </div>
           </>
         )}
@@ -339,6 +330,44 @@ export function HomeToday({ surahs }: { surahs: readonly SurahLite[] }) {
       </Link>
     </div>
   );
+}
+
+/**
+ * The card's two actions. The reader's setup choice decides which leads — gold
+ * and first in reading order (so keyboard and screen-reader order match).
+ */
+function ReadListenPair({
+  listenFirst,
+  read,
+  listen,
+}: {
+  listenFirst: boolean;
+  read: { href: string; label: string };
+  listen: { href: string; label: string };
+}) {
+  const readBtn = (
+    <Link
+      key="read"
+      href={read.href}
+      className={listenFirst ? "nf-btn" : "nf-btn nf-btn--gold"}
+      style={{ flex: "1 1 160px" }}
+    >
+      <Icon name="book" size={20} />
+      {read.label}
+    </Link>
+  );
+  const listenBtn = (
+    <Link
+      key="listen"
+      href={listen.href}
+      className={listenFirst ? "nf-btn nf-btn--gold" : "nf-btn"}
+      style={{ flex: "1 1 160px" }}
+    >
+      <Icon name="headphones" size={20} />
+      {listen.label}
+    </Link>
+  );
+  return <>{listenFirst ? [listenBtn, readBtn] : [readBtn, listenBtn]}</>;
 }
 
 function safeJuz(sura: number, aya: number): number {

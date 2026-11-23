@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -145,13 +146,39 @@ export function PlansScreen({ navigation }: Props) {
       range: customRange,
       schedule: customSchedule,
     };
-    void startCustomPlan(template).then(() => {
-      setCustomOpen(false);
-      refresh();
+    confirmDropPlan(tf("mem.plans.switchTo", { name: template.name }), () => {
+      void startCustomPlan(template).then(() => {
+        setCustomOpen(false);
+        refresh();
+      });
     });
   }
 
-  const [todayBefore = "", todayAfter = ""] = t("mem.plans.todayLabel").split("{label}");
+  /**
+   * Starting another plan or leaving this one drops its progress (there is one
+   * active plan). Ask first whenever there's progress to lose.
+   */
+  function confirmDropPlan(title: string, proceed: () => void) {
+    if (!plan || plan.unitsRead === 0 || isPlanComplete(plan)) {
+      proceed();
+      return;
+    }
+    Alert.alert(
+      title,
+      tf("mem.plans.dropBody", { name: planName(intl, plan.template), pct: percentComplete(plan) }),
+      [
+        { text: t("mem.plans.cancel"), style: "cancel" },
+        { text: t("mem.plans.dropOk"), style: "destructive", onPress: proceed },
+      ],
+    );
+  }
+
+  // Once today's day is marked done, the portion shown is the next one (read
+  // ahead) — say so instead of calling it today's.
+  const dayDone = plan ? isDayComplete(plan, day) : false;
+  const [todayBefore = "", todayAfter = ""] = t(
+    dayDone ? "mem.plans.nextLabel" : "mem.plans.todayLabel",
+  ).split("{label}");
   const R = 33;
   const C = 2 * Math.PI * R;
 
@@ -217,7 +244,9 @@ export function PlansScreen({ navigation }: Props) {
                 onPress={() => openTarget(navigation, portion)}
               >
                 <Icon name="book" size={15} color={colors.ink} sw={1.8} />
-                <Text style={styles.readBtnText}>{t("mem.plans.readToday")}</Text>
+                <Text style={styles.readBtnText}>
+                  {t(dayDone ? "mem.plans.readAhead" : "mem.plans.readToday")}
+                </Text>
               </Pressable>
             </View>
 
@@ -232,7 +261,12 @@ export function PlansScreen({ navigation }: Props) {
                     : tf("mem.plans.markDay", { n: day })}
                 </Text>
               </Pressable>
-              <Pressable style={styles.pill} onPress={() => void clearPlan().then(refresh)}>
+              <Pressable
+                style={styles.pill}
+                onPress={() =>
+                  confirmDropPlan(t("mem.plans.leaveQ"), () => void clearPlan().then(refresh))
+                }
+              >
                 <Text style={styles.pillText}>{t("mem.plans.leave")}</Text>
               </Pressable>
               {paused && (
@@ -325,7 +359,11 @@ export function PlansScreen({ navigation }: Props) {
                 accessibilityRole="button"
                 onPress={() => {
                   if (isActive && portion) openTarget(navigation, portion);
-                  else void startPlan(pl.id).then(refresh);
+                  else
+                    confirmDropPlan(
+                      tf("mem.plans.switchTo", { name: planName(intl, pl) }),
+                      () => void startPlan(pl.id).then(refresh),
+                    );
                 }}
               >
                 <View style={styles.libHead}>

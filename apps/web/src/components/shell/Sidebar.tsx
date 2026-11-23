@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { N, Logo, Icon } from "@ummahlibrary/ui";
-import { useT } from "../../i18n/I18nProvider";
+import { useIntl } from "../../i18n/I18nProvider";
 import { NAV_DESTINATIONS, destinationOf } from "../../lib/nav";
 
 // Five places, same as the phone tabs and hub pages (ADR 0041). Progressive
@@ -15,7 +15,7 @@ const NAV = NAV_DESTINATIONS.filter((d) => d.key !== "today");
 
 export function Sidebar() {
   const pathname = usePathname();
-  const t = useT();
+  const { t, tf } = useIntl();
   const current = destinationOf(pathname);
   // The current section is open; the reader may open one other to look around.
   const [open, setOpen] = useState<string>(current);
@@ -77,7 +77,10 @@ export function Sidebar() {
                   type="button"
                   aria-expanded={isOpen}
                   aria-controls={panelId}
-                  aria-label={`${t(group.label)}: ${isOpen ? "hide" : "show"} ${group.items.length}`}
+                  aria-label={tf(isOpen ? "shell.hideSection" : "shell.showSection", {
+                    section: t(group.label),
+                    n: group.items.length,
+                  })}
                   onClick={() => setOpen(isOpen ? "" : group.key)}
                   style={{
                     width: 40,

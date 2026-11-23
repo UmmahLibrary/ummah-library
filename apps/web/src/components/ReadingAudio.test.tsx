@@ -52,9 +52,45 @@ describe("ReadingAudio — tap a word to hear (#145)", () => {
     document.body.classList.add("tap-hear-on");
     word.click();
     await waitFor(() =>
-      expect(fetchSpy).toHaveBeenCalledWith(
-        expect.stringContaining("/verses/by_key/1:1?audio=7"),
-      ),
+      expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining("/verses/by_key/1:1?audio=7")),
     );
+  });
+});
+
+describe("ReadingAudio — a recitation that can't load", () => {
+  const NO_TIMING_RECITER: ReciterPlugin = { ...ALAFASY, quranComId: undefined };
+
+  function playFirstAyah() {
+    const btn = document.createElement("button");
+    btn.dataset.playKey = "1:1";
+    document.body.appendChild(btn);
+    btn.click();
+  }
+
+  it("says it couldn't play instead of doing nothing", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockRejectedValue(
+      new DOMException("network", "NotSupportedError"),
+    );
+    const { findAllByText } = render(
+      <ReadingAudio verses={[{ sura: 1, aya: 1 }]} reciters={[NO_TIMING_RECITER]} />,
+    );
+
+    playFirstAyah();
+
+    expect((await findAllByText(/Couldn’t play/)).length).toBeGreaterThan(0);
+  });
+
+  it("stays quiet when the browser only blocked autoplay", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockRejectedValue(
+      new DOMException("blocked", "NotAllowedError"),
+    );
+    const { queryAllByText } = render(
+      <ReadingAudio verses={[{ sura: 1, aya: 1 }]} reciters={[NO_TIMING_RECITER]} />,
+    );
+
+    playFirstAyah();
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(queryAllByText(/Couldn’t play/)).toHaveLength(0);
   });
 });

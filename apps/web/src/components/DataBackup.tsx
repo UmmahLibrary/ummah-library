@@ -141,7 +141,7 @@ export function DataBackup() {
           style={{
             fontSize: 13.5,
             fontFamily: N.ui,
-            color: status.ok ? N.gold : "#E5736B",
+            color: status.ok ? N.gold : N.error,
             margin: "0 0 16px",
           }}
         >
@@ -161,7 +161,7 @@ export function DataBackup() {
             borderRadius: 999,
             border: `1px solid ${N.border}`,
             background: "transparent",
-            color: "#E5736B",
+            color: N.error,
             fontSize: 13.5,
             fontWeight: 600,
             cursor: "pointer",

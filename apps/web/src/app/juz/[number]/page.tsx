@@ -140,7 +140,7 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
           ← All juzʾ
         </Link>
         <header className="reader-head">
-          <div className="name-en">Juzʾ {n}</div>
+          <h1 className="name-en">Juzʾ {n}</h1>
           <div className="sub">{verses.length} āyāt</div>
         </header>
 

@@ -123,7 +123,7 @@ export function CollectionsView() {
             fontFamily: N.ui,
           }}
         >
-          Open any surah, tap <strong style={{ color: N.gold }}>☆ Save</strong> under an āyah, and
+          Open any surah, tap <strong style={{ color: N.gold }}>Save</strong> under an āyah, and
           group your favourite verses and notes into collections here.
         </div>
       </div>
@@ -178,6 +178,7 @@ export function CollectionsView() {
             </span>
             <button
               type="button"
+              aria-label={`Delete collection ${c.name}`}
               onClick={() => {
                 if (confirm(`Delete the collection “${c.name}”?`)) {
                   persist(deleteCollection(collections, c.id));

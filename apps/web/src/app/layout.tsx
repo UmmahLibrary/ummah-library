@@ -17,6 +17,7 @@ import { I18nProvider } from "../i18n/I18nProvider";
 import { Onboarding } from "../components/Onboarding";
 import { SITE_URL } from "../lib/site";
 import { COMFORT_BOOTSTRAP } from "../lib/comfort-store";
+import { LOCALE_BOOTSTRAP } from "../i18n/locale-store";
 // Noor palette (all themes) — generated from packages/ui/src/themes.ts (ADR 0027).
 // Imported before globals.css so the web's next/font overrides for --noor-ui/--noor-ar win.
 import "@ummahlibrary/ui/noor-themes.css";
@@ -113,7 +114,8 @@ export const viewport: Viewport = {
    follows the device's light/dark setting (Ivory or Obsidian) until the reader
    picks a theme; maps the legacy "dark"/"light" values and sets data-mode.
    Comfort settings (translation size, larger buttons, Easy/Kids mode) apply here
-   too, so large-text readers never see a flash of small text. */
+   too, so large-text readers never see a flash of small text, and so does the
+   interface language's direction (no left-to-right flash for Arabic/Urdu). */
 const themeScript = `(function(){try{
   var d=document.documentElement;
   var legacy={dark:"obsidian",light:"ivory"};
@@ -131,6 +133,7 @@ const themeScript = `(function(){try{
   d.style.setProperty("--noor-ui","'Hanken Grotesk', system-ui, sans-serif");
   d.style.setProperty("--noor-ar","'IBM Plex Sans Arabic', serif");
   ${COMFORT_BOOTSTRAP}
+  ${LOCALE_BOOTSTRAP}
 }catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {

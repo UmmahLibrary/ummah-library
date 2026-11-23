@@ -41,7 +41,7 @@ const secondaryBtn = {
 const dangerBtn = {
   ...secondaryBtn,
   background: "transparent",
-  color: "#E5736B",
+  color: N.error,
 } as const;
 
 const inputStyle = {
@@ -279,7 +279,7 @@ export function SyncSettings() {
           style={{
             fontSize: 13.5,
             fontFamily: N.ui,
-            color: status.ok ? N.gold : "#E5736B",
+            color: status.ok ? N.gold : N.error,
             margin: "0 0 16px",
           }}
         >

@@ -319,7 +319,13 @@ export function ReadingGoalsView() {
       >
         <span style={pillLabel}>Daily goal</span>
         {[2, 4, 8, 16, 20].map((n) => (
-          <button key={n} onClick={() => changeGoal(n)} style={pill(n === goal)}>
+          <button
+            key={n}
+            type="button"
+            aria-pressed={n === goal}
+            onClick={() => changeGoal(n)}
+            style={pill(n === goal)}
+          >
             {n} pages
           </button>
         ))}
@@ -360,13 +366,23 @@ export function ReadingGoalsView() {
             >
               Resume p{Math.min(khatma.totalPages, khatma.currentPage + 1)}
             </Link>
-            <button onClick={() => adjustKhatma(1)} style={pill(false)}>
+            <button
+              type="button"
+              aria-label="One page forward"
+              onClick={() => adjustKhatma(1)}
+              style={pill(false)}
+            >
               +1
             </button>
-            <button onClick={() => adjustKhatma(-1)} style={pill(false)}>
+            <button
+              type="button"
+              aria-label="One page back"
+              onClick={() => adjustKhatma(-1)}
+              style={pill(false)}
+            >
               −1
             </button>
-            <button onClick={() => void clearKhatma()} style={pill(false)}>
+            <button type="button" onClick={() => void clearKhatma()} style={pill(false)}>
               Clear
             </button>
           </>

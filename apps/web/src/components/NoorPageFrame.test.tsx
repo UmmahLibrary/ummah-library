@@ -27,7 +27,7 @@ describe("NoorPageFrame", () => {
       </NoorPageFrame>,
     );
 
-    expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
     expect(screen.getByText("Tailor the app")).toBeInTheDocument();
     expect(screen.getByText("body content")).toBeInTheDocument();
   });

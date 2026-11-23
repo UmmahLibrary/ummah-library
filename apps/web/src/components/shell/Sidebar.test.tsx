@@ -12,7 +12,9 @@ describe("Sidebar", () => {
     path = "/";
     render(<Sidebar />, { wrapper: I18nProvider });
     for (const place of ["Today", "Quran", "Prayer", "Learn", "More"]) {
-      expect(screen.getAllByRole("link", { name: new RegExp(`^${place}$`) }).length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByRole("link", { name: new RegExp(`^${place}$`) }).length,
+      ).toBeGreaterThan(0);
     }
     expect(screen.queryByRole("link", { name: /99 Names/ })).toBeNull();
   });
@@ -29,5 +31,17 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: I18nProvider });
     fireEvent.click(screen.getByRole("button", { name: /^Learn: show/ }));
     expect(screen.getByRole("link", { name: /99 Names/ })).toBeInTheDocument();
+  });
+
+  it("names the section toggles in the interface language", async () => {
+    path = "/";
+    localStorage.setItem("ul.locale", "ar");
+    try {
+      render(<Sidebar />, { wrapper: I18nProvider });
+      expect(await screen.findByRole("button", { name: /^التعلّم: إظهار/ })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /show/ })).toBeNull();
+    } finally {
+      localStorage.removeItem("ul.locale");
+    }
   });
 });

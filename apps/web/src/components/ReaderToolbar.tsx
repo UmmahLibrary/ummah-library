@@ -34,6 +34,41 @@ type Panel = "display" | "reciter" | null;
  * reciter, translations, the Verse/Reading/Mushaf segmented control, and a surah
  * bookmark — wired to the same mechanisms the dock and home shelf already use.
  */
+/**
+ * A labelled toolbar button. Defined at module level: a component declared
+ * inside ReaderToolbar was a new type on every render, so React remounted the
+ * button and keyboard focus fell to the page whenever a panel opened.
+ */
+function IconBtn({
+  icon,
+  title,
+  label,
+  on,
+  onClick,
+}: {
+  icon: IconName;
+  title: string;
+  /** The word shown under the icon — every control says what it does. */
+  label: string;
+  on?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      aria-pressed={on}
+      onClick={onClick}
+      className="tb-btn"
+      data-on={on ? "true" : undefined}
+    >
+      <Icon name={icon} size={20} />
+      <span aria-hidden="true">{label}</span>
+    </button>
+  );
+}
+
 export function ReaderToolbar({
   surahNumber,
   reciters,
@@ -50,6 +85,20 @@ export function ReaderToolbar({
   onSeg: (value: string) => void;
 }) {
   const [panel, setPanel] = useState<Panel>(null);
+
+  // Escape closes an open panel and puts focus back on the button that opened
+  // it, like every other popup in the reader.
+  useEffect(() => {
+    if (!panel) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setPanel(null);
+      if (opener && opener !== document.body && opener.isConnected) opener.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [panel]);
   const t = useT();
   const [bookmarked, setBookmarked] = useState(false);
   const [reciterId, setReciterId] = useState(reciters[0]?.id ?? "");
@@ -184,36 +233,6 @@ export function ReaderToolbar({
     marginBottom: 10,
   };
 
-  function IconBtn({
-    icon,
-    title,
-    label,
-    on,
-    onClick,
-  }: {
-    icon: IconName;
-    title: string;
-    /** The word shown under the icon — every control says what it does. */
-    label: string;
-    on?: boolean;
-    onClick: () => void;
-  }) {
-    return (
-      <button
-        type="button"
-        title={title}
-        aria-label={title}
-        aria-pressed={on}
-        onClick={onClick}
-        className="tb-btn"
-        data-on={on ? "true" : undefined}
-      >
-        <Icon name={icon} size={20} />
-        <span aria-hidden="true">{label}</span>
-      </button>
-    );
-  }
-
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       {/* Display / text size */}
@@ -227,7 +246,6 @@ export function ReaderToolbar({
         />
         {panel === "display" && (
           <div
-            className="noor-pop-sm-left"
             style={{
               ...popover,
               minWidth: 260,
@@ -440,10 +458,7 @@ export function ReaderToolbar({
             onClick={() => setPanel((p) => (p === "reciter" ? null : "reciter"))}
           />
           {panel === "reciter" && (
-            <div
-              className="noor-pop-sm-left"
-              style={{ ...popover, minWidth: 220, maxHeight: 320, overflowY: "auto" }}
-            >
+            <div style={{ ...popover, minWidth: 220, maxHeight: 320, overflowY: "auto" }}>
               <div style={sectionLabel}>{t("toolbar.reciter")}</div>
               {reciters.map((r) => {
                 const on = r.id === reciterId;

@@ -65,6 +65,16 @@ const sectionLabel = {
 /** Reading plans — structured journeys, mirroring the mobile screen and the
  *  Noor design. The catalogue + pure schedule maths live in core; persistence
  *  is local. */
+/**
+ * Starting another plan or leaving this one drops its progress (there is one
+ * active plan). Ask first whenever there's progress to lose.
+ */
+function confirmDropPlan(current: ActivePlan | null, action: string): boolean {
+  if (!current || current.unitsRead === 0 || isPlanComplete(current)) return true;
+  const pct = percentComplete(current);
+  return confirm(`${action} Your progress in “${current.template.name}” (${pct}%) will be lost.`);
+}
+
 export function PlansView() {
   const [plan, setPlan] = useState<ActivePlan | null>(null);
   const [ready, setReady] = useState(false);
@@ -93,6 +103,7 @@ export function PlansView() {
   const totalDays = plan ? planDuration(plan) : 0;
   const day = plan ? currentDay(plan, viewToday) : 0;
   const portion = plan ? computeTodayPortion(plan, viewToday) : undefined;
+  const dayDone = plan ? isDayComplete(plan, day) : false;
   const pct = plan ? percentComplete(plan) : 0;
   const behind = plan ? daysAheadBehind(plan, viewToday) : 0;
   const catchUp = plan ? catchUpPortion(plan, viewToday) : undefined;
@@ -103,16 +114,32 @@ export function PlansView() {
     mode === "date"
       ? { kind: "targetDate", endDate }
       : { kind: "fixed", unitsPerDay: Number(perDay) || 0 };
-  const customErrors = validatePlanDraft({ range: customRange, schedule: customSchedule, startDate: today });
+  const customErrors = validatePlanDraft({
+    range: customRange,
+    schedule: customSchedule,
+    startDate: today,
+  });
   const customPreview =
     customErrors.length === 0
       ? (() => {
           const draft = activatePlan(
-            { id: "custom", name: "", tag: "", len: "", desc: "", range: customRange, schedule: customSchedule },
+            {
+              id: "custom",
+              name: "",
+              tag: "",
+              len: "",
+              desc: "",
+              range: customRange,
+              schedule: customSchedule,
+            },
             today,
           );
           const days = planDuration(draft);
-          return { days, end: planEndDate(draft), perDay: Math.ceil(customRange.units.length / days) };
+          return {
+            days,
+            end: planEndDate(draft),
+            perDay: Math.ceil(customRange.units.length / days),
+          };
         })()
       : null;
 
@@ -130,6 +157,7 @@ export function PlansView() {
       range: customRange,
       schedule: customSchedule,
     };
+    if (!confirmDropPlan(plan, `Start “${template.name}”?`)) return;
     void startCustomPlan(template);
     setCustomOpen(false);
   }
@@ -153,7 +181,10 @@ export function PlansView() {
               overflow: "hidden",
             }}
           >
-            <div aria-hidden="true" style={{ position: "absolute", right: -30, top: -30, pointerEvents: "none" }}>
+            <div
+              aria-hidden="true"
+              style={{ position: "absolute", right: -30, top: -30, pointerEvents: "none" }}
+            >
               <Khatam size={150} color={N.gold} sw={1.1} opacity={0.08} />
             </div>
             <div
@@ -167,8 +198,20 @@ export function PlansView() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: 18, minWidth: 0 }}>
                 <div style={{ position: "relative", width: 72, height: 72, flexShrink: 0 }}>
-                  <svg width="72" height="72" style={{ transform: "rotate(-90deg)" }} aria-hidden="true">
-                    <circle cx="36" cy="36" r={R} fill="none" strokeWidth="7" style={{ stroke: N.border }} />
+                  <svg
+                    width="72"
+                    height="72"
+                    style={{ transform: "rotate(-90deg)" }}
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="36"
+                      cy="36"
+                      r={R}
+                      fill="none"
+                      strokeWidth="7"
+                      style={{ stroke: N.border }}
+                    />
                     <circle
                       cx="36"
                       cy="36"
@@ -209,11 +252,22 @@ export function PlansView() {
                   >
                     {paused ? "⏸ Paused" : "Active"} · Day {day} of {totalDays}
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, color: N.fg, fontFamily: N.ui }}>
+                  <div
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 800,
+                      letterSpacing: -0.5,
+                      color: N.fg,
+                      fontFamily: N.ui,
+                    }}
+                  >
                     {plan.template.name}
                   </div>
                   <div style={{ fontSize: 13.5, color: N.muted, marginTop: 3, fontFamily: N.ui }}>
-                    Today: <span style={{ color: N.fg, fontWeight: 600 }}>{portion.label}</span> · {portion.est}
+                    {/* Once today is marked done the portion is the next one. */}
+                    {dayDone ? "Next" : "Today"}:{" "}
+                    <span style={{ color: N.fg, fontWeight: 600 }}>{portion.label}</span> ·{" "}
+                    {portion.est}
                   </div>
                 </div>
               </div>
@@ -234,7 +288,8 @@ export function PlansView() {
                   flexShrink: 0,
                 }}
               >
-                <Icon name="book" size={16} color={N.ink} sw={1.8} /> Read today
+                <Icon name="book" size={16} color={N.ink} sw={1.8} />{" "}
+                {dayDone ? "Read ahead" : "Read today"}
               </Link>
             </div>
           </div>
@@ -260,7 +315,9 @@ export function PlansView() {
             </button>
             <button
               type="button"
-              onClick={() => void clearPlan()}
+              onClick={() => {
+                if (confirmDropPlan(plan, "Leave this plan?")) void clearPlan();
+              }}
               className="noor-press"
               style={{
                 padding: "9px 16px",
@@ -330,7 +387,8 @@ export function PlansView() {
                 You’re {Math.abs(behind)} {Math.abs(behind) === 1 ? "day" : "days"} behind
               </div>
               <div style={{ fontSize: 13, color: N.muted, fontFamily: N.ui, margin: "4px 0 12px" }}>
-                Catch up on the backlog, re-pace to keep your finish date, or give yourself more time.
+                Catch up on the backlog, re-pace to keep your finish date, or give yourself more
+                time.
               </div>
               <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
                 <Link
@@ -351,10 +409,20 @@ export function PlansView() {
                 >
                   <Icon name="book" size={15} color={N.ink} sw={1.8} /> Catch up · {catchUp.label}
                 </Link>
-                <button type="button" onClick={() => void rebalancePlan()} className="noor-press" style={repaceBtn}>
+                <button
+                  type="button"
+                  onClick={() => void rebalancePlan()}
+                  className="noor-press"
+                  style={repaceBtn}
+                >
                   Rebalance
                 </button>
-                <button type="button" onClick={() => void extendPlanBy(7)} className="noor-press" style={repaceBtn}>
+                <button
+                  type="button"
+                  onClick={() => void extendPlanBy(7)}
+                  className="noor-press"
+                  style={repaceBtn}
+                >
                   Extend +1 week
                 </button>
               </div>
@@ -382,7 +450,14 @@ export function PlansView() {
                     background: isToday ? N.goldSoft : N.card,
                   }}
                 >
-                  <span style={{ fontSize: 11, fontWeight: 700, color: isToday ? N.gold : N.faint, fontFamily: N.ui }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: isToday ? N.gold : N.faint,
+                      fontFamily: N.ui,
+                    }}
+                  >
                     D{n}
                   </span>
                   <span
@@ -424,7 +499,15 @@ export function PlansView() {
           }}
         >
           <Khatam size={56} color={N.goldDim} sw={1.2} />
-          <div style={{ fontSize: 15, color: N.muted, textAlign: "center", maxWidth: 360, fontFamily: N.ui }}>
+          <div
+            style={{
+              fontSize: 15,
+              color: N.muted,
+              textAlign: "center",
+              maxWidth: 360,
+              fontFamily: N.ui,
+            }}
+          >
             No active plan yet. Choose one below to begin a journey through the Book.
           </div>
         </div>
@@ -432,7 +515,13 @@ export function PlansView() {
 
       {/* Browse plans */}
       <div style={sectionLabel}>Browse plans</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+          gap: 12,
+        }}
+      >
         {PLAN_TEMPLATES.map((pl) => {
           const isActive = plan?.template.id === pl.id;
           const plPct = isActive ? pct : 0;
@@ -443,7 +532,7 @@ export function PlansView() {
               type="button"
               onClick={() => {
                 if (isActive && portion) window.location.href = targetHref(portion);
-                else void startPlan(pl.id);
+                else if (confirmDropPlan(plan, `Start “${pl.name}”?`)) void startPlan(pl.id);
               }}
               className="noor-press"
               style={{
@@ -456,7 +545,13 @@ export function PlansView() {
               }}
             >
               <div
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, gap: 8 }}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  marginBottom: 10,
+                  gap: 8,
+                }}
               >
                 <span
                   style={{
@@ -474,26 +569,44 @@ export function PlansView() {
                 </span>
                 <span style={{ fontSize: 12, color: N.faint, fontFamily: N.ui }}>{pl.len}</span>
               </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>{pl.name}</div>
-              <div style={{ fontSize: 13, color: N.muted, lineHeight: 1.5, marginTop: 5, fontFamily: N.ui }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
+                {pl.name}
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: N.muted,
+                  lineHeight: 1.5,
+                  marginTop: 5,
+                  fontFamily: N.ui,
+                }}
+              >
                 {pl.desc}
               </div>
               {isActive ? (
                 <div style={{ marginTop: 14 }}>
-                  <div style={{ height: 5, borderRadius: 3, background: N.border, overflow: "hidden" }}>
+                  <div
+                    style={{ height: 5, borderRadius: 3, background: N.border, overflow: "hidden" }}
+                  >
                     <div style={{ width: `${plPct}%`, height: "100%", background: N.goldGrad }} />
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7 }}>
                     <span style={{ fontSize: 12, color: N.faint, fontFamily: N.ui }}>
                       {done ? "Completed" : "In progress"}
                     </span>
-                    <span style={{ fontSize: 12, color: N.gold, fontWeight: 600, fontFamily: N.ui }}>Continue →</span>
+                    <span
+                      style={{ fontSize: 12, color: N.gold, fontWeight: 600, fontFamily: N.ui }}
+                    >
+                      Continue →
+                    </span>
                   </div>
                 </div>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 14 }}>
                   <Icon name="plus" size={15} color={N.gold} sw={2} />
-                  <span style={{ fontSize: 13, color: N.gold, fontWeight: 600, fontFamily: N.ui }}>Start plan</span>
+                  <span style={{ fontSize: 13, color: N.gold, fontWeight: 600, fontFamily: N.ui }}>
+                    Start plan
+                  </span>
                 </div>
               )}
             </button>
@@ -528,7 +641,14 @@ export function PlansView() {
           <Icon name="plus" size={16} color={N.gold} sw={2} /> Create a custom plan
         </button>
       ) : (
-        <div style={{ border: `1px solid ${N.border}`, borderRadius: 14, padding: 18, background: N.card }}>
+        <div
+          style={{
+            border: `1px solid ${N.border}`,
+            borderRadius: 14,
+            padding: 18,
+            background: N.card,
+          }}
+        >
           <Seg
             options={[
               { value: "date", label: "By date" },
@@ -567,13 +687,16 @@ export function PlansView() {
               <span style={{ color: N.muted }}>
                 {mode === "date" ? (
                   <>
-                    ≈ <span style={{ color: N.fg, fontWeight: 600 }}>{customPreview.perDay} pages a day</span> ·{" "}
-                    {customPreview.days} days
+                    ≈{" "}
+                    <span style={{ color: N.fg, fontWeight: 600 }}>
+                      {customPreview.perDay} pages a day
+                    </span>{" "}
+                    · {customPreview.days} days
                   </>
                 ) : (
                   <>
-                    <span style={{ color: N.fg, fontWeight: 600 }}>{customPreview.days} days</span> · finishes{" "}
-                    {customPreview.end}
+                    <span style={{ color: N.fg, fontWeight: 600 }}>{customPreview.days} days</span>{" "}
+                    · finishes {customPreview.end}
                   </>
                 )}
               </span>

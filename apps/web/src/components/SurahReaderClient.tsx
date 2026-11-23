@@ -138,7 +138,7 @@ export function SurahReaderClient({
   const [gotoOpen, setGotoOpen] = useState(false);
   // After a jump, one tap returns to where you were (Kindle's "page flip" pin).
   const [backTo, setBackTo] = useState<number | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLElement>(null);
   const [progress, setProgress] = useState(0);
   const [mode, setMode] = useState<ReadingMode>("translation");
   const pages = useMemo(() => pagesOf(surah.number, ayahs), [surah.number, ayahs]);
@@ -506,7 +506,7 @@ export function SurahReaderClient({
           current={currentAya}
           onJump={(aya) => goTo({ kind: "ayah", sura: surah.number, aya })}
         />
-        <div
+        <main
           ref={scrollRef}
           onScroll={onScroll}
           className="noor-scroll"
@@ -550,8 +550,9 @@ export function SurahReaderClient({
                   {surah.name}
                 </span>
               </div>
-              <div
+              <h1
                 style={{
+                  margin: 0,
                   fontSize: 19,
                   fontWeight: 800,
                   fontFamily: N.ui,
@@ -560,7 +561,7 @@ export function SurahReaderClient({
                 }}
               >
                 {surah.transliteration}
-              </div>
+              </h1>
               <div
                 style={{
                   fontSize: 12.5,
@@ -733,7 +734,7 @@ export function SurahReaderClient({
               Arabic: Tanzil (CC-BY 3.0) · Translations via Ummah Library datasets
             </p>
           </div>
-        </div>
+        </main>
       </div>
 
       {/* Audio player — fixed bottom dock, drives playback for all modes */}
