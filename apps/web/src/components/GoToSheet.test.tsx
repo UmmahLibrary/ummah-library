@@ -32,3 +32,17 @@ describe("GoToSheet", () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+describe("GoToSheet layout on phones", () => {
+  it("keeps the sheet's grid column no wider than the screen", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const css = readFileSync(join(__dirname, "../app/noor-everyone.css"), "utf8");
+    const root = css.match(/\.goto-root \{[^}]*\}/)?.[0] ?? "";
+    // An auto track grew to the content's min width (466px on a 375px phone in
+    // Arabic), pushing Close, Go and the Page tab off screen.
+    expect(root).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    const sheet = css.match(/\.goto-sheet \{[^}]*\}/)?.[0] ?? "";
+    expect(sheet).toMatch(/min-width:\s*0/);
+  });
+});

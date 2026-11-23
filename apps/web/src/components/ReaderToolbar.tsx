@@ -227,7 +227,6 @@ export function ReaderToolbar({
         />
         {panel === "display" && (
           <div
-            className="noor-pop-sm-left"
             style={{
               ...popover,
               minWidth: 260,
@@ -440,10 +439,7 @@ export function ReaderToolbar({
             onClick={() => setPanel((p) => (p === "reciter" ? null : "reciter"))}
           />
           {panel === "reciter" && (
-            <div
-              className="noor-pop-sm-left"
-              style={{ ...popover, minWidth: 220, maxHeight: 320, overflowY: "auto" }}
-            >
+            <div style={{ ...popover, minWidth: 220, maxHeight: 320, overflowY: "auto" }}>
               <div style={sectionLabel}>{t("toolbar.reciter")}</div>
               {reciters.map((r) => {
                 const on = r.id === reciterId;
