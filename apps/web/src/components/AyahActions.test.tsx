@@ -44,4 +44,35 @@ describe("AyahActions — More menu", () => {
     await userEvent.click(btn);
     expect(screen.getByRole("menu").style.top).toBe("100%");
   });
+
+  it("opens toward the side with room when the button is near the screen edge", async () => {
+    render(<AyahActions surah={1} aya={1} tafsirs={[]} />);
+    const btn = moreButton();
+    const w = window.innerWidth;
+    vi.spyOn(btn, "getBoundingClientRect").mockReturnValue({
+      top: 80,
+      bottom: 100,
+      left: w - 70,
+      right: w - 20,
+    } as DOMRect);
+
+    await userEvent.click(btn);
+    const menu = screen.getByRole("menu");
+    expect(menu.style.right).toBe("0px");
+    expect(menu.style.left).toBe("");
+  });
+
+  it("opens in the reading direction when there is room", async () => {
+    render(<AyahActions surah={1} aya={1} tafsirs={[]} />);
+    const btn = moreButton();
+    vi.spyOn(btn, "getBoundingClientRect").mockReturnValue({
+      top: 80,
+      bottom: 100,
+      left: 40,
+      right: 90,
+    } as DOMRect);
+
+    await userEvent.click(btn);
+    expect(screen.getByRole("menu").style.left).toBe("0px");
+  });
 });

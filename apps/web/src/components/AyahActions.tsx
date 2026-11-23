@@ -57,6 +57,8 @@ function BarBtn({
 
 /** Space the More menu needs below its button (5 rows + the bottom dock). */
 const MORE_MENU_ROOM = 340;
+/** The More menu's width, for choosing which way it opens on narrow screens. */
+const MORE_MENU_WIDTH = 230;
 
 /** A row in the "More" menu. */
 function MenuRow({ icon, label, onClick }: { icon: IconName; label: string; onClick: () => void }) {
@@ -116,6 +118,9 @@ export function AyahActions({
   const [moreOpen, setMoreOpen] = useState(false);
   // Open the menu upwards when there isn't room for it above the bottom dock.
   const [moreUp, setMoreUp] = useState(false);
+  // Which physical edge of the button the menu lines up with, so it opens
+  // toward the side with room and never runs off a phone screen.
+  const [moreEdge, setMoreEdge] = useState<"left" | "right" | null>(null);
 
   const [collections, setCollections] = useState<Collection[]>([]);
   const [note, setNote] = useState("");
@@ -160,6 +165,12 @@ export function AyahActions({
       const r = e.currentTarget.getBoundingClientRect();
       // ~5 rows plus padding, and room for the fixed bottom dock.
       setMoreUp(window.innerHeight - r.bottom < MORE_MENU_ROOM);
+      const roomRight = window.innerWidth - r.left;
+      const roomLeft = r.right;
+      const rtl = getComputedStyle(e.currentTarget).direction === "rtl";
+      // Prefer the reading direction; switch sides only when it wouldn't fit.
+      if (rtl) setMoreEdge(roomLeft >= MORE_MENU_WIDTH || roomLeft >= roomRight ? "right" : "left");
+      else setMoreEdge(roomRight >= MORE_MENU_WIDTH || roomRight >= roomLeft ? "left" : "right");
     }
     setMoreOpen((o) => !o);
   }
@@ -316,7 +327,12 @@ export function AyahActions({
                 style={{
                   position: "absolute",
                   ...(moreUp ? { bottom: "100%", marginBottom: 8 } : { top: "100%", marginTop: 8 }),
-                  insetInlineStart: 0,
+                  ...(moreEdge === "left"
+                    ? { left: 0 }
+                    : moreEdge === "right"
+                      ? { right: 0 }
+                      : { insetInlineStart: 0 }),
+                  maxWidth: "calc(100vw - 16px)",
                   zIndex: 41,
                   minWidth: 210,
                   padding: 6,
