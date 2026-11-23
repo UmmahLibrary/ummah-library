@@ -58,4 +58,14 @@ describe("SearchView", () => {
     expect(screen.getAllByRole("link", { name: /mercy number/ })).toHaveLength(MATCHES);
     expect(screen.queryByRole("button", { name: /Show more/ })).toBeNull();
   });
+
+  it("lets the search box shrink so Clear stays on a phone screen", async () => {
+    mockCorpus();
+    window.history.replaceState(null, "", "/search?q=mercy");
+    render(<SearchView surahs={[]} />);
+    // A flex input won't shrink below its intrinsic width without min-width: 0,
+    // which pushed Clear off a 375px screen in Arabic.
+    expect(screen.getByRole("searchbox", { name: "Search" }).style.minWidth).toBe("0");
+    expect(await screen.findByRole("button", { name: "Clear search" })).toBeInTheDocument();
+  });
 });

@@ -342,6 +342,7 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
           aria-label="Search"
           style={{
             flex: 1,
+            minWidth: 0,
             background: "none",
             border: "none",
             outline: "none",

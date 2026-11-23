@@ -216,6 +216,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
           aria-label="Search hadith"
           style={{
             flex: 1,
+            minWidth: 0,
             background: "none",
             border: "none",
             outline: "none",
