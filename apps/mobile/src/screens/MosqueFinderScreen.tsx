@@ -1,37 +1,58 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import * as Location from "expo-location";
-import { type Coordinates, type Place, directionsUrl, distanceKm, formatDistanceKm } from "@ummahlibrary/core";
+import { type Coordinates, type Place, directionsUrl, distanceKm } from "@ummahlibrary/core";
 import { Icon } from "@ummahlibrary/ui";
 import { api } from "../api";
 import { KEYS, getJSON, setJSON } from "../storage";
+import { withTimeout } from "../utils";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
+import { onSyncApplied } from "../lib/sync/sync-events";
+import { useIntl } from "../i18n/I18nProvider";
 
 type Status = "idle" | "locating" | "loading" | "ready" | "denied" | "error";
 
-const RADIUS_OPTIONS = [
-  { meters: 2000, label: "2 km" },
-  { meters: 5000, label: "5 km" },
-  { meters: 10000, label: "10 km" },
-  { meters: 20000, label: "20 km" },
-];
+function sameCoords(a: Coordinates | null, b: Coordinates | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.latitude === b.latitude && a.longitude === b.longitude;
+}
+
+const RADIUS_OPTIONS = [2000, 5000, 10000, 20000] as const;
 
 export function MosqueFinderScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf } = useIntl();
+  // Same rounding as core's `formatDistanceKm`, in the interface language.
+  const fmtDistance = (km: number) => {
+    if (!Number.isFinite(km) || km < 0) return "—";
+    if (km < 1) return tf("pr.m", { n: Math.round(km * 1000) });
+    return tf("pr.km", { n: Number(km.toFixed(km < 10 ? 1 : 0)) });
+  };
+  // The places adapter falls back to "Mosque" for an unnamed mosque.
+  const placeName = (name: string) => (name === "Mosque" ? t("pr.mosque") : name);
 
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [places, setPlaces] = useState<readonly Place[]>([]);
   const [radius, setRadius] = useState(5000);
   const reqId = useRef(0);
+  const coordsRef = useRef(coords);
+  const radiusRef = useRef(radius);
+  coordsRef.current = coords;
+  radiusRef.current = radius;
 
   const fetchNearby = useCallback(async (c: Coordinates, radiusMeters: number) => {
     const id = ++reqId.current;
     setStatus("loading");
     try {
-      const data = await api.getNearbyMosques({ lat: c.latitude, lng: c.longitude, radius: radiusMeters });
+      const data = await api.getNearbyMosques({
+        lat: c.latitude,
+        lng: c.longitude,
+        radius: radiusMeters,
+      });
       if (id !== reqId.current) return;
       setPlaces(data.places);
       setStatus("ready");
@@ -51,15 +72,35 @@ export function MosqueFinderScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchNearby]);
 
+  // `onSyncApplied` is a single whole-app signal (mobile has no per-key sync
+  // events like web), so this only refetches — hitting our own /nearby
+  // endpoint, backed by Overpass — when the location actually changed, not on
+  // every unrelated synced key (a hifz review, a prayer log entry, ...).
+  useEffect(
+    () =>
+      onSyncApplied(() => {
+        void getJSON<Coordinates | null>(KEYS.prayerCoords, null).then((saved) => {
+          if (saved && !sameCoords(saved, coordsRef.current)) {
+            setCoords(saved);
+            void fetchNearby(saved, radiusRef.current);
+          }
+        });
+      }),
+    [fetchNearby],
+  );
+
   async function locate() {
     setStatus("locating");
-    const { status: perm } = await Location.requestForegroundPermissionsAsync();
-    if (perm !== "granted") {
-      setStatus("denied");
-      return;
-    }
     try {
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+      const { status: perm } = await Location.requestForegroundPermissionsAsync();
+      if (perm !== "granted") {
+        setStatus("denied");
+        return;
+      }
+      const pos = await withTimeout(
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
+        15000,
+      );
       const c: Coordinates = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
       setCoords(c);
       void setJSON(KEYS.prayerCoords, c);
@@ -74,18 +115,15 @@ export function MosqueFinderScreen() {
     if (coords) void fetchNearby(coords, meters);
   }
 
-  const radiusLabel = RADIUS_OPTIONS.find((r) => r.meters === radius)?.label ?? `${radius}m`;
+  const radiusLabel = fmtDistance(radius / 1000);
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
       {!coords && status !== "locating" && (
         <View style={styles.cta}>
-          <Text style={styles.ctaText}>
-            Find mosques near you. Your location stays on this device — it's only sent to
-            OpenStreetMap to search.
-          </Text>
+          <Text style={styles.ctaText}>{t("pr.mosqueIntro")}</Text>
           <Pressable style={styles.ctaBtn} onPress={locate}>
-            <Text style={styles.ctaBtnText}>📍 Use my location</Text>
+            <Text style={styles.ctaBtnText}>{t("pr.useLocation")}</Text>
           </Pressable>
         </View>
       )}
@@ -93,24 +131,32 @@ export function MosqueFinderScreen() {
       {status === "locating" && (
         <View style={styles.center}>
           <ActivityIndicator color={colors.accent} />
-          <Text style={styles.muted}>Getting your location…</Text>
+          <Text style={styles.muted}>{t("pr.locating")}</Text>
         </View>
       )}
 
       {status === "denied" && (
         <View style={styles.cta}>
-          <Text style={styles.ctaText}>Location permission was denied. Enable it in Settings.</Text>
-          <Pressable style={styles.chip} onPress={locate}>
-            <Text style={styles.chipText}>Try again</Text>
-          </Pressable>
+          <Text style={styles.ctaText}>{t("pr.denied")}</Text>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <Pressable style={styles.chip} onPress={locate}>
+              <Text style={styles.chipText}>{t("pr.tryAgain")}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.chip}
+              onPress={() => void Linking.openSettings().catch(() => {})}
+            >
+              <Text style={styles.chipText}>{t("pr.openSettings")}</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
       {status === "error" && (
         <View style={styles.cta}>
-          <Text style={styles.ctaText}>Couldn't load nearby mosques. Check your connection.</Text>
+          <Text style={styles.ctaText}>{t("pr.mosqueError")}</Text>
           <Pressable style={styles.chip} onPress={() => coords && fetchNearby(coords, radius)}>
-            <Text style={styles.chipText}>Try again</Text>
+            <Text style={styles.chipText}>{t("pr.tryAgain")}</Text>
           </Pressable>
         </View>
       )}
@@ -118,19 +164,19 @@ export function MosqueFinderScreen() {
       {coords && (status === "ready" || status === "loading") && (
         <>
           <View style={styles.radiusRow}>
-            {RADIUS_OPTIONS.map((r) => (
+            {RADIUS_OPTIONS.map((meters) => (
               <Pressable
-                key={r.meters}
-                style={[styles.chip, r.meters === radius && styles.chipOn]}
-                onPress={() => changeRadius(r.meters)}
+                key={meters}
+                style={[styles.chip, meters === radius && styles.chipOn]}
+                onPress={() => changeRadius(meters)}
               >
-                <Text style={[styles.chipText, r.meters === radius && styles.chipTextOn]}>
-                  {r.label}
+                <Text style={[styles.chipText, meters === radius && styles.chipTextOn]}>
+                  {fmtDistance(meters / 1000)}
                 </Text>
               </Pressable>
             ))}
             <Pressable style={styles.chip} onPress={locate}>
-              <Text style={styles.chipText}>📍 Update</Text>
+              <Text style={styles.chipText}>{t("pr.update")}</Text>
             </Pressable>
           </View>
 
@@ -141,7 +187,12 @@ export function MosqueFinderScreen() {
           )}
 
           {status === "ready" && places.length === 0 && (
-            <Text style={styles.muted}>No mosques found within {radiusLabel}. Try a wider radius.</Text>
+            <View style={styles.center}>
+              <Text style={styles.muted}>{tf("pr.noMosques", { radius: radiusLabel })}</Text>
+              <Pressable style={styles.chip} onPress={() => fetchNearby(coords, radius)}>
+                <Text style={styles.chipText}>{t("pr.searchAgain")}</Text>
+              </Pressable>
+            </View>
           )}
 
           {status === "ready" && places.length > 0 && (
@@ -150,9 +201,9 @@ export function MosqueFinderScreen() {
                 <View key={p.id} style={[styles.row, i < places.length - 1 && styles.rowDivider]}>
                   <Icon name="route" size={20} color={colors.muted} sw={1.8} />
                   <View style={styles.rowText}>
-                    <Text style={styles.placeName}>{p.name}</Text>
+                    <Text style={styles.placeName}>{placeName(p.name)}</Text>
                     <Text style={styles.placeSub}>
-                      {formatDistanceKm(distanceKm(coords, p.coordinates))}
+                      {fmtDistance(distanceKm(coords, p.coordinates))}
                       {p.address ? ` · ${p.address}` : ""}
                     </Text>
                   </View>
@@ -160,9 +211,9 @@ export function MosqueFinderScreen() {
                     style={styles.directionsBtn}
                     onPress={() => void Linking.openURL(directionsUrl(p.coordinates))}
                     accessibilityRole="button"
-                    accessibilityLabel={`Directions to ${p.name}`}
+                    accessibilityLabel={tf("pr.directionsTo", { name: placeName(p.name) })}
                   >
-                    <Text style={styles.directionsBtnText}>Directions</Text>
+                    <Text style={styles.directionsBtnText}>{t("pr.directions")}</Text>
                   </Pressable>
                 </View>
               ))}
@@ -171,9 +222,7 @@ export function MosqueFinderScreen() {
         </>
       )}
 
-      <Text style={styles.attribution}>
-        Mosque data © OpenStreetMap contributors, published under the Open Database License (ODbL).
-      </Text>
+      <Text style={styles.attribution}>{t("pr.osmAttribution")}</Text>
     </ScrollView>
   );
 }
@@ -193,10 +242,21 @@ function makeStyles(c: Palette) {
       alignItems: "center",
     },
     ctaText: { color: c.fg, fontSize: 15, textAlign: "center", lineHeight: 22 },
-    ctaBtn: { backgroundColor: c.accent, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 24 },
-    ctaBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+    ctaBtn: {
+      backgroundColor: c.accent,
+      borderRadius: 10,
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+    },
+    ctaBtnText: { color: c.ink, fontSize: 15, fontWeight: "700" },
     radiusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
-    chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: c.border },
+    chip: {
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
     chipOn: { borderColor: c.accent, backgroundColor: c.accentSoft },
     chipText: { color: c.muted, fontSize: 13 },
     chipTextOn: { color: c.accent, fontWeight: "600" },
@@ -207,7 +267,13 @@ function makeStyles(c: Palette) {
       borderColor: c.border,
       overflow: "hidden",
     },
-    row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
     rowDivider: { borderBottomWidth: 1, borderBottomColor: c.borderSoft },
     rowText: { flex: 1, gap: 2, minWidth: 0 },
     placeName: { color: c.fg, fontSize: 15, fontFamily: FONT.semibold },

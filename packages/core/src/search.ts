@@ -26,7 +26,9 @@ export function normalizeForSearch(value: string): string {
     .replace(/ـ/g, "") // tatweel
     .replace(/[آأإٱ]/g, "ا") // alef variants → ا
     .replace(/ى/g, "ي") // alef maqsura → ي
-    .replace(/ة/g, "ه"); // ta marbuta → ه
+    .replace(/ة/g, "ه") // ta marbuta → ه
+    .replace(/ؤ/g, "و") // hamza on waw → و
+    .replace(/ئ/g, "ي"); // hamza on ya → ي
 }
 
 /**
@@ -92,7 +94,8 @@ export function searchVerses(
   }
 
   results.sort(
-    (a, b) => b.score - a.score || a.sura - b.sura || a.aya - b.aya || a.source.localeCompare(b.source),
+    (a, b) =>
+      b.score - a.score || a.sura - b.sura || a.aya - b.aya || a.source.localeCompare(b.source),
   );
   return results.slice(0, limit);
 }

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { AppState, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   DarkTheme,
@@ -12,7 +13,9 @@ import {
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeProvider, useTheme } from "./src/theme";
-import { I18nProvider } from "./src/i18n/I18nProvider";
+import { ErrorBoundary } from "./src/ErrorBoundary";
+import { I18nProvider, useI18n } from "./src/i18n/I18nProvider";
+import { localeDir } from "./src/i18n/config";
 import { SettingsProvider } from "./src/state/SettingsContext";
 import { LibraryProvider } from "./src/state/LibraryContext";
 import { RootTabs } from "./src/navigation/RootTabs";
@@ -32,6 +35,12 @@ import type { RootStackParamList } from "./src/navigation/types";
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
+// Keep the native splash up past the first JS frame — otherwise Expo
+// auto-hides it as soon as something paints, which for this app is a blank
+// screen (fonts + the onboarding-seen check below are both still pending
+// async work at that point). AppGate calls hideAsync() once both resolve.
+void SplashScreen.preventAutoHideAsync().catch(() => {});
+
 /** URL routes for the web build and OS deep links (ummahlibrary://). */
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: ["ummahlibrary://"],
@@ -49,35 +58,42 @@ const linking: LinkingOptions<RootStackParamList> = {
               MushafPage: "page/:page",
               Plans: "plans",
               PlanDetail: "plans/:id",
+              HifzDashboard: "hifz",
+              HifzReview: "hifz/review",
+              ReadingGoals: "goals",
+              Collections: "bookmarks",
+              Tafsir: "tafsir",
             },
           },
-          Tools: {
+          Prayer: {
             screens: {
-              ToolsList: "tools",
-              Tasbih: "tasbih",
-              Adhkar: "adhkar",
+              PrayerHub: "prayer",
               PrayerTimes: "prayer-times",
               PrayerTracker: "tracker",
               Qibla: "qibla",
-              HijriCalendar: "calendar",
-              Zakat: "zakat",
+              Mosques: "mosques",
               Ramadan: "ramadan",
-              Duas: "duas",
             },
           },
-          Memorize: {
-            screens: { HifzDashboard: "hifz", HifzReview: "hifz/review" },
+          Learn: {
+            screens: {
+              LearnHub: "learn",
+              Duas: "duas",
+              Adhkar: "adhkar",
+              Hadith: "hadith",
+              Names: "names",
+            },
           },
           More: {
             screens: {
-              MoreMenu: "more",
-              Profile: "profile",
+              MoreHub: "more",
               Settings: "settings",
-              Names: "names",
-              Hadith: "hadith",
-              Collections: "bookmarks",
-              ReadingGoals: "goals",
-              Tafsir: "tafsir",
+              Tasbih: "tasbih",
+              HijriCalendar: "calendar",
+              Zakat: "zakat",
+              Downloads: "downloads",
+              Profile: "profile",
+              Privacy: "privacy",
             },
           },
         },
@@ -91,6 +107,7 @@ const linking: LinkingOptions<RootStackParamList> = {
 };
 
 function NavRoot() {
+  const { t } = useI18n();
   const { mode, colors } = useTheme();
   const base = mode === "dark" ? DarkTheme : DefaultTheme;
   const navTheme: Theme = {
@@ -120,7 +137,7 @@ function NavRoot() {
         <RootStack.Screen
           name="NotFound"
           component={NotFoundScreen}
-          options={{ headerShown: true, title: "Not found" }}
+          options={{ headerShown: true, title: t("home.nf.title") }}
         />
       </RootStack.Navigator>
     </NavigationContainer>
@@ -133,6 +150,11 @@ function AppGate() {
   useEffect(() => {
     void getString(KEYS.onboarded).then((v) => setOnboarded(v === "1"));
   }, []);
+  // AppGate only mounts once fonts are already loaded (see App() below), so
+  // resolving here is also the signal that every startup gate is clear.
+  useEffect(() => {
+    if (onboarded !== null) void SplashScreen.hideAsync().catch(() => {});
+  }, [onboarded]);
   if (onboarded === null) return null;
   if (!onboarded) {
     return (
@@ -147,8 +169,25 @@ function AppGate() {
   return <NavRoot />;
 }
 
+/**
+ * Lays the whole app out right-to-left for Arabic and Urdu (ADR 0041) with the
+ * `direction` style — no `I18nManager.forceRTL`, so switching language never
+ * needs an app restart. Quranic text keeps its own explicit RTL styles.
+ */
+function DirectionRoot({ children }: { children: ReactNode }) {
+  const { locale } = useI18n();
+  return <View style={{ flex: 1, direction: localeDir(locale) }}>{children}</View>;
+}
+
 export default function App() {
-  const [fontsLoaded] = useFonts(fontMap);
+  // useFonts resolves `loaded: false` forever if the load ever rejects (a
+  // corrupted/missing font asset) — it never becomes `true` on its own after
+  // an error. Proceed on `fontError` too so one bad font asset can't freeze
+  // the app on the splash screen (SplashScreen.hideAsync() only fires once
+  // AppGate mounts, which is gated on this) with no fallback and no way for
+  // the user to get past it. A screen falling back to the OS default
+  // typeface is far better than an app that never starts.
+  const [fontsLoaded, fontError] = useFonts(fontMap);
 
   // Prime the notifier, then keep every reminder family scheduled — re-syncing on
   // foreground so the schedule rolls to the next day after one fires (#71). Also
@@ -175,18 +214,29 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded && !fontError) return null;
   return (
+    // SafeAreaProvider wraps ErrorBoundary, not the other way around: it's a
+    // stable, well-established layout primitive (not app logic that could
+    // itself be the thing crashing — same reasoning as importing
+    // expo-splash-screen into ErrorBoundary), and the boundary's own
+    // fallback UI needs real inset values to clear a notch/home-indicator
+    // when it renders — a class component can't call useSafeAreaInsets(),
+    // but it can still use the SafeAreaView it exposes.
     <SafeAreaProvider>
-      <ThemeProvider>
-        <I18nProvider>
-          <SettingsProvider>
-            <LibraryProvider>
-              <AppGate />
-            </LibraryProvider>
-          </SettingsProvider>
-        </I18nProvider>
-      </ThemeProvider>
+      <ErrorBoundary>
+        <ThemeProvider>
+          <I18nProvider>
+            <DirectionRoot>
+              <SettingsProvider>
+                <LibraryProvider>
+                  <AppGate />
+                </LibraryProvider>
+              </SettingsProvider>
+            </DirectionRoot>
+          </I18nProvider>
+        </ThemeProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }

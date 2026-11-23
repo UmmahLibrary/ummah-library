@@ -63,7 +63,8 @@ export async function recordMushafPage(page: number): Promise<void> {
     await store.writeLog({ ...s.log, [t]: pages.length });
   }
 
-  if (s.khatma && page > s.khatma.currentPage) await store.writeKhatma({ ...s.khatma, currentPage: page });
+  if (s.khatma && page > s.khatma.currentPage)
+    await store.writeKhatma({ ...s.khatma, currentPage: page });
 
   await advancePlanToPage(page);
 }

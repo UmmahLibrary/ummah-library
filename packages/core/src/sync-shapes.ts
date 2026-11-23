@@ -189,7 +189,8 @@ export function setShape(): MapShape {
 /**
  * The shape of every map key. Any key NOT listed here is a scalar (v1 whole-value
  * LWW). Phase 1 (ADR 0034 §5) = bounded keys; Phase 2 = the date-keyed logs below;
- * Phase 3 adds `ul.hifz`, gated on the incremental-pull cursor.
+ * Phase 3 = `ul.hifz`, the one unbounded map (up to 6,236 elements) — enabled now
+ * that the dirty/bounded push (ADR 0035) lands.
  */
 export const SYNC_SHAPES: Record<string, SyncShape> = {
   // Phase 1 — bounded keys
@@ -205,6 +206,8 @@ export const SYNC_SHAPES: Record<string, SyncShape> = {
   "ul.readingLog": recordShape(),
   "ul.prayerLog": nestedRecordShape(),
   "ul.ramadanWorship": nestedRecordShape(),
+  // Phase 3 — the SM-2 card per memorized ayah (`"sura:aya" -> HifzCard`).
+  "ul.hifz": recordShape(),
 };
 
 /** The merge shape of a key — scalar unless registered as a map. */

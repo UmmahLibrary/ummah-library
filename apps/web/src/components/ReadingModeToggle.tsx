@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { writeReadingMode } from "../lib/reader-prefs";
+import { READING_MODE_EVENT, writeReadingMode } from "../lib/reader-prefs";
 
 /**
  * Reading mode, mirroring Quran.com's two-level control:
@@ -14,12 +14,26 @@ import { writeReadingMode } from "../lib/reader-prefs";
  * legacy stored value "reading" keeps working unchanged.
  */
 type Mode = "translation" | "reading" | "reading-tr";
+const MODES: readonly Mode[] = ["translation", "reading", "reading-tr"];
+const isMode = (v: unknown): v is Mode => MODES.includes(v as Mode);
 
 export function ReadingModeToggle() {
   const [mode, setMode] = useState<Mode>("translation");
 
   useEffect(() => {
     setMode((document.documentElement.dataset.readingMode as Mode) || "translation");
+
+    // A synced change writes storage directly (bypassing choose()), so apply it
+    // to the DOM here too — the toggle doesn't own a "sync to DOM" effect.
+    const onSynced = (e: Event) => {
+      const next = (e as CustomEvent<string>).detail;
+      if (isMode(next)) {
+        setMode(next);
+        document.documentElement.dataset.readingMode = next;
+      }
+    };
+    window.addEventListener(READING_MODE_EVENT, onSynced);
+    return () => window.removeEventListener(READING_MODE_EVENT, onSynced);
   }, []);
 
   function choose(next: Mode) {

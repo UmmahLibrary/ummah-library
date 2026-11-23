@@ -5,7 +5,14 @@
  * with AES-256-GCM, and the server-facing account/entry ids are keyed hashes that
  * never expose the key names or the secret. The `dataKey` never leaves the device.
  */
-import type { Cipher } from "@ummahlibrary/core";
+import {
+  canonicalizeRecoverySecret,
+  encodeRecoveryPhrase,
+  RECOVERY_PHRASE_ENTROPY_BYTES,
+  type Cipher,
+} from "@ummahlibrary/core";
+
+export { canonicalizeRecoverySecret };
 
 const ENC = new TextEncoder();
 const DEC = new TextDecoder();
@@ -14,11 +21,6 @@ const DEC = new TextDecoder();
 // into independent sub-keys by `info` label. The salt is a fixed app/version tag.
 const PBKDF2_SALT = ENC.encode("ummah-library/sync/v1");
 const PBKDF2_ITERATIONS = 210_000;
-
-// Crockford-style alphabet: no 0/O/1/I/L/U to keep a written code unambiguous.
-const RECOVERY_ALPHABET = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
-const RECOVERY_GROUPS = 5;
-const RECOVERY_GROUP_LEN = 5;
 
 function toBase64(bytes: Uint8Array): string {
   let s = "";
@@ -39,28 +41,10 @@ function toHex(bytes: Uint8Array): string {
   return s;
 }
 
-/**
- * Canonical form of a recovery secret used for key derivation: NFKC-normalized,
- * upper-cased, with every non-alphanumeric stripped. So the same logical code
- * typed on a second device with different case, spacing or hyphenation (e.g.
- * "abcde fghjk" vs "ABCDE-FGHJK") derives the SAME account instead of silently
- * forking a new, empty one. Applied at the one derivation choke point below so
- * "generate" and "enter existing" can never diverge.
- */
-export function canonicalizeRecoverySecret(secret: string): string {
-  return secret.normalize("NFKC").toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
-/** A fresh, high-entropy recovery code (~120 bits), grouped for easy transcription. */
+/** A fresh, 12-word BIP39 recovery phrase (132 bits of entropy) — see `core/recovery-phrase`. */
 export function generateRecoveryPhrase(): string {
-  const n = RECOVERY_GROUPS * RECOVERY_GROUP_LEN;
-  const rnd = crypto.getRandomValues(new Uint8Array(n));
-  let out = "";
-  for (let i = 0; i < n; i++) {
-    if (i > 0 && i % RECOVERY_GROUP_LEN === 0) out += "-";
-    out += RECOVERY_ALPHABET[rnd[i]! % RECOVERY_ALPHABET.length]!;
-  }
-  return out;
+  const rnd = crypto.getRandomValues(new Uint8Array(RECOVERY_PHRASE_ENTROPY_BYTES));
+  return encodeRecoveryPhrase(rnd);
 }
 
 async function deriveRoot(secret: string): Promise<CryptoKey> {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { type NisabBasis, ZAKAT_ASSET_CATEGORIES, calculateZakat } from "@ummahlibrary/core";
 import { N, Khatam } from "@ummahlibrary/ui";
 import { readZakat, writeZakat } from "../lib/zakat-store";
@@ -76,6 +76,7 @@ function Field({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const id = useId();
   return (
     <div style={{ marginBottom: 14 }}>
       <div
@@ -89,18 +90,34 @@ function Field({
           fontFamily: N.ui,
         }}
       >
-        <span>{label}</span>
-        {hint && <span style={{ color: N.faint, fontSize: 12, textAlign: "right" }}>{hint}</span>}
+        <label htmlFor={id}>{label}</label>
+        {hint && (
+          <span id={`${id}-hint`} style={{ color: N.faint, fontSize: 12, textAlign: "right" }}>
+            {hint}
+          </span>
+        )}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, ...lcard, padding: "0 14px", height: 46 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          ...lcard,
+          padding: "0 14px",
+          height: 46,
+        }}
+      >
         {prefix && <span style={{ color: N.faint, fontSize: 15 }}>{prefix}</span>}
         <input
+          id={id}
+          aria-describedby={hint ? `${id}-hint` : undefined}
           inputMode="decimal"
           placeholder={placeholder ?? "0"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           style={{
             flex: 1,
+            minWidth: 0,
             background: "none",
             border: "none",
             outline: "none",
@@ -115,7 +132,17 @@ function Field({
   );
 }
 
-function Row({ k, val, strong, faint }: { k: string; val: string; strong?: boolean; faint?: boolean }) {
+function Row({
+  k,
+  val,
+  strong,
+  faint,
+}: {
+  k: string;
+  val: string;
+  strong?: boolean;
+  faint?: boolean;
+}) {
   return (
     <div
       style={{
@@ -128,7 +155,9 @@ function Row({ k, val, strong, faint }: { k: string; val: string; strong?: boole
       }}
     >
       <span>{k}</span>
-      <span style={{ fontWeight: strong ? 800 : 600, color: strong ? N.fg : faint ? N.faint : N.fg }}>
+      <span
+        style={{ fontWeight: strong ? 800 : 600, color: strong ? N.fg : faint ? N.faint : N.fg }}
+      >
         {val}
       </span>
     </div>
@@ -147,7 +176,8 @@ export function ZakatCalculator() {
         ...saved,
         // Self-heal a currency value saved before sanitizeCurrency existed — a
         // stray digit in it used to silently fuse into the displayed totals.
-        currency: sanitizeCurrency(saved.currency ?? DEFAULT_STATE.currency) || DEFAULT_STATE.currency,
+        currency:
+          sanitizeCurrency(saved.currency ?? DEFAULT_STATE.currency) || DEFAULT_STATE.currency,
         assets: { ...EMPTY_ASSETS, ...(saved.assets ?? {}) },
       });
     }
@@ -224,11 +254,19 @@ export function ZakatCalculator() {
         {/* Inputs */}
         <div>
           <div style={{ ...sectionLabel, marginBottom: 14 }}>Niṣāb</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px,1fr))", gap: 10 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(120px,1fr))",
+              gap: 10,
+            }}
+          >
             <Field
               label="Currency"
               value={state.currency}
-              onChange={(v) => setState((s) => ({ ...s, currency: sanitizeCurrency(v).slice(0, 4) }))}
+              onChange={(v) =>
+                setState((s) => ({ ...s, currency: sanitizeCurrency(v).slice(0, 4) }))
+              }
               placeholder="$"
             />
             <Field
@@ -271,7 +309,15 @@ export function ZakatCalculator() {
               );
             })}
           </div>
-          <p style={{ fontSize: 12.5, color: N.faint, lineHeight: 1.6, margin: "0 0 20px", fontFamily: N.ui }}>
+          <p
+            style={{
+              fontSize: 12.5,
+              color: N.faint,
+              lineHeight: 1.6,
+              margin: "0 0 20px",
+              fontFamily: N.ui,
+            }}
+          >
             Most charities use the <strong>silver</strong> niṣāb so more people give; some prefer
             gold. It only changes the result if your wealth sits between the two thresholds.
           </p>
@@ -313,10 +359,26 @@ export function ZakatCalculator() {
               <Khatam size={150} color={N.gold} opacity={0.08} sw={1.1} />
             </div>
             <div style={{ ...sectionLabel }}>Zakat due (2.5%)</div>
-            <div style={{ fontSize: 46, fontWeight: 800, color: N.gold, letterSpacing: -1.5, margin: "8px 0 4px", fontFamily: N.ui }}>
+            <div
+              style={{
+                fontSize: 46,
+                fontWeight: 800,
+                color: N.gold,
+                letterSpacing: -1.5,
+                margin: "8px 0 4px",
+                fontFamily: N.ui,
+              }}
+            >
               {havePrices ? money(result.zakatDue) : "—"}
             </div>
-            <div style={{ fontSize: 13.5, color: result.meetsNisab ? N.muted : N.faint, fontFamily: N.ui, lineHeight: 1.5 }}>
+            <div
+              style={{
+                fontSize: 13.5,
+                color: result.meetsNisab ? N.muted : N.faint,
+                fontFamily: N.ui,
+                lineHeight: 1.5,
+              }}
+            >
               {!havePrices
                 ? "Enter the current gold and silver prices per gram to set the niṣāb."
                 : result.meetsNisab
@@ -327,7 +389,11 @@ export function ZakatCalculator() {
             <Row k="Total assets" val={money(result.totalAssets)} />
             <Row k="Less liabilities" val={`– ${money(num(state.liabilities))}`} />
             <Row k="Net zakatable" val={money(result.netWealth)} strong />
-            <Row k={`Niṣāb (${state.nisabBasis})`} val={havePrices ? money(result.nisab) : "—"} faint />
+            <Row
+              k={`Niṣāb (${state.nisabBasis})`}
+              val={havePrices ? money(result.nisab) : "—"}
+              faint
+            />
             <button
               onClick={reset}
               style={{
@@ -346,7 +412,15 @@ export function ZakatCalculator() {
             >
               Reset amounts
             </button>
-            <p style={{ fontSize: 12, color: N.faint, lineHeight: 1.5, margin: "14px 0 0", fontFamily: N.ui }}>
+            <p
+              style={{
+                fontSize: 12,
+                color: N.faint,
+                lineHeight: 1.5,
+                margin: "14px 0 0",
+                fontFamily: N.ui,
+              }}
+            >
               Calculated on your device — nothing you enter leaves this browser.
             </p>
           </div>

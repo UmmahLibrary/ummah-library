@@ -13,7 +13,11 @@ import {
 import { readHijriAdjust, writeHijriAdjust } from "../lib/hijri";
 import { N, Icon } from "@ummahlibrary/ui";
 import { WebNotifier } from "../lib/web-notifier";
-import { readEventReminders, setEventReminder, syncIslamicEventReminders } from "../lib/islamic-event-reminders";
+import {
+  readEventReminders,
+  setEventReminder,
+  syncIslamicEventReminders,
+} from "../lib/islamic-event-reminders";
 
 const notifier = new WebNotifier();
 
@@ -132,7 +136,8 @@ export function HijriCalendar() {
     [view, adjust],
   );
 
-  if (!view || !todayHijri) return <p style={{ color: N.muted, fontFamily: N.ui }}>Loading the calendar…</p>;
+  if (!view || !todayHijri)
+    return <p style={{ color: N.muted, fontFamily: N.ui }}>Loading the calendar…</p>;
 
   const month = hijriMonth(view.month);
   const eventDays = new Set(monthly.map((m) => m.event.day));
@@ -174,7 +179,15 @@ export function HijriCalendar() {
           ‹
         </button>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: N.fg, fontFamily: N.ui, letterSpacing: -0.3 }}>
+          <div
+            style={{
+              fontSize: 17,
+              fontWeight: 800,
+              color: N.fg,
+              fontFamily: N.ui,
+              letterSpacing: -0.3,
+            }}
+          >
             {month.name} {view.year} AH
           </div>
           <div className="noor-ar" style={{ fontSize: 15, color: N.gold, marginTop: 1 }}>
@@ -212,11 +225,25 @@ export function HijriCalendar() {
       >
         {/* Calendar grid */}
         <div style={{ ...lcard, padding: 22 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, marginBottom: 8 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7,1fr)",
+              gap: 4,
+              marginBottom: 8,
+            }}
+          >
             {WEEKDAYS.map((d) => (
               <div
                 key={d}
-                style={{ textAlign: "center", fontSize: 11.5, color: N.faint, fontWeight: 700, padding: "4px 0", fontFamily: N.ui }}
+                style={{
+                  textAlign: "center",
+                  fontSize: 11.5,
+                  color: N.faint,
+                  fontWeight: 700,
+                  padding: "4px 0",
+                  fontFamily: N.ui,
+                }}
               >
                 {d}
               </div>
@@ -280,9 +307,7 @@ export function HijriCalendar() {
               Observance
             </span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <span
-                style={{ width: 12, height: 12, borderRadius: 4, background: N.goldGrad }}
-              />
+              <span style={{ width: 12, height: 12, borderRadius: 4, background: N.goldGrad }} />
               Today
             </span>
           </div>
@@ -292,7 +317,15 @@ export function HijriCalendar() {
         <div>
           <div style={{ ...sectionLabel, marginBottom: 12 }}>Observances this month</div>
           {monthly.length === 0 ? (
-            <div style={{ ...lcard, padding: "16px 18px", fontSize: 13.5, color: N.faint, fontFamily: N.ui }}>
+            <div
+              style={{
+                ...lcard,
+                padding: "16px 18px",
+                fontSize: 13.5,
+                color: N.faint,
+                fontFamily: N.ui,
+              }}
+            >
               No major observances fall in this month.
             </div>
           ) : (
@@ -324,15 +357,21 @@ export function HijriCalendar() {
                         flexShrink: 0,
                       }}
                     >
-                      <span style={{ fontSize: 16, fontWeight: 800, color: N.gold, fontFamily: N.ui }}>
+                      <span
+                        style={{ fontSize: 16, fontWeight: 800, color: N.gold, fontFamily: N.ui }}
+                      >
                         {m.event.day}
                       </span>
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: 14.5, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
+                      <div
+                        style={{ fontSize: 14.5, fontWeight: 700, color: N.fg, fontFamily: N.ui }}
+                      >
                         {m.event.name}
                       </div>
-                      <div style={{ fontSize: 12.5, color: N.faint, marginTop: 1, fontFamily: N.ui }}>
+                      <div
+                        style={{ fontSize: 12.5, color: N.faint, marginTop: 1, fontFamily: N.ui }}
+                      >
                         {gregorianFull(m.gregorian)} · {m.event.note}
                       </div>
                     </div>
@@ -367,7 +406,11 @@ export function HijriCalendar() {
                         background: reminders[m.event.id] ? N.goldSoft : "transparent",
                       }}
                     >
-                      <Icon name="bell" size={16} color={reminders[m.event.id] ? N.gold : N.faint} />
+                      <Icon
+                        name="bell"
+                        size={16}
+                        color={reminders[m.event.id] ? N.gold : N.faint}
+                      />
                     </button>
                   </div>
                 );
@@ -377,14 +420,21 @@ export function HijriCalendar() {
 
           {/* Sighting adjustment */}
           <div style={{ ...sectionLabel, margin: "22px 0 12px" }}>
-            Date adjustment ({adjust > 0 ? `+${adjust}` : adjust} day{Math.abs(adjust) === 1 ? "" : "s"})
+            Date adjustment ({adjust > 0 ? `+${adjust}` : adjust} day
+            {Math.abs(adjust) === 1 ? "" : "s"})
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div
+            role="group"
+            aria-label="Date adjustment in days"
+            style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
+          >
             {[-2, -1, 0, 1, 2].map((n) => {
               const active = n === adjust;
               return (
                 <button
                   key={n}
+                  type="button"
+                  aria-pressed={active}
                   onClick={() => changeAdjust(n)}
                   style={{
                     padding: "8px 16px",
@@ -403,7 +453,15 @@ export function HijriCalendar() {
               );
             })}
           </div>
-          <p style={{ fontSize: 12.5, color: N.faint, lineHeight: 1.6, marginTop: 12, fontFamily: N.ui }}>
+          <p
+            style={{
+              fontSize: 12.5,
+              color: N.faint,
+              lineHeight: 1.6,
+              marginTop: 12,
+              fontFamily: N.ui,
+            }}
+          >
             This is the arithmetic (tabular) Islamic calendar — it can sit a day either side of your
             local moon sighting. Nudge it to match; your choice stays on this device and applies
             everywhere.

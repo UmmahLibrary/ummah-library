@@ -8,10 +8,11 @@
  * translates a synced key into the event(s) those components already re-read on, so
  * a pulled change shows without a reload.
  *
- * Theme is special-cased: there's no theme "event", so we re-apply it directly.
- * Keys with no live listener today (bookmarks, notes, prayer settings, …) map to
- * `[]` — they reflect on the next read/navigation, exactly as before. A test guards
- * that every managed key has an entry here, so adding one forces a conscious choice.
+ * Theme is special-cased: there's no theme "event" at all, so it's re-applied
+ * directly to the document instead of going through `REFRESH_EVENTS`. Every
+ * other managed key now has a live listener somewhere. `[]` is reserved for a
+ * future key with none yet. A test guards that every managed key has an entry
+ * here, so adding one forces a conscious choice.
  */
 import { applyTheme, normalizeTheme } from "../themes";
 import { getItem } from "./storage";
@@ -42,30 +43,44 @@ export const REFRESH_EVENTS: Record<string, readonly string[]> = {
   "ul.hijriAdjust": ["ul.hijriAdjust"],
   // Theme — re-applied directly in refreshForKey (no event exists), so [] here.
   "ul.theme": [],
-  // No live listener today → reflects on the next read/navigation:
-  "ul.bookmarks": [],
-  "ul.ayahNotes": [],
-  "ul.asmaLearned": [],
-  "ul.badges": [],
-  "ul.lastRead": [],
-  "ul.scale": [],
-  "ul.readingMode": [],
-  "ul.loop": [],
-  "ul.prayerMethod": [],
-  "ul.prayerMadhab": [],
-  "ul.prayerHighLat": [],
-  "ul.prayerCoords": [],
+  "ul.bookmarks": ["ul.bookmarks"],
+  "ul.hifz": ["ul.hifz"],
+  // Notes share the collections view's own live event (CollectionsView listens
+  // to both) — a note change re-reads the same way a collection change does.
+  "ul.ayahNotes": ["ul.collections"],
+  "ul.asmaLearned": ["ul.asmaLearned"],
+  "ul.lastRead": ["ul.lastRead"],
+  "ul.scale": ["ul.scale"],
+  "ul.loop": ["ul.loop"],
+  "ul.readingMode": ["ul.readingMode"],
+  "ul.badges": ["ul.badges"],
+  // Prayer settings — coords fan out to both the general event (timings/qibla,
+  // cheap or self-caching) and the coords-specific one (gates the mosque
+  // finder's network refetch so a method/madhab change doesn't trigger it).
+  "ul.prayerMethod": ["ul.prayerSettings"],
+  "ul.prayerMadhab": ["ul.prayerSettings"],
+  "ul.prayerHighLat": ["ul.prayerSettings"],
+  "ul.prayerCoords": ["ul.prayerSettings", "ul.prayerCoords"],
 };
 
-/** Apply the in-app effect of a synced key changing: re-apply the theme, or fire the feature re-read events. */
+/**
+ * Apply the in-app effect of a synced key changing: re-apply the theme, or fire
+ * the feature re-read events. The synced key's own raw stored value rides along
+ * as `detail` — some listeners (`ul.reciter`, `ul.tafsir`) were written for a
+ * same-tab toolbar dispatch that always carries the new value as `detail` and
+ * use it directly rather than re-reading storage; without it they silently no-op
+ * (`detail` is `undefined`, which fails their "is this a known id" guard). A
+ * listener that re-reads storage itself just ignores the extra field.
+ */
 export function refreshForKey(key: string): void {
   if (typeof window === "undefined") return;
   if (key === "ul.theme") {
     applyTheme(normalizeTheme(getItem("ul.theme")));
     return;
   }
+  const detail = getItem(key);
   for (const event of REFRESH_EVENTS[key] ?? []) {
-    window.dispatchEvent(new CustomEvent(event));
+    window.dispatchEvent(new CustomEvent(event, { detail }));
   }
 }
 

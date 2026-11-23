@@ -18,8 +18,15 @@ import { hkdf } from "@noble/hashes/hkdf.js";
 import { hmac } from "@noble/hashes/hmac.js";
 import { pbkdf2Async } from "@noble/hashes/pbkdf2.js";
 import { sha256 } from "@noble/hashes/sha2.js";
-import type { Cipher } from "@ummahlibrary/core";
+import {
+  canonicalizeRecoverySecret,
+  encodeRecoveryPhrase,
+  RECOVERY_PHRASE_ENTROPY_BYTES,
+  type Cipher,
+} from "@ummahlibrary/core";
 import { randomBytes } from "./crypto-random";
+
+export { canonicalizeRecoverySecret };
 
 // PBKDF2 stretches the (possibly low-entropy) secret; HKDF then splits the result
 // into independent sub-keys by `info` label. The salt is a fixed app/version tag.
@@ -31,11 +38,6 @@ const HKDF_SALT = new Uint8Array(0);
 // entry ids — and therefore which server record a key maps to — would diverge.
 const HMAC_KEY_BYTES = 64;
 const NONCE_BYTES = 12;
-
-// Crockford-style alphabet: no 0/O/1/I/L/U to keep a written code unambiguous.
-const RECOVERY_ALPHABET = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
-const RECOVERY_GROUPS = 5;
-const RECOVERY_GROUP_LEN = 5;
 
 // Standard base64 (matches the web adapter's `btoa`/`atob` and the server). Hand
 // rolled so it never depends on `btoa`/`atob`, which Hermes does not guarantee.
@@ -86,26 +88,9 @@ function fromBase64(b64: string): Uint8Array {
   return out;
 }
 
-/**
- * Canonical form of a recovery secret used for key derivation: NFKC-normalized,
- * upper-cased, with every non-alphanumeric stripped — so the same logical code
- * typed with different case, spacing or hyphenation derives the SAME account
- * instead of silently forking a new, empty one. Identical to the web adapter.
- */
-export function canonicalizeRecoverySecret(secret: string): string {
-  return secret.normalize("NFKC").toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
-/** A fresh, high-entropy recovery code (~120 bits), grouped for easy transcription. */
-export function generateRecoveryPhrase(): string {
-  const n = RECOVERY_GROUPS * RECOVERY_GROUP_LEN;
-  const rnd = randomBytes(n);
-  let out = "";
-  for (let i = 0; i < n; i++) {
-    if (i > 0 && i % RECOVERY_GROUP_LEN === 0) out += "-";
-    out += RECOVERY_ALPHABET[rnd[i]! % RECOVERY_ALPHABET.length]!;
-  }
-  return out;
+/** A fresh, 12-word BIP39 recovery phrase (132 bits of entropy) — see `core/recovery-phrase`. */
+export async function generateRecoveryPhrase(): Promise<string> {
+  return encodeRecoveryPhrase(await randomBytes(RECOVERY_PHRASE_ENTROPY_BYTES));
 }
 
 /**
@@ -130,7 +115,7 @@ export async function createNobleCipher(secret: string): Promise<Cipher> {
     accountId: async () => accountIdHex,
     entryId: async (keyName) => bytesToHex(hmac(sha256, hmacKey, utf8ToBytes(keyName))),
     encrypt: async (plaintext) => {
-      const iv = randomBytes(NONCE_BYTES);
+      const iv = await randomBytes(NONCE_BYTES);
       const ct = gcm(dataKey, iv).encrypt(utf8ToBytes(plaintext));
       return { ciphertext: toBase64(ct), nonce: toBase64(iv) };
     },

@@ -40,10 +40,26 @@ describe("PrayerTracker × ḥayḍ pause", () => {
       JSON.stringify([{ start: addDays(t, -4), end: addDays(t, -2) }]),
     );
 
+    // Streak counts are opt-in (ADR 0041).
+    localStorage.setItem("ul.comfort", JSON.stringify({ showStreaks: true }));
+
     render(<PrayerTracker />);
 
     // 4 complete days, bridged by the pause → streak 4 (would be 2 without it).
-    expect(await screen.findByText("4 🔥")).toBeInTheDocument();
+    const label = await screen.findByText("Days in a row");
+    expect(label.previousElementSibling).toHaveTextContent(/^4$/);
+  });
+
+  it("shows no streak counts or fire emoji unless the reader opts in", async () => {
+    const t = todayStr();
+    localStorage.setItem("ul.prayerLog", JSON.stringify({ [t]: COMPLETE }));
+
+    render(<PrayerTracker />);
+
+    expect(await screen.findByText("Prayed today")).toBeInTheDocument();
+    expect(screen.queryByText("Days in a row")).toBeNull();
+    expect(screen.queryByText("Best streak")).toBeNull();
+    expect(screen.queryByText(/🔥/)).toBeNull();
   });
 
   it("shows a Paused legend for the history grid", async () => {

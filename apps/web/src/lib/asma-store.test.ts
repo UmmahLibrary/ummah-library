@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { countLearned, readLearned, writeLearned } from "./asma-store";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ASMA_EVENT, countLearned, readLearned, writeLearned } from "./asma-store";
 
 beforeEach(() => localStorage.clear());
 afterEach(() => localStorage.clear());
@@ -20,5 +20,13 @@ describe("asma-store", () => {
     localStorage.setItem("ul.asmaLearned", "{nope");
     expect(readLearned()).toEqual({});
     expect(countLearned()).toBe(0);
+  });
+
+  it("fires ASMA_EVENT on write, so open views can re-read live (e.g. a synced change)", () => {
+    const onChange = vi.fn();
+    window.addEventListener(ASMA_EVENT, onChange);
+    writeLearned({ 1: true });
+    expect(onChange).toHaveBeenCalledOnce();
+    window.removeEventListener(ASMA_EVENT, onChange);
   });
 });

@@ -11,15 +11,22 @@ const card = (over: Partial<HifzCard> = {}): HifzCard => ({
   ...over,
 });
 
-const rec = (sura: number, aya: number, c: HifzCard) => ({ ref: { sura, aya } as VerseKey, card: c });
+const rec = (sura: number, aya: number, c: HifzCard) => ({
+  ref: { sura, aya } as VerseKey,
+  card: c,
+});
 
 describe("cardStrength", () => {
   it("is 0 for a never-reviewed card", () => {
     expect(cardStrength(card())).toBe(0);
   });
   it("scales linearly to 1 at a 30-day interval", () => {
-    expect(cardStrength(card({ intervalDays: 15, lastReviewed: "2025-01-02T00:00:00.000Z" }))).toBe(0.5);
-    expect(cardStrength(card({ intervalDays: 45, lastReviewed: "2025-01-02T00:00:00.000Z" }))).toBe(1);
+    expect(cardStrength(card({ intervalDays: 15, lastReviewed: "2025-01-02T00:00:00.000Z" }))).toBe(
+      0.5,
+    );
+    expect(cardStrength(card({ intervalDays: 45, lastReviewed: "2025-01-02T00:00:00.000Z" }))).toBe(
+      1,
+    );
   });
 });
 
@@ -34,7 +41,11 @@ describe("surahProgressMap", () => {
       ],
       now,
     );
-    expect(map.get(1)).toMatchObject({ trackedCount: 2, dueCount: 1, nextDue: "2025-06-10T00:00:00.000Z" });
+    expect(map.get(1)).toMatchObject({
+      trackedCount: 2,
+      dueCount: 1,
+      nextDue: "2025-06-10T00:00:00.000Z",
+    });
     expect(map.get(112)).toMatchObject({ trackedCount: 1, dueCount: 1 });
   });
 });
@@ -45,17 +56,26 @@ describe("advanceStreak", () => {
   // own test convention (utils.test.ts).
   const now = new Date(2025, 5, 14, 12, 0, 0);
   it("starts a streak at 1", () => {
-    expect(advanceStreak({ count: 0, lastDate: "" }, now)).toEqual({ count: 1, lastDate: "2025-06-14" });
+    expect(advanceStreak({ count: 0, lastDate: "" }, now)).toEqual({
+      count: 1,
+      lastDate: "2025-06-14",
+    });
   });
   it("is idempotent within the same day", () => {
     const today = { count: 3, lastDate: "2025-06-14" };
     expect(advanceStreak(today, now)).toBe(today);
   });
   it("continues a streak from yesterday", () => {
-    expect(advanceStreak({ count: 3, lastDate: "2025-06-13" }, now)).toEqual({ count: 4, lastDate: "2025-06-14" });
+    expect(advanceStreak({ count: 3, lastDate: "2025-06-13" }, now)).toEqual({
+      count: 4,
+      lastDate: "2025-06-14",
+    });
   });
   it("resets after a gap", () => {
-    expect(advanceStreak({ count: 9, lastDate: "2025-06-10" }, now)).toEqual({ count: 1, lastDate: "2025-06-14" });
+    expect(advanceStreak({ count: 9, lastDate: "2025-06-10" }, now)).toEqual({
+      count: 1,
+      lastDate: "2025-06-14",
+    });
   });
   it("toDateStr formats the local (not UTC) YYYY-MM-DD, matching every other streak in the app", () => {
     expect(toDateStr(now)).toBe("2025-06-14");

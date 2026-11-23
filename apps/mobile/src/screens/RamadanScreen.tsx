@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
@@ -7,24 +7,27 @@ import {
   type Madhab,
   type PrayerTimings,
   gregorianToHijri,
-  hijriMonth,
   hijriToGregorian,
 } from "@ummahlibrary/core";
 import { Khatam, Icon, type IconName } from "@ummahlibrary/ui";
 import { api } from "../api";
-import { KEYS, getJSON, getString, isObjectRecord, setJSON } from "../storage";
+import { KEYS, getJSON, getString, isObjectRecord, setJSON, setString } from "../storage";
 import { FONT } from "../fonts";
 import { useTheme, type Palette } from "../theme";
-import { fmtCountdown, fmtPrayerTime, localISODate } from "../utils";
-import type { ToolsStackParamList } from "../navigation/types";
+import { ignoreStale, localISODate } from "../utils";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
+import { HIJRI_MONTH_KEY, fmtCountdownIn, fmtPrayerTimeIn, uiDigits } from "../prayer-intl";
+import type { PrayerStackParamList } from "../navigation/types";
+import { onSyncApplied } from "../lib/sync/sync-events";
 
-type Props = NativeStackScreenProps<ToolsStackParamList, "Ramadan">;
+type Props = NativeStackScreenProps<PrayerStackParamList, "Ramadan">;
 
-const WORSHIP: { key: string; label: string; icon: IconName }[] = [
-  { key: "suhur", label: "Suhūr", icon: "sun" },
-  { key: "fajr", label: "Fajr in jamāʿah", icon: "moon" },
-  { key: "quran", label: "Qurʾān juzʾ", icon: "book" },
-  { key: "tarawih", label: "Tarāwīḥ", icon: "moon" },
+const WORSHIP: { key: string; label: MessageKey; icon: IconName }[] = [
+  { key: "suhur", label: "pr.w.suhur", icon: "sun" },
+  { key: "fajr", label: "pr.w.fajr", icon: "moon" },
+  { key: "quran", label: "pr.w.quran", icon: "book" },
+  { key: "tarawih", label: "pr.w.tarawih", icon: "moon" },
 ];
 
 function todayGreg() {
@@ -35,6 +38,7 @@ function todayGreg() {
 export function RamadanScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, num, locale } = useIntl();
   const today = localISODate(new Date());
 
   const [now, setNow] = useState(() => new Date());
@@ -45,6 +49,16 @@ export function RamadanScreen({ navigation }: Props) {
   const [worship, setWorship] = useState<Record<string, true>>({});
   const [pagesRead, setPagesRead] = useState(0);
   const [hijriAdjust, setHijriAdjust] = useState(0);
+
+  // Guards the same sync-reload-vs-local-write race this loop already fixed
+  // in PrayerTrackerScreen/LibraryContext/SettingsContext/theme.tsx/
+  // HijriCalendarScreen: ul.ramadanFasts and ul.ramadanWorship are both
+  // synced, so a sync round or app-foreground can start loadRamadanData()'s
+  // read before a fast/worship toggle lands, then resolve after — silently
+  // reverting the tap. toggleFast/toggleWorship bump this on every tap; a
+  // reload in flight when that happens discards its own fasts/worship
+  // result instead of overwriting the newer local toggle.
+  const writeGen = useRef(0);
 
   const hijri = gregorianToHijri(todayGreg(), hijriAdjust);
   const isRamadan = hijri.month === 9;
@@ -64,47 +78,68 @@ export function RamadanScreen({ navigation }: Props) {
   }, []);
 
   useEffect(() => {
-    void getString(KEYS.hijriAdjust).then((raw) => {
-      const n = Number(raw);
-      if (Number.isFinite(n)) setHijriAdjust(Math.max(-2, Math.min(2, n)));
-    });
+    const loadAdjust = () =>
+      void getString(KEYS.hijriAdjust).then((raw) => {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return;
+        const a = Math.max(-2, Math.min(2, n));
+        setHijriAdjust(a);
+        // Same write-back gap iterations 20/60 found in theme.tsx/ZakatScreen,
+        // and this cycle's own iteration 99 in HijriCalendarScreen's copy of
+        // this exact clamp — persist a corrected out-of-range value once
+        // rather than silently re-healing the same raw bad value forever.
+        if (raw !== null && raw !== String(a)) void setString(KEYS.hijriAdjust, String(a));
+      });
+    loadAdjust();
+    return onSyncApplied(loadAdjust);
   }, []);
 
   useEffect(() => {
-    void getJSON<Record<number, true>>(KEYS.ramadanFasts, {}, isObjectRecord).then(setFasts);
-    void getJSON<Record<string, Record<string, true>>>(KEYS.ramadanWorship, {}, isObjectRecord).then((m) =>
-      setWorship(m[today] ?? {}),
-    );
-    void getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord).then((log) =>
-      setPagesRead(
-        // YYYY-MM-DD keys sort lexicographically, so a plain string compare
-        // scopes the sum to Ramadan itself rather than the reader's lifetime log.
-        Object.entries(log).reduce((a, [date, n]) => (date >= ramadanStartStr ? a + n : a), 0),
-      ),
-    );
-    void (async () => {
-      const c = await getJSON<Coordinates | null>(KEYS.prayerCoords, null);
-      if (!c) return;
-      setHasCoords(true);
-      setCoords(c);
-      const method = (await getString(KEYS.prayerMethod)) ?? DEFAULT_CALCULATION_METHOD;
-      const madhab = ((await getString(KEYS.prayerMadhab)) as Madhab) || "shafi";
-      try {
-        const t = await api.getPrayerTimes({
-          lat: c.latitude,
-          lng: c.longitude,
-          date: today,
-          method,
-          madhab,
-        });
-        setTimings(t as PrayerTimings);
-      } catch {
-        /* leave timings null */
-      }
-    })();
+    function loadRamadanData() {
+      const gen = writeGen.current;
+      const currentGen = () => writeGen.current;
+      void getJSON<Record<number, true>>(KEYS.ramadanFasts, {}, isObjectRecord).then(
+        ignoreStale(currentGen, gen, setFasts),
+      );
+      void getJSON<Record<string, Record<string, true>>>(
+        KEYS.ramadanWorship,
+        {},
+        isObjectRecord,
+      ).then((m) => ignoreStale(currentGen, gen, setWorship)(m[today] ?? {}));
+      void getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord).then((log) =>
+        setPagesRead(
+          // YYYY-MM-DD keys sort lexicographically, so a plain string compare
+          // scopes the sum to Ramadan itself rather than the reader's lifetime log.
+          Object.entries(log).reduce((a, [date, n]) => (date >= ramadanStartStr ? a + n : a), 0),
+        ),
+      );
+      void (async () => {
+        const c = await getJSON<Coordinates | null>(KEYS.prayerCoords, null);
+        if (!c) return;
+        setHasCoords(true);
+        setCoords(c);
+        const method = (await getString(KEYS.prayerMethod)) ?? DEFAULT_CALCULATION_METHOD;
+        const madhab = ((await getString(KEYS.prayerMadhab)) as Madhab) || "shafi";
+        try {
+          const t = await api.getPrayerTimes({
+            lat: c.latitude,
+            lng: c.longitude,
+            date: today,
+            method,
+            madhab,
+          });
+          setTimings(t as PrayerTimings);
+        } catch {
+          /* leave timings null */
+        }
+      })();
+    }
+    loadRamadanData();
+    return onSyncApplied(loadRamadanData);
   }, []);
 
   function toggleFast(day: number) {
+    writeGen.current++;
     setFasts((prev) => {
       const next = { ...prev };
       if (next[day]) delete next[day];
@@ -115,13 +150,16 @@ export function RamadanScreen({ navigation }: Props) {
   }
 
   function toggleWorship(key: string) {
+    writeGen.current++;
     setWorship((prev) => {
       const next = { ...prev };
       if (next[key]) delete next[key];
       else next[key] = true;
-      void getJSON<Record<string, Record<string, true>>>(KEYS.ramadanWorship, {}, isObjectRecord).then((m) =>
-        setJSON(KEYS.ramadanWorship, { ...m, [today]: next }),
-      );
+      void getJSON<Record<string, Record<string, true>>>(
+        KEYS.ramadanWorship,
+        {},
+        isObjectRecord,
+      ).then((m) => setJSON(KEYS.ramadanWorship, { ...m, [today]: next }));
       return next;
     });
   }
@@ -129,7 +167,7 @@ export function RamadanScreen({ navigation }: Props) {
   const fastsKept = Object.keys(fasts).length;
   const worshipDone = Object.keys(worship).length;
   const khatmPct = Math.min(100, Math.round((pagesRead / 604) * 100));
-  const monthName = hijriMonth(hijri.month).name;
+  const monthName = t(HIJRI_MONTH_KEY[hijri.month - 1] ?? "lr.hm1");
 
   const iftar = timings ? new Date(timings.maghrib) : null;
   const suhurEnd = timings ? new Date(timings.fajr) : null;
@@ -138,7 +176,11 @@ export function RamadanScreen({ navigation }: Props) {
   return (
     <ScrollView contentContainerStyle={styles.screen}>
       <Text style={styles.hijri}>
-        {isRamadan ? `${ramadanDay} Ramaḍān ${hijri.year} AH` : `${hijri.day} ${monthName} ${hijri.year} AH`}
+        {tf("lr.hijriDate", {
+          day: hijri.day,
+          month: monthName,
+          year: uiDigits(hijri.year, locale),
+        })}
       </Text>
 
       {/* Ifṭār countdown */}
@@ -148,13 +190,21 @@ export function RamadanScreen({ navigation }: Props) {
         </View>
         {iftar ? (
           <>
-            <Text style={styles.heroLabel}>{beforeIftar ? "Time until Ifṭār" : "Ifṭār has begun"}</Text>
+            <Text style={styles.heroLabel}>
+              {beforeIftar ? t("pr.iftarUntil") : t("pr.iftarBegun")}
+            </Text>
             <Text style={styles.heroCountdown}>
-              {beforeIftar ? fmtCountdown(iftar, now) : "🌙 Iftar mubarak"}
+              {beforeIftar ? fmtCountdownIn(iftar, now, tf) : t("pr.iftarMubarak")}
             </Text>
             <View style={styles.heroBarRow}>
-              <Text style={styles.heroBarLabel}>Suhūr {suhurEnd ? fmtPrayerTime(timings!.fajr, coords) : "—"}</Text>
-              <Text style={styles.heroBarLabel}>Ifṭār {fmtPrayerTime(timings!.maghrib, coords)}</Text>
+              <Text style={styles.heroBarLabel}>
+                {tf("pr.suhurAt", {
+                  time: suhurEnd ? fmtPrayerTimeIn(timings!.fajr, coords, locale) : "—",
+                })}
+              </Text>
+              <Text style={styles.heroBarLabel}>
+                {tf("pr.iftarAt", { time: fmtPrayerTimeIn(timings!.maghrib, coords, locale) })}
+              </Text>
             </View>
             <View style={styles.heroTrack}>
               <View
@@ -181,13 +231,13 @@ export function RamadanScreen({ navigation }: Props) {
           </>
         ) : (
           <>
-            <Text style={styles.heroLabel}>Ifṭār countdown</Text>
+            <Text style={styles.heroLabel}>{t("pr.iftarCountdown")}</Text>
             <Text style={styles.heroMuted}>
-              {hasCoords ? "Loading today’s times…" : "Set your location to see suhūr & ifṭār times."}
+              {hasCoords ? t("pr.loadingTimes") : t("pr.setLocationHint")}
             </Text>
             {!hasCoords && (
               <Pressable style={styles.heroBtn} onPress={() => navigation.navigate("PrayerTimes")}>
-                <Text style={styles.heroBtnText}>Set location</Text>
+                <Text style={styles.heroBtnText}>{t("pr.setLocation")}</Text>
               </Pressable>
             )}
           </>
@@ -196,16 +246,24 @@ export function RamadanScreen({ navigation }: Props) {
 
       {/* Stats */}
       <View style={styles.statsRow}>
-        <Stat value={`${fastsKept}/30`} label="Fasts kept" colors={colors} />
-        <Stat value={isRamadan ? `${ramadanDay}/30` : "—"} label="Day of Ramaḍān" colors={colors} />
+        <Stat value={`${num(fastsKept)}/${num(30)}`} label={t("pr.fastsKept")} colors={colors} />
+        <Stat
+          value={isRamadan && ramadanDay !== null ? `${num(ramadanDay)}/${num(30)}` : "—"}
+          label={t("pr.dayOfRamadan")}
+          colors={colors}
+        />
       </View>
       <View style={styles.statsRow}>
-        <Stat value={`${khatmPct}%`} label="Khatm progress" colors={colors} />
-        <Stat value={`${worshipDone}/4`} label="Today’s worship" colors={colors} />
+        <Stat value={tf("pr.pct", { n: khatmPct })} label={t("pr.khatmProgress")} colors={colors} />
+        <Stat
+          value={`${num(worshipDone)}/${num(4)}`}
+          label={t("pr.todaysWorship")}
+          colors={colors}
+        />
       </View>
 
       {/* Fasting grid */}
-      <Text style={styles.sectionLabel}>Fasting · Ramaḍān</Text>
+      <Text style={styles.sectionLabel}>{t("pr.fastingRamadan")}</Text>
       <View style={styles.fastGrid}>
         {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
           const kept = Boolean(fasts[d]);
@@ -219,9 +277,18 @@ export function RamadanScreen({ navigation }: Props) {
                 isToday && !kept && styles.fastCellToday,
               ]}
               onPress={() => toggleFast(d)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: kept }}
+              accessibilityLabel={tf("pr.fastDayA11y", { n: d })}
             >
-              <Text style={[styles.fastNum, kept && styles.fastNumOn, isToday && !kept && styles.fastNumToday]}>
-                {d}
+              <Text
+                style={[
+                  styles.fastNum,
+                  kept && styles.fastNumOn,
+                  isToday && !kept && styles.fastNumToday,
+                ]}
+              >
+                {num(d)}
               </Text>
             </Pressable>
           );
@@ -230,8 +297,8 @@ export function RamadanScreen({ navigation }: Props) {
 
       {/* Today's worship */}
       <View style={styles.worshipHead}>
-        <Text style={styles.sectionLabel}>Today’s worship</Text>
-        <Text style={styles.worshipCount}>{worshipDone}/4</Text>
+        <Text style={styles.sectionLabel}>{t("pr.todaysWorship")}</Text>
+        <Text style={styles.worshipCount}>{`${num(worshipDone)}/${num(4)}`}</Text>
       </View>
       <View style={styles.worshipGrid}>
         {WORSHIP.map((w) => {
@@ -250,7 +317,7 @@ export function RamadanScreen({ navigation }: Props) {
                   sw={2}
                 />
               </View>
-              <Text style={[styles.worshipLabel, on && styles.worshipLabelOn]}>{w.label}</Text>
+              <Text style={[styles.worshipLabel, on && styles.worshipLabelOn]}>{t(w.label)}</Text>
             </Pressable>
           );
         })}
@@ -290,7 +357,13 @@ function makeStyles(c: Palette) {
       textTransform: "uppercase",
       fontFamily: FONT.bold,
     },
-    heroCountdown: { color: c.fg, fontSize: 46, fontFamily: FONT.extrabold, letterSpacing: -1.5, marginVertical: 6 },
+    heroCountdown: {
+      color: c.fg,
+      fontSize: 46,
+      fontFamily: FONT.extrabold,
+      letterSpacing: -1.5,
+      marginVertical: 6,
+    },
     heroMuted: { color: c.muted, fontSize: 14, textAlign: "center", marginTop: 8 },
     heroBtn: {
       marginTop: 14,
@@ -300,9 +373,21 @@ function makeStyles(c: Palette) {
       paddingHorizontal: 22,
     },
     heroBtnText: { color: c.ink, fontSize: 14.5, fontFamily: FONT.bold },
-    heroBarRow: { flexDirection: "row", justifyContent: "space-between", width: "100%", marginTop: 14 },
+    heroBarRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      width: "100%",
+      marginTop: 14,
+    },
     heroBarLabel: { color: c.muted, fontSize: 12 },
-    heroTrack: { height: 7, borderRadius: 4, backgroundColor: c.border, overflow: "hidden", width: "100%", marginTop: 6 },
+    heroTrack: {
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: c.border,
+      overflow: "hidden",
+      width: "100%",
+      marginTop: 6,
+    },
     heroFill: { height: 7, borderRadius: 4, backgroundColor: c.accent },
     statsRow: { flexDirection: "row", gap: 12 },
     stat: {
@@ -347,7 +432,12 @@ function makeStyles(c: Palette) {
     fastNum: { color: c.faint, fontSize: 11.5, fontFamily: FONT.bold },
     fastNumOn: { color: c.ink },
     fastNumToday: { color: c.accent },
-    worshipHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
+    worshipHead: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 8,
+    },
     worshipCount: { color: c.accent, fontSize: 12.5, fontFamily: FONT.bold },
     worshipGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     worshipItem: {

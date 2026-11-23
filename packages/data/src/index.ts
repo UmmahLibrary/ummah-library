@@ -318,7 +318,7 @@ interface VerseHadithLinkDoc {
 
 /**
  * Verse → hadith links from the generated `verse-hadith-links.json` (#200,
- * ADR 0042).
+ * ADR 0044).
  *
  * The dataset stores only *references* (collection + number), not hadith text —
  * the text already ships in `hadiths/*.json`, and duplicating it would double

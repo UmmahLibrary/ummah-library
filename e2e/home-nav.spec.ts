@@ -1,16 +1,16 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Home navigation", () => {
-  test("opening a surah from the home list lands in the reader", async ({ page }) => {
+test.describe("Quran navigation", () => {
+  test("opening a surah from the Quran list lands in the reader", async ({ page }) => {
     // A cold `next dev` compile of /surah/[number] under CI load can be slow, so
     // give this navigation a generous budget.
     test.slow();
-    await page.goto("/");
+    // The surah index lives on the Quran page (ADR 0043: Today · Quran · Prayer ·
+    // Learn · More); Today leads with "Continue reading" instead of a list.
+    await page.goto("/quran");
 
-    // The surah index row for Al-Fātiḥah ("The Opening"). The home page also shows
-    // a "Start reading" card linking to the same surah (it defaults to Al-Fātiḥah
-    // when there's no last-read), so match the index row's distinctive "· N ayahs"
-    // subtitle — the card reads "· Juzʾ N" instead — to keep the locator unique.
+    // The index row for Al-Fātiḥah ("The Opening"), matched by its distinctive
+    // "· N ayahs" detail line to keep the locator unique.
     const opening = page.getByRole("link", { name: /The Opening · \d+ ayahs/ });
     await expect(opening).toBeVisible({ timeout: 30_000 });
     await opening.click();
@@ -24,7 +24,10 @@ test.describe("Home navigation", () => {
     const surah1 = /\/surah\/1$/;
     const landed = await expect(page)
       .toHaveURL(surah1, { timeout: 45_000 })
-      .then(() => true, () => false);
+      .then(
+        () => true,
+        () => false,
+      );
     if (!landed) {
       await opening.click().catch(() => {});
       await expect(page).toHaveURL(surah1, { timeout: 45_000 });

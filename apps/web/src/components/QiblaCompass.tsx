@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { type Coordinates, compassPoint, qiblaDirection } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
-import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
+import { PRAYER_COORDS_EVENT, webPrayerSettingsStore } from "../lib/prayer-settings-store";
 
 type Status = "idle" | "locating" | "ready" | "denied" | "error";
 
@@ -43,14 +43,18 @@ export function QiblaCompass() {
   const [heading, setHeading] = useState<number | null>(null);
   const [needsMotionPermission, setNeedsMotionPermission] = useState(false);
 
-  // Restore the shared location on mount.
+  // Restore the shared location on mount, and pick up a synced change live.
   useEffect(() => {
-    void webPrayerSettingsStore.read().then(({ coords: saved }) => {
-      if (saved) {
-        setCoords(saved);
-        setStatus("ready");
-      }
-    });
+    const loadCoords = () =>
+      void webPrayerSettingsStore.read().then(({ coords: saved }) => {
+        if (saved) {
+          setCoords(saved);
+          setStatus("ready");
+        }
+      });
+    loadCoords();
+    window.addEventListener(PRAYER_COORDS_EVENT, loadCoords);
+    return () => window.removeEventListener(PRAYER_COORDS_EVENT, loadCoords);
   }, []);
 
   const listenToOrientation = useCallback(() => {

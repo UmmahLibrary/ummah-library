@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "C:\\Users\\rashi\\dev\\opensource\\ummah-library\\.claude\\web-dev.cmd",
+      "runtimeArgs": [],
+      "port": 3000
+    },
+    {
+      "name": "mobile",
+      "runtimeExecutable": "C:\\Users\\rashi\\dev\\opensource\\ummah-library\\.claude\\mobile-web-dev.cmd",
+      "runtimeArgs": [],
+      "port": 8090
+    }
+  ]
+}

@@ -19,6 +19,16 @@ import {
   IBMPlexSansArabic_600SemiBold,
   IBMPlexSansArabic_700Bold,
 } from "@expo-google-fonts/ibm-plex-sans-arabic";
+// Urdu in Nastaʿlīq, as on web (ADR 0042): interface text and Urdu translations.
+import {
+  NotoNastaliqUrdu_400Regular,
+  NotoNastaliqUrdu_500Medium,
+  NotoNastaliqUrdu_600SemiBold,
+  NotoNastaliqUrdu_700Bold,
+} from "@expo-google-fonts/noto-nastaliq-urdu";
+// Quranic text needs a font with purpose-drawn Uthmani marks; the general
+// Arabic UI font does not position every haraka correctly.
+import { AmiriQuran_400Regular } from "@expo-google-fonts/amiri-quran";
 // IndoPak Nastaʿlīq face (ADR 0035), bundled as a Metro asset.
 import indopakNastaleeq from "../assets/fonts/indopak-nastaleeq-waqf-lazim.ttf";
 
@@ -33,6 +43,11 @@ export const FONT = {
   arMedium: "IBMPlexSansArabic_500Medium",
   arSemibold: "IBMPlexSansArabic_600SemiBold",
   arBold: "IBMPlexSansArabic_700Bold",
+  ur: "NotoNastaliqUrdu_400Regular",
+  urMedium: "NotoNastaliqUrdu_500Medium",
+  urSemibold: "NotoNastaliqUrdu_600SemiBold",
+  urBold: "NotoNastaliqUrdu_700Bold",
+  arQuran: "AmiriQuran_400Regular",
   // IndoPak Nastaʿlīq face (ADR 0035) — the .ttf is converted from the same
   // licensed web .woff2 ("AlQuran IndoPak by QuranWBW"; free to use with credit).
   arIndopak: "IndoPakNastaleeq",
@@ -49,6 +64,11 @@ export const fontMap = {
   IBMPlexSansArabic_500Medium,
   IBMPlexSansArabic_600SemiBold,
   IBMPlexSansArabic_700Bold,
+  AmiriQuran_400Regular,
+  NotoNastaliqUrdu_400Regular,
+  NotoNastaliqUrdu_500Medium,
+  NotoNastaliqUrdu_600SemiBold,
+  NotoNastaliqUrdu_700Bold,
   IndoPakNastaleeq: indopakNastaleeq,
 };
 

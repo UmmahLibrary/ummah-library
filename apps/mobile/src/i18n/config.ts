@@ -5,7 +5,7 @@
  */
 /** Every UI locale the app can render in. Adding one extends this union, which
  *  forces its message catalogue to be complete (see `messages.ts`). */
-export type Locale = "en" | "ur";
+export type Locale = "en" | "ar" | "ur" | "id" | "bn" | "tr";
 
 export interface LocaleMeta {
   code: Locale;
@@ -16,13 +16,23 @@ export interface LocaleMeta {
 
 export const LOCALES: readonly LocaleMeta[] = [
   { code: "en", label: "English", dir: "ltr" },
+  { code: "ar", label: "العربية", dir: "rtl" },
   { code: "ur", label: "اردو", dir: "rtl" },
+  { code: "id", label: "Bahasa Indonesia", dir: "ltr" },
+  { code: "bn", label: "বাংলা", dir: "ltr" },
+  { code: "tr", label: "Türkçe", dir: "ltr" },
 ];
 
 export const DEFAULT_LOCALE: Locale = "en";
 
 export function isLocale(value: string): value is Locale {
   return LOCALES.some((l) => l.code === value);
+}
+
+/** The script of the interface text: Urdu is set in Nastaʿlīq, Arabic in
+ *  Naskh, everything else in Latin (ADR 0042). */
+export function localeScript(code: Locale): "latin" | "arabic" | "nastaliq" {
+  return code === "ur" ? "nastaliq" : code === "ar" ? "arabic" : "latin";
 }
 
 export function localeDir(code: Locale): "ltr" | "rtl" {

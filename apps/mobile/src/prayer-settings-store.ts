@@ -33,7 +33,8 @@ export const mobilePrayerSettingsStore: PrayerSettingsStore = {
       coords,
       method: method && isCalculationMethod(method) ? method : DEFAULT_CALCULATION_METHOD,
       madhab: madhab === "hanafi" || madhab === "shafi" ? madhab : "shafi",
-      highLatitudeRule: highLat && isHighLatitudeRule(highLat) ? highLat : DEFAULT_HIGH_LATITUDE_RULE,
+      highLatitudeRule:
+        highLat && isHighLatitudeRule(highLat) ? highLat : DEFAULT_HIGH_LATITUDE_RULE,
     };
   },
   // `null` is stored as JSON null, which read-back resolves to the fallback.

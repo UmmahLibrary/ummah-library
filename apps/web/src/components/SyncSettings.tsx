@@ -41,7 +41,7 @@ const secondaryBtn = {
 const dangerBtn = {
   ...secondaryBtn,
   background: "transparent",
-  color: "#E5736B",
+  color: N.error,
 } as const;
 
 const inputStyle = {
@@ -100,8 +100,10 @@ export function SyncSettings() {
 
   // Read localStorage only after mount to avoid a server/client hydration mismatch.
   useEffect(() => {
-    setEnabled(isSyncEnabled());
-    setSecret(readSyncSecret());
+    void (async () => {
+      setEnabled(await isSyncEnabled());
+      setSecret(await readSyncSecret());
+    })();
   }, []);
 
   async function turnOn() {
@@ -109,7 +111,7 @@ export function SyncSettings() {
     if (!s) return;
     setBusy(true);
     setStatus(null);
-    enableSync(s);
+    await enableSync(s);
     resetSyncRuntime();
     setEnabled(true);
     setSecret(s);
@@ -277,7 +279,7 @@ export function SyncSettings() {
           style={{
             fontSize: 13.5,
             fontFamily: N.ui,
-            color: status.ok ? N.gold : "#E5736B",
+            color: status.ok ? N.gold : N.error,
             margin: "0 0 16px",
           }}
         >

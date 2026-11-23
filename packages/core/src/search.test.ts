@@ -3,8 +3,20 @@ import { type SearchEntry, normalizeForSearch, searchText, searchVerses } from "
 
 const entries: SearchEntry[] = [
   { key: "1:1", sura: 1, aya: 1, source: "en", text: "In the name of Allah, the Most Merciful" },
-  { key: "1:2", sura: 1, aya: 2, source: "en", text: "All praise is for Allah, Lord of the worlds" },
-  { key: "2:255", sura: 2, aya: 255, source: "en", text: "Allah! There is no god but He, the Ever-Living" },
+  {
+    key: "1:2",
+    sura: 1,
+    aya: 2,
+    source: "en",
+    text: "All praise is for Allah, Lord of the worlds",
+  },
+  {
+    key: "2:255",
+    sura: 2,
+    aya: 255,
+    source: "en",
+    text: "Allah! There is no god but He, the Ever-Living",
+  },
   { key: "1:1", sura: 1, aya: 1, source: "ar", text: "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ" },
 ];
 
@@ -46,8 +58,20 @@ describe("searchVerses", () => {
 
   it("ranks a whole-phrase match above scattered tokens", () => {
     const data: SearchEntry[] = [
-      { key: "3:1", sura: 3, aya: 1, source: "en", text: "patience is light and light is patience" },
-      { key: "3:2", sura: 3, aya: 2, source: "en", text: "have patience in light hardship of light" },
+      {
+        key: "3:1",
+        sura: 3,
+        aya: 1,
+        source: "en",
+        text: "patience is light and light is patience",
+      },
+      {
+        key: "3:2",
+        sura: 3,
+        aya: 2,
+        source: "en",
+        text: "have patience in light hardship of light",
+      },
     ];
     const r = searchVerses(data, "patience light");
     expect(r[0]!.key).toBe("3:1");
@@ -141,5 +165,13 @@ describe("searchText", () => {
     expect(r[0]!.id).not.toBe(1);
     expect(r.at(-1)!.id).toBe(1); // the score-1 row sinks to the bottom
     expect(searchText(ranked, "light", 1)).toHaveLength(1); // limit applied after sort
+  });
+});
+
+describe("normalizeForSearch hamza seats (ADR 0041)", () => {
+  it("matches words typed without the hamza seat", () => {
+    expect(normalizeForSearch("يُؤْمِنُونَ")).toBe(normalizeForSearch("يومنون"));
+    expect(normalizeForSearch("ٱلْأَفْـِٔدَةَ").includes("ا")).toBe(true);
+    expect(normalizeForSearch("شَيْءٍ")).toBe(normalizeForSearch("شيء"));
   });
 });

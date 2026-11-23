@@ -5,7 +5,7 @@
  * address in a paragraph is rendered as a mailto link by each platform.
  */
 
-export const PRIVACY_UPDATED = "16 June 2026";
+export const PRIVACY_UPDATED = "22 September 2026";
 export const PRIVACY_CONTACT_EMAIL = "ummahlibrary@outlook.com";
 
 export interface PrivacySection {
@@ -28,8 +28,30 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       "Bookmarks, reading goals, Hifz (memorization) progress, the tasbih counter, your prayer " +
         "log, reading plans, and app settings are all stored locally on your device using your " +
         "browser’s storage (on the web) or on-device app storage (on mobile). We have no account " +
-        "system and no database of users — that data is never sent to us and we cannot see it. " +
+        "system and no database of users — by default, that data is never sent to us and we " +
+        "cannot see it (see **Cross-device sync** below for the one opt-in exception). " +
         "You can export or erase it at any time from **Settings → Data**.",
+    ],
+  },
+  {
+    heading: "Cross-device sync (optional)",
+    body: [
+      "If you turn on **Sync across devices** in Settings, some of your data does reach our " +
+        "servers — but only as ciphertext we can't read. Turning sync on generates a recovery " +
+        "phrase on your device, which derives an anonymous account identifier and an encryption " +
+        "key that never leaves the device. Your data is encrypted on your device before it's " +
+        "sent, and our server stores only that ciphertext under the anonymous identifier — it " +
+        "can't read your data, and it can't even tell which app features you use.",
+    ],
+    list: [
+      "**What can sync:** bookmarks, reading and reciter preferences, your last-read position, " +
+        "prayer-calculation settings (including saved coordinates), notes on verses, and your " +
+        "worship logs — including the prayer, fasting make-up (qaḍāʾ), and menstrual cycle " +
+        "(ḥayḍ) logs if you keep them — and Hifz (memorization) progress.",
+      "**Recovery is on you:** there's no password reset. If you lose your recovery phrase, " +
+        "that encrypted data can't be recovered — by us or by you.",
+      "**Turning sync off** stops your device from syncing further changes; it does not " +
+        "currently delete data already stored on the server for that account.",
     ],
   },
   {

@@ -22,7 +22,7 @@ None this round.
   calculation to Mecca from an arbitrary point. Traced through
   [packages/core/src/qibla.ts](../../packages/core/src/qibla.ts):
   `qiblaDirection()` has a documented special case, `if (y === 0 && x === 0)
-  return 0` — "at the Kaaba itself the bearing is undefined." Checked the
+return 0` — "at the Kaaba itself the bearing is undefined." Checked the
   emulator's actual mock location via `adb shell dumpsys location`: it's
   set to `21.422498, 39.826200`, which **is** the Kaaba's own coordinates
   (`KAABA = { latitude: 21.4225, longitude: 39.8262 }` in the same file) —

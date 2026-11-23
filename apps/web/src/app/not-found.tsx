@@ -10,7 +10,7 @@ export default function NotFound() {
         <div className="name-ar arabic" style={{ fontSize: "3rem" }}>
           ٤٠٤
         </div>
-        <div className="name-en">Page not found</div>
+        <h1 className="name-en">Page not found</h1>
         <div className="sub">This page doesn&apos;t exist or has moved.</div>
       </header>
       <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", justifyContent: "center" }}>

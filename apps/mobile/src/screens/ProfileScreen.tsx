@@ -19,6 +19,13 @@ import { surahProgressMap } from "../hifz";
 import { KEYS, getJSON, isObjectRecord } from "../storage";
 import { mobileAchievementsStore as achievementsStore } from "../achievements-store";
 import { localISODate } from "../utils";
+import { onSyncApplied } from "../lib/sync/sync-events";
+import { useIntl } from "../i18n/I18nProvider";
+import { badgeName } from "../i18n/memorize-text";
+import { useSettings } from "../state/SettingsContext";
+
+/** Badges that count days in a row — hidden unless streaks are switched on. */
+const STREAK_METRICS: ReadonlySet<string> = new Set(["bestStreak", "prayerStreak"]);
 
 /**
  * "Your journey" — a progress dashboard derived entirely from the local-first
@@ -28,7 +35,11 @@ import { localISODate } from "../utils";
 export function ProfileScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const intl = useIntl();
+  const { t, tf, num } = intl;
   const { allRecords, trackedCount, streak, collections } = useLibrary();
+  // Streak counts are opt-in (ADR 0041), as on the Hifz screen.
+  const showStreaks = useSettings().comfort.showStreaks;
 
   const [names, setNames] = useState(0);
   const [prayer, setPrayer] = useState({ streak: 0, best: 0 });
@@ -36,20 +47,24 @@ export function ProfileScreen() {
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    const today = localISODate(new Date());
-    void getJSON<Record<number, true>>(KEYS.asmaLearned, {}, isObjectRecord).then((m) =>
-      setNames(Object.keys(m).length),
-    );
-    void getJSON<PrayerTrackerLog>(KEYS.prayerLog, {}, isObjectRecord).then((log) =>
-      setPrayer({ streak: prayerStreak(log, today), best: longestStreak(log) }),
-    );
-    void Promise.all([
-      getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord),
-      getJSON<string[]>(KEYS.readingActive, [], Array.isArray),
-    ]).then(([log, active]) => {
-      const pages = Object.values(log).reduce((a, b) => a + b, 0);
-      setReading({ pages, streak: computeStreak(active, today) });
-    });
+    function load() {
+      const today = localISODate(new Date());
+      void getJSON<Record<number, true>>(KEYS.asmaLearned, {}, isObjectRecord).then((m) =>
+        setNames(Object.keys(m).length),
+      );
+      void getJSON<PrayerTrackerLog>(KEYS.prayerLog, {}, isObjectRecord).then((log) =>
+        setPrayer({ streak: prayerStreak(log, today), best: longestStreak(log) }),
+      );
+      void Promise.all([
+        getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord),
+        getJSON<string[]>(KEYS.readingActive, [], Array.isArray),
+      ]).then(([log, active]) => {
+        const pages = Object.values(log).reduce((a, b) => a + b, 0);
+        setReading({ pages, streak: computeStreak(active, today) });
+      });
+    }
+    load();
+    return onSyncApplied(load);
   }, []);
 
   const surahsStarted = surahProgressMap(allRecords(), new Date()).size;
@@ -57,12 +72,16 @@ export function ProfileScreen() {
   const bestStreak = Math.max(streak.count, prayer.streak, prayer.best, reading.streak);
 
   const stats: [string, string][] = [
-    [`${streak.count} 🔥`, "Hifz streak"],
-    [String(trackedCount), "Āyāt memorized"],
-    [String(surahsStarted), "Surahs started"],
-    [`${prayer.streak}`, "Prayer streak"],
-    [`${names}/99`, "Names learned"],
-    [String(saved), "Saved verses"],
+    ...(showStreaks
+      ? ([[num(streak.count), t("mem.profile.hifzStreak")]] as [string, string][])
+      : []),
+    [num(trackedCount), t("mem.profile.memorized")],
+    [num(surahsStarted), t("mem.profile.surahs")],
+    ...(showStreaks
+      ? ([[num(prayer.streak), t("mem.profile.prayerStreak")]] as [string, string][])
+      : []),
+    [`${num(names)}/${num(99)}`, t("mem.profile.names")],
+    [num(saved), t("mem.profile.saved")],
   ];
 
   const badgeStats: BadgeStats = {
@@ -73,7 +92,9 @@ export function ProfileScreen() {
     namesLearned: names,
     savedVerses: saved,
   };
-  const badges = evaluateBadges(badgeStats);
+  const badges = evaluateBadges(badgeStats).filter(
+    (b) => showStreaks || !STREAK_METRICS.has(b.badge.metric),
+  );
   const earned = badges.filter((b) => b.unlocked).length;
 
   // Celebrate newly-unlocked badges once (persist the acknowledged ids).
@@ -81,13 +102,15 @@ export function ProfileScreen() {
     let cancelled = false;
     void achievementsStore.read().then((ack) => {
       if (cancelled) return;
-      const fresh = newlyUnlocked(badgeStats, ack);
+      const fresh = newlyUnlocked(badgeStats, ack).filter(
+        (b) => showStreaks || !STREAK_METRICS.has(b.metric),
+      );
       if (fresh.length > 0) {
         const first = fresh[0];
         setToast(
           fresh.length === 1 && first
-            ? `🎉 Unlocked: ${first.name}`
-            : `🎉 ${fresh.length} new badges unlocked!`,
+            ? tf("mem.profile.toastOne", { name: badgeName(intl, first) })
+            : tf("mem.profile.toastMany", { n: fresh.length }),
         );
         void achievementsStore.write(unlockedIds(badgeStats));
       }
@@ -95,7 +118,7 @@ export function ProfileScreen() {
     return () => {
       cancelled = true;
     };
-  }, [trackedCount, surahsStarted, prayer.streak, bestStreak, names, saved]);
+  }, [trackedCount, surahsStarted, prayer.streak, bestStreak, names, saved, showStreaks]);
 
   useEffect(() => {
     if (!toast) return;
@@ -105,46 +128,53 @@ export function ProfileScreen() {
 
   return (
     <View style={styles.root}>
-    <ScrollView contentContainerStyle={styles.screen}>
-      <View style={styles.header}>
-        <View style={styles.headerWatermark} pointerEvents="none">
-          <Khatam size={140} color={colors.accent} sw={1.1} opacity={0.08} />
-        </View>
-        <View style={styles.avatar}>
-          <Khatam size={34} color={colors.ink} sw={2} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.name}>Your journey</Text>
-          <Text style={styles.sub}>Local-first · saved on this device</Text>
-        </View>
-      </View>
-
-      <View style={styles.statsGrid}>
-        {stats.map(([v, l]) => (
-          <View key={l} style={styles.stat}>
-            <Text style={styles.statValue}>{v}</Text>
-            <Text style={styles.statLabel}>{l}</Text>
+      <ScrollView contentContainerStyle={styles.screen}>
+        <View style={styles.header}>
+          <View style={styles.headerWatermark} pointerEvents="none">
+            <Khatam size={140} color={colors.accent} sw={1.1} opacity={0.08} />
           </View>
-        ))}
-      </View>
+          <View style={styles.avatar}>
+            <Khatam size={34} color={colors.ink} sw={2} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.name}>{t("mem.profile.title")}</Text>
+            <Text style={styles.sub}>{t("mem.profile.sub")}</Text>
+          </View>
+        </View>
 
-      <Text style={styles.sectionLabel}>
-        Achievements · {earned}/{badges.length}
-      </Text>
-      <View style={styles.badgeGrid}>
-        {badges.map(({ badge, unlocked }) => (
-          <View key={badge.id} style={[styles.badge, !unlocked && styles.badgeLocked]}>
-            <View style={[styles.badgeIcon, unlocked ? styles.badgeIconOn : styles.badgeIconOff]}>
-              <Text style={styles.badgeGlyph}>{badge.glyph}</Text>
+        <View style={styles.statsGrid}>
+          {stats.map(([v, l]) => (
+            <View key={l} style={styles.stat}>
+              <Text style={styles.statValue}>{v}</Text>
+              <Text style={styles.statLabel}>{l}</Text>
             </View>
-            <Text style={styles.badgeName}>{badge.name}</Text>
-            <Text style={[styles.badgeStatus, unlocked && styles.badgeStatusOn]}>
-              {unlocked ? "Unlocked" : "Locked"}
-            </Text>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
+          ))}
+        </View>
+
+        <Text style={styles.sectionLabel}>
+          {tf("mem.profile.achievements", { earned, total: badges.length })}
+        </Text>
+        <View style={styles.badgeGrid}>
+          {badges.map(({ badge, unlocked }) => (
+            <View
+              key={badge.id}
+              style={[styles.badge, !unlocked && styles.badgeLocked]}
+              accessible
+              accessibilityLabel={`${badgeName(intl, badge)}, ${t(
+                unlocked ? "mem.profile.unlocked" : "mem.profile.locked",
+              )}`}
+            >
+              <View style={[styles.badgeIcon, unlocked ? styles.badgeIconOn : styles.badgeIconOff]}>
+                <Text style={styles.badgeGlyph}>{badge.glyph}</Text>
+              </View>
+              <Text style={styles.badgeName}>{badgeName(intl, badge)}</Text>
+              <Text style={[styles.badgeStatus, unlocked && styles.badgeStatusOn]}>
+                {t(unlocked ? "mem.profile.unlocked" : "mem.profile.locked")}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
       {toast && (
         <View style={styles.toast} pointerEvents="none">
           <View style={styles.toastPill}>
@@ -160,7 +190,7 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: c.bg },
     screen: { padding: 18, backgroundColor: c.bg, paddingBottom: 32 },
-    toast: { position: "absolute", left: 16, right: 16, bottom: 24, alignItems: "center" },
+    toast: { position: "absolute", start: 16, end: 16, bottom: 24, alignItems: "center" },
     toastPill: {
       backgroundColor: c.accent,
       borderRadius: 999,
@@ -180,7 +210,7 @@ function makeStyles(c: Palette) {
       overflow: "hidden",
       marginBottom: 16,
     },
-    headerWatermark: { position: "absolute", right: -34, bottom: -38 },
+    headerWatermark: { position: "absolute", end: -34, bottom: -38 },
     avatar: {
       width: 64,
       height: 64,
@@ -216,7 +246,12 @@ function makeStyles(c: Palette) {
       fontFamily: FONT.bold,
       marginBottom: 11,
     },
-    badgeGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 10 },
+    badgeGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      rowGap: 10,
+    },
     badge: {
       width: "31.5%",
       backgroundColor: c.bgElev,
@@ -240,7 +275,13 @@ function makeStyles(c: Palette) {
     badgeIconOn: { backgroundColor: c.accentSoft, borderColor: c.accent },
     badgeIconOff: { borderColor: c.border },
     badgeGlyph: { fontSize: 22 },
-    badgeName: { color: c.fg, fontSize: 12.5, fontFamily: FONT.bold, textAlign: "center", lineHeight: 16 },
+    badgeName: {
+      color: c.fg,
+      fontSize: 12.5,
+      fontFamily: FONT.bold,
+      textAlign: "center",
+      lineHeight: 16,
+    },
     badgeStatus: { color: c.faint, fontSize: 10.5, fontFamily: FONT.semibold, marginTop: 3 },
     badgeStatusOn: { color: c.accent },
   });

@@ -101,11 +101,18 @@ export interface SyncRecord {
  * the server's new high-water version to send next time (absent ⇒ the server
  * doesn't version, so the client falls back to whole-set sync). `more` means the
  * server truncated the delta to a page; the client should sync again.
+ *
+ * `rejected` (ADR 0035 graceful overflow) lists ids from THIS round's push the
+ * server did not persist — malformed, oversized, or past the per-request entry
+ * cap — so one bad/excess entry doesn't stall the rest of the same push. The
+ * engine excludes these from `markPushed`, so they stay dirty and retry next
+ * round instead of being wrongly marked clean.
  */
 export interface SyncExchangeResult {
   entries: readonly SyncEntry[];
   cursor?: number;
   more?: boolean;
+  rejected?: readonly string[];
 }
 
 /** The outcome of merging two sides. */

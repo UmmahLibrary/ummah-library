@@ -1,6 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  usePathname: () => "/",
+}));
+
 import { NoorHomePage } from "./NoorHomePage";
 
 type Surah = Parameters<typeof NoorHomePage>[0]["surahs"][number];
@@ -46,7 +51,7 @@ const positionOf = (re: RegExp) =>
 
 describe("NoorHomePage tabs", () => {
   it("Surah tab lists surahs in order and shows no juzʾ links", () => {
-    render(<NoorHomePage surahs={surahs} />);
+    render(<NoorHomePage surahs={surahs} variant="quran" />);
 
     expect(juzLinks()).toHaveLength(0);
     // by-number order: Al-Fātiḥah (1) precedes Al-ʿAlaq (96)
@@ -54,7 +59,7 @@ describe("NoorHomePage tabs", () => {
   });
 
   it("Juzʾ tab reveals all 30 ajzāʾ, each linking to its reader", async () => {
-    render(<NoorHomePage surahs={surahs} />);
+    render(<NoorHomePage surahs={surahs} variant="quran" />);
 
     await userEvent.click(screen.getByRole("button", { name: "Juzʾ" }));
 
@@ -65,7 +70,7 @@ describe("NoorHomePage tabs", () => {
   });
 
   it("Revelation tab groups surahs into Meccan and Medinan", async () => {
-    render(<NoorHomePage surahs={surahs} />);
+    render(<NoorHomePage surahs={surahs} variant="quran" />);
 
     await userEvent.click(screen.getByRole("button", { name: "Revelation" }));
 
@@ -78,21 +83,83 @@ describe("NoorHomePage tabs", () => {
   });
 });
 
-describe("NoorHomePage continue-reading card", () => {
+describe("NoorHomePage Today card", () => {
   afterEach(() => localStorage.clear());
 
-  it("resumes at the stored āyah via a #sura:aya deep link (not the surah start)", () => {
+  it("resumes at the stored āyah via a #sura:aya deep link (not the surah start)", async () => {
     localStorage.setItem("ul.lastRead", JSON.stringify({ surah: 2, aya: 153, total: 286 }));
     render(<NoorHomePage surahs={surahs} />);
 
-    const resume = screen.getByRole("link", { name: /Continue reading/i });
+    const resume = await screen.findByRole("link", { name: /^Continue$/ });
     expect(resume.getAttribute("href")).toBe("/surah/2#2:153");
+    // Listening is an equal second path, from the same āyah.
+    const listen = screen.getByRole("link", { name: /Listen instead/ });
+    expect(listen.getAttribute("href")).toBe("/listen/2#153");
   });
 
-  it("falls back to opening Al-Fātiḥah when nothing has been read yet", () => {
+  it("offers a gentle start when nothing has been read yet", async () => {
     render(<NoorHomePage surahs={surahs} />);
 
-    const start = screen.getByRole("link", { name: /Start reading/i });
+    const start = await screen.findByRole("link", { name: /Read Al-Fātiḥah/ });
     expect(start.getAttribute("href")).toBe("/surah/1");
+  });
+
+  it("never shows a fire-emoji streak", async () => {
+    render(<NoorHomePage surahs={surahs} />);
+    await screen.findByRole("link", { name: /Read Al-Fātiḥah/ });
+    expect(document.body.textContent).not.toContain("🔥");
+  });
+
+  it("keeps the full surah index off the Today screen", () => {
+    render(<NoorHomePage surahs={surahs} />);
+    expect(screen.queryByText("Juzʾ")).toBeNull();
+  });
+});
+
+describe("NoorHomePage in Easy mode", () => {
+  afterEach(() => localStorage.clear());
+
+  it("the Quran index is one big list — no feature chips or index tabs", async () => {
+    localStorage.setItem("ul.comfort", JSON.stringify({ mode: "easy" }));
+    const { container } = render(<NoorHomePage surahs={surahs} variant="quran" />);
+
+    // The list switches to a single column once the mode is read.
+    await vi.waitFor(() => expect(container.querySelector('[data-easy="true"]')).not.toBeNull());
+    expect(screen.queryByRole("navigation", { name: "Quran" })).toBeNull();
+    expect(screen.queryByText("Juzʾ")).toBeNull();
+    expect(screen.getByText("Al-Fātiḥah")).toBeInTheDocument();
+  });
+
+  it("standard mode keeps the chips and tabs", () => {
+    render(<NoorHomePage surahs={surahs} variant="quran" />);
+    expect(screen.getByRole("navigation", { name: "Quran" })).toBeInTheDocument();
+    expect(screen.getByText("Juzʾ")).toBeInTheDocument();
+  });
+});
+
+describe("Today — the setup's reading path decides which action leads", () => {
+  afterEach(() => localStorage.clear());
+
+  const actionLinks = () =>
+    screen
+      .getAllByRole("link")
+      .filter((a) => /^\/(surah\/1|listen\/112)$/.test(a.getAttribute("href") ?? ""));
+
+  it("leads with reading by default", async () => {
+    render(<NoorHomePage surahs={surahs} />);
+    await screen.findByRole("link", { name: /Read Al-Fātiḥah/ });
+    const [first, second] = actionLinks();
+    expect(first).toHaveAttribute("href", "/surah/1");
+    expect(first).toHaveClass("nf-btn--gold");
+    expect(second).not.toHaveClass("nf-btn--gold");
+  });
+
+  it("leads with recitation for someone who said they mostly listen", async () => {
+    localStorage.setItem("ul.comfort", JSON.stringify({ readingPath: "listen" }));
+    render(<NoorHomePage surahs={surahs} />);
+    await screen.findByRole("link", { name: /Read Al-Fātiḥah/ });
+    await vi.waitFor(() => expect(actionLinks()[0]).toHaveAttribute("href", "/listen/112"));
+    expect(actionLinks()[0]).toHaveClass("nf-btn--gold");
+    expect(actionLinks()[1]).not.toHaveClass("nf-btn--gold");
   });
 });

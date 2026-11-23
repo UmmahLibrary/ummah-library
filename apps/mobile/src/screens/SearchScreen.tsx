@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { goTo } from "../navigation/routes";
 import {
   ActivityIndicator,
   Pressable,
@@ -16,38 +17,48 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { KEYS, getJSON, setJSON } from "../storage";
 import type { ReadStackParamList } from "../navigation/types";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "Search">;
 
 const ENGLISH_URL =
   "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/eng-mustafakhattaba.min.json";
 const MAX_HISTORY = 6;
+// Search words, not labels: the corpus is Arabic + English, so these stay English.
 const TOPICS = ["mercy", "patience", "Mulk", "forgiveness", "knowledge", "guidance", "light"];
 
 type ResultType = "ayah" | "surah" | "name" | "adhkar";
 
+// The index is cached for the session, so interface words (refs, counts) are
+// not baked into it — only data; the labels are formatted at render time.
 interface SearchItem {
   type: ResultType;
   text: string; // haystack core's searchText folds
   title: string;
   ar?: string;
   sub?: string;
-  ref: string;
   surah?: number; // ayah / surah navigation target
+  aya?: number;
+  /** "Al-Kahf · The Cave" for āyah refs; the surah's āyah count for surah rows. */
+  label?: string;
+  count?: number;
+  /** A name of Allah's number (1–99). */
+  nameN?: number;
 }
 
-const TYPE_LABEL: Record<ResultType, string> = {
-  ayah: "Verse",
-  surah: "Surah",
-  name: "Name of Allah",
-  adhkar: "Adhkār",
+const TYPE_LABEL: Record<ResultType, MessageKey> = {
+  ayah: "rd.search.verse",
+  surah: "rd.surah",
+  name: "rd.search.nameOfAllah",
+  adhkar: "rd.search.adhkar",
 };
 
-const FILTERS: { key: "all" | ResultType; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "ayah", label: "Quran" },
-  { key: "name", label: "Names" },
-  { key: "adhkar", label: "Adhkār" },
+const FILTERS: { key: "all" | ResultType; label: MessageKey }[] = [
+  { key: "all", label: "rd.search.all" },
+  { key: "ayah", label: "rd.search.quran" },
+  { key: "name", label: "rd.search.names" },
+  { key: "adhkar", label: "rd.search.adhkar" },
 ];
 
 // The unified index is large (~6k āyāt × 2 languages); build it once per session
@@ -57,7 +68,9 @@ const FILTERS: { key: "all" | ResultType; label: string }[] = [
 let indexCache: Promise<{ items: SearchItem[]; complete: boolean }> | null = null;
 
 async function buildIndex(surahs: Surah[]): Promise<{ items: SearchItem[]; complete: boolean }> {
-  const labelFor = new Map(surahs.map((s) => [s.number, `${s.transliteration} · ${s.englishName}`]));
+  const labelFor = new Map(
+    surahs.map((s) => [s.number, `${s.transliteration} · ${s.englishName}`]),
+  );
   const items: SearchItem[] = [];
 
   for (const s of surahs) {
@@ -66,8 +79,8 @@ async function buildIndex(surahs: Surah[]): Promise<{ items: SearchItem[]; compl
       text: `${s.transliteration} ${s.englishName} surah ${s.number}`,
       title: s.transliteration,
       ar: s.name,
-      sub: `${s.englishName} · ${s.ayahCount} āyāt`,
-      ref: `Surah ${s.number}`,
+      sub: s.englishName,
+      count: s.ayahCount,
       surah: s.number,
     });
   }
@@ -95,8 +108,9 @@ async function buildIndex(surahs: Surah[]): Promise<{ items: SearchItem[]; compl
       text: v.t,
       title: "",
       ar: v.t,
-      ref: `${labelFor.get(v.s) ?? `Surah ${v.s}`} · ${v.s}:${v.a}`,
+      label: labelFor.get(v.s),
       surah: v.s,
+      aya: v.a,
     });
   }
   for (const v of english?.quran ?? []) {
@@ -104,8 +118,9 @@ async function buildIndex(surahs: Surah[]): Promise<{ items: SearchItem[]; compl
       type: "ayah",
       text: v.text,
       title: v.text,
-      ref: `${labelFor.get(v.chapter) ?? `Surah ${v.chapter}`} · ${v.chapter}:${v.verse}`,
+      label: labelFor.get(v.chapter),
       surah: v.chapter,
+      aya: v.verse,
     });
   }
   for (const n of names) {
@@ -115,7 +130,7 @@ async function buildIndex(surahs: Surah[]): Promise<{ items: SearchItem[]; compl
       title: n.transliteration,
       ar: n.arabic,
       sub: n.meaning,
-      ref: `Name ${n.number} of 99`,
+      nameN: n.number,
     });
   }
   for (const d of adhkar) {
@@ -124,8 +139,7 @@ async function buildIndex(surahs: Surah[]): Promise<{ items: SearchItem[]; compl
       text: `${d.translation} ${d.transliteration}`,
       title: d.translation,
       ar: d.arabic,
-      sub: d.occasions.map((o) => o[0]?.toUpperCase() + o.slice(1)).join(" · ") || "Adhkār",
-      ref: "Adhkār",
+      sub: d.occasions.map((o) => o[0]?.toUpperCase() + o.slice(1)).join(" · "),
     });
   }
 
@@ -149,11 +163,29 @@ function highlight(text: string, q: string, hl: object): ReactNode {
 export function SearchScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, num, dir } = useIntl();
+  const rtl = dir === "rtl";
+
+  const surahRef = (n: number) => tf("rd.search.surahRef", { n });
+  const refOf = (r: SearchItem): string => {
+    if (r.type === "surah") return surahRef(r.surah ?? 0);
+    if (r.type === "ayah")
+      return `${r.label ?? surahRef(r.surah ?? 0)} · ${num(r.surah ?? 0)}:${num(r.aya ?? 0)}`;
+    if (r.type === "name") return tf("rd.search.nameRef", { n: r.nameN ?? 0, total: 99 });
+    return t("rd.search.adhkar");
+  };
+  const subOf = (r: SearchItem): string | undefined => {
+    if (r.type === "surah") return `${r.sub ?? ""} · ${tf("rd.ayahCount", { n: r.count ?? 0 })}`;
+    if (r.type === "adhkar") return r.sub || t("rd.search.adhkar");
+    return r.sub;
+  };
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | ResultType>("all");
   const [results, setResults] = useState<(SearchItem & { score: number })[]>([]);
   const [indexReady, setIndexReady] = useState(false);
+  const [indexError, setIndexError] = useState(false);
+  const [indexAttempt, setIndexAttempt] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
   const indexRef = useRef<SearchItem[] | null>(null);
   const queryRef = useRef("");
@@ -178,18 +210,31 @@ export function SearchScreen({ navigation }: Props) {
         if (!complete) indexCache = null; // partial build — retry next time, not this session forever
         if (!active) return;
         indexRef.current = items;
+        setIndexError(false);
         setIndexReady(true);
         // The user may have typed before the index finished — search now.
         const pending = queryRef.current.trim();
         if (pending.length >= 2) setResults(searchText(items, pending, 60));
       })
       .catch(() => {
-        if (active) setIndexReady(true);
+        if (active) {
+          setIndexError(true);
+          setIndexReady(true);
+        }
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [indexAttempt]);
+
+  function retryIndex() {
+    indexCache = null;
+    indexRef.current = null;
+    setResults([]);
+    setIndexError(false);
+    setIndexReady(false);
+    setIndexAttempt((attempt) => attempt + 1);
+  }
 
   const q = query.trim();
 
@@ -217,9 +262,9 @@ export function SearchScreen({ navigation }: Props) {
     if ((r.type === "ayah" || r.type === "surah") && r.surah) {
       navigation.navigate("SurahReader", { surah: r.surah });
     } else if (r.type === "name") {
-      navigation.getParent()?.navigate("Names");
+      goTo(navigation, "Names");
     } else if (r.type === "adhkar") {
-      navigation.getParent()?.navigate("Tools", { screen: "Adhkar" });
+      goTo(navigation, "Adhkar");
     }
   }
 
@@ -243,7 +288,7 @@ export function SearchScreen({ navigation }: Props) {
         <Icon name="search" size={20} color={colors.muted} sw={1.8} />
         <TextInput
           style={styles.input}
-          placeholder="Search verses, names, adhkār…"
+          placeholder={t("rd.search.ph")}
           placeholderTextColor={colors.muted}
           value={query}
           onChangeText={run}
@@ -252,13 +297,17 @@ export function SearchScreen({ navigation }: Props) {
           autoCorrect={false}
         />
         {query.length > 0 && (
-          <Pressable onPress={() => run("")} hitSlop={8}>
+          <Pressable
+            onPress={() => run("")}
+            hitSlop={8}
+            accessibilityLabel={t("rd.search.clearA11y")}
+          >
             <Text style={styles.clear}>✕</Text>
           </Pressable>
         )}
       </View>
 
-      {q.length >= 2 && (
+      {q.length >= 2 && indexReady && !indexError && (
         <View style={styles.filters}>
           {FILTERS.map((f) => {
             const count = counts[f.key] ?? 0;
@@ -271,7 +320,7 @@ export function SearchScreen({ navigation }: Props) {
                 onPress={() => setFilter(f.key)}
               >
                 <Text style={[styles.pillText, on && styles.pillTextOn]}>
-                  {f.label} {count}
+                  {t(f.label)} {num(count)}
                 </Text>
               </Pressable>
             );
@@ -283,7 +332,9 @@ export function SearchScreen({ navigation }: Props) {
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           {history.length > 0 && (
             <>
-              <Text style={styles.sectionLabel}>Recent</Text>
+              <Text style={[styles.sectionLabel, rtl && styles.noTrack]}>
+                {t("rd.search.recent")}
+              </Text>
               <View style={styles.chipWrap}>
                 {history.map((h) => (
                   <Pressable key={h} style={styles.chip} onPress={() => run(h)}>
@@ -293,18 +344,27 @@ export function SearchScreen({ navigation }: Props) {
               </View>
             </>
           )}
-          <Text style={styles.sectionLabel}>Try a topic</Text>
+          <Text style={[styles.sectionLabel, rtl && styles.noTrack]}>{t("rd.search.topic")}</Text>
           <View style={styles.chipWrap}>
-            {TOPICS.map((t) => (
-              <Pressable key={t} style={styles.chip} onPress={() => run(t)}>
-                <Text style={styles.chipText}>{t}</Text>
+            {TOPICS.map((topic) => (
+              <Pressable key={topic} style={styles.chip} onPress={() => run(topic)}>
+                <Text style={styles.chipText}>{topic}</Text>
               </Pressable>
             ))}
           </View>
           {!indexReady && (
             <View style={styles.indexing}>
               <ActivityIndicator color={colors.accent} />
-              <Text style={styles.muted}>Building search index…</Text>
+              <Text style={styles.muted}>{t("rd.search.building")}</Text>
+            </View>
+          )}
+          {indexError && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>{t("rd.search.unavailable")}</Text>
+              <Text style={styles.muted}>{t("rd.search.unavailableHint")}</Text>
+              <Pressable style={styles.chip} onPress={retryIndex} accessibilityRole="button">
+                <Text style={styles.chipText}>{t("rd.retry")}</Text>
+              </Pressable>
             </View>
           )}
         </ScrollView>
@@ -312,30 +372,61 @@ export function SearchScreen({ navigation }: Props) {
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <Text style={styles.resultMeta}>
             {!indexReady
-              ? "Searching…"
-              : `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for “${q}”`}
+              ? t("rd.search.searching")
+              : indexError
+                ? t("rd.search.unavailable")
+                : tf(filtered.length === 1 ? "rd.search.result1" : "rd.search.resultN", {
+                    n: filtered.length,
+                    q,
+                  })}
           </Text>
           {filtered.map((r, i) => (
-            <Pressable key={`${r.type}:${r.ref}:${i}`} style={styles.card} onPress={() => openResult(r)}>
+            <Pressable
+              key={`${r.type}:${r.surah ?? ""}:${r.aya ?? r.nameN ?? ""}:${i}`}
+              style={styles.card}
+              onPress={() => openResult(r)}
+            >
               <View style={styles.cardHead}>
-                <Text style={styles.badge}>{TYPE_LABEL[r.type]}</Text>
-                <Text style={styles.cardRef}>{r.ref}</Text>
+                <Text style={styles.badge}>{t(TYPE_LABEL[r.type])}</Text>
+                <Text style={styles.cardRef}>{refOf(r)}</Text>
               </View>
               {r.ar ? (
-                <Text style={[styles.cardAr, r.type === "name" && styles.cardArName]}>{r.ar}</Text>
+                <Text
+                  style={[
+                    styles.cardAr,
+                    r.type === "name" && styles.cardArName,
+                    r.type === "ayah" && styles.cardQuran,
+                  ]}
+                >
+                  {r.ar}
+                </Text>
               ) : null}
               {r.title ? (
-                <Text style={[styles.cardTitle, r.type === "name" && styles.cardTitleName]} numberOfLines={3}>
+                <Text
+                  style={[styles.cardTitle, r.type === "name" && styles.cardTitleName]}
+                  numberOfLines={3}
+                >
                   {highlight(r.title, q, styles.hl)}
                 </Text>
               ) : null}
-              {r.sub ? <Text style={styles.cardSub}>{highlight(r.sub, q, styles.hl)}</Text> : null}
+              {subOf(r) ? (
+                <Text style={styles.cardSub}>{highlight(subOf(r) ?? "", q, styles.hl)}</Text>
+              ) : null}
             </Pressable>
           ))}
-          {indexReady && filtered.length === 0 && (
+          {indexReady && !indexError && filtered.length === 0 && (
             <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>Nothing found</Text>
-              <Text style={styles.muted}>Try another word, or a topic like “mercy”.</Text>
+              <Text style={styles.emptyTitle}>{t("rd.search.nothing")}</Text>
+              <Text style={styles.muted}>{tf("rd.search.nothingHint", { topic: "“mercy”" })}</Text>
+            </View>
+          )}
+          {indexError && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>{t("rd.search.unavailable")}</Text>
+              <Text style={styles.muted}>{t("rd.search.unavailableHint")}</Text>
+              <Pressable style={styles.chip} onPress={retryIndex} accessibilityRole="button">
+                <Text style={styles.chipText}>{t("rd.retry")}</Text>
+              </Pressable>
             </View>
           )}
         </ScrollView>
@@ -419,7 +510,13 @@ function makeStyles(c: Palette) {
       paddingHorizontal: 9,
       overflow: "hidden",
     },
-    cardRef: { color: c.accent, fontSize: 12.5, fontWeight: "600", flexShrink: 1, textAlign: "right" },
+    cardRef: {
+      color: c.accent,
+      fontSize: 12.5,
+      fontWeight: "600",
+      flexShrink: 1,
+      textAlign: "right",
+    },
     cardAr: {
       color: c.fg,
       fontSize: 21,
@@ -428,6 +525,7 @@ function makeStyles(c: Palette) {
       writingDirection: "rtl",
       fontFamily: FONT.ar,
     },
+    cardQuran: { fontFamily: FONT.arQuran, direction: "ltr", lineHeight: 50 },
     cardArName: { fontSize: 26, marginBottom: 2 },
     cardTitle: { color: c.muted, fontSize: 15, lineHeight: 23, marginTop: 8 },
     hl: { color: c.fg, backgroundColor: c.accentSoft, fontFamily: FONT.bold },
@@ -436,5 +534,7 @@ function makeStyles(c: Palette) {
     empty: { alignItems: "center", paddingVertical: 50, gap: 6 },
     emptyTitle: { color: c.fg, fontSize: 17, fontWeight: "700" },
     muted: { color: c.muted, fontSize: 14 },
+    // Arabic/Urdu interface text must not be letter-spaced (it breaks the joins).
+    noTrack: { letterSpacing: 0 },
   });
 }

@@ -16,7 +16,10 @@ export async function readPrayerReminderPrefs(): Promise<PrayerReminderPrefs> {
   return (await mobileReminderStore.read()).prayers;
 }
 
-export async function setPrayerReminder(prayer: PrayerName, on: boolean): Promise<PrayerReminderPrefs> {
+export async function setPrayerReminder(
+  prayer: PrayerName,
+  on: boolean,
+): Promise<PrayerReminderPrefs> {
   const prefs = { ...(await readPrayerReminderPrefs()), [prayer]: on };
   await mobileReminderStore.writePrayers(prefs);
   await syncPrayerReminders();

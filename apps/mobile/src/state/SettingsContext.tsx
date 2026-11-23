@@ -10,6 +10,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -20,9 +21,17 @@ import { readTafsirCompare, writeTafsirCompare } from "../tafsir-compare-store";
 import { onSyncApplied } from "../lib/sync/sync-events";
 import { RECITER, TAFSIRS } from "../plugins";
 import { defaultEditions, MAX_SCALE, MIN_SCALE, type ReadingMode } from "../types";
+import { ignoreStale } from "../utils";
+import { type Comfort, DEFAULT_COMFORT, mergeComfort } from "../comfort";
+import { readComfort, writeComfort } from "../comfort-store";
+import { useI18n } from "../i18n/I18nProvider";
 
 interface SettingsValue {
   editions: string[];
+  /** True once the reader has chosen translations (including none) — ADR 0041. */
+  editionsChosen: boolean;
+  /** Confirm the default shown before choosing, so it stops following the language. */
+  keepEditions: () => void;
   readingMode: ReadingMode;
   readingTranslation: string | null;
   reciterId: string;
@@ -51,6 +60,12 @@ interface SettingsValue {
   setWordTransliteration: (on: boolean) => void;
   setTapToHear: (on: boolean) => void;
   setScript: (script: QuranScript) => void;
+  /**
+   * Reading comfort + app mode (ADR 0041): translation size, emphasis, larger
+   * buttons, reduced motion, Easy mode, habit display. Device-local `ul.comfort`.
+   */
+  comfort: Comfort;
+  setComfort: (patch: Partial<Comfort>) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -58,7 +73,9 @@ const SettingsContext = createContext<SettingsValue | null>(null);
 const clampScale = (n: number): number => Math.min(MAX_SCALE, Math.max(MIN_SCALE, n));
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [editions, setEditionsState] = useState<string[]>(defaultEditions);
+  const { locale } = useI18n();
+  const [editions, setEditionsState] = useState<string[]>(() => defaultEditions());
+  const [editionsChosen, setEditionsChosen] = useState(false);
   const [readingMode, setReadingModeState] = useState<ReadingMode>("translation");
   const [readingTranslation, setReadingTranslationState] = useState<string | null>(null);
   const [reciterId, setReciterIdState] = useState<string>(RECITER.id);
@@ -69,22 +86,47 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [wordTransliteration, setWordTransliterationState] = useState<boolean>(false);
   const [tapToHear, setTapToHearState] = useState<boolean>(false);
   const [script, setScriptState] = useState<QuranScript>("uthmani");
+  const [comfort, setComfortState] = useState<Comfort>(DEFAULT_COMFORT);
   const [catalogue, setCatalogue] = useState<Translation[]>([]);
   const [tafsirs, setTafsirs] = useState<TafsirMeta[]>([]);
 
+  // Guards `loadPrefs`'s reload against racing a local setter the same way
+  // `PrayerTrackerScreen`/`LibraryContext` could (iterations 44/51):
+  // `onSyncApplied` fires on both a sync round and app foreground, and
+  // `loadPrefs` re-reads every preference unconditionally each time —
+  // without this, a toggle tapped right as that fires could get silently
+  // reverted by a reload whose read started before the tap's write landed.
+  const writeGen = useRef(0);
+
   const loadPrefs = useCallback(async () => {
+    const gen = writeGen.current;
+    const currentGen = () => writeGen.current;
     const s = await store.read();
-    if (s.editions && s.editions.length > 0) setEditionsState(s.editions);
-    if (s.readingMode === "translation" || s.readingMode === "reading" || s.readingMode === "reading-tr")
-      setReadingModeState(s.readingMode);
-    if (s.readingTranslation) setReadingTranslationState(s.readingTranslation);
-    if (s.reciter) setReciterIdState(s.reciter);
-    if (s.tafsir) setTafsirIdState(s.tafsir);
-    if (s.scale != null) setScaleState(clampScale(s.scale));
-    if (s.transliteration != null) setTransliterationState(s.transliteration);
-    if (s.wordTransliteration != null) setWordTransliterationState(s.wordTransliteration);
-    if (s.tapToHear != null) setTapToHearState(s.tapToHear);
-    if (s.script === "uthmani" || s.script === "indopak") setScriptState(s.script);
+    // A stored set (even [] = "None — Arabic only") is the reader's choice.
+    if (Array.isArray(s.editions)) {
+      ignoreStale(currentGen, gen, setEditionsState)(s.editions);
+      ignoreStale(currentGen, gen, setEditionsChosen)(true);
+    }
+    if (
+      s.readingMode === "translation" ||
+      s.readingMode === "reading" ||
+      s.readingMode === "reading-tr"
+    )
+      ignoreStale(currentGen, gen, setReadingModeState)(s.readingMode);
+    if (s.readingTranslation)
+      ignoreStale(currentGen, gen, setReadingTranslationState)(s.readingTranslation);
+    if (s.reciter) ignoreStale(currentGen, gen, setReciterIdState)(s.reciter);
+    if (s.tafsir) ignoreStale(currentGen, gen, setTafsirIdState)(s.tafsir);
+    if (s.scale != null) ignoreStale(currentGen, gen, setScaleState)(clampScale(s.scale));
+    if (s.transliteration != null)
+      ignoreStale(currentGen, gen, setTransliterationState)(s.transliteration);
+    if (s.wordTransliteration != null)
+      ignoreStale(currentGen, gen, setWordTransliterationState)(s.wordTransliteration);
+    if (s.tapToHear != null) ignoreStale(currentGen, gen, setTapToHearState)(s.tapToHear);
+    if (s.script === "uthmani" || s.script === "indopak")
+      ignoreStale(currentGen, gen, setScriptState)(s.script);
+    const c = await readComfort();
+    ignoreStale(currentGen, gen, setComfortState)(c);
   }, []);
 
   useEffect(() => {
@@ -102,28 +144,48 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return onSyncApplied(() => void loadPrefs());
   }, [loadPrefs]);
 
+  // Before a choice, the translation follows the interface language.
+  useEffect(() => {
+    if (!editionsChosen) setEditionsState(defaultEditions(locale));
+  }, [locale, editionsChosen]);
+
   const setEditions = useCallback((ids: string[]) => {
-    const next = ids.length > 0 ? ids : defaultEditions();
-    setEditionsState(next);
-    void store.writeEditions(next);
+    writeGen.current++;
+    // [] is a real choice now: "None — Arabic only" (ADR 0041).
+    setEditionsState(ids);
+    setEditionsChosen(true);
+    void store.writeEditions(ids);
+  }, []);
+
+  const keepEditions = useCallback(() => {
+    writeGen.current++;
+    setEditionsChosen(true);
+    setEditionsState((cur) => {
+      void store.writeEditions(cur);
+      return cur;
+    });
   }, []);
 
   const setReadingMode = useCallback((mode: ReadingMode) => {
+    writeGen.current++;
     setReadingModeState(mode);
     void store.writeReadingMode(mode);
   }, []);
 
   const setReadingTranslation = useCallback((id: string) => {
+    writeGen.current++;
     setReadingTranslationState(id);
     void store.writeReadingTranslation(id);
   }, []);
 
   const setReciterId = useCallback((id: string) => {
+    writeGen.current++;
     setReciterIdState(id);
     void store.writeReciter(id);
   }, []);
 
   const setTafsirId = useCallback((id: string) => {
+    writeGen.current++;
     setTafsirIdState(id);
     void store.writeTafsir(id);
   }, []);
@@ -137,6 +199,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // stepper each apply on top of the latest value instead of racing on a
   // stale `scale` closure — see the identical fix for TasbihScreen's dial.
   const setScale = useCallback((next: number | ((prev: number) => number)) => {
+    writeGen.current++;
     setScaleState((prev) => {
       const clamped = clampScale(typeof next === "function" ? next(prev) : next);
       void store.writeScale(clamped);
@@ -145,28 +208,43 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setTransliteration = useCallback((on: boolean) => {
+    writeGen.current++;
     setTransliterationState(on);
     void store.writeTransliteration(on);
   }, []);
 
   const setWordTransliteration = useCallback((on: boolean) => {
+    writeGen.current++;
     setWordTransliterationState(on);
     void store.writeWordTransliteration(on);
   }, []);
 
   const setTapToHear = useCallback((on: boolean) => {
+    writeGen.current++;
     setTapToHearState(on);
     void store.writeTapToHear(on);
   }, []);
 
   const setScript = useCallback((next: QuranScript) => {
+    writeGen.current++;
     setScriptState(next);
     void store.writeScript(next);
+  }, []);
+
+  const setComfort = useCallback((patch: Partial<Comfort>) => {
+    writeGen.current++;
+    setComfortState((prev) => {
+      const next = mergeComfort(prev, patch);
+      void writeComfort(next);
+      return next;
+    });
   }, []);
 
   const value = useMemo<SettingsValue>(
     () => ({
       editions,
+      editionsChosen,
+      keepEditions,
       readingMode,
       readingTranslation,
       reciterId,
@@ -190,9 +268,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setWordTransliteration,
       setTapToHear,
       setScript,
+      comfort,
+      setComfort,
     }),
     [
       editions,
+      editionsChosen,
+      keepEditions,
       readingMode,
       readingTranslation,
       reciterId,
@@ -216,6 +298,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setWordTransliteration,
       setTapToHear,
       setScript,
+      comfort,
+      setComfort,
     ],
   );
 

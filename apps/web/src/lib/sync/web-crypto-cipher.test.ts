@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { createWebCryptoCipher, generateRecoveryPhrase } from "./web-crypto-cipher";
 
 describe("generateRecoveryPhrase", () => {
-  it("formats as grouped, unambiguous codes and is unique each time", () => {
+  it("formats as a 12-word BIP39 phrase and is unique each time", () => {
     const p = generateRecoveryPhrase();
-    expect(p).toMatch(/^[A-HJ-NP-TV-Z2-9]{5}(-[A-HJ-NP-TV-Z2-9]{5}){4}$/);
+    expect(p).toMatch(/^[a-z]+(?: [a-z]+){11}$/);
     expect(generateRecoveryPhrase()).not.toBe(p);
   });
 });

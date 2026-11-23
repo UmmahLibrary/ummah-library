@@ -110,7 +110,7 @@ a {
 
 /* ---- Arabic ---- */
 .arabic {
-  font-family: var(--font-amiri), "Amiri", "Scheherazade New", serif;
+  font-family: var(--font-quran), var(--font-amiri), "Amiri Quran", "Amiri", serif;
   direction: rtl;
 }
 
@@ -276,6 +276,7 @@ a {
   margin: 0.25rem 0;
 }
 .reader-head .name-en {
+  margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
 }
@@ -314,7 +315,7 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
 
 /* reading-tr layout: one translation in a continuous, chrome-free flow. */
 .read-flow {
-  font-size: calc(1.15rem * var(--reading-scale, 1));
+  font-size: calc(1.15rem * var(--tr-scale, 1));
   line-height: 2;
   color: var(--fg);
   margin: 1.5rem 0;
@@ -365,7 +366,7 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   font-size: 0.85em;
 }
 .mushaf {
-  font-family: var(--font-amiri), serif;
+  font-family: var(--font-quran), var(--font-amiri), "Amiri Quran", "Amiri", serif;
   direction: rtl;
   text-align: justify;
   text-align-last: center;
@@ -424,14 +425,15 @@ html[data-reading-mode="reading-tr"] .mode-reading-tr {
   color: var(--muted);
 }
 
+/* Same frame as the shared AyahBlock (ADR 0042). */
 .ayah {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding: 1.25rem 0.75rem;
-  margin: 0 -0.75rem;
+  gap: var(--noor-space-2-5);
+  padding: var(--noor-space-5) var(--noor-space-3);
+  margin: 0 calc(-1 * var(--noor-space-3));
   border-bottom: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--noor-radius-md);
   transition: background 0.15s ease;
 }
 .ayah:hover {
@@ -1520,7 +1522,7 @@ body.peek-on.peek-hide-tr .ayah-tr {
   color: inherit;
 }
 .votd-ar {
-  font-family: var(--font-amiri), serif;
+  font-family: var(--font-quran), var(--font-amiri), "Amiri Quran", "Amiri", serif;
   font-size: 1.7rem;
   line-height: 2.2;
   margin: 0 0 0.5rem;
@@ -1944,14 +1946,21 @@ body.peek-on.peek-hide-tr .ayah-tr {
   padding: 0.3rem 0.5rem;
   margin-inline-start: auto;
 }
+/* Translation: 18px default, its own size control (--tr-scale, separate from the
+   Arabic --reading-scale), and the same weight as the Arabic by default — readers
+   of the translation deserve equal emphasis. "Softer" restores the muted look. */
 .ayah-tr {
+  color: var(--fg);
+  font-size: calc(1.125rem * var(--tr-scale, 1));
+  line-height: 1.65;
+}
+html.tr-soft .ayah-tr {
   color: var(--muted);
-  font-size: calc(1rem * var(--reading-scale, 1));
 }
 .ayah-tr[lang="ur"] {
   font-family: var(--font-nastaliq), var(--font-amiri), serif;
   line-height: 2.6;
-  font-size: calc(1.35rem * var(--reading-scale, 1));
+  font-size: calc(1.35rem * var(--tr-scale, 1));
 }
 .ayah-tr .n {
   color: var(--faint);
@@ -1962,7 +1971,7 @@ body.peek-on.peek-hide-tr .ayah-tr {
 .ayah-translit {
   color: var(--faint);
   font-style: italic;
-  font-size: calc(0.95rem * var(--reading-scale, 1));
+  font-size: calc(1rem * var(--tr-scale, 1));
   margin-bottom: 0.35rem;
 }
 
@@ -2362,6 +2371,13 @@ body {
   background: transparent;
 }
 
+/* Quranic text outside the reader (verse of the day, saved and searched
+   āyāt): the Quran face, never the interface Arabic face. */
+.noor-quran {
+  font-family: var(--font-quran), var(--font-amiri), "Amiri Quran", "Amiri", serif;
+  direction: rtl;
+}
+
 /* Arabic text */
 .noor-ar {
   font-family: var(--noor-ar);
@@ -2428,11 +2444,8 @@ body {
   .noor-seg-btn {
     padding: 6px 8px !important;
   }
-  .noor-pop-sm-left {
-    right: auto !important;
-    left: 0 !important;
-  }
 }
+
 .noor-hide-md {
   display: revert;
 }

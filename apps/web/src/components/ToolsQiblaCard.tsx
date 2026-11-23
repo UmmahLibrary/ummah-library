@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { type Coordinates, compassPoint, qiblaDirection } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
-import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
+import { PRAYER_COORDS_EVENT, webPrayerSettingsStore } from "../lib/prayer-settings-store";
 
 const cardStyle = {
   borderRadius: 18,
@@ -27,9 +27,13 @@ export function ToolsQiblaCard() {
   const [coords, setCoords] = useState<Coordinates | null>(null);
 
   useEffect(() => {
-    void webPrayerSettingsStore.read().then(({ coords: saved }) => {
-      if (saved) setCoords(saved);
-    });
+    const loadCoords = () =>
+      void webPrayerSettingsStore.read().then(({ coords: saved }) => {
+        if (saved) setCoords(saved);
+      });
+    loadCoords();
+    window.addEventListener(PRAYER_COORDS_EVENT, loadCoords);
+    return () => window.removeEventListener(PRAYER_COORDS_EVENT, loadCoords);
   }, []);
 
   const bearing = coords ? qiblaDirection(coords) : null;

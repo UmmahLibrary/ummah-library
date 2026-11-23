@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text } from "react-native";
 import type { ReactNode } from "react";
 import { useNoorTheme } from "./NoorThemeContext";
 import { Icon, type IconName } from "./Icon";
+import { control, iconSize, nativeText, radius, space } from "./scale";
 
 type BtnVariant = "gold" | "ghost" | "soft" | "quiet";
 type BtnSize = "sm" | "md" | "lg";
@@ -17,12 +18,6 @@ interface BtnProps {
   type?: "button" | "submit" | "reset";
 }
 
-const SIZES: Record<BtnSize, { py: number; px: number; fs: number; r: number }> = {
-  sm: { py: 7, px: 13, fs: 13.5, r: 9 },
-  md: { py: 11, px: 21, fs: 15, r: 11 },
-  lg: { py: 14, px: 28, fs: 16, r: 12 },
-};
-
 export function Btn({
   children,
   variant = "gold",
@@ -32,7 +27,7 @@ export function Btn({
   disabled,
 }: BtnProps) {
   const c = useNoorTheme();
-  const z = SIZES[size];
+  const z = control[size];
 
   const variantStyle = StyleSheet.create({
     v: {
@@ -44,7 +39,13 @@ export function Btn({
   }).v;
 
   const textColor: string =
-    variant === "gold" ? c.ink : variant === "soft" ? c.accent : variant === "quiet" ? c.muted : c.fg;
+    variant === "gold"
+      ? c.ink
+      : variant === "soft"
+        ? c.accent
+        : variant === "quiet"
+          ? c.muted
+          : c.fg;
 
   return (
     <Pressable
@@ -52,13 +53,17 @@ export function Btn({
       disabled={disabled}
       style={[
         styles.base,
-        { paddingVertical: z.py, paddingHorizontal: z.px, borderRadius: z.r },
+        {
+          paddingVertical: space[z.padY],
+          paddingHorizontal: space[z.padX],
+          borderRadius: radius[z.radius],
+        },
         variantStyle,
         disabled && styles.disabled,
       ]}
     >
-      {icon && <Icon name={icon} size={z.fs + 3} color={textColor} />}
-      <Text style={[styles.label, { fontSize: z.fs, color: textColor }]}>{children}</Text>
+      {icon && <Icon name={icon} size={iconSize[z.icon]} color={textColor} />}
+      <Text style={[styles.label, nativeText(z.text), { color: textColor }]}>{children}</Text>
     </Pressable>
   );
 }
@@ -68,7 +73,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: space[2],
     borderWidth: 1,
   },
   label: { fontWeight: "600" },

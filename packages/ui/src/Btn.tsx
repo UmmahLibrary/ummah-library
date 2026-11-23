@@ -2,6 +2,8 @@
 import type { CSSProperties, MouseEventHandler, ReactNode } from "react";
 import { N } from "./tokens";
 import { Icon, type IconName } from "./Icon";
+import { control, iconSize } from "./scale";
+import { rad, sp, text } from "./scale-css";
 
 type BtnVariant = "gold" | "ghost" | "soft" | "quiet";
 type BtnSize = "sm" | "md" | "lg";
@@ -16,12 +18,6 @@ interface BtnProps {
   disabled?: boolean;
   type?: "button" | "submit" | "reset";
 }
-
-const SIZES: Record<BtnSize, { p: string; fs: number; r: number }> = {
-  sm: { p: "8px 14px", fs: 13.5, r: 9 },
-  md: { p: "12px 22px", fs: 15, r: 11 },
-  lg: { p: "15px 30px", fs: 16, r: 12 },
-};
 
 const VARIANTS: Record<BtnVariant, CSSProperties> = {
   gold: {
@@ -60,7 +56,7 @@ export function Btn({
   disabled,
   type = "button",
 }: BtnProps) {
-  const z = SIZES[size];
+  const z = control[size];
   return (
     <button
       type={type}
@@ -70,20 +66,21 @@ export function Btn({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: 9,
-        padding: z.p,
-        borderRadius: z.r,
-        fontSize: z.fs,
+        gap: sp(2),
+        padding: `${sp(z.padY)} ${sp(z.padX)}`,
+        borderRadius: rad(z.radius),
+        ...text(z.text),
         fontFamily: N.ui,
         cursor: disabled ? "default" : "pointer",
         whiteSpace: "nowrap",
-        transition: "transform .12s ease, opacity .15s ease",
+        transition:
+          "transform var(--noor-dur-fast) var(--noor-ease), opacity var(--noor-dur-base) var(--noor-ease)",
         ...VARIANTS[variant],
         ...(disabled ? { opacity: 0.5 } : {}),
         ...style,
       }}
     >
-      {icon && <Icon name={icon} size={z.fs + 3} sw={1.8} />}
+      {icon && <Icon name={icon} size={iconSize[z.icon]} sw={1.8} />}
       {children}
     </button>
   );

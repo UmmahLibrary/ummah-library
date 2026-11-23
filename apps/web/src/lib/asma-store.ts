@@ -5,6 +5,17 @@
  */
 const KEY = "ul.asmaLearned";
 
+/** Fired whenever the learned set changes, so open views can re-read live (e.g. a sync-applied change). */
+export const ASMA_EVENT = "ul.asmaLearned";
+
+function emit(): void {
+  try {
+    window.dispatchEvent(new CustomEvent(ASMA_EVENT));
+  } catch {
+    /* non-browser */
+  }
+}
+
 export function readLearned(): Record<number, true> {
   try {
     const raw = localStorage.getItem(KEY);
@@ -23,6 +34,7 @@ export function writeLearned(learned: Record<number, true>): void {
   } catch {
     /* storage unavailable */
   }
+  emit();
 }
 
 /** How many names the reader has marked learned. */

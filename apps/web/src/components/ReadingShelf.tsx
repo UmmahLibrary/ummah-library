@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { readBookmarks } from "../lib/bookmarks";
-import { readLastRead } from "../lib/reader-prefs-store";
+import { BOOKMARKS_EVENT, readBookmarks } from "../lib/bookmarks";
+import { LAST_READ_EVENT, readLastRead } from "../lib/reader-prefs-store";
 
 interface SurahRef {
   number: number;
@@ -21,6 +21,15 @@ export function ReadingShelf({ surahs }: { surahs: SurahRef[] }) {
     setLastRead(readLastRead());
     void readBookmarks().then(setBookmarks);
     setReady(true);
+
+    const onLastRead = () => setLastRead(readLastRead());
+    const onBookmarks = () => void readBookmarks().then(setBookmarks);
+    window.addEventListener(LAST_READ_EVENT, onLastRead);
+    window.addEventListener(BOOKMARKS_EVENT, onBookmarks);
+    return () => {
+      window.removeEventListener(LAST_READ_EVENT, onLastRead);
+      window.removeEventListener(BOOKMARKS_EVENT, onBookmarks);
+    };
   }, []);
 
   if (!ready || (lastRead === null && bookmarks.length === 0)) return null;

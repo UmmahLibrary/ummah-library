@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { homeUrl, settingsUrl, surahUrl } from "./links";
+import { homeUrl, listenUrl, settingsUrl, surahUrl } from "./links";
 
 describe("links", () => {
   it("links to a surah without an anchor when no ayah is given", () => {
@@ -8,6 +8,11 @@ describe("links", () => {
 
   it("anchors at the ayah via the #sura:aya hash the reader understands", () => {
     expect(surahUrl(2, 255)).toBe("https://ummahlibrary.org/surah/2#2:255");
+  });
+
+  it("links to Listen, starting at the ayah via the #aya hash", () => {
+    expect(listenUrl(36, 12)).toBe("https://ummahlibrary.org/listen/36#12");
+    expect(listenUrl(1)).toBe("https://ummahlibrary.org/listen/1");
   });
 
   it("exposes the home and settings URLs", () => {

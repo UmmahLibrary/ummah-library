@@ -18,7 +18,9 @@ export function Logo({ scale = 1, color, text, onClick }: LogoProps) {
   const inner = (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 * scale }}>
       <Khatam size={26 * scale} color={accentColor} sw={2.2} />
-      <Text style={{ fontWeight: "700", fontSize: 17 * scale, color: textColor, letterSpacing: 0.2 }}>
+      <Text
+        style={{ fontWeight: "700", fontSize: 17 * scale, color: textColor, letterSpacing: 0.2 }}
+      >
         {"Ummah"}
         <Text style={{ color: accentColor, fontWeight: "600" }}>{" Library"}</Text>
       </Text>
@@ -26,9 +28,7 @@ export function Logo({ scale = 1, color, text, onClick }: LogoProps) {
   );
 
   if (onClick) {
-    return (
-      <Pressable onPress={onClick as () => void}>{inner}</Pressable>
-    );
+    return <Pressable onPress={onClick as () => void}>{inner}</Pressable>;
   }
   return inner;
 }

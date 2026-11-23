@@ -17,7 +17,7 @@ None this round.
   view.
 - **Mushaf page view** (`MushafPageScreen`): reached via the stacked-pages
   icon in `SurahReaderScreen`'s header (`accessibilityLabel="Open in
-  Mushaf page view"`). Page 1 renders Al-Faatiha in traditional
+Mushaf page view"`). Page 1 renders Al-Faatiha in traditional
   right-aligned mushaf typesetting with the surah-end ornament; "Next"
   correctly advances to Page 2 (Al-Baqara, verses 1–5) and reveals a
   "Previous" control once past the first page. Page counter ("Juzʾ 1 ·

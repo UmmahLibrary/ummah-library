@@ -14,6 +14,19 @@ const RATE_KEY = "ul.audioRate";
 // Mirrors the event key exported by components/WordByWord.
 const WBW_KEY = "ul.wbw";
 
+/** Fired whenever the last-read position changes, so open views can re-read live (e.g. a sync-applied change). */
+export const LAST_READ_EVENT = "ul.lastRead";
+/** Fired whenever the audio-loop toggle changes, so open views can re-read live (e.g. a sync-applied change). */
+export const LOOP_EVENT = "ul.loop";
+
+function emit(event: string): void {
+  try {
+    window.dispatchEvent(new CustomEvent(event));
+  } catch {
+    /* non-browser */
+  }
+}
+
 /** The last-read position: the surah, the furthest āyah reached, and that
  *  surah's āyah count at write time (so the home card can show progress). */
 export interface LastRead {
@@ -72,6 +85,7 @@ export function writeLastRead(surah: number, aya?: number, total?: number): void
   } catch {
     /* storage unavailable */
   }
+  emit(LAST_READ_EVENT);
 }
 
 export function readWordByWord(): boolean {
@@ -104,6 +118,7 @@ export function writeLoop(on: boolean): void {
   } catch {
     /* storage unavailable */
   }
+  emit(LOOP_EVENT);
 }
 
 /** The remembered playback speed (clamped); defaults to `1` (normal). */

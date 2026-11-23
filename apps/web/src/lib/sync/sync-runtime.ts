@@ -26,8 +26,8 @@ function controllerFor(secret: string): Promise<SyncController> {
 }
 
 async function run(): Promise<SyncOutcome | null> {
-  if (!isSyncEnabled()) return null;
-  const secret = readSyncSecret();
+  if (!(await isSyncEnabled())) return null;
+  const secret = await readSyncSecret();
   if (!secret) return null;
   return (await controllerFor(secret)).syncNow();
 }

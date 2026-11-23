@@ -66,3 +66,17 @@ describe("TasbihPageClient", () => {
     expect(stored.phrases.subhanallah.total).toBe(0);
   });
 });
+
+describe("TasbihPageClient — selected dhikr is announced", () => {
+  it("marks exactly the chosen dhikr as pressed", async () => {
+    render(<TasbihPageClient />);
+    const first = await screen.findByRole("button", { name: "SubḥānAllāh" });
+    const second = screen.getByRole("button", { name: "Alḥamdulillāh" });
+    expect(first).toHaveAttribute("aria-pressed", "true");
+    expect(second).toHaveAttribute("aria-pressed", "false");
+
+    await userEvent.click(second);
+    expect(second).toHaveAttribute("aria-pressed", "true");
+    expect(first).toHaveAttribute("aria-pressed", "false");
+  });
+});

@@ -40,3 +40,15 @@ describe("ZakatCalculator", () => {
     expect(screen.getAllByPlaceholderText("0")[0]).toHaveValue("500");
   });
 });
+
+describe("ZakatCalculator — labelled fields", () => {
+  it("every amount field is reachable by its visible label", async () => {
+    render(<ZakatCalculator />);
+    expect(await screen.findByLabelText("Gold / gram")).toBeInTheDocument();
+    expect(screen.getByLabelText("Silver / gram")).toBeInTheDocument();
+    expect(screen.getByLabelText("Currency")).toBeInTheDocument();
+    for (const input of screen.getAllByRole("textbox")) {
+      expect(input).toHaveAccessibleName();
+    }
+  });
+});

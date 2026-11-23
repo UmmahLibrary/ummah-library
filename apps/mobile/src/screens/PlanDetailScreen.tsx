@@ -31,6 +31,8 @@ import {
 import { PlanCompletionCard } from "../components/PlanCompletionCard";
 import { PlanReminderToggle } from "../components/PlanReminderToggle";
 import type { ReadStackParamList } from "../navigation/types";
+import { useIntl } from "../i18n/I18nProvider";
+import { digits, planName, planTag, portionLabel } from "../i18n/memorize-text";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "PlanDetail">;
 type Nav = Props["navigation"];
@@ -45,6 +47,8 @@ function openTarget(navigation: Nav, portion: DayPortion) {
 export function PlanDetailScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const intl = useIntl();
+  const { t, tf, num } = intl;
   const [plan, setPlan] = useState<ActivePlan | null>(null);
   const [ready, setReady] = useState(false);
   const [confirmAbandon, setConfirmAbandon] = useState(false);
@@ -64,7 +68,7 @@ export function PlanDetailScreen({ navigation }: Props) {
   if (!plan) {
     return (
       <View style={[styles.screen, styles.center]}>
-        <Text style={styles.muted}>No active plan.</Text>
+        <Text style={styles.muted}>{t("mem.detail.none")}</Text>
       </View>
     );
   }
@@ -104,23 +108,24 @@ export function PlanDetailScreen({ navigation }: Props) {
             />
           </Svg>
           <View style={styles.ringCenter}>
-            <Text style={styles.ringPct}>{pct}%</Text>
-            <Text style={styles.ringDay}>
-              Day {day}/{total}
-            </Text>
+            <Text style={styles.ringPct}>{num(pct)}%</Text>
+            <Text style={styles.ringDay}>{tf("mem.detail.dayRing", { day, total })}</Text>
           </View>
         </View>
         <View style={styles.headMeta}>
           <View style={styles.nameRow}>
             <Khatam size={22} color={colors.accent} sw={1} opacity={0.7} />
-            <Text style={styles.name}>{plan.template.name}</Text>
+            <Text style={styles.name}>{planName(intl, plan.template)}</Text>
           </View>
           <Text style={styles.endText}>
-            {plan.template.tag} · ends {planEndDate(plan)}
+            {tf("mem.detail.ends", {
+              tag: planTag(intl, plan.template),
+              date: digits(intl, planEndDate(plan)),
+            })}
           </Text>
           {paused && (
             <View style={styles.pausedPill}>
-              <Text style={styles.pausedPillText}>⏸ Paused</Text>
+              <Text style={styles.pausedPillText}>{t("mem.plans.paused")}</Text>
             </View>
           )}
         </View>
@@ -128,21 +133,31 @@ export function PlanDetailScreen({ navigation }: Props) {
 
       {paused ? (
         <View style={styles.pausedCard}>
-          <Text style={styles.pausedNote}>Paused on {plan.pausedOn}. Your place is held — resume any time.</Text>
-          <Pressable style={styles.resumeBtn} onPress={() => void resumePlan().then(refresh)}>
+          <Text style={styles.pausedNote}>
+            {tf("mem.detail.pausedOn", { date: digits(intl, plan.pausedOn ?? "") })}
+          </Text>
+          <Pressable
+            style={styles.resumeBtn}
+            accessibilityRole="button"
+            onPress={() => void resumePlan().then(refresh)}
+          >
             <Icon name="play" size={14} color={colors.ink} />
-            <Text style={styles.resumeText}>Resume</Text>
+            <Text style={styles.resumeText}>{t("mem.detail.resume")}</Text>
           </Pressable>
         </View>
       ) : (
         <View style={styles.todayCard}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.todayKicker}>Today</Text>
-            <Text style={styles.todayLabel}>{portion.label}</Text>
+            <Text style={styles.todayKicker}>{t("mem.detail.today")}</Text>
+            <Text style={styles.todayLabel}>{portionLabel(intl, portion)}</Text>
           </View>
-          <Pressable style={styles.readBtn} onPress={() => openTarget(navigation, portion)}>
+          <Pressable
+            style={styles.readBtn}
+            accessibilityRole="button"
+            onPress={() => openTarget(navigation, portion)}
+          >
             <Icon name="book" size={14} color={colors.ink} sw={1.8} />
-            <Text style={styles.readText}>Read now</Text>
+            <Text style={styles.readText}>{t("mem.detail.readNow")}</Text>
           </Pressable>
         </View>
       )}
@@ -151,12 +166,13 @@ export function PlanDetailScreen({ navigation }: Props) {
 
       {!paused && behind < 0 && (
         <Text style={styles.behindNote}>
-          You’re {Math.abs(behind)} {Math.abs(behind) === 1 ? "day" : "days"} behind — re-pace below to catch up
-          gently.
+          {tf(Math.abs(behind) === 1 ? "mem.detail.behindOne" : "mem.detail.behindOther", {
+            n: Math.abs(behind),
+          })}
         </Text>
       )}
 
-      <Text style={styles.sectionLabel}>Your days</Text>
+      <Text style={styles.sectionLabel}>{t("mem.plans.yourDays")}</Text>
       <View style={styles.heat}>
         {Array.from({ length: total }, (_, i) => i + 1).map((d) => {
           const done = isDayComplete(plan, d);
@@ -176,30 +192,30 @@ export function PlanDetailScreen({ navigation }: Props) {
         })}
       </View>
       <View style={styles.legend}>
-        <Legend styles={styles} colors={colors} kind="done" label="Done" />
-        <Legend styles={styles} colors={colors} kind="missed" label="Missed" />
-        <Legend styles={styles} colors={colors} kind="upcoming" label="Upcoming" />
+        <Legend styles={styles} colors={colors} kind="done" label={t("mem.detail.done")} />
+        <Legend styles={styles} colors={colors} kind="missed" label={t("mem.detail.missed")} />
+        <Legend styles={styles} colors={colors} kind="upcoming" label={t("mem.detail.upcoming")} />
       </View>
 
-      <Text style={styles.sectionLabel}>Manage</Text>
+      <Text style={styles.sectionLabel}>{t("mem.detail.manage")}</Text>
       <View style={styles.manage}>
         <Pressable style={styles.pill} onPress={() => void rebalancePlan().then(refresh)}>
           <Icon name="repeat" size={13} color={colors.fg} sw={1.8} />
-          <Text style={styles.pillText}>Re-pace</Text>
+          <Text style={styles.pillText}>{t("mem.detail.repace")}</Text>
         </Pressable>
         <Pressable style={styles.pill} onPress={() => void extendPlanBy(7).then(refresh)}>
           <Icon name="plus" size={13} color={colors.fg} sw={2} />
-          <Text style={styles.pillText}>Extend +1wk</Text>
+          <Text style={styles.pillText}>{t("mem.plans.extend")}</Text>
         </Pressable>
         {paused ? (
           <Pressable style={styles.pill} onPress={() => void resumePlan().then(refresh)}>
             <Icon name="play" size={13} color={colors.fg} />
-            <Text style={styles.pillText}>Resume</Text>
+            <Text style={styles.pillText}>{t("mem.detail.resume")}</Text>
           </Pressable>
         ) : (
           <Pressable style={styles.pill} onPress={() => void pausePlan().then(refresh)}>
             <Icon name="pause" size={13} color={colors.fg} />
-            <Text style={styles.pillText}>Pause</Text>
+            <Text style={styles.pillText}>{t("mem.detail.pause")}</Text>
           </Pressable>
         )}
         {confirmAbandon ? (
@@ -208,16 +224,16 @@ export function PlanDetailScreen({ navigation }: Props) {
               style={[styles.pill, styles.pillDanger]}
               onPress={() => void clearPlan().then(() => navigation.goBack())}
             >
-              <Text style={styles.pillText}>Yes, abandon</Text>
+              <Text style={styles.pillText}>{t("mem.detail.abandonYes")}</Text>
             </Pressable>
             <Pressable style={styles.pill} onPress={() => setConfirmAbandon(false)}>
-              <Text style={styles.pillText}>Keep</Text>
+              <Text style={styles.pillText}>{t("mem.detail.keep")}</Text>
             </Pressable>
           </>
         ) : (
           <Pressable style={styles.pill} onPress={() => setConfirmAbandon(true)}>
             <Icon name="close" size={13} color={colors.muted} sw={1.8} />
-            <Text style={styles.pillTextMuted}>Abandon</Text>
+            <Text style={styles.pillTextMuted}>{t("mem.detail.abandon")}</Text>
           </Pressable>
         )}
       </View>
@@ -263,7 +279,13 @@ function makeStyles(c: Palette) {
     ringDay: { color: c.faint, fontSize: 11, marginTop: 1 },
     headMeta: { flex: 1, minWidth: 0 },
     nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-    name: { color: c.fg, fontSize: 20, fontFamily: FONT.extrabold, letterSpacing: -0.4, flexShrink: 1 },
+    name: {
+      color: c.fg,
+      fontSize: 20,
+      fontFamily: FONT.extrabold,
+      letterSpacing: -0.4,
+      flexShrink: 1,
+    },
     endText: { color: c.muted, fontSize: 13, marginTop: 5 },
     pausedPill: {
       alignSelf: "flex-start",

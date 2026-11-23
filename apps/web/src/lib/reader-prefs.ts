@@ -9,6 +9,9 @@
  */
 import { webSettingsStore as store } from "./settings-store";
 
+/** Fired whenever the font scale changes, so open views can re-read live (e.g. a sync-applied change). */
+export const SCALE_EVENT = "ul.scale";
+
 export async function readReciter(): Promise<string | null> {
   return (await store.read()).reciter;
 }
@@ -19,10 +22,23 @@ export function writeReciter(id: string): Promise<void> {
 export async function readScale(): Promise<number> {
   return (await store.read()).scale ?? 1;
 }
-export function writeScale(scale: number): Promise<void> {
-  return store.writeScale(scale);
+export async function writeScale(scale: number): Promise<void> {
+  await store.writeScale(scale);
+  try {
+    window.dispatchEvent(new CustomEvent(SCALE_EVENT));
+  } catch {
+    /* non-browser */
+  }
 }
 
-export function writeReadingMode(mode: string): Promise<void> {
-  return store.writeReadingMode(mode);
+/** Fired whenever the reading mode changes, so open readers can re-render live (e.g. a sync-applied change). */
+export const READING_MODE_EVENT = "ul.readingMode";
+
+export async function writeReadingMode(mode: string): Promise<void> {
+  await store.writeReadingMode(mode);
+  try {
+    window.dispatchEvent(new CustomEvent(READING_MODE_EVENT, { detail: mode }));
+  } catch {
+    /* non-browser */
+  }
 }

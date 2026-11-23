@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { LTR_TEXT, textDir } from "../text-direction";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
@@ -23,6 +24,7 @@ import { DEFAULT_EDITION, TRANSLIT_EDITION } from "../types";
 import { fetchSurahWordTranslit } from "../word-translit";
 import { fetchSurahIndopak } from "../indopak";
 import type { ReadStackParamList } from "../navigation/types";
+import { useIntl } from "../i18n/I18nProvider";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "JuzReader">;
 
@@ -61,21 +63,29 @@ function juzRange(juz: number): { sura: number; from: number; toExclusive: numbe
 export function JuzReaderScreen({ route }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, num, dir, locale } = useIntl();
   const {
     editions,
+    catalogue,
     readingTranslation,
     reciterId,
     scale,
+    comfort,
     transliteration,
     wordTransliteration,
     tapToHear,
     script,
   } = useSettings();
+  const trScale = comfort.trScale;
   const reciter = RECITERS.find((r) => r.id === reciterId) ?? RECITER;
   const audio = useSurahAudio(reciter);
 
   const juz = route.params.juz;
-  const edition = resolveActiveTranslation(editions, readingTranslation, DEFAULT_EDITION);
+  // "None — Arabic only" (ADR 0041): no translation at all, not an English fallback.
+  const edition =
+    editions.length === 0
+      ? null
+      : resolveActiveTranslation(editions, readingTranslation, DEFAULT_EDITION);
   const [lines, setLines] = useState<Line[] | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -103,7 +113,9 @@ export function JuzReaderScreen({ route }: Props) {
       parts.map(async (p) => {
         const [surah, tr, translit, wordTranslit, indopak] = await Promise.all([
           api.getSurah(p.sura),
-          api.getCatalogTranslation(edition, p.sura).catch(() => []),
+          edition
+            ? api.getCatalogTranslation(edition, p.sura).catch(() => [])
+            : Promise.resolve([]),
           transliteration
             ? api.getCatalogTranslation(TRANSLIT_EDITION, p.sura).catch(() => [])
             : Promise.resolve([]),
@@ -131,7 +143,9 @@ export function JuzReaderScreen({ route }: Props) {
             transliteration: translitByAya.get(a.aya) ?? "",
             translitWords: wordTranslit.get(a.aya) ?? [],
             surahHeader:
-              i === 0 ? `${surah.surah.transliteration} · ${surah.surah.englishName}` : undefined,
+              i === 0
+                ? `${surah.surah.transliteration}${locale === "en" ? ` · ${surah.surah.englishName}` : ""}`
+                : undefined,
           };
         });
       }),
@@ -180,15 +194,15 @@ export function JuzReaderScreen({ route }: Props) {
 
   if (error) {
     const message = error.isNetworkError
-      ? "Couldn’t load this juzʾ. Check your connection."
+      ? t("rd.juz.errNetwork")
       : error.status && error.status >= 500
-        ? "The server is starting up. Try again in a moment."
-        : "Couldn’t load this juzʾ.";
+        ? t("rd.errServer")
+        : t("rd.juz.err");
     return (
       <View style={styles.center}>
         <Text style={styles.error}>{message}</Text>
         <Pressable style={styles.chip} onPress={retry}>
-          <Text style={styles.chipText}>Try again</Text>
+          <Text style={styles.chipText}>{t("rd.tryAgain")}</Text>
         </Pressable>
       </View>
     );
@@ -211,17 +225,30 @@ export function JuzReaderScreen({ route }: Props) {
           }
         >
           <Text style={styles.audioPlayText}>
-            {!audio.playingKey ? "▶ Play juzʾ" : audio.buffering ? "■ Loading…" : "■ Stop"}
+            {!audio.playingKey
+              ? `▶ ${t("rd.juz.play")}`
+              : audio.buffering
+                ? `■ ${t("rd.loading")}`
+                : `■ ${t("rd.stop")}`}
           </Text>
         </Pressable>
         <Text style={styles.audioStatus} numberOfLines={1}>
-          {audio.playingKey ? `Playing ${audio.playingKey}` : reciter.name}
+          {audio.playingKey
+            ? tf("rd.juz.playing", {
+                ref: audio.playingKey
+                  .split(":")
+                  .map((p) => num(Number(p)))
+                  .join(":"),
+              })
+            : reciter.name}
         </Text>
         <Pressable
           style={[styles.loopBtn, audio.loop && styles.loopBtnOn]}
           onPress={() => audio.setLoop(!audio.loop)}
         >
-          <Text style={[styles.loopText, audio.loop && styles.loopTextOn]}>🔁 Loop</Text>
+          <Text style={[styles.loopText, audio.loop && styles.loopTextOn]}>
+            🔁 {t("rd.range.loop")}
+          </Text>
         </Pressable>
         <DownloadButton audio={audio} surahs={listSurahs} colors={colors} />
       </View>
@@ -259,7 +286,9 @@ export function JuzReaderScreen({ route }: Props) {
               onPress={peek || showWbw ? undefined : () => audio.playFrom(verses, l, true)}
             >
               {showWbw ? (
-                <View style={styles.wbwRow}>
+                // Under an RTL interface Yoga flips row-reverse to left-to-right;
+                // "row" there keeps the Arabic word order right-to-left.
+                <View style={[styles.wbwRow, dir === "rtl" && { flexDirection: "row" }]}>
                   {peekWords[i]!.map((w, wi) => (
                     <Pressable
                       key={wi}
@@ -272,13 +301,22 @@ export function JuzReaderScreen({ route }: Props) {
                         style={[
                           styles.wbwAr,
                           script === "indopak" && styles.arabicIndopak,
-                          { fontSize: 24 * scale, lineHeight: (script === "indopak" ? 48 : 38) * scale },
+                          // Quran text line height ≥ 1.9× its size so marks never clip.
+                          {
+                            fontSize: 24 * scale,
+                            lineHeight: (script === "indopak" ? 58 : 46) * scale,
+                          },
                         ]}
                       >
                         {w}
                       </Text>
                       {l.translitWords[wi] ? (
-                        <Text style={[styles.wbwTr, { fontSize: 11 * scale }]}>
+                        <Text
+                          style={[
+                            styles.wbwTr,
+                            { fontSize: 13 * trScale, lineHeight: 18 * trScale },
+                          ]}
+                        >
                           {l.translitWords[wi]}
                         </Text>
                       ) : null}
@@ -291,7 +329,7 @@ export function JuzReaderScreen({ route }: Props) {
                   style={[
                     styles.arabic,
                     script === "indopak" && styles.arabicIndopak,
-                    { fontSize: 24 * scale, lineHeight: (script === "indopak" ? 56 : 44) * scale },
+                    { fontSize: 24 * scale, lineHeight: (script === "indopak" ? 58 : 46) * scale },
                   ]}
                 >
                   {peek
@@ -314,12 +352,25 @@ export function JuzReaderScreen({ route }: Props) {
                 </Text>
               )}
               {l.transliteration && !hideTr ? (
-                <Text style={[styles.translit, { fontSize: 14 * scale, lineHeight: 22 * scale }]}>
+                <Text
+                  style={[
+                    styles.translit,
+                    LTR_TEXT,
+                    { fontSize: 14 * trScale, lineHeight: 22 * trScale },
+                  ]}
+                >
                   {l.transliteration}
                 </Text>
               ) : null}
               {l.translation && !hideTr ? (
-                <Text style={[styles.tr, { fontSize: 15 * scale, lineHeight: 23 * scale }]}>
+                <Text
+                  style={[
+                    styles.tr,
+                    textDir(catalogue.find((e) => e.id === edition)?.direction),
+                    comfort.trEmphasis === "soft" && styles.trSoft,
+                    { fontSize: 16 * trScale, lineHeight: 26 * trScale },
+                  ]}
+                >
                   {l.translation}
                 </Text>
               ) : null}
@@ -334,7 +385,13 @@ export function JuzReaderScreen({ route }: Props) {
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.bg },
-    center: { flex: 1, backgroundColor: c.bg, alignItems: "center", justifyContent: "center", gap: 14 },
+    center: {
+      flex: 1,
+      backgroundColor: c.bg,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 14,
+    },
     error: { color: c.error, fontSize: 15, textAlign: "center", paddingHorizontal: 24 },
     chip: {
       paddingVertical: 6,
@@ -385,13 +442,21 @@ function makeStyles(c: Palette) {
       borderBottomColor: c.border,
     },
     ayahPlaying: { backgroundColor: c.bgElev, borderBottomColor: "transparent" },
-    arabic: { color: c.fg, textAlign: "right", writingDirection: "rtl", fontFamily: FONT.ar },
+    arabic: {
+      color: c.fg,
+      textAlign: "right",
+      writingDirection: "rtl",
+      fontFamily: FONT.arQuran,
+      direction: "ltr",
+      paddingVertical: 4,
+    },
     // IndoPak Nastaʿlīq face (ADR 0035) — applied over `arabic`/`wbwAr`.
-    arabicIndopak: { fontFamily: FONT.arIndopak },
+    arabicIndopak: { fontFamily: FONT.arIndopak, direction: "ltr" },
     wordHidden: { color: "transparent", backgroundColor: c.borderSoft },
-    marker: { color: c.accent, fontSize: 17, fontFamily: FONT.ar },
-    translit: { color: c.faint, marginTop: 10, fontStyle: "italic" },
+    marker: { color: c.accent, fontSize: 17, fontFamily: FONT.arQuran, direction: "ltr" },
+    translit: { color: c.muted, marginTop: 10, fontStyle: "italic" },
     tr: { color: c.fg, marginTop: 10 },
+    trSoft: { color: c.muted },
     // Word-by-word transliteration (#144): RTL flow of stacked word units.
     wbwRow: {
       flexDirection: "row-reverse",
@@ -401,7 +466,13 @@ function makeStyles(c: Palette) {
       gap: 11,
     },
     wbwUnit: { alignItems: "center" },
-    wbwAr: { color: c.fg, fontFamily: FONT.ar, textAlign: "center" },
-    wbwTr: { color: c.faint, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
+    wbwAr: {
+      color: c.fg,
+      fontFamily: FONT.arQuran,
+      direction: "ltr",
+      textAlign: "center",
+      paddingVertical: 2,
+    },
+    wbwTr: { color: c.muted, marginTop: 2, fontFamily: FONT.medium, textAlign: "center" },
   });
 }

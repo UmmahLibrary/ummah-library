@@ -10,8 +10,8 @@ import {
   nextPrayer,
 } from "@ummahlibrary/core";
 import { Icon, Khatam, N } from "@ummahlibrary/ui";
-import { fmtPrayerTime } from "../lib/prayer-time-format";
-import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
+import { fmtPrayerTime, timeZoneFor } from "../lib/prayer-time-format";
+import { PRAYER_SETTINGS_EVENT, webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
 
 function countdown(target: Date, now: Date): string {
@@ -44,10 +44,15 @@ export function ToolsPrayerCard() {
 
   useEffect(() => {
     setReady(true);
-    void webPrayerSettingsStore.read().then(({ coords: c }) => setCoords(c));
-    void webPrayerTimingsProvider.getTodaysTimings().then((t) => {
-      if (t) setTimings(t);
-    });
+    const loadSettings = () => {
+      void webPrayerSettingsStore.read().then(({ coords: c }) => setCoords(c));
+      void webPrayerTimingsProvider.getTodaysTimings().then((t) => {
+        if (t) setTimings(t);
+      });
+    };
+    loadSettings();
+    window.addEventListener(PRAYER_SETTINGS_EVENT, loadSettings);
+    return () => window.removeEventListener(PRAYER_SETTINGS_EVENT, loadSettings);
   }, []);
 
   useEffect(() => {
@@ -61,9 +66,12 @@ export function ToolsPrayerCard() {
     (timings
       ? { name: "fajr" as const, at: new Date(new Date(timings.fajr).getTime() + 86400000) }
       : null);
+  // Name the saved location's timezone city (the times are computed for it),
+  // not the device's — a traveller in London on a Dubai-set phone saw "Dubai".
   const place = (() => {
     try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone.split("/").pop()?.replace(/_/g, " ");
+      const zone = timeZoneFor(coords) ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+      return zone.split("/").pop()?.replace(/_/g, " ");
     } catch {
       return undefined;
     }

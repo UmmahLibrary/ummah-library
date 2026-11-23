@@ -6,7 +6,10 @@
  * (OS-scheduled — fires even when the app is closed), unlike the web's tab-bound
  * notifier.
  */
-import { type PlanReminderPref, syncPlanReminder as coreSyncPlanReminder } from "@ummahlibrary/core";
+import {
+  type PlanReminderPref,
+  syncPlanReminder as coreSyncPlanReminder,
+} from "@ummahlibrary/core";
 import { expoNotifier } from "./notifier";
 import { mobilePlanStore } from "./plan-store";
 import { mobileReminderStore } from "./reminder-store";

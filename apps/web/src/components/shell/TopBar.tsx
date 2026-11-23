@@ -5,8 +5,10 @@ import { useRef, useState, useEffect } from "react";
 import { N, Icon } from "@ummahlibrary/ui";
 import { ThemeToggle } from "../ThemeToggle";
 import { useSearch } from "./SearchContext";
-import { formatHijri, gregorianToHijri } from "@ummahlibrary/core";
+import { gregorianToHijri } from "@ummahlibrary/core";
 import { HIJRI_ADJUST_KEY, readHijriAdjust } from "../../lib/hijri";
+import { useIntl } from "../../i18n/I18nProvider";
+import { formatHijriFor, intlTag } from "../../i18n/format";
 
 function localToday() {
   const d = new Date();
@@ -20,12 +22,13 @@ export function TopBar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [hijriLabel, setHijriLabel] = useState<string | null>(null);
   const [gregLabel, setGregLabel] = useState<string | null>(null);
+  const { t, locale } = useIntl();
 
   useEffect(() => {
     const update = () => {
-      setHijriLabel(formatHijri(gregorianToHijri(localToday(), readHijriAdjust())));
+      setHijriLabel(formatHijriFor(gregorianToHijri(localToday(), readHijriAdjust()), locale));
       setGregLabel(
-        new Date().toLocaleDateString("en-GB", {
+        new Date().toLocaleDateString(locale === "en" ? "en-GB" : intlTag(locale), {
           weekday: "long",
           day: "numeric",
           month: "long",
@@ -36,7 +39,7 @@ export function TopBar() {
     update();
     window.addEventListener(HIJRI_ADJUST_KEY, update);
     return () => window.removeEventListener(HIJRI_ADJUST_KEY, update);
-  }, []);
+  }, [locale]);
 
   // Cmd/Ctrl+K focuses the search (matches the ⌘K hint).
   useEffect(() => {
@@ -88,6 +91,9 @@ export function TopBar() {
           background: N.card,
           border: `1px solid ${N.border}`,
           flex: 1,
+          // minWidth 0 lets the box shrink below its placeholder's width, so
+          // a long translated placeholder never pushes the buttons off screen.
+          minWidth: 0,
           maxWidth: 460,
         }}
       >
@@ -97,9 +103,11 @@ export function TopBar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={handleFocus}
-          placeholder="Search the Quran, a surah, or a tool…"
+          placeholder={t("shell.searchPlaceholder")}
+          aria-label={t("nav.search")}
           style={{
             flex: 1,
+            minWidth: 0,
             background: "none",
             border: "none",
             outline: "none",
@@ -112,6 +120,7 @@ export function TopBar() {
           <button
             type="button"
             onClick={() => setQuery("")}
+            aria-label={t("shell.clearSearch")}
             style={{
               background: "none",
               border: "none",
@@ -144,7 +153,7 @@ export function TopBar() {
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <Link
           href="/blog"
-          title="Read the blog"
+          title={t("shell.readBlog")}
           style={{
             height: 40,
             padding: "0 14px",
@@ -163,11 +172,11 @@ export function TopBar() {
           }}
         >
           <Icon name="tafsir" size={17} />
-          <span className="noor-hide-sm">Blog</span>
+          <span className="noor-hide-sm">{t("shell.blog")}</span>
         </Link>
         <ThemeToggle />
         {hijriLabel && (
-          <div className="noor-hide-sm" style={{ textAlign: "right", flexShrink: 0 }}>
+          <div className="noor-hide-sm" style={{ textAlign: "end", flexShrink: 0 }}>
             <div style={{ fontSize: 14.5, fontWeight: 600, color: N.gold, fontFamily: N.ui }}>
               {hijriLabel}
             </div>
@@ -183,8 +192,8 @@ export function TopBar() {
         )}
         <Link
           href="/profile"
-          aria-label="Your journey"
-          title="Your journey"
+          aria-label={t("nav.profile")}
+          title={t("nav.profile")}
           style={{
             width: 40,
             height: 40,

@@ -10,7 +10,7 @@ import {
   formatDistanceKm,
 } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
-import { webPrayerSettingsStore } from "../lib/prayer-settings-store";
+import { PRAYER_COORDS_EVENT, webPrayerSettingsStore } from "../lib/prayer-settings-store";
 
 type Status = "idle" | "locating" | "loading" | "ready" | "denied" | "error" | "offline";
 
@@ -90,16 +90,23 @@ export function MosqueFinder() {
     }
   }, []);
 
-  // Restore the shared location (same key as prayer times / qibla) on mount.
+  // Restore the shared location (same key as prayer times / qibla) on mount,
+  // and pick up a synced location change live — but only a location change:
+  // this refetches from the network (Overpass, via our /api/v1/places/nearby),
+  // so it must not fire on an unrelated method/madhab/high-lat sync.
   useEffect(() => {
-    void webPrayerSettingsStore.read().then(({ coords: saved }) => {
-      if (saved) {
-        setCoords(saved);
-        void fetchNearby(saved, radius);
-      }
-    });
-    // Only ever runs once on mount — `radius` is intentionally read fresh here,
-    // not re-triggered when it changes (changeRadius below drives that refetch).
+    const loadCoords = () =>
+      void webPrayerSettingsStore.read().then(({ coords: saved }) => {
+        if (saved) {
+          setCoords(saved);
+          void fetchNearby(saved, radius);
+        }
+      });
+    loadCoords();
+    window.addEventListener(PRAYER_COORDS_EVENT, loadCoords);
+    return () => window.removeEventListener(PRAYER_COORDS_EVENT, loadCoords);
+    // `radius` is intentionally read fresh here, not re-triggered when it
+    // changes (changeRadius below drives that refetch).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchNearby]);
 

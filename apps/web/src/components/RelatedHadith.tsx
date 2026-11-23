@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { HADITH_GRADE_LABEL, hadithGradeCategory } from "@ummahlibrary/core";
 import type { HadithGrade } from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
+import { useIntl } from "../i18n/I18nProvider";
 
 interface RelatedHadithItem {
   collectionId: string;
@@ -48,7 +49,7 @@ const GRADE_COLOR: Record<HadithGrade, string> = {
 };
 
 /**
- * Hadith that quote this āyah (#200, ADR 0042), mirroring the Tafsir panel's
+ * Hadith that quote this āyah (#200, ADR 0044), mirroring the Tafsir panel's
  * toggle-and-panel shape.
  *
  * These links are **generated, not curated** — a hadith appears here because its
@@ -57,6 +58,7 @@ const GRADE_COLOR: Record<HadithGrade, string> = {
  * than presenting it as an editorial judgement it is not.
  */
 export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
+  const { t, tf } = useIntl();
   const [items, setItems] = useState<RelatedHadithItem[] | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -88,7 +90,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
   if (failed) {
     return (
       <div style={{ ...frame, fontSize: 13.5, color: N.muted }}>
-        Couldn’t load related hadith. Check your connection and try again.
+        {t("related.failed")}
       </div>
     );
   }
@@ -96,7 +98,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
   if (items === null) {
     return (
       <div style={{ ...frame, fontSize: 13.5, color: N.muted }} role="status" aria-busy="true">
-        Looking for hadith that quote this āyah…
+        {t("related.loading")}
       </div>
     );
   }
@@ -104,7 +106,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
   if (items.length === 0) {
     return (
       <div style={{ ...frame, fontSize: 13.5, color: N.muted }}>
-        No hadith in the six collections quotes this āyah word for word.
+        {t("related.none")}
       </div>
     );
   }
@@ -121,11 +123,10 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
           marginBottom: 4,
         }}
       >
-        {items.length} hadith {items.length === 1 ? "quotes" : "quote"} this āyah
+        {tf(items.length === 1 ? "related.countOne" : "related.countMany", { n: items.length })}
       </div>
       <p style={{ fontSize: 12.5, color: N.faint, margin: "0 0 14px", lineHeight: 1.5 }}>
-        Matched automatically where the hadith’s Arabic repeats this āyah’s words. A shared wording
-        is not by itself a commentary on the verse.
+        {t("related.note")}
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -191,7 +192,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
                   color: N.faint,
                 }}
               >
-                Shared wording:{" "}
+                {t("related.sharedWording")}{" "}
                 <span dir="rtl" lang="ar" style={{ fontFamily: N.ar, fontSize: 13.5 }}>
                   {h.quote}
                 </span>

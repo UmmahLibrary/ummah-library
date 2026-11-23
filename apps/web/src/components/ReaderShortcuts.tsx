@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { readScroll, writeScroll } from "../lib/reader-prefs-store";
+import { scrollBehavior } from "../lib/motion";
 
 /**
  * Reader keyboard shortcuts, a top reading-progress bar, and scroll-position
@@ -12,6 +13,10 @@ import { readScroll, writeScroll } from "../lib/reader-prefs-store";
  * - progress bar reflects how far down the page you are
  * - scroll position is restored on return (unless deep-linked to an āyah)
  */
+/** Elements whose own Space behaviour must win over the play/pause shortcut. */
+const INTERACTIVE =
+  'button, a[href], select, summary, [role="button"], [role="menuitem"], [role="switch"], [role="tab"], [role="radio"], [role="checkbox"], [role="option"]';
+
 export function ReaderShortcuts({ storageKey }: { storageKey: string }) {
   const [progress, setProgress] = useState(0);
 
@@ -41,7 +46,7 @@ export function ReaderShortcuts({ storageKey }: { storageKey: string }) {
       if (!target) return;
       ayat.forEach((el) => el.classList.remove("ayah--focus"));
       target.classList.add("ayah--focus");
-      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
     }
 
     function onKey(e: KeyboardEvent) {
@@ -55,6 +60,9 @@ export function ReaderShortcuts({ storageKey }: { storageKey: string }) {
         e.preventDefault();
         focusAyah(-1);
       } else if (e.key === " ") {
+        // Space presses a focused button, link or control — only on the page
+        // itself does it mean play/pause.
+        if (t?.closest(INTERACTIVE)) return;
         const play = document.querySelector<HTMLButtonElement>(".audio-play");
         if (play) {
           e.preventDefault();

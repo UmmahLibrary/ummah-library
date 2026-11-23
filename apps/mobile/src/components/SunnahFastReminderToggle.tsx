@@ -4,7 +4,11 @@ import { Icon, type Palette } from "@ummahlibrary/ui";
 import { type UpcomingSunnahFast, upcomingSunnahFasts } from "@ummahlibrary/core";
 import { useTheme } from "../theme";
 import { FONT } from "../fonts";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
+import { fmtCivilDateIn, fmtDaysUntil } from "../prayer-intl";
 import { expoNotifier } from "../notifier";
+import { notifyNotificationPermissionDenied } from "../notification-permission-alert";
 import { readSunnahFastReminderOn, setSunnahFastReminderOn } from "../sunnah-fast-reminders";
 
 const GLYPH: Record<UpcomingSunnahFast["kind"], string> = {
@@ -13,25 +17,20 @@ const GLYPH: Record<UpcomingSunnahFast["kind"], string> = {
   thursday: "🌙",
 };
 
+const FAST_NAME: Record<UpcomingSunnahFast["kind"], MessageKey> = {
+  "white-day": "pr.fast.whiteDay",
+  monday: "pr.fast.monday",
+  thursday: "pr.fast.thursday",
+};
+const FAST_NOTE: Record<UpcomingSunnahFast["kind"], MessageKey> = {
+  "white-day": "pr.fastNote.whiteDay",
+  monday: "pr.fastNote.weekly",
+  thursday: "pr.fastNote.weekly",
+};
+
 function todayGregorian() {
   const d = new Date();
   return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
-}
-
-function countdownLabel(daysUntil: number): string {
-  if (daysUntil === 0) return "Today";
-  if (daysUntil === 1) return "Tomorrow";
-  return `in ${daysUntil} days`;
-}
-
-function gregorianFull(g: { year: number; month: number; day: number }): string {
-  return new Date(Date.UTC(g.year, g.month - 1, g.day)).toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  });
 }
 
 /**
@@ -43,6 +42,15 @@ function gregorianFull(g: { year: number; month: number; day: number }): string 
 export function SunnahFastReminderToggle({ adjust = 0 }: { adjust?: number }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, locale } = useIntl();
+  const when = (d: number) => fmtDaysUntil(d, t, tf);
+  const dateLabel = (g: UpcomingSunnahFast["gregorian"]) =>
+    fmtCivilDateIn(g, locale, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   const [on, setOn] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -64,7 +72,10 @@ export function SunnahFastReminderToggle({ adjust = 0 }: { adjust?: number }) {
     // switch off rather than showing "on" for a reminder that will never fire.
     if (nextOn && expoNotifier.permission() !== "granted") {
       await expoNotifier.requestPermission();
-      if (expoNotifier.permission() !== "granted") return;
+      if (expoNotifier.permission() !== "granted") {
+        notifyNotificationPermissionDenied(t("pr.sunnahRemLabel"), t);
+        return;
+      }
     }
     setOn(nextOn);
     await setSunnahFastReminderOn(nextOn);
@@ -78,13 +89,12 @@ export function SunnahFastReminderToggle({ adjust = 0 }: { adjust?: number }) {
         <View style={styles.row}>
           <Icon name="bell" size={17} color={on ? colors.accent : colors.muted} sw={1.8} />
           <View style={styles.text}>
-            <Text style={styles.title}>Sunnah-fast reminders</Text>
-            <Text style={styles.note}>
-              A nudge the evening before Mondays &amp; Thursdays and the white days (13–15).
-            </Text>
+            <Text style={styles.title}>{t("pr.sunnahRemTitle")}</Text>
+            <Text style={styles.note}>{t("pr.sunnahRemNote")}</Text>
           </View>
           <Switch
             value={on}
+            accessibilityLabel={t("pr.sunnahRemTitle")}
             onValueChange={(v) => void toggle(v)}
             trackColor={{ true: colors.accentSoft, false: colors.border }}
             thumbColor={on ? colors.accent : colors.faint}
@@ -92,12 +102,12 @@ export function SunnahFastReminderToggle({ adjust = 0 }: { adjust?: number }) {
         </View>
         {on && next && (
           <Text style={styles.nextLine}>
-            Next: {next.name} · {countdownLabel(next.daysUntil)}
+            {tf("pr.sunnahNext", { name: t(FAST_NAME[next.kind]), when: when(next.daysUntil) })}
           </Text>
         )}
       </View>
 
-      <Text style={styles.sectionLabel}>Upcoming fasts</Text>
+      <Text style={styles.sectionLabel}>{t("pr.upcomingFasts")}</Text>
       <View style={styles.list}>
         {fasts.map((f) => (
           <View
@@ -108,12 +118,12 @@ export function SunnahFastReminderToggle({ adjust = 0 }: { adjust?: number }) {
               <Text style={styles.badgeGlyph}>{GLYPH[f.kind]}</Text>
             </View>
             <View style={styles.flex1}>
-              <Text style={styles.fastName}>{f.name}</Text>
+              <Text style={styles.fastName}>{t(FAST_NAME[f.kind])}</Text>
               <Text style={styles.fastDate}>
-                {gregorianFull(f.gregorian)} · {f.note}
+                {dateLabel(f.gregorian)} · {t(FAST_NOTE[f.kind])}
               </Text>
             </View>
-            <Text style={styles.countdown}>{countdownLabel(f.daysUntil)}</Text>
+            <Text style={styles.countdown}>{when(f.daysUntil)}</Text>
           </View>
         ))}
       </View>

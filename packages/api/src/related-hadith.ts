@@ -1,5 +1,5 @@
 /**
- * Related-hadith lookup for an ayah (#200, ADR 0042).
+ * Related-hadith lookup for an ayah (#200, ADR 0044).
  *
  * The generated link dataset stores **references only** — collection id, hadith
  * number, and the shared span. This module joins those references to the hadith

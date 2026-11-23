@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { dueRecords } from "../lib/hifz-store";
+import { HIFZ_EVENT, dueRecords } from "../lib/hifz-store";
 
 /**
  * Home nav link to the Hifz review with a live "due" badge, e.g. "Hifz (12)".
@@ -13,7 +13,10 @@ export function HifzNavLink() {
   const [due, setDue] = useState(0);
 
   useEffect(() => {
-    setDue(dueRecords(new Date()).length);
+    const refresh = () => setDue(dueRecords(new Date()).length);
+    refresh();
+    window.addEventListener(HIFZ_EVENT, refresh);
+    return () => window.removeEventListener(HIFZ_EVENT, refresh);
   }, []);
 
   return (

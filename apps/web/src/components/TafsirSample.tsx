@@ -87,7 +87,7 @@ export function TafsirSample({ tafsirs }: { tafsirs: TafsirMeta[] }) {
           Al-Fātiḥah · Ayah 1
         </div>
         <div
-          className="noor-ar"
+          className="noor-quran"
           style={{
             textAlign: "center",
             fontSize: "clamp(26px, 5vw, 34px)",

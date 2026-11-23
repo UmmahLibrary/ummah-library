@@ -14,6 +14,8 @@ export const KEYS = {
   reciter: "ul.reciter",
   audioRate: "ul.audioRate",
   scale: "ul.scale",
+  /** Reading comfort + app mode record (ADR 0041), same shape as web. */
+  comfort: "ul.comfort",
   transliteration: "ul.transliteration",
   wbwTranslit: "ul.wbwTranslit",
   tapToHear: "ul.tapToHear",

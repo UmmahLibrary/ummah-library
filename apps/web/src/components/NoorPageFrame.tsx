@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { N, Icon } from "@ummahlibrary/ui";
+import { useT } from "../i18n/I18nProvider";
 
 interface Props {
   title: string;
@@ -15,6 +16,7 @@ interface Props {
 
 export function NoorPageFrame({ title, sub, glyph, back, actions, maxW = 920, children }: Props) {
   const router = useRouter();
+  const t = useT();
   const handleBack = () => (back ? router.push(back) : router.back());
 
   return (
@@ -44,8 +46,8 @@ export function NoorPageFrame({ title, sub, glyph, back, actions, maxW = 920, ch
             <button
               type="button"
               onClick={handleBack}
-              aria-label="Go back"
-              title="Go back"
+              aria-label={t("common.goBack")}
+              title={t("common.goBack")}
               style={{
                 width: 40,
                 height: 40,
@@ -64,7 +66,7 @@ export function NoorPageFrame({ title, sub, glyph, back, actions, maxW = 920, ch
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {glyph && <span style={{ fontSize: 22 }}>{glyph}</span>}
-                <h2
+                <h1
                   style={{
                     fontSize: "clamp(21px,3.4vw,26px)",
                     fontWeight: 800,
@@ -78,7 +80,7 @@ export function NoorPageFrame({ title, sub, glyph, back, actions, maxW = 920, ch
                   }}
                 >
                   {title}
-                </h2>
+                </h1>
               </div>
               {sub && (
                 <div style={{ fontSize: 13.5, color: N.muted, marginTop: 2, fontFamily: N.ui }}>

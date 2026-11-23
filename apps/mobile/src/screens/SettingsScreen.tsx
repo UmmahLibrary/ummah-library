@@ -1,48 +1,51 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "../Type";
 import Constants from "expo-constants";
 import type { MergeStrategy, QuranScript } from "@ummahlibrary/core";
-import { noorThemes } from "@ummahlibrary/ui";
+import { noorThemes, SectionHeader, type IconName } from "@ummahlibrary/ui";
 import { useTheme, THEMES, type Palette } from "../theme";
-import { useI18n } from "../i18n/I18nProvider";
-import { LOCALES } from "../i18n/config";
+import { useI18n, useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
+import { LOCALES, localeDir } from "../i18n/config";
 import { FONT } from "../fonts";
 import { useSettings } from "../state/SettingsContext";
 import { RECITER, RECITERS } from "../plugins";
-import { MAX_SCALE, MIN_SCALE } from "../types";
 import { clearCache, getCacheStats } from "../offlineCache";
 import { clearAllData, exportBackup, importBackup, itemCount } from "../backup";
 import { SyncSection } from "../components/SyncSection";
+import { ComfortSettings } from "../components/ComfortSettings";
 
 /** "1.2 MB", "845 KB", "0 B" — for the cached-content size shown in Settings. */
-function formatBytes(bytes: number): string {
-  if (bytes <= 0) return "0 B";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function formatBytes(bytes: number, num: (n: number) => string): string {
+  if (bytes <= 0) return `${num(0)} B`;
+  if (bytes < 1024) return `${num(bytes)} B`;
+  if (bytes < 1024 * 1024) return `${num(Math.round(bytes / 1024))} KB`;
+  return `${num(Number((bytes / (1024 * 1024)).toFixed(1)))} MB`;
 }
 
 /** Arabic script options (ADR 0035). */
-const SCRIPTS: { id: QuranScript; label: string; sub: string }[] = [
-  { id: "uthmani", label: "Uthmani", sub: "Madinah mushaf (default)" },
-  { id: "indopak", label: "IndoPak", sub: "South Asian script" },
+const SCRIPTS: { id: QuranScript; label: string; sub: MessageKey }[] = [
+  { id: "uthmani", label: "Uthmani", sub: "set.script.uthmaniSub" },
+  { id: "indopak", label: "IndoPak", sub: "set.script.indopakSub" },
 ];
 
 export function SettingsScreen() {
   const { colors, themeKey, setTheme } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { locale, setLocale, t } = useI18n();
-  const {
-    scale,
-    setScale,
-    reciterId,
-    setReciterId,
-    tafsirId,
-    tafsirs,
-    setTafsirId,
-    script,
-    setScript,
-  } = useSettings();
+  const { tf, num, script: intlScript } = useIntl();
+  const { reciterId, setReciterId, tafsirId, tafsirs, setTafsirId, script, setScript } =
+    useSettings();
 
   // Local data backup (parity with the web Settings → Data section).
   const [strategy, setStrategy] = useState<MergeStrategy>("replace");
@@ -74,33 +77,32 @@ export function SettingsScreen() {
     // the restored values (e.g. theme, reciter) until the app restarts —
     // same caveat web's Data section states explicitly (DataBackup.tsx).
     if (res.message) {
-      setStatus({ ...res, message: res.ok ? `${res.message} Restart the app to see it fully applied.` : res.message });
+      setStatus({
+        ...res,
+        message: res.ok ? `${res.message} ${t("set.restartSuffix")}` : res.message,
+      });
     }
   };
 
   const onErase = () => {
-    Alert.alert(
-      "Erase all data?",
-      "This removes every bookmark, note, prayer log and setting on this device. It can’t be undone. Restart the app afterwards to see the reset fully applied.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Erase",
-          style: "destructive",
-          onPress: async () => {
-            const n = await clearAllData();
-            // clearAllData wipes AsyncStorage directly, bypassing the settings/
-            // theme/library contexts' own setters, so this screen (and others)
-            // keep showing the erased values until the app restarts — mirrors
-            // web's "Cleared N items. Reload to start fresh." (DataBackup.tsx).
-            setStatus({
-              ok: true,
-              message: `Cleared ${n} item${n === 1 ? "" : "s"}. Restart the app to start fresh.`,
-            });
-          },
+    Alert.alert(t("set.eraseTitle"), t("set.eraseMsg"), [
+      { text: t("set.cancel"), style: "cancel" },
+      {
+        text: t("set.erase"),
+        style: "destructive",
+        onPress: async () => {
+          const n = await clearAllData();
+          // clearAllData wipes AsyncStorage directly, bypassing the settings/
+          // theme/library contexts' own setters, so this screen (and others)
+          // keep showing the erased values until the app restarts — mirrors
+          // web's "Cleared N items. Reload to start fresh." (DataBackup.tsx).
+          setStatus({
+            ok: true,
+            message: tf(n === 1 ? "set.clearedOne" : "set.clearedOther", { n }),
+          });
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const [cacheStats, setCacheStats] = useState<{ sizeBytes: number; entryCount: number } | null>(
@@ -112,262 +114,256 @@ export function SettingsScreen() {
   useEffect(refreshCacheStats, [refreshCacheStats]);
 
   function confirmClearCache() {
-    Alert.alert(
-      "Clear cached content",
-      "Removes offline copies of surahs, translations, tafsir, and hadith you've opened. They'll be re-downloaded next time you're online.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Clear",
-          style: "destructive",
-          onPress: () => void clearCache().then(refreshCacheStats),
-        },
-      ],
-    );
+    Alert.alert(t("set.clearCache"), t("set.clearCacheMsg"), [
+      { text: t("set.cancel"), style: "cancel" },
+      {
+        text: t("set.clear"),
+        style: "destructive",
+        onPress: () => void clearCache().then(refreshCacheStats),
+      },
+    ]);
   }
 
+  // Shared section heading (ADR 0042): icon tile, title and purpose, the
+  // same anatomy as the web Settings sections.
+  const uiScript = intlScript;
+  const header = (icon: IconName, title: MessageKey, note?: MessageKey) => (
+    <View style={styles.sectionHead}>
+      <SectionHeader
+        icon={icon}
+        title={t(title)}
+        note={note ? t(note) : undefined}
+        script={uiScript}
+      />
+    </View>
+  );
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.sectionLabel}>Appearance</Text>
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Theme</Text>
-        <View style={styles.swatchRow}>
-          {THEMES.map((t) => {
-            const on = t.key === themeKey;
-            return (
-              <Pressable
-                key={t.key}
-                onPress={() => setTheme(t.key)}
-                style={[
-                  styles.swatch,
-                  { backgroundColor: noorThemes[t.key].bg, borderColor: on ? colors.accent : colors.border },
-                ]}
-                accessibilityLabel={t.label}
-              >
-                <View style={[styles.swatchDot, { backgroundColor: noorThemes[t.key].accent }]} />
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      <Text style={styles.sectionLabel}>{t("common.language")}</Text>
-      <View style={styles.card}>
-        <Text style={styles.pickSub}>{t("settings.languageHint")}</Text>
-        <View style={[styles.swatchRow, { marginTop: 13 }]}>
-          {LOCALES.map((l) => {
-            const on = l.code === locale;
-            return (
-              <Pressable
-                key={l.code}
-                onPress={() => setLocale(l.code)}
-                style={[styles.langPill, on && styles.langPillOn]}
-                accessibilityLabel={l.label}
-                accessibilityState={{ selected: on }}
-              >
-                <Text style={[styles.pillText, on && styles.pillTextOn]}>{l.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      <Text style={styles.sectionLabel}>Reading</Text>
-      <View style={styles.card}>
-        <View style={[styles.row, styles.rowLast]}>
-          <Text style={styles.rowLabel}>Font size</Text>
-          <View style={styles.scale}>
-            <Pressable
-              style={[styles.scaleBtn, scale <= MIN_SCALE && styles.disabled]}
-              disabled={scale <= MIN_SCALE}
-              onPress={() => setScale((prev) => prev - 0.1)}
-            >
-              <Text style={styles.scaleText}>A−</Text>
-            </Pressable>
-            <Text style={styles.scaleValue}>{Math.round(scale * 100)}%</Text>
-            <Pressable
-              style={[styles.scaleBtn, scale >= MAX_SCALE && styles.disabled]}
-              disabled={scale >= MAX_SCALE}
-              onPress={() => setScale((prev) => prev + 0.1)}
-            >
-              <Text style={styles.scaleText}>A+</Text>
-            </Pressable>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <View style={[styles.card, styles.firstSection]}>
+          {header("globe", "common.language", "set.note.language")}
+          <Text style={[styles.pickSub, { writingDirection: localeDir(locale) }]}>
+            {t("settings.languageHint")}
+          </Text>
+          <View style={[styles.swatchRow, { marginTop: 13 }]}>
+            {LOCALES.map((l) => {
+              const on = l.code === locale;
+              return (
+                <Pressable
+                  key={l.code}
+                  onPress={() => setLocale(l.code)}
+                  style={[styles.langPill, on && styles.langPillOn]}
+                  accessibilityLabel={l.label}
+                  accessibilityState={{ selected: on }}
+                >
+                  <Text style={[styles.pillText, on && styles.pillTextOn]}>{l.label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
-      </View>
 
-      <Text style={styles.sectionLabel}>Reciter</Text>
-      <View style={styles.card}>
-        {RECITERS.map((r, i) => {
-          const on = r.id === reciterId;
-          return (
-            <Pressable
-              key={r.id}
-              style={[styles.pickRow, i < RECITERS.length - 1 && styles.rowDivider]}
-              onPress={() => setReciterId(r.id)}
-            >
-              <View style={[styles.radio, on && styles.radioOn]}>
-                {on && <View style={styles.radioDot} />}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.pickText, on && styles.pickTextOn]}>{r.name}</Text>
-                <Text style={styles.pickSub}>{r.style}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+        <View style={[styles.card, styles.section]}>
+          {header("sun", "set.appearance", "set.note.appearance")}
+          <Text style={styles.cardLabel}>{t("set.theme")}</Text>
+          <View style={styles.swatchRow}>
+            {THEMES.map((th) => {
+              const on = th.key === themeKey;
+              return (
+                <Pressable
+                  key={th.key}
+                  onPress={() => setTheme(th.key)}
+                  style={[
+                    styles.swatch,
+                    {
+                      backgroundColor: noorThemes[th.key].bg,
+                      borderColor: on ? colors.accent : colors.border,
+                    },
+                  ]}
+                  accessibilityLabel={t(`set.theme.${th.key}` as MessageKey)}
+                  accessibilityState={{ selected: on }}
+                >
+                  <View
+                    style={[styles.swatchDot, { backgroundColor: noorThemes[th.key].accent }]}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
-      <Text style={styles.sectionLabel}>Arabic script</Text>
-      <View style={styles.card}>
-        {SCRIPTS.map((s, i) => {
-          const on = s.id === script;
-          return (
-            <Pressable
-              key={s.id}
-              style={[styles.pickRow, i < SCRIPTS.length - 1 && styles.rowDivider]}
-              onPress={() => setScript(s.id)}
-            >
-              <View style={[styles.radio, on && styles.radioOn]}>
-                {on && <View style={styles.radioDot} />}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.pickText, on && styles.pickTextOn]}>{s.label}</Text>
-                <Text style={styles.pickSub}>{s.sub}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+        <ComfortSettings header={header("type", "set.comfort", "set.note.comfort")} />
 
-      <Text style={styles.sectionLabel}>Tafsir edition</Text>
-      <View style={styles.card}>
-        {tafsirs.length === 0 ? (
-          <Text style={styles.muted}>Loading tafsir editions…</Text>
-        ) : (
-          tafsirs.map((t, i) => {
-            const on = t.id === tafsirId;
+        <View style={[styles.card, styles.section]}>
+          {header("book", "set.script", "set.note.script")}
+          {SCRIPTS.map((s, i) => {
+            const on = s.id === script;
             return (
               <Pressable
-                key={t.id}
-                style={[styles.pickRow, i < tafsirs.length - 1 && styles.rowDivider]}
-                onPress={() => setTafsirId(t.id)}
+                key={s.id}
+                style={[styles.pickRow, i < SCRIPTS.length - 1 && styles.rowDivider]}
+                onPress={() => setScript(s.id)}
               >
                 <View style={[styles.radio, on && styles.radioOn]}>
                   {on && <View style={styles.radioDot} />}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.pickText, on && styles.pickTextOn]}>{t.name}</Text>
-                  <Text style={styles.pickSub}>{t.author}</Text>
+                  <Text style={[styles.pickText, on && styles.pickTextOn]}>{s.label}</Text>
+                  <Text style={styles.pickSub}>{t(s.sub)}</Text>
                 </View>
-              </Pressable>
-            );
-          })
-        )}
-      </View>
-
-      <Text style={styles.sectionLabel}>Data</Text>
-      <View style={styles.card}>
-        <View style={[styles.row, styles.rowLast]}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowLabel}>Cached content</Text>
-            <Text style={styles.pickSub}>
-              Surahs, translations, tafsir, and hadith you've opened stay readable offline.
-            </Text>
-          </View>
-          <Text style={styles.value}>
-            {cacheStats === null
-              ? "…"
-              : cacheStats.entryCount === 0
-                ? "Empty"
-                : `${formatBytes(cacheStats.sizeBytes)} · ${cacheStats.entryCount}`}
-          </Text>
-        </View>
-        <Pressable
-          style={[styles.clearBtn, (!cacheStats || cacheStats.entryCount === 0) && styles.disabled]}
-          disabled={!cacheStats || cacheStats.entryCount === 0}
-          onPress={confirmClearCache}
-        >
-          <Text style={styles.clearBtnText}>Clear cached content</Text>
-        </Pressable>
-      </View>
-
-      <Text style={styles.dataDesc}>
-        Everything stays on this device — no account, no server. Export a backup to move your data
-        to another device or keep it safe; import it to restore.
-      </Text>
-      <View style={styles.card}>
-        <View style={styles.btnRow}>
-          <Pressable
-            style={[styles.primaryBtn, busy && styles.disabled]}
-            disabled={busy}
-            onPress={onExport}
-          >
-            <Text style={styles.primaryBtnText}>Export my data</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.secondaryBtn, busy && styles.disabled]}
-            disabled={busy}
-            onPress={onImport}
-          >
-            <Text style={styles.secondaryBtnText}>Import a backup</Text>
-          </Pressable>
-          {busy && <ActivityIndicator color={colors.accent} />}
-        </View>
-
-        <Text style={styles.onImportLabel}>On import</Text>
-        <View style={styles.pillRow}>
-          {(
-            [
-              { v: "replace", l: "Replace my data" },
-              { v: "keep-mine", l: "Keep mine on conflict" },
-            ] as const
-          ).map((o) => {
-            const on = strategy === o.v;
-            return (
-              <Pressable
-                key={o.v}
-                style={[styles.pill, on && styles.pillOn]}
-                onPress={() => setStrategy(o.v)}
-              >
-                <Text style={[styles.pillText, on && styles.pillTextOn]}>{o.l}</Text>
               </Pressable>
             );
           })}
         </View>
-        <Text style={styles.pillHint}>
-          {strategy === "replace"
-            ? "The backup fully restores your data, overwriting what’s here."
-            : "The backup only fills in things you don’t already have."}
-        </Text>
 
-        {status && (
-          <Text style={[styles.status, status.ok ? styles.statusOk : styles.statusErr]}>
-            {status.message}
-          </Text>
-        )}
+        <View style={[styles.card, styles.section]}>
+          {header("headphones", "set.reciter", "set.note.reciter")}
+          {RECITERS.map((r, i) => {
+            const on = r.id === reciterId;
+            return (
+              <Pressable
+                key={r.id}
+                style={[styles.pickRow, i < RECITERS.length - 1 && styles.rowDivider]}
+                onPress={() => setReciterId(r.id)}
+              >
+                <View style={[styles.radio, on && styles.radioOn]}>
+                  {on && <View style={styles.radioDot} />}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pickText, on && styles.pickTextOn]}>{r.name}</Text>
+                  <Text style={styles.pickSub}>{r.style}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
 
-        <View style={styles.dataFoot}>
-          <Text style={styles.countText}>
-            {count ?? "—"} item{count === 1 ? "" : "s"} on this device
-          </Text>
-          <Pressable onPress={onErase} hitSlop={8}>
-            <Text style={styles.eraseText}>Erase all</Text>
+        <View style={[styles.card, styles.section]}>
+          {header("tafsir", "set.tafsir", "set.note.tafsir")}
+          {tafsirs.length === 0 ? (
+            <Text style={styles.muted}>{t("set.tafsirLoading")}</Text>
+          ) : (
+            tafsirs.map((ed, i) => {
+              const on = ed.id === tafsirId;
+              return (
+                <Pressable
+                  key={ed.id}
+                  style={[styles.pickRow, i < tafsirs.length - 1 && styles.rowDivider]}
+                  onPress={() => setTafsirId(ed.id)}
+                >
+                  <View style={[styles.radio, on && styles.radioOn]}>
+                    {on && <View style={styles.radioDot} />}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.pickText, on && styles.pickTextOn]}>{ed.name}</Text>
+                    <Text style={styles.pickSub}>{ed.author}</Text>
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
+        </View>
+
+        <View style={[styles.card, styles.section]}>
+          {header("download", "set.data", "set.note.data")}
+          <View style={[styles.row, styles.rowLast]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>{t("set.cached")}</Text>
+              <Text style={styles.pickSub}>{t("set.cachedNote")}</Text>
+            </View>
+            <Text style={styles.value}>
+              {cacheStats === null
+                ? "…"
+                : cacheStats.entryCount === 0
+                  ? t("set.cacheEmpty")
+                  : `${formatBytes(cacheStats.sizeBytes, num)} · ${num(cacheStats.entryCount)}`}
+            </Text>
+          </View>
+          <Pressable
+            style={[
+              styles.clearBtn,
+              (!cacheStats || cacheStats.entryCount === 0) && styles.disabled,
+            ]}
+            disabled={!cacheStats || cacheStats.entryCount === 0}
+            onPress={confirmClearCache}
+          >
+            <Text style={styles.clearBtnText}>{t("set.clearCache")}</Text>
           </Pressable>
         </View>
-      </View>
 
-      <SyncSection />
+        <Text style={styles.dataDesc}>{t("set.dataDesc")}</Text>
+        <View style={styles.card}>
+          <View style={styles.btnRow}>
+            <Pressable
+              style={[styles.primaryBtn, busy && styles.disabled]}
+              disabled={busy}
+              onPress={onExport}
+            >
+              <Text style={styles.primaryBtnText}>{t("set.export")}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.secondaryBtn, busy && styles.disabled]}
+              disabled={busy}
+              onPress={onImport}
+            >
+              <Text style={styles.secondaryBtnText}>{t("set.import")}</Text>
+            </Pressable>
+            {busy && <ActivityIndicator color={colors.accent} />}
+          </View>
 
-      <Text style={styles.sectionLabel}>About</Text>
-      <Text style={styles.muted}>
-        Arabic text: Tanzil (CC-BY 3.0). Translations, tafsir, and hadith via Ummah Library
-        datasets and their respective sources. Recitation by {RECITER.name}.
-      </Text>
-      <Text style={styles.version}>
-        Ummah Library · v{Constants.expoConfig?.version ?? "—"}
-      </Text>
-    </ScrollView>
+          <Text style={styles.onImportLabel}>{t("set.onImport")}</Text>
+          <View style={styles.pillRow}>
+            {(
+              [
+                { v: "replace", l: t("set.replace") },
+                { v: "keep-mine", l: t("set.keepMine") },
+              ] as const
+            ).map((o) => {
+              const on = strategy === o.v;
+              return (
+                <Pressable
+                  key={o.v}
+                  style={[styles.pill, on && styles.pillOn]}
+                  onPress={() => setStrategy(o.v)}
+                >
+                  <Text style={[styles.pillText, on && styles.pillTextOn]}>{o.l}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={styles.pillHint}>
+            {strategy === "replace" ? t("set.replaceHint") : t("set.keepMineHint")}
+          </Text>
+
+          {status && (
+            <Text style={[styles.status, status.ok ? styles.statusOk : styles.statusErr]}>
+              {status.message}
+            </Text>
+          )}
+
+          <View style={styles.dataFoot}>
+            <Text style={styles.countText}>
+              {count === null
+                ? tf("set.itemsOther", { n: "—" })
+                : tf(count === 1 ? "set.itemsOne" : "set.itemsOther", { n: count })}
+            </Text>
+            <Pressable onPress={onErase} hitSlop={8}>
+              <Text style={styles.eraseText}>{t("set.eraseAll")}</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <SyncSection />
+
+        <View style={styles.section}>{header("heart", "set.about")}</View>
+        <Text style={styles.muted}>{tf("set.aboutText", { reciter: RECITER.name })}</Text>
+        <Text style={styles.version}>Ummah Library · v{Constants.expoConfig?.version ?? "—"}</Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -375,15 +371,9 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.bg },
     content: { padding: 18, paddingBottom: 32 },
-    sectionLabel: {
-      color: c.faint,
-      fontSize: 12,
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
-      fontFamily: FONT.bold,
-      marginTop: 22,
-      marginBottom: 11,
-    },
+    firstSection: { marginTop: 4 },
+    section: { marginTop: 20 },
+    sectionHead: { marginBottom: 14 },
     card: {
       backgroundColor: c.bgElev,
       borderWidth: 1,
@@ -422,18 +412,7 @@ function makeStyles(c: Palette) {
     rowLast: { borderBottomWidth: 0, paddingBottom: 0 },
     rowLabel: { color: c.fg, fontSize: 15.5, fontFamily: FONT.semibold },
     value: { color: c.muted, fontSize: 15 },
-    scale: { flexDirection: "row", alignItems: "center", gap: 12 },
-    scaleBtn: {
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: c.border,
-      backgroundColor: c.bg,
-    },
     disabled: { opacity: 0.4 },
-    scaleText: { color: c.fg, fontSize: 14, fontFamily: FONT.semibold },
-    scaleValue: { color: c.muted, fontSize: 14, minWidth: 44, textAlign: "center" },
     muted: { color: c.muted, fontSize: 14, lineHeight: 22 },
     pickRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
     rowDivider: { borderBottomWidth: 1, borderBottomColor: c.borderSoft },

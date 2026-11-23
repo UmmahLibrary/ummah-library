@@ -7,6 +7,8 @@ import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useLibrary, type HifzRecord } from "../state/LibraryContext";
 import type { HifzStackParamList } from "../navigation/types";
+import { useIntl } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n/messages";
 
 type Props = NativeStackScreenProps<HifzStackParamList, "HifzReview">;
 
@@ -24,16 +26,17 @@ function loadSurahArabic(surah: number): Promise<Map<number, string>> {
   return pending;
 }
 
-const RATINGS: { rating: ReviewRating; label: string; color: keyof Palette }[] = [
-  { rating: "again", label: "Again", color: "error" },
-  { rating: "hard", label: "Hard", color: "muted" },
-  { rating: "good", label: "Good", color: "accent" },
-  { rating: "easy", label: "Easy", color: "accentHi" },
+const RATINGS: { rating: ReviewRating; label: MessageKey; color: keyof Palette }[] = [
+  { rating: "again", label: "mem.review.again", color: "error" },
+  { rating: "hard", label: "mem.review.hard", color: "muted" },
+  { rating: "good", label: "mem.review.good", color: "accent" },
+  { rating: "easy", label: "mem.review.easy", color: "accentHi" },
 ];
 
 export function HifzReviewScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, num } = useIntl();
   const { ready, dueRecords, trackedCount, setHifzCard, touchStreak, recordReview } = useLibrary();
 
   const [queue, setQueue] = useState<HifzRecord[] | null>(null);
@@ -91,9 +94,9 @@ export function HifzReviewScreen({ navigation }: Props) {
   if (trackedCount === 0) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.doneTitle}>Nothing to review yet</Text>
+        <Text style={styles.doneTitle}>{t("mem.review.emptyTitle")}</Text>
         <Text style={styles.muted}>
-          Open a surah and tap ＋ Hifz on an āyah to start memorizing.
+          {tf("mem.review.emptyBody", { button: `＋ ${t("ayah.memorize")}` })}
         </Text>
       </View>
     );
@@ -104,15 +107,21 @@ export function HifzReviewScreen({ navigation }: Props) {
     return (
       <View style={styles.centered}>
         <Text style={styles.celebrate}>🎉</Text>
-        <Text style={styles.doneTitle}>All caught up!</Text>
+        <Text style={styles.doneTitle}>{t("mem.review.doneTitle")}</Text>
         <Text style={styles.muted}>
           {queue.length > 0
-            ? `${queue.length} ${queue.length === 1 ? "āyah" : "āyāt"} reviewed · `
+            ? `${tf(queue.length === 1 ? "mem.review.reviewedOne" : "mem.review.reviewedOther", {
+                n: queue.length,
+              })} · `
             : ""}
-          {trackedCount} tracked in total.
+          {tf("mem.review.trackedTotal", { n: trackedCount })}
         </Text>
-        <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>← Back to dashboard</Text>
+        <Pressable
+          style={styles.backBtn}
+          accessibilityRole="button"
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backText}>{t("mem.review.back")}</Text>
         </Pressable>
       </View>
     );
@@ -125,21 +134,28 @@ export function HifzReviewScreen({ navigation }: Props) {
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
         </View>
-        <Text style={styles.progressText}>
-          {index} / {queue.length}
+        <Text
+          style={styles.progressText}
+          accessibilityLabel={tf("mem.review.progressA11y", { i: index, n: queue.length })}
+        >
+          {num(index)} / {num(queue.length)}
         </Text>
       </View>
 
       <View style={styles.card}>
         <Text style={styles.ref}>
-          Surah {current.ref.sura} · Āyah {current.ref.aya}
+          {tf("mem.review.ref", { s: current.ref.sura, a: current.ref.aya })}
         </Text>
 
         {revealed ? (
           <Text style={styles.arabic}>{arabic === null ? "…" : arabic}</Text>
         ) : (
-          <Pressable style={styles.reveal} onPress={() => setRevealed(true)}>
-            <Text style={styles.revealText}>Reveal āyah</Text>
+          <Pressable
+            style={styles.reveal}
+            accessibilityRole="button"
+            onPress={() => setRevealed(true)}
+          >
+            <Text style={styles.revealText}>{t("mem.review.reveal")}</Text>
           </Pressable>
         )}
       </View>
@@ -150,9 +166,10 @@ export function HifzReviewScreen({ navigation }: Props) {
             <Pressable
               key={rating}
               style={[styles.rate, { borderColor: colors[color] }]}
+              accessibilityRole="button"
               onPress={() => rate(rating)}
             >
-              <Text style={[styles.rateText, { color: colors[color] }]}>{label}</Text>
+              <Text style={[styles.rateText, { color: colors[color] }]}>{t(label)}</Text>
             </Pressable>
           ))}
         </View>
@@ -186,7 +203,13 @@ function makeStyles(c: Palette) {
     },
     backText: { color: c.accent, fontSize: 14.5, fontWeight: "700" },
     progressRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-    progressTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: c.border, overflow: "hidden" },
+    progressTrack: {
+      flex: 1,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.border,
+      overflow: "hidden",
+    },
     progressFill: { height: "100%", borderRadius: 2, backgroundColor: c.accent },
     progressText: { color: c.faint, fontSize: 12.5 },
     card: {
@@ -205,7 +228,8 @@ function makeStyles(c: Palette) {
       lineHeight: 56,
       textAlign: "center",
       writingDirection: "rtl",
-      fontFamily: FONT.ar,
+      fontFamily: FONT.arQuran,
+      direction: "ltr",
     },
     reveal: {
       paddingVertical: 13,

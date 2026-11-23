@@ -103,10 +103,14 @@ export function CollectionsView() {
   if (collections.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: "48px 20px 30px" }}>
-        <div style={{ display: "inline-grid", placeItems: "center", marginBottom: 16, opacity: 0.5 }}>
+        <div
+          style={{ display: "inline-grid", placeItems: "center", marginBottom: 16, opacity: 0.5 }}
+        >
           <Khatam size={64} color={N.goldDim} sw={1.2} />
         </div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: N.fg, marginBottom: 8, fontFamily: N.ui }}>
+        <div
+          style={{ fontSize: 18, fontWeight: 700, color: N.fg, marginBottom: 8, fontFamily: N.ui }}
+        >
           No bookmarks yet
         </div>
         <div
@@ -119,7 +123,7 @@ export function CollectionsView() {
             fontFamily: N.ui,
           }}
         >
-          Open any surah, tap <strong style={{ color: N.gold }}>☆ Save</strong> under an āyah, and
+          Open any surah, tap <strong style={{ color: N.gold }}>Save</strong> under an āyah, and
           group your favourite verses and notes into collections here.
         </div>
       </div>
@@ -174,6 +178,7 @@ export function CollectionsView() {
             </span>
             <button
               type="button"
+              aria-label={`Delete collection ${c.name}`}
               onClick={() => {
                 if (confirm(`Delete the collection “${c.name}”?`)) {
                   persist(deleteCollection(collections, c.id));
@@ -280,7 +285,7 @@ export function CollectionsView() {
                     )}
                     {text?.arabic && (
                       <div
-                        className="noor-ar"
+                        className="noor-quran"
                         dir="rtl"
                         lang="ar"
                         style={{ fontSize: 23, lineHeight: 2, color: N.fg, marginBottom: 8 }}

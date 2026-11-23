@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatHijri, gregorianToHijri, verseOfDay } from "@ummahlibrary/core";
-import type { Surah, Translation } from "@ummahlibrary/core";
-import { Logo, N, noorThemes } from "@ummahlibrary/ui";
+import { formatHijri, gregorianToHijri, homeAction, verseOfDay } from "@ummahlibrary/core";
+import type { ResumePoint, Surah, Translation } from "@ummahlibrary/core";
+import { Icon, Logo, N, noorThemes } from "@ummahlibrary/ui";
 import type { ThemeKey } from "@ummahlibrary/ui";
 import { Dropdown } from "./Dropdown";
 import { fetchVerse, getEditions, getSurahs } from "./lib/api";
 import type { VerseData } from "./lib/api";
 import { DEFAULT_EDITION } from "./lib/config";
 import { todayGregorian, todayISO } from "./lib/date";
-import { homeUrl, openUrl, settingsUrl, surahUrl } from "./lib/links";
+import { getLastRead, setLastRead } from "./lib/last-read";
+import { homeUrl, listenUrl, openUrl, settingsUrl, surahUrl } from "./lib/links";
 import { getPref, setPref } from "./lib/storage";
 import { filterSurahs } from "./lib/surah-filter";
 import { applyTheme, getStoredTheme, readThemeSync, setStoredTheme, THEME_KEYS } from "./lib/theme";
@@ -24,11 +25,19 @@ import { MESSAGES, type MessageKey } from "./lib/messages";
 import { syncIfEnabled } from "./lib/sync/sync-runtime";
 import { SyncPanel } from "./SyncPanel";
 
-const PAD = 16;
+type T = (key: MessageKey) => string;
 
+/**
+ * The popup leads with one clear next step (ADR 0041, "Noor for everyone"):
+ * a Continue card first, then the verse of the day, then search. The extension
+ * has no prayer times or reading-portion data of its own, so those lines are
+ * not shown here; there is no streak (and no fire emoji) by design.
+ */
 export function Popup() {
   const [theme, setTheme] = useState<ThemeKey>(readThemeSync());
   const [locale, setLocale] = useState<Locale>(readLocaleSync());
+  const [surahs, setSurahs] = useState<readonly Surah[]>([]);
+  const [lastRead, setLastReadState] = useState<ResumePoint | null>(null);
 
   useEffect(() => {
     void getStoredTheme().then((key) => {
@@ -39,6 +48,8 @@ export function Popup() {
       setLocale(code);
       applyLocale(code);
     });
+    void getSurahs().then(setSurahs);
+    void getLastRead().then(setLastReadState);
     // Cross-device sync (#25), if the user has opted in — a no-op otherwise.
     // Failures (offline, server unprovisioned) are swallowed; local-first carries on.
     void syncIfEnabled()
@@ -63,13 +74,19 @@ export function Popup() {
     void setStoredLocale(code);
   }
 
-  const t = (key: MessageKey): string => MESSAGES[locale]?.[key] ?? MESSAGES.en[key] ?? key;
+  function remember(point: ResumePoint) {
+    setLastReadState(point);
+    void setLastRead(point);
+  }
+
+  const t: T = (key) => MESSAGES[locale]?.[key] ?? MESSAGES.en[key] ?? key;
 
   return (
-    <main style={{ padding: PAD, display: "flex", flexDirection: "column", gap: 14 }}>
+    <main style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
       <Header />
-      <VerseOfDay t={t} />
-      <SurahJump t={t} />
+      <ContinueCard t={t} surahs={surahs} lastRead={lastRead} />
+      <VerseOfDay t={t} onOpen={remember} />
+      <SurahJump t={t} surahs={surahs} onOpen={remember} />
       <SyncPanel />
       <Footer theme={theme} onTheme={changeTheme} locale={locale} onLocale={changeLocale} t={t} />
     </main>
@@ -86,12 +103,15 @@ function Header() {
   }, []);
 
   return (
-    <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <header
+      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}
+    >
       <a
         href={homeUrl()}
         target="_blank"
         rel="noreferrer"
-        style={{ textDecoration: "none" }}
+        className="ul-plain"
+        style={{ minHeight: 44, display: "flex", alignItems: "center" }}
         aria-label="Open Ummah Library"
       >
         <Logo scale={0.92} />
@@ -99,13 +119,14 @@ function Header() {
       {label && (
         <span
           style={{
-            fontSize: 11,
-            color: N.gold,
+            fontSize: 13,
+            color: N.muted,
             fontWeight: 600,
             fontFamily: N.ui,
             border: `1px solid ${N.border}`,
             borderRadius: 999,
-            padding: "3px 9px",
+            paddingBlock: 4,
+            paddingInline: 10,
             whiteSpace: "nowrap",
           }}
           title="Today's Hijri date"
@@ -117,16 +138,87 @@ function Header() {
   );
 }
 
-const LABEL_STYLE = {
-  fontSize: 10.5,
-  letterSpacing: 1.2,
-  textTransform: "uppercase",
-  color: N.gold,
+/** Section heading: sentence case, no letter-spacing or uppercase (it may be Urdu). */
+const HEADING_STYLE = {
+  margin: 0,
+  fontSize: 13,
+  color: N.muted,
   fontWeight: 700,
   fontFamily: N.ui,
 } as const;
 
-function VerseOfDay({ t }: { t: (key: MessageKey) => string }) {
+const CARD_STYLE = {
+  background: N.card,
+  border: `1px solid ${N.border}`,
+  borderRadius: 14,
+  paddingBlock: 14,
+  paddingInline: 16,
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
+} as const;
+
+function ContinueCard({
+  t,
+  surahs,
+  lastRead,
+}: {
+  t: T;
+  surahs: readonly Surah[];
+  lastRead: ResumePoint | null;
+}) {
+  const action = homeAction({
+    resume: lastRead,
+    activeDates: [],
+    today: todayISO(),
+    portionDone: false,
+  });
+  const at: ResumePoint = action.kind === "continue" ? action.at : { sura: 1, aya: 1 };
+  const isContinue = action.kind === "continue";
+  const surah = surahs.find((s) => s.number === at.sura);
+  const name = surah?.transliteration ?? (at.sura === 1 ? "Al-Fātiḥah" : `Sūra ${at.sura}`);
+
+  return (
+    <section aria-labelledby="ul-continue-title" style={{ ...CARD_STYLE, borderColor: N.gold }}>
+      <h2 id="ul-continue-title" style={HEADING_STYLE}>
+        {isContinue ? t("popup.continueReading") : t("popup.startReading")}
+      </h2>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>{name}</span>
+        <span style={{ fontSize: 14, color: N.muted, fontFamily: N.ui }}>
+          {t("popup.ayah")} {at.aya}
+        </span>
+        {surah && (
+          <span
+            dir="rtl"
+            lang="ar"
+            className="ul-ar"
+            style={{ marginInlineStart: "auto", fontSize: 18 }}
+          >
+            {surah.name}
+          </span>
+        )}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <a
+          href={surahUrl(at.sura, at.aya)}
+          target="_blank"
+          rel="noreferrer"
+          className="ul-btn ul-btn--primary"
+        >
+          <Icon name="book" size={18} />
+          <span>{isContinue ? t("popup.continue") : t("popup.start")}</span>
+        </a>
+        <a href={listenUrl(at.sura, at.aya)} target="_blank" rel="noreferrer" className="ul-btn">
+          <Icon name="headphones" size={18} />
+          <span>{t("popup.listen")}</span>
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function VerseOfDay({ t, onOpen }: { t: T; onOpen: (point: ResumePoint) => void }) {
   const [edition, setEdition] = useState<string>(DEFAULT_EDITION);
   const [editions, setEditions] = useState<readonly Translation[]>([]);
   const [verse, setVerse] = useState<VerseData | null>(null);
@@ -156,23 +248,19 @@ function VerseOfDay({ t }: { t: (key: MessageKey) => string }) {
     void setPref("edition", next);
   }
 
+  const translator = editions.find((e) => e.id === edition)?.name ?? edition;
+
   return (
-    <section
-      style={{
-        background: N.card,
-        border: `1px solid ${N.border}`,
-        borderRadius: 14,
-        padding: "14px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={LABEL_STYLE}>{t("popup.verseOfDay")}</span>
+    <section aria-labelledby="ul-votd-title" style={CARD_STYLE}>
+      <div
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}
+      >
+        <h2 id="ul-votd-title" style={HEADING_STYLE}>
+          {t("popup.verseOfDay")}
+        </h2>
         {editions.length > 0 && (
           <Dropdown
-            ariaLabel="Translation"
+            ariaLabel={t("popup.translation")}
             value={edition}
             onChange={onEdition}
             options={editions.map((e) => ({ value: e.id, label: e.name }))}
@@ -189,94 +277,117 @@ function VerseOfDay({ t }: { t: (key: MessageKey) => string }) {
       )}
 
       {state === "error" && (
-        <p style={{ margin: 0, color: N.muted, fontSize: 13 }}>
+        <p style={{ margin: 0, color: N.muted, fontSize: 14 }}>
           Couldn’t load today’s verse. Check your connection and reopen.
         </p>
       )}
 
       {state === "ready" && verse && (
-        <a
-          href={surahUrl(verse.sura, verse.aya)}
-          target="_blank"
-          rel="noreferrer"
-          style={{ textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}
-        >
-          <div
-            dir="rtl"
-            lang="ar"
-            style={{ fontFamily: N.ar, fontSize: 22, lineHeight: 1.95, color: N.fg }}
-          >
+        <>
+          {/* Quran text is rendered exactly as the API returns it — never retyped or normalised. */}
+          <p dir="rtl" lang="ar" className="ul-ar" style={{ margin: 0, fontSize: 22 }}>
             {verse.arabic}
-          </div>
+          </p>
           {verse.translation && (
-            <div style={{ fontSize: 13, lineHeight: 1.55, color: N.muted }}>{verse.translation}</div>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: N.fg }}>
+              {verse.translation}
+            </p>
           )}
-          <div style={{ fontSize: 12, color: N.gold, fontWeight: 600, fontFamily: N.ui }}>
-            Sūra {verse.sura} : {verse.aya} →
-          </div>
-        </a>
+          <p style={{ margin: 0, fontSize: 13, color: N.muted, fontFamily: N.ui }}>
+            {t("popup.translation")}: {translator} · Sūra {verse.sura} : {verse.aya}
+          </p>
+          <a
+            href={surahUrl(verse.sura, verse.aya)}
+            target="_blank"
+            rel="noreferrer"
+            className="ul-btn"
+            onClick={() => onOpen({ sura: verse.sura, aya: verse.aya })}
+          >
+            <Icon name="book" size={18} />
+            <span>{t("popup.readVerse")}</span>
+          </a>
+        </>
       )}
     </section>
   );
 }
 
-function SurahJump({ t }: { t: (key: MessageKey) => string }) {
-  const [surahs, setSurahs] = useState<readonly Surah[]>([]);
+function SurahJump({
+  t,
+  surahs,
+  onOpen,
+}: {
+  t: T;
+  surahs: readonly Surah[];
+  onOpen: (point: ResumePoint) => void;
+}) {
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    void getSurahs().then(setSurahs);
-  }, []);
-
   const results = useMemo(() => filterSurahs(surahs, query), [surahs, query]);
 
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={LABEL_STYLE}>{t("popup.jumpToSurah")}</span>
-      <input
-        type="search"
-        value={query}
-        placeholder="Name or number — e.g. Yāsīn, 36"
-        aria-label="Search for a sūra"
-        autoFocus
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && results[0]) openUrl(surahUrl(results[0].number));
-        }}
-        style={{
-          background: N.bg2,
-          color: N.fg,
-          border: `1px solid ${N.border}`,
-          borderRadius: 10,
-          padding: "9px 12px",
-          fontSize: 13,
-          outline: "none",
-        }}
-      />
+      <label htmlFor="ul-surah-search" style={HEADING_STYLE}>
+        {t("popup.jumpToSurah")}
+      </label>
+      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            insetInlineStart: 12,
+            color: N.muted,
+            pointerEvents: "none",
+          }}
+        >
+          <Icon name="search" size={18} />
+        </span>
+        <input
+          id="ul-surah-search"
+          type="search"
+          value={query}
+          placeholder="Name or number — e.g. Yāsīn, 36"
+          aria-label="Search for a sūra"
+          autoFocus
+          className="ul-input"
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && results[0]) {
+              onOpen({ sura: results[0].number, aya: 1 });
+              openUrl(surahUrl(results[0].number));
+            }
+          }}
+        />
+      </div>
       {results.length > 0 && (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column" }}>
+        <ul
+          style={{
+            listStyle: "none",
+            margin: 0,
+            padding: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           {results.map((s) => (
             <li key={s.number}>
               <a
                 href={surahUrl(s.number)}
                 target="_blank"
                 rel="noreferrer"
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: 8,
-                  padding: "7px 8px",
-                  borderRadius: 8,
-                  textDecoration: "none",
-                  color: N.fg,
-                }}
+                className="ul-row"
+                onClick={() => onOpen({ sura: s.number, aya: 1 })}
               >
-                <span style={{ color: N.faint, fontSize: 12, width: 22, fontFamily: N.ui }}>
+                <span style={{ color: N.muted, fontSize: 13, minWidth: 24, fontFamily: N.ui }}>
                   {s.number}
                 </span>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{s.transliteration}</span>
-                <span style={{ color: N.muted, fontSize: 12 }}>{s.englishName}</span>
-                <span dir="rtl" lang="ar" style={{ marginInlineStart: "auto", fontFamily: N.ar, color: N.muted }}>
+                <span style={{ fontSize: 14, fontWeight: 600 }}>{s.transliteration}</span>
+                <span style={{ color: N.muted, fontSize: 13 }}>{s.englishName}</span>
+                <span
+                  dir="rtl"
+                  lang="ar"
+                  className="ul-ar"
+                  style={{ marginInlineStart: "auto", color: N.muted }}
+                >
                   {s.name}
                 </span>
               </a>
@@ -299,33 +410,38 @@ function Footer({
   onTheme: (key: ThemeKey) => void;
   locale: Locale;
   onLocale: (code: Locale) => void;
-  t: (key: MessageKey) => string;
+  t: T;
 }) {
-  const link = { color: N.muted, fontSize: 12, textDecoration: "none", fontFamily: N.ui } as const;
   return (
     <footer
       style={{
         borderTop: `1px solid ${N.borderSoft}`,
-        paddingTop: 10,
+        paddingTop: 12,
         display: "flex",
         flexDirection: "column",
-        gap: 10,
+        gap: 12,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={LABEL_STYLE}>{t("popup.theme")}</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <span id="ul-theme-label" style={HEADING_STYLE}>
+          {t("popup.theme")}
+        </span>
         <ThemePicker value={theme} onChange={onTheme} />
       </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={LABEL_STYLE}>{t("common.language")}</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <span id="ul-language-label" style={HEADING_STYLE}>
+          {t("common.language")}
+        </span>
         <LanguagePicker value={locale} onChange={onLocale} />
       </div>
-      <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
-        <a href={homeUrl()} target="_blank" rel="noreferrer" style={link}>
-          {t("popup.openApp")}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <a href={homeUrl()} target="_blank" rel="noreferrer" className="ul-btn">
+          <Icon name="home" size={18} />
+          <span>{t("popup.openApp")}</span>
         </a>
-        <a href={settingsUrl()} target="_blank" rel="noreferrer" style={link}>
-          {t("common.settings")}
+        <a href={settingsUrl()} target="_blank" rel="noreferrer" className="ul-btn">
+          <Icon name="settings" size={18} />
+          <span>{t("common.settings")}</span>
         </a>
       </div>
     </footer>
@@ -334,7 +450,11 @@ function Footer({
 
 function LanguagePicker({ value, onChange }: { value: Locale; onChange: (code: Locale) => void }) {
   return (
-    <div role="radiogroup" aria-label="Language" style={{ display: "flex", gap: 6 }}>
+    <div
+      role="radiogroup"
+      aria-labelledby="ul-language-label"
+      style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
+    >
       {LOCALES.map((l) => {
         const active = l.code === value;
         return (
@@ -345,19 +465,11 @@ function LanguagePicker({ value, onChange }: { value: Locale; onChange: (code: L
             aria-checked={active}
             lang={l.code}
             onClick={() => onChange(l.code)}
-            style={{
-              padding: "3px 9px",
-              borderRadius: 999,
-              border: `1px solid ${active ? N.gold : N.border}`,
-              background: active ? N.goldSoft : "transparent",
-              color: active ? N.gold : N.muted,
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: "pointer",
-              fontFamily: N.ui,
-            }}
+            className={active ? "ul-btn ul-btn--active" : "ul-btn"}
+            style={{ flex: "1 1 0" }}
           >
-            {l.label}
+            <Icon name={active ? "check" : "globe"} size={18} />
+            <span>{l.label}</span>
           </button>
         );
       })}
@@ -367,7 +479,11 @@ function LanguagePicker({ value, onChange }: { value: Locale; onChange: (code: L
 
 function ThemePicker({ value, onChange }: { value: ThemeKey; onChange: (key: ThemeKey) => void }) {
   return (
-    <div role="radiogroup" aria-label="Theme" style={{ display: "flex", gap: 5 }}>
+    <div
+      role="radiogroup"
+      aria-labelledby="ul-theme-label"
+      style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}
+    >
       {THEME_KEYS.map((key) => {
         const palette = noorThemes[key];
         const active = key === value;
@@ -378,19 +494,25 @@ function ThemePicker({ value, onChange }: { value: ThemeKey; onChange: (key: The
             role="radio"
             aria-checked={active}
             aria-label={key}
-            title={key}
             onClick={() => onChange(key)}
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: "50%",
-              background: palette.bg,
-              boxShadow: `inset 0 0 0 4px ${palette.accent}`,
-              border: active ? `2px solid ${N.fg}` : `1px solid ${N.border}`,
-              cursor: "pointer",
-              padding: 0,
-            }}
-          />
+            className={active ? "ul-btn ul-btn--active" : "ul-btn"}
+            style={{ justifyContent: "flex-start" }}
+          >
+            {/* The swatch previews the theme; colours come from the shared Noor palette. */}
+            <span
+              aria-hidden
+              style={{
+                width: 18,
+                height: 18,
+                flex: "none",
+                borderRadius: "50%",
+                background: palette.bg,
+                boxShadow: `inset 0 0 0 4px ${palette.accent}`,
+                border: `1px solid ${N.border}`,
+              }}
+            />
+            <span style={{ textTransform: "capitalize" }}>{key}</span>
+          </button>
         );
       })}
     </div>

@@ -5,7 +5,7 @@
  * the web adapter.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "../Type";
 import { useFocusEffect } from "@react-navigation/native";
 import { ayahCountOf, type DownloadedSurah } from "@ummahlibrary/core";
 import { Icon } from "@ummahlibrary/ui";
@@ -14,11 +14,13 @@ import { FONT } from "../fonts";
 import { api } from "../api";
 import { RECITERS } from "../plugins";
 import { mobileAudioStore } from "../audio/audio-store";
+import { useIntl } from "../i18n/I18nProvider";
 
-function fmtBytes(b: number): string {
-  if (b < 1024) return `${b} B`;
-  if (b < 1024 * 1024) return `${Math.round(b / 1024)} KB`;
-  return `${(b / 1024 / 1024).toFixed(1)} MB`;
+/** Size with the interface language's digits; the unit symbols stay international. */
+function fmtBytes(b: number, num: (n: number) => string): string {
+  if (b < 1024) return `${num(b)} B`;
+  if (b < 1024 * 1024) return `${num(Math.round(b / 1024))} KB`;
+  return `${num(Math.round((b / 1024 / 1024) * 10) / 10)} MB`;
 }
 
 const RECITER_NAMES: Record<string, string> = Object.fromEntries(
@@ -28,6 +30,8 @@ const RECITER_NAMES: Record<string, string> = Object.fromEntries(
 export function DownloadsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t, tf, num } = useIntl();
+  const nameOf = (n: number) => surahNames[n] ?? tf("rd.search.surahRef", { n });
   const [items, setItems] = useState<DownloadedSurah[] | null>(null);
   const [surahNames, setSurahNames] = useState<Record<number, string>>({});
 
@@ -43,7 +47,9 @@ export function DownloadsScreen() {
   useEffect(() => {
     void api
       .listSurahs()
-      .then((list) => setSurahNames(Object.fromEntries(list.map((s) => [s.number, s.transliteration]))))
+      .then((list) =>
+        setSurahNames(Object.fromEntries(list.map((s) => [s.number, s.transliteration]))),
+      )
       .catch(() => {
         /* names are cosmetic — the list still renders by number */
       });
@@ -63,11 +69,8 @@ export function DownloadsScreen() {
     return (
       <View style={styles.center}>
         <Icon name="download" size={40} color={colors.faint} sw={1.5} />
-        <Text style={styles.emptyTitle}>Nothing downloaded yet</Text>
-        <Text style={styles.emptyDesc}>
-          Open a surah and tap the download button in the audio bar to save it for offline
-          listening. Saved recitations play with no connection.
-        </Text>
+        <Text style={styles.emptyTitle}>{t("rd.downloads.empty")}</Text>
+        <Text style={styles.emptyDesc}>{t("rd.downloads.emptyHint")}</Text>
       </View>
     );
   }
@@ -75,7 +78,10 @@ export function DownloadsScreen() {
   return (
     <ScrollView contentContainerStyle={styles.screen}>
       <Text style={styles.summary}>
-        {items.length} download{items.length === 1 ? "" : "s"} · {fmtBytes(total)} on this device
+        {tf(items.length === 1 ? "rd.downloads.summary1" : "rd.downloads.summaryN", {
+          n: items.length,
+          size: fmtBytes(total, num),
+        })}
       </Text>
       {items.map((it) => {
         const full = ayahCountOf(it.surah);
@@ -83,20 +89,36 @@ export function DownloadsScreen() {
         return (
           <View key={`${it.reciterId}:${it.surah}`} style={styles.card}>
             <View style={styles.info}>
-              <Text style={styles.title}>{surahNames[it.surah] ?? `Surah ${it.surah}`}</Text>
+              <Text style={styles.title}>{nameOf(it.surah)}</Text>
               <Text style={styles.sub}>
-                {RECITER_NAMES[it.reciterId] ?? it.reciterId} · {it.ayahCount}/{full} āyāt ·{" "}
-                {fmtBytes(it.bytes)}
-                {partial ? <Text style={styles.partial}> · incomplete</Text> : null}
+                {RECITER_NAMES[it.reciterId] ?? it.reciterId} ·{" "}
+                {tf("rd.downloads.ayahs", { done: it.ayahCount, total: full })} ·{" "}
+                {fmtBytes(it.bytes, num)}
+                {partial ? (
+                  <Text style={styles.partial}> · {t("rd.downloads.incomplete")}</Text>
+                ) : null}
               </Text>
             </View>
             <Pressable
               style={styles.deleteBtn}
-              onPress={async () => {
-                await mobileAudioStore.removeSurah(it.reciterId, it.surah);
-                refresh();
+              onPress={() => {
+                Alert.alert(
+                  t("rd.downloads.deleteTitle"),
+                  tf("rd.downloads.deleteMsg", { name: nameOf(it.surah) }),
+                  [
+                    { text: t("rd.cancel"), style: "cancel" },
+                    {
+                      text: t("rd.delete"),
+                      style: "destructive",
+                      onPress: async () => {
+                        await mobileAudioStore.removeSurah(it.reciterId, it.surah);
+                        refresh();
+                      },
+                    },
+                  ],
+                );
               }}
-              accessibilityLabel={`Delete ${surahNames[it.surah] ?? `Surah ${it.surah}`} download`}
+              accessibilityLabel={tf("rd.downloads.deleteA11y", { name: nameOf(it.surah) })}
               hitSlop={8}
             >
               <Icon name="close" size={16} color={colors.muted} sw={1.8} />

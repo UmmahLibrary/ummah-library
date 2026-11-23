@@ -1,14 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from "../Type";
+import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "../Type";
 import {
   type Translation,
   filterTranslations,
@@ -16,6 +7,7 @@ import {
 } from "@ummahlibrary/core";
 import { useTheme, type Palette } from "../theme";
 import { DEFAULT_EDITION } from "../types";
+import { useIntl } from "../i18n/I18nProvider";
 
 /**
  * "Manage translations" sheet: search + language-grouped checklist + a "My
@@ -37,6 +29,7 @@ export function TranslationManager({
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { t: tr, tf } = useIntl();
   const [query, setQuery] = useState("");
 
   const matches = useMemo(() => filterTranslations(catalogue, query), [catalogue, query]);
@@ -59,20 +52,17 @@ export function TranslationManager({
       <View style={styles.overlay}>
         <View style={styles.panel}>
           <View style={styles.head}>
-            <Text style={styles.title}>Translations</Text>
-            <Pressable onPress={onClose} hitSlop={10}>
+            <Text style={styles.title}>{tr("rd.trMgr.title")}</Text>
+            <Pressable onPress={onClose} hitSlop={10} accessibilityLabel={tr("rd.close")}>
               <Text style={styles.close}>✕</Text>
             </Pressable>
           </View>
 
-          <Text style={styles.hint}>
-            The Verse tab shows every translation you add here at once; the Translations reading
-            view shows one at a time — pick which from its own selector.
-          </Text>
+          <Text style={styles.hint}>{tr("rd.trMgr.hint")}</Text>
 
           <TextInput
             style={styles.search}
-            placeholder="Search by name, author, or language…"
+            placeholder={tr("rd.trMgr.searchPh")}
             placeholderTextColor={colors.muted}
             value={query}
             onChangeText={setQuery}
@@ -82,7 +72,7 @@ export function TranslationManager({
           <ScrollView keyboardShouldPersistTaps="handled">
             {chosen.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.groupTitle}>My Translations</Text>
+                <Text style={styles.groupTitle}>{tr("rd.trPicker.mine")}</Text>
                 <View style={styles.pillRow}>
                   {chosen.map((e) => (
                     <Pressable key={e.id} style={styles.pill} onPress={() => toggle(e.id)}>
@@ -94,7 +84,7 @@ export function TranslationManager({
             )}
 
             {groups.length === 0 && (
-              <Text style={styles.muted}>No translations match “{query}”.</Text>
+              <Text style={styles.muted}>{tf("rd.trMgr.noMatch", { q: query })}</Text>
             )}
             {groups.map((group) => (
               <View key={group.code} style={styles.section}>
@@ -134,8 +124,8 @@ function makeStyles(c: Palette) {
     overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
     panel: {
       backgroundColor: c.bg,
-      borderTopLeftRadius: 16,
-      borderTopRightRadius: 16,
+      borderTopStartRadius: 16,
+      borderTopEndRadius: 16,
       paddingHorizontal: 18,
       paddingTop: 16,
       maxHeight: "85%",
@@ -176,7 +166,7 @@ function makeStyles(c: Palette) {
       borderBottomWidth: 1,
       borderBottomColor: c.border,
     },
-    editionMeta: { flex: 1, paddingRight: 12 },
+    editionMeta: { flex: 1, paddingEnd: 12 },
     editionName: { color: c.fg, fontSize: 15 },
     editionAuthor: { color: c.muted, fontSize: 12 },
   });

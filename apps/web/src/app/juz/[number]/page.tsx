@@ -136,102 +136,70 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
       />
       <ReaderShortcuts storageKey={`juz:${n}`} />
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 clamp(16px,4vw,36px) 48px" }}>
-      <Link href="/juz" className="back-link">
-        ← All juzʾ
-      </Link>
-      <header className="reader-head">
-        <div className="name-en">Juzʾ {n}</div>
-        <div className="sub">{verses.length} āyāt</div>
-      </header>
+        <Link href="/juz" className="back-link">
+          ← All juzʾ
+        </Link>
+        <header className="reader-head">
+          <h1 className="name-en">Juzʾ {n}</h1>
+          <div className="sub">{verses.length} āyāt</div>
+        </header>
 
-      <ReadingModeToggle />
-      <MemorizeBar />
+        <ReadingModeToggle />
+        <MemorizeBar placement="inline" />
 
-      <div className="mode-translation">
-        <EditionManager />
+        <div className="mode-translation">
+          <EditionManager />
 
-        <WordByWord />
+          <WordByWord />
 
-        <ReadingAudio verses={verses} reciters={RECITERS} />
+          <ReadingAudio verses={verses} reciters={RECITERS} />
 
-        {sections.map((section) => (
-          <section key={section.surah.number}>
-            <header className="juz-surah-head">
-              <span className="name-ar arabic">{section.surah.name}</span>
-              <span className="sub">
-                {section.surah.transliteration} · {section.surah.englishName}
-              </span>
-            </header>
-            {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
-            {section.ayahs.map((ayah) => (
-              <div key={ayah.aya} id={`${section.surah.number}:${ayah.aya}`} className="ayah">
-                <p className="ayah-ar arabic">
-                  <AyahWords surah={section.surah.number} aya={ayah.aya} text={ayah.text} />
-                  <button
-                    type="button"
-                    className="ayah-marker"
-                    data-play-key={`${section.surah.number}:${ayah.aya}`}
-                    aria-label={`Play from āyah ${ayah.aya}`}
-                  >
-                    ﴿{toArabicDigits(ayah.aya)}﴾
-                  </button>
-                </p>
-                <AyahTransliteration surah={section.surah.number} aya={ayah.aya} />
-                <AyahTranslations surah={section.surah.number} aya={ayah.aya} />
-                <div className="ayah-actions">
-                  <button
-                    type="button"
-                    className="hifz-btn"
-                    data-play-one={`${section.surah.number}:${ayah.aya}`}
-                    aria-label={`Play āyah ${ayah.aya}`}
-                  >
-                    ▶ Play
-                  </button>
-                </div>
-              </div>
-            ))}
-          </section>
-        ))}
-      </div>
-
-      {/* Reading: continuous Arabic + a continuous translation per section */}
-      <div className="mode-reading">
-        <ReadingTranslationPicker />
-        {sections.map((section) => (
-          <section key={section.surah.number}>
-            <header className="juz-surah-head">
-              <span className="name-ar arabic">{section.surah.name}</span>
-              <span className="sub">
-                {section.surah.transliteration} · {section.surah.englishName}
-              </span>
-            </header>
-            {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
-            <p className="mushaf arabic">
-              {section.ayahs.map((ayah) => (
-                <span key={ayah.aya}>
-                  {ayah.text}
-                  <AyahStar n={ayah.aya} />{" "}
-                </span>
-              ))}
-            </p>
-            <div
-              style={{ borderTop: "1px solid var(--noor-border-soft)", margin: "1.5rem 0" }}
-              aria-hidden="true"
-            />
-            <ReadingTranslationFlow
-              surah={section.surah.number}
-              ayat={section.ayahs.map((a) => a.aya)}
-            />
-          </section>
-        ))}
-      </div>
-
-      {/* Mushaf: a bordered page with continuous Arabic only per section */}
-      <div className="mode-reading-tr">
-        <div className="mushaf-page">
           {sections.map((section) => (
             <section key={section.surah.number}>
-              <header className="mushaf-surah-head">
+              <header className="juz-surah-head">
+                <span className="name-ar arabic">{section.surah.name}</span>
+                <span className="sub">
+                  {section.surah.transliteration} · {section.surah.englishName}
+                </span>
+              </header>
+              {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
+              {section.ayahs.map((ayah) => (
+                <div key={ayah.aya} id={`${section.surah.number}:${ayah.aya}`} className="ayah">
+                  <p className="ayah-ar arabic">
+                    <AyahWords surah={section.surah.number} aya={ayah.aya} text={ayah.text} />
+                    <button
+                      type="button"
+                      className="ayah-marker"
+                      data-play-key={`${section.surah.number}:${ayah.aya}`}
+                      aria-label={`Play from āyah ${ayah.aya}`}
+                    >
+                      ﴿{toArabicDigits(ayah.aya)}﴾
+                    </button>
+                  </p>
+                  <AyahTransliteration surah={section.surah.number} aya={ayah.aya} />
+                  <AyahTranslations surah={section.surah.number} aya={ayah.aya} />
+                  <div className="ayah-actions">
+                    <button
+                      type="button"
+                      className="hifz-btn"
+                      data-play-one={`${section.surah.number}:${ayah.aya}`}
+                      aria-label={`Play āyah ${ayah.aya}`}
+                    >
+                      ▶ Play
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </section>
+          ))}
+        </div>
+
+        {/* Reading: continuous Arabic + a continuous translation per section */}
+        <div className="mode-reading">
+          <ReadingTranslationPicker />
+          {sections.map((section) => (
+            <section key={section.surah.number}>
+              <header className="juz-surah-head">
                 <span className="name-ar arabic">{section.surah.name}</span>
                 <span className="sub">
                   {section.surah.transliteration} · {section.surah.englishName}
@@ -246,16 +214,48 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
                   </span>
                 ))}
               </p>
+              <div
+                style={{ borderTop: "1px solid var(--noor-border-soft)", margin: "1.5rem 0" }}
+                aria-hidden="true"
+              />
+              <ReadingTranslationFlow
+                surah={section.surah.number}
+                ayat={section.ayahs.map((a) => a.aya)}
+              />
             </section>
           ))}
         </div>
-      </div>
 
-      <nav className="reader-nav">
-        {n > 1 ? <Link href={`/juz/${n - 1}`}>← Previous juzʾ</Link> : <span />}
-        {n < TOTAL_JUZ ? <Link href={`/juz/${n + 1}`}>Next juzʾ →</Link> : <span />}
-      </nav>
-      <p className="foot">Arabic: Tanzil (CC-BY 3.0) · Translations via Ummah Library datasets</p>
+        {/* Mushaf: a bordered page with continuous Arabic only per section */}
+        <div className="mode-reading-tr">
+          <div className="mushaf-page">
+            {sections.map((section) => (
+              <section key={section.surah.number}>
+                <header className="mushaf-surah-head">
+                  <span className="name-ar arabic">{section.surah.name}</span>
+                  <span className="sub">
+                    {section.surah.transliteration} · {section.surah.englishName}
+                  </span>
+                </header>
+                {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
+                <p className="mushaf arabic">
+                  {section.ayahs.map((ayah) => (
+                    <span key={ayah.aya}>
+                      {ayah.text}
+                      <AyahStar n={ayah.aya} />{" "}
+                    </span>
+                  ))}
+                </p>
+              </section>
+            ))}
+          </div>
+        </div>
+
+        <nav className="reader-nav">
+          {n > 1 ? <Link href={`/juz/${n - 1}`}>← Previous juzʾ</Link> : <span />}
+          {n < TOTAL_JUZ ? <Link href={`/juz/${n + 1}`}>Next juzʾ →</Link> : <span />}
+        </nav>
+        <p className="foot">Arabic: Tanzil (CC-BY 3.0) · Translations via Ummah Library datasets</p>
       </div>
     </>
   );

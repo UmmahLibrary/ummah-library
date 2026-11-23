@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { readBookmarks, toggleBookmark } from "./bookmarks";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BOOKMARKS_EVENT, readBookmarks, toggleBookmark } from "./bookmarks";
 
 beforeEach(() => localStorage.clear());
 afterEach(() => localStorage.clear());
@@ -20,5 +20,13 @@ describe("bookmarks", () => {
     localStorage.setItem("ul.bookmarks", '"not-an-array"');
     expect(await readBookmarks()).toEqual([]);
     expect(await toggleBookmark(36)).toEqual([36]); // recovers cleanly, no spread-string garbage
+  });
+
+  it("fires BOOKMARKS_EVENT on toggle, so open views can re-read live (e.g. a synced change)", async () => {
+    const onChange = vi.fn();
+    window.addEventListener(BOOKMARKS_EVENT, onChange);
+    await toggleBookmark(36);
+    expect(onChange).toHaveBeenCalledOnce();
+    window.removeEventListener(BOOKMARKS_EVENT, onChange);
   });
 });

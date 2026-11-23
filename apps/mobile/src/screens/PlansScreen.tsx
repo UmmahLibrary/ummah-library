@@ -1,5 +1,15 @@
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "../Type";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "../Type";
 import Svg, { Circle } from "react-native-svg";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -38,6 +48,17 @@ import {
 } from "../plans";
 import { PlanCompletionCard } from "../components/PlanCompletionCard";
 import type { ReadStackParamList } from "../navigation/types";
+import { useIntl } from "../i18n/I18nProvider";
+import {
+  digits,
+  planDesc,
+  planError,
+  planLen,
+  planName,
+  planTag,
+  portionEst,
+  portionLabel,
+} from "../i18n/memorize-text";
 
 type Props = NativeStackScreenProps<ReadStackParamList, "Plans">;
 type Nav = Props["navigation"];
@@ -52,6 +73,8 @@ function openTarget(navigation: Nav, portion: DayPortion) {
 export function PlansScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const intl = useIntl();
+  const { t, tf, num } = intl;
   const [plan, setPlan] = useState<ActivePlan | null>(null);
   const [ready, setReady] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
@@ -85,10 +108,25 @@ export function PlansScreen({ navigation }: Props) {
     mode === "pace"
       ? { kind: "fixed", unitsPerDay: Number(perDay) || 0 }
       : { kind: "targetDate", endDate: addDays(today, Math.max(0, Math.floor(Number(days) || 0))) };
-  const customErrors = validatePlanDraft({ range: customRange, schedule: customSchedule, startDate: today });
+  const customErrors = validatePlanDraft({
+    range: customRange,
+    schedule: customSchedule,
+    startDate: today,
+  });
   const customDraft =
     customErrors.length === 0
-      ? activatePlan({ id: "custom", name: "", tag: "", len: "", desc: "", range: customRange, schedule: customSchedule }, today)
+      ? activatePlan(
+          {
+            id: "custom",
+            name: "",
+            tag: "",
+            len: "",
+            desc: "",
+            range: customRange,
+            schedule: customSchedule,
+          },
+          today,
+        )
       : null;
   const customDays = customDraft ? planDuration(customDraft) : 0;
   const customEnd = customDraft ? planEndDate(customDraft) : "";
@@ -108,232 +146,315 @@ export function PlansScreen({ navigation }: Props) {
       range: customRange,
       schedule: customSchedule,
     };
-    void startCustomPlan(template).then(() => {
-      setCustomOpen(false);
-      refresh();
+    confirmDropPlan(tf("mem.plans.switchTo", { name: template.name }), () => {
+      void startCustomPlan(template).then(() => {
+        setCustomOpen(false);
+        refresh();
+      });
     });
   }
 
+  /**
+   * Starting another plan or leaving this one drops its progress (there is one
+   * active plan). Ask first whenever there's progress to lose.
+   */
+  function confirmDropPlan(title: string, proceed: () => void) {
+    if (!plan || plan.unitsRead === 0 || isPlanComplete(plan)) {
+      proceed();
+      return;
+    }
+    Alert.alert(
+      title,
+      tf("mem.plans.dropBody", { name: planName(intl, plan.template), pct: percentComplete(plan) }),
+      [
+        { text: t("mem.plans.cancel"), style: "cancel" },
+        { text: t("mem.plans.dropOk"), style: "destructive", onPress: proceed },
+      ],
+    );
+  }
+
+  // Once today's day is marked done, the portion shown is the next one (read
+  // ahead) — say so instead of calling it today's.
+  const dayDone = plan ? isDayComplete(plan, day) : false;
+  const [todayBefore = "", todayAfter = ""] = t(
+    dayDone ? "mem.plans.nextLabel" : "mem.plans.todayLabel",
+  ).split("{label}");
   const R = 33;
   const C = 2 * Math.PI * R;
 
   return (
-    <ScrollView contentContainerStyle={styles.screen}>
-      <Text style={styles.h1}>Reading plans</Text>
-      <Text style={styles.subtitle}>Structured journeys through the Book</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.screen}>
+        <Text style={styles.h1}>{t("mem.plans.title")}</Text>
+        <Text style={styles.subtitle}>{t("mem.plans.subtitle")}</Text>
 
-      {ready && plan && complete ? (
-        <PlanCompletionCard plan={plan} onStart={(id) => void startPlan(id).then(refresh)} />
-      ) : ready && plan && portion ? (
-        <>
-          <View style={styles.activeCard}>
-            <View style={styles.watermark} pointerEvents="none">
-              <Khatam size={150} color={colors.accent} sw={1.1} opacity={0.07} />
-            </View>
-            <View style={styles.activeTop}>
-              <View style={styles.ringWrap}>
-                <Svg width={78} height={78}>
-                  <Circle cx={39} cy={39} r={R} stroke={colors.border} strokeWidth={7} fill="none" />
-                  <Circle
-                    cx={39}
-                    cy={39}
-                    r={R}
-                    stroke={colors.accent}
-                    strokeWidth={7}
-                    fill="none"
-                    strokeDasharray={C}
-                    strokeDashoffset={C * (1 - pct / 100)}
-                    strokeLinecap="round"
-                    transform="rotate(-90 39 39)"
-                  />
-                </Svg>
-                <Text style={styles.ringPct}>{pct}%</Text>
+        {ready && plan && complete ? (
+          <PlanCompletionCard plan={plan} onStart={(id) => void startPlan(id).then(refresh)} />
+        ) : ready && plan && portion ? (
+          <>
+            <View style={styles.activeCard}>
+              <View style={styles.watermark} pointerEvents="none">
+                <Khatam size={150} color={colors.accent} sw={1.1} opacity={0.07} />
               </View>
-              <View style={styles.activeMeta}>
-                <Text style={styles.activeKicker}>
-                  {paused ? "⏸ Paused" : "Active"} · Day {day} of {totalDays}
-                </Text>
-                <Text style={styles.activeName}>{plan.template.name}</Text>
-                <Text style={styles.activeToday}>
-                  Today: <Text style={styles.activeTodayStrong}>{portion.label}</Text> · {portion.est}
-                </Text>
-              </View>
-            </View>
-            <Pressable style={styles.readBtn} onPress={() => openTarget(navigation, portion)}>
-              <Icon name="book" size={15} color={colors.ink} sw={1.8} />
-              <Text style={styles.readBtnText}>Read today</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.actions}>
-            <Pressable
-              style={[styles.pill, isDayComplete(plan, day) && styles.pillOn]}
-              onPress={() => void toggleDay(day).then(refresh)}
-            >
-              <Text style={[styles.pillText, isDayComplete(plan, day) && styles.pillTextOn]}>
-                {isDayComplete(plan, day) ? "✓ Day done" : `Mark Day ${day} done`}
-              </Text>
-            </Pressable>
-            <Pressable style={styles.pill} onPress={() => void clearPlan().then(refresh)}>
-              <Text style={styles.pillText}>Leave plan</Text>
-            </Pressable>
-            {paused && (
-              <Pressable style={[styles.pill, styles.pillOn]} onPress={() => void resumePlan().then(refresh)}>
-                <Text style={styles.pillTextOn}>▶ Resume</Text>
-              </Pressable>
-            )}
-            <Pressable
-              style={styles.pill}
-              onPress={() => navigation.navigate("PlanDetail", { id: plan.template.id })}
-            >
-              <Text style={styles.pillText}>Details</Text>
-            </Pressable>
-          </View>
-
-          {behind < 0 && catchUp ? (
-            <View style={styles.behindCard}>
-              <Text style={styles.behindTitle}>
-                You’re {Math.abs(behind)} {Math.abs(behind) === 1 ? "day" : "days"} behind
-              </Text>
-              <Text style={styles.behindSub}>Catch up, re-pace to keep your finish date, or take more time.</Text>
-              <View style={styles.behindActions}>
-                <Pressable style={styles.behindPrimary} onPress={() => openTarget(navigation, catchUp)}>
-                  <Icon name="book" size={14} color={colors.ink} sw={1.8} />
-                  <Text style={styles.behindPrimaryText}>Catch up</Text>
-                </Pressable>
-                <Pressable style={styles.pill} onPress={() => void rebalancePlan().then(refresh)}>
-                  <Text style={styles.pillText}>Rebalance</Text>
-                </Pressable>
-                <Pressable style={styles.pill} onPress={() => void extendPlanBy(7).then(refresh)}>
-                  <Text style={styles.pillText}>Extend +1wk</Text>
-                </Pressable>
-              </View>
-            </View>
-          ) : null}
-
-          <Text style={styles.sectionLabel}>Your days</Text>
-          <View style={styles.week}>
-            {planWeekWindow(plan, day).map((n) => {
-              const done = isDayComplete(plan, n);
-              const isToday = n === day;
-              return (
-                <View
-                  key={n}
-                  style={[styles.dayCell, isToday && styles.dayCellToday]}
-                >
-                  <Text style={[styles.dayCellLabel, isToday && styles.dayCellLabelToday]}>D{n}</Text>
-                  <View style={[styles.dayDot, done && styles.dayDotDone]}>
-                    {done ? (
-                      <Icon name="check" size={12} color={colors.ink} sw={2} />
-                    ) : (
-                      <Text style={styles.dayDotNum}>{n}</Text>
-                    )}
-                  </View>
+              <View style={styles.activeTop}>
+                <View style={styles.ringWrap}>
+                  <Svg width={78} height={78}>
+                    <Circle
+                      cx={39}
+                      cy={39}
+                      r={R}
+                      stroke={colors.border}
+                      strokeWidth={7}
+                      fill="none"
+                    />
+                    <Circle
+                      cx={39}
+                      cy={39}
+                      r={R}
+                      stroke={colors.accent}
+                      strokeWidth={7}
+                      fill="none"
+                      strokeDasharray={C}
+                      strokeDashoffset={C * (1 - pct / 100)}
+                      strokeLinecap="round"
+                      transform="rotate(-90 39 39)"
+                    />
+                  </Svg>
+                  <Text style={styles.ringPct}>{num(pct)}%</Text>
                 </View>
-              );
-            })}
-          </View>
-        </>
-      ) : ready ? (
-        <View style={styles.empty}>
-          <Khatam size={56} color={colors.accent} sw={1.1} opacity={0.5} />
-          <Text style={styles.emptyText}>No active plan yet. Choose one below to begin a journey.</Text>
-        </View>
-      ) : null}
-
-      <Text style={styles.sectionLabel}>Browse plans</Text>
-      <View style={styles.library}>
-        {PLAN_TEMPLATES.map((pl) => {
-          const isActive = plan?.template.id === pl.id;
-          const plPct = isActive ? pct : 0;
-          return (
-            <Pressable
-              key={pl.id}
-              style={styles.libCard}
-              onPress={() => {
-                if (isActive && portion) openTarget(navigation, portion);
-                else void startPlan(pl.id).then(refresh);
-              }}
-            >
-              <View style={styles.libHead}>
-                <Text style={styles.tag}>{pl.tag}</Text>
-                <Text style={styles.len}>{pl.len}</Text>
+                <View style={styles.activeMeta}>
+                  <Text style={styles.activeKicker}>
+                    {paused ? t("mem.plans.paused") : t("mem.plans.active")} ·{" "}
+                    {tf("mem.plans.dayOf", { day, total: totalDays })}
+                  </Text>
+                  <Text style={styles.activeName}>{planName(intl, plan.template)}</Text>
+                  <Text style={styles.activeToday}>
+                    {todayBefore}
+                    <Text style={styles.activeTodayStrong}>{portionLabel(intl, portion)}</Text>
+                    {todayAfter} · {portionEst(intl, portion)}
+                  </Text>
+                </View>
               </View>
-              <Text style={styles.libName}>{pl.name}</Text>
-              <Text style={styles.libDesc}>{pl.desc}</Text>
-              {isActive ? (
-                <View style={styles.progressWrap}>
-                  <View style={styles.track}>
-                    <View style={[styles.fill, { width: `${plPct}%` }]} />
-                  </View>
-                  <View style={styles.progressMeta}>
-                    <Text style={styles.inProgress}>In progress</Text>
-                    <Text style={styles.continue}>Continue →</Text>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.startRow}>
-                  <Icon name="plus" size={15} color={colors.accent} sw={2} />
-                  <Text style={styles.startText}>Start plan</Text>
-                </View>
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <Text style={styles.sectionLabel}>Create your own</Text>
-      {!customOpen ? (
-        <Pressable style={styles.createBtn} onPress={() => setCustomOpen(true)}>
-          <Icon name="plus" size={16} color={colors.accent} sw={2} />
-          <Text style={styles.createText}>Create a custom plan</Text>
-        </Pressable>
-      ) : (
-        <View style={styles.customCard}>
-          <View style={styles.seg}>
-            {([
-              { v: "pace", l: "Pages a day" },
-              { v: "duration", l: "Finish in…" },
-            ] as const).map((o) => (
               <Pressable
-                key={o.v}
-                onPress={() => setMode(o.v)}
-                style={[styles.segItem, mode === o.v && styles.segItemOn]}
+                style={styles.readBtn}
+                accessibilityRole="button"
+                onPress={() => openTarget(navigation, portion)}
               >
-                <Text style={[styles.segText, mode === o.v && styles.segTextOn]}>{o.l}</Text>
+                <Icon name="book" size={15} color={colors.ink} sw={1.8} />
+                <Text style={styles.readBtnText}>
+                  {t(dayDone ? "mem.plans.readAhead" : "mem.plans.readToday")}
+                </Text>
               </Pressable>
-            ))}
+            </View>
+
+            <View style={styles.actions}>
+              <Pressable
+                style={[styles.pill, isDayComplete(plan, day) && styles.pillOn]}
+                onPress={() => void toggleDay(day).then(refresh)}
+              >
+                <Text style={[styles.pillText, isDayComplete(plan, day) && styles.pillTextOn]}>
+                  {isDayComplete(plan, day)
+                    ? t("mem.plans.dayDone")
+                    : tf("mem.plans.markDay", { n: day })}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={styles.pill}
+                onPress={() =>
+                  confirmDropPlan(t("mem.plans.leaveQ"), () => void clearPlan().then(refresh))
+                }
+              >
+                <Text style={styles.pillText}>{t("mem.plans.leave")}</Text>
+              </Pressable>
+              {paused && (
+                <Pressable
+                  style={[styles.pill, styles.pillOn]}
+                  onPress={() => void resumePlan().then(refresh)}
+                >
+                  <Text style={styles.pillTextOn}>{t("mem.plans.resume")}</Text>
+                </Pressable>
+              )}
+              <Pressable
+                style={styles.pill}
+                onPress={() => navigation.navigate("PlanDetail", { id: plan.template.id })}
+              >
+                <Text style={styles.pillText}>{t("mem.plans.details")}</Text>
+              </Pressable>
+            </View>
+
+            {behind < 0 && catchUp ? (
+              <View style={styles.behindCard}>
+                <Text style={styles.behindTitle}>
+                  {tf(Math.abs(behind) === 1 ? "mem.plans.behindOne" : "mem.plans.behindOther", {
+                    n: Math.abs(behind),
+                  })}
+                </Text>
+                <Text style={styles.behindSub}>{t("mem.plans.behindSub")}</Text>
+                <View style={styles.behindActions}>
+                  <Pressable
+                    style={styles.behindPrimary}
+                    onPress={() => openTarget(navigation, catchUp)}
+                  >
+                    <Icon name="book" size={14} color={colors.ink} sw={1.8} />
+                    <Text style={styles.behindPrimaryText}>{t("mem.plans.catchUp")}</Text>
+                  </Pressable>
+                  <Pressable style={styles.pill} onPress={() => void rebalancePlan().then(refresh)}>
+                    <Text style={styles.pillText}>{t("mem.plans.rebalance")}</Text>
+                  </Pressable>
+                  <Pressable style={styles.pill} onPress={() => void extendPlanBy(7).then(refresh)}>
+                    <Text style={styles.pillText}>{t("mem.plans.extend")}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+
+            <Text style={styles.sectionLabel}>{t("mem.plans.yourDays")}</Text>
+            <View style={styles.week}>
+              {planWeekWindow(plan, day).map((n) => {
+                const done = isDayComplete(plan, n);
+                const isToday = n === day;
+                return (
+                  <View
+                    key={n}
+                    style={[styles.dayCell, isToday && styles.dayCellToday]}
+                    accessible
+                    accessibilityLabel={tf(done ? "mem.plans.dayA11yDone" : "mem.plans.dayA11y", {
+                      n,
+                    })}
+                  >
+                    <Text style={[styles.dayCellLabel, isToday && styles.dayCellLabelToday]}>
+                      {tf("mem.plans.dayShort", { n })}
+                    </Text>
+                    <View style={[styles.dayDot, done && styles.dayDotDone]}>
+                      {done ? (
+                        <Icon name="check" size={12} color={colors.ink} sw={2} />
+                      ) : (
+                        <Text style={styles.dayDotNum}>{num(n)}</Text>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        ) : ready ? (
+          <View style={styles.empty}>
+            <Khatam size={56} color={colors.accent} sw={1.1} opacity={0.5} />
+            <Text style={styles.emptyText}>{t("mem.plans.empty")}</Text>
           </View>
-          <Text style={styles.customLabel}>{mode === "pace" ? "Pages a day" : "Days to finish"}</Text>
-          <TextInput
-            value={mode === "pace" ? perDay : days}
-            onChangeText={mode === "pace" ? setPerDay : setDays}
-            keyboardType="number-pad"
-            style={styles.input}
-            placeholderTextColor={colors.faint}
-          />
-          <Text style={styles.previewText}>
-            {customDraft
-              ? mode === "pace"
-                ? `≈ ${customDays} days · finishes ${customEnd}`
-                : `≈ ${customPerDay} pages a day · ${customDays} days`
-              : customErrors[0]}
-          </Text>
-          <View style={styles.customActions}>
-            <Pressable
-              style={[styles.startCustomBtn, !customDraft && styles.startCustomBtnOff]}
-              disabled={!customDraft}
-              onPress={createCustom}
-            >
-              <Text style={[styles.startCustomText, !customDraft && styles.startCustomTextOff]}>Start plan</Text>
-            </Pressable>
-            <Pressable style={styles.pill} onPress={() => setCustomOpen(false)}>
-              <Text style={styles.pillText}>Cancel</Text>
-            </Pressable>
-          </View>
+        ) : null}
+
+        <Text style={styles.sectionLabel}>{t("mem.plans.browse")}</Text>
+        <View style={styles.library}>
+          {PLAN_TEMPLATES.map((pl) => {
+            const isActive = plan?.template.id === pl.id;
+            const plPct = isActive ? pct : 0;
+            return (
+              <Pressable
+                key={pl.id}
+                style={styles.libCard}
+                accessibilityRole="button"
+                onPress={() => {
+                  if (isActive && portion) openTarget(navigation, portion);
+                  else
+                    confirmDropPlan(
+                      tf("mem.plans.switchTo", { name: planName(intl, pl) }),
+                      () => void startPlan(pl.id).then(refresh),
+                    );
+                }}
+              >
+                <View style={styles.libHead}>
+                  <Text style={styles.tag}>{planTag(intl, pl)}</Text>
+                  <Text style={styles.len}>{planLen(intl, pl)}</Text>
+                </View>
+                <Text style={styles.libName}>{planName(intl, pl)}</Text>
+                <Text style={styles.libDesc}>{planDesc(intl, pl)}</Text>
+                {isActive ? (
+                  <View style={styles.progressWrap}>
+                    <View style={styles.track}>
+                      <View style={[styles.fill, { width: `${plPct}%` }]} />
+                    </View>
+                    <View style={styles.progressMeta}>
+                      <Text style={styles.inProgress}>{t("mem.plans.inProgress")}</Text>
+                      <Text style={styles.continue}>{t("mem.plans.continue")}</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.startRow}>
+                    <Icon name="plus" size={15} color={colors.accent} sw={2} />
+                    <Text style={styles.startText}>{t("mem.plans.start")}</Text>
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
         </View>
-      )}
-    </ScrollView>
+
+        <Text style={styles.sectionLabel}>{t("mem.plans.createOwn")}</Text>
+        {!customOpen ? (
+          <Pressable style={styles.createBtn} onPress={() => setCustomOpen(true)}>
+            <Icon name="plus" size={16} color={colors.accent} sw={2} />
+            <Text style={styles.createText}>{t("mem.plans.createCustom")}</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.customCard}>
+            <View style={styles.seg}>
+              {(
+                [
+                  { v: "pace", l: t("mem.plans.modePace") },
+                  { v: "duration", l: t("mem.plans.modeDuration") },
+                ] as const
+              ).map((o) => (
+                <Pressable
+                  key={o.v}
+                  onPress={() => setMode(o.v)}
+                  style={[styles.segItem, mode === o.v && styles.segItemOn]}
+                >
+                  <Text style={[styles.segText, mode === o.v && styles.segTextOn]}>{o.l}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.customLabel}>
+              {mode === "pace" ? t("mem.plans.labelPace") : t("mem.plans.labelDays")}
+            </Text>
+            <TextInput
+              value={mode === "pace" ? perDay : days}
+              onChangeText={mode === "pace" ? setPerDay : setDays}
+              keyboardType="number-pad"
+              style={styles.input}
+              placeholderTextColor={colors.faint}
+              accessibilityLabel={
+                mode === "pace" ? t("mem.plans.labelPace") : t("mem.plans.labelDays")
+              }
+            />
+            <Text style={styles.previewText}>
+              {customDraft
+                ? mode === "pace"
+                  ? tf("mem.plans.previewPace", { days: customDays, end: digits(intl, customEnd) })
+                  : tf("mem.plans.previewDuration", { perDay: customPerDay, days: customDays })
+                : planError(intl, customErrors[0] ?? "")}
+            </Text>
+            <View style={styles.customActions}>
+              <Pressable
+                style={[styles.startCustomBtn, !customDraft && styles.startCustomBtnOff]}
+                disabled={!customDraft}
+                onPress={createCustom}
+              >
+                <Text style={[styles.startCustomText, !customDraft && styles.startCustomTextOff]}>
+                  {t("mem.plans.start")}
+                </Text>
+              </Pressable>
+              <Pressable style={styles.pill} onPress={() => setCustomOpen(false)}>
+                <Text style={styles.pillText}>{t("mem.plans.cancel")}</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -351,7 +472,7 @@ function makeStyles(c: Palette) {
       padding: 20,
       overflow: "hidden",
     },
-    watermark: { position: "absolute", right: -36, top: -42 },
+    watermark: { position: "absolute", end: -36, top: -42 },
     activeTop: { flexDirection: "row", alignItems: "center", gap: 16 },
     ringWrap: { width: 78, height: 78, alignItems: "center", justifyContent: "center" },
     ringPct: { position: "absolute", color: c.accent, fontSize: 16, fontFamily: FONT.extrabold },
@@ -363,7 +484,13 @@ function makeStyles(c: Palette) {
       textTransform: "uppercase",
       fontFamily: FONT.bold,
     },
-    activeName: { color: c.fg, fontSize: 19, fontFamily: FONT.extrabold, letterSpacing: -0.4, marginVertical: 3 },
+    activeName: {
+      color: c.fg,
+      fontSize: 19,
+      fontFamily: FONT.extrabold,
+      letterSpacing: -0.4,
+      marginVertical: 3,
+    },
     activeToday: { color: c.muted, fontSize: 13 },
     activeTodayStrong: { color: c.fg, fontFamily: FONT.semibold },
     readBtn: {
@@ -447,7 +574,12 @@ function makeStyles(c: Palette) {
       borderRadius: 14,
       padding: 18,
     },
-    libHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 },
+    libHead: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 10,
+    },
     tag: {
       color: c.accent,
       fontSize: 11,
@@ -541,7 +673,12 @@ function makeStyles(c: Palette) {
     },
     previewText: { color: c.muted, fontSize: 13, marginTop: 12, minHeight: 18 },
     customActions: { flexDirection: "row", gap: 8, marginTop: 14 },
-    startCustomBtn: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 11, backgroundColor: c.accent },
+    startCustomBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 18,
+      borderRadius: 11,
+      backgroundColor: c.accent,
+    },
     startCustomBtnOff: { backgroundColor: c.bg, borderWidth: 1, borderColor: c.border },
     startCustomText: { color: c.ink, fontSize: 14, fontFamily: FONT.bold },
     startCustomTextOff: { color: c.faint },

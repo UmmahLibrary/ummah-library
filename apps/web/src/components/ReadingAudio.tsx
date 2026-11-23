@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   type ReciterPlugin,
   ayahCountOf,
@@ -12,9 +12,11 @@ import {
 } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
 import { readReciter, writeReciter } from "../lib/reader-prefs";
-import { readLoop, readRate, writeLoop, writeRate } from "../lib/reader-prefs-store";
+import { LOOP_EVENT, readLoop, readRate, writeLoop, writeRate } from "../lib/reader-prefs-store";
 import { type Segment, bundledSegments } from "../lib/audio-timing";
 import { webAudioStore } from "../lib/audio-store";
+import { useIntl } from "../i18n/I18nProvider";
+import { scrollBehavior } from "../lib/motion";
 
 const RECITER_KEY = "ul.reciter";
 
@@ -100,6 +102,9 @@ export function ReadingAudio({
   variant = "inline",
   onAyah,
   startVerse,
+  positionLabel,
+  trailing,
+  above,
 }: {
   verses: Verse[];
   reciters: ReciterPlugin[];
@@ -110,14 +115,27 @@ export function ReadingAudio({
   /** Where a fresh ▶ should begin (the reader's current āyah). Falls back to the
    *  first verse when it returns null. */
   startVerse?: () => Verse | null;
+  /** Dock only: where the reader is, e.g. "Āyah 10 of 110 · Juz 15 · Page 294". */
+  positionLabel?: string;
+  /** Dock only: extra control at the end of the main row (the Recite toggle). */
+  trailing?: ReactNode;
+  /** Dock only: an in-flow row above the main row (the "Back to" chip). */
+  above?: ReactNode;
 }) {
   const [reciterId, setReciterId] = useState(reciters[0]?.id ?? "");
+  // Localized strings for the reader dock (the legacy bar stays English).
+  const { t, tf } = useIntl();
   const [current, setCurrent] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  // The recitation couldn't load (offline without a download, a failed stream):
+  // say so instead of a Play button that silently does nothing.
+  const [failed, setFailed] = useState(false);
   const [loop, setLoop] = useState(false);
   const [rate, setRate] = useState(1);
   // A→B range-repeat UI state (the panel + the chosen bounds/count).
   const [showRange, setShowRange] = useState(false);
+  // Dock: the labelled options row (speed, range, download, repeat, reciter).
+  const [showOptions, setShowOptions] = useState(false);
   const [rangeFrom, setRangeFrom] = useState<string | null>(null);
   const [rangeTo, setRangeTo] = useState<string | null>(null);
   const [repeatCount, setRepeatCount] = useState<number>(Infinity);
@@ -211,8 +229,17 @@ export function ReadingAudio({
         stop();
       }
     };
+    const onLoop = () => {
+      const next = readLoop();
+      setLoop(next);
+      loopRef.current = next;
+    };
     window.addEventListener(RECITER_KEY, onReciter as EventListener);
-    return () => window.removeEventListener(RECITER_KEY, onReciter as EventListener);
+    window.addEventListener(LOOP_EVENT, onLoop);
+    return () => {
+      window.removeEventListener(RECITER_KEY, onReciter as EventListener);
+      window.removeEventListener(LOOP_EVENT, onLoop);
+    };
   }, [reciters]);
 
   function toggleLoop() {
@@ -260,7 +287,7 @@ export function ReadingAudio({
     if (key === null) return;
     const el = document.getElementById(key);
     el?.classList.add("ayah--playing");
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
   }
 
   function onTimeUpdate() {
@@ -321,7 +348,13 @@ export function ReadingAudio({
       src = local;
       segments = await bundledSegments(reciter.id, verse.sura, verse.aya);
     } else {
-      const timing = await getTiming(reciter, key);
+      let timing: Timing;
+      try {
+        timing = await getTiming(reciter, key);
+      } catch {
+        if (token === tokenRef.current) fail();
+        return;
+      }
       if (token !== tokenRef.current) return;
       src = timing.url;
       segments = timing.segments.length ? timing.segments : null;
@@ -348,16 +381,29 @@ export function ReadingAudio({
       if (loopRef.current && list[0]) return void play(list[0], true);
       stop();
     };
-    audio.onerror = () => stop();
+    audio.onerror = () => {
+      if (token === tokenRef.current) fail();
+    };
     void audio.play().then(
       () => {
+        setFailed(false);
         setCurrent(key);
         setIsPlaying(true);
         highlightAyah(key);
         onAyah?.(verse);
       },
-      () => stop(),
+      (err: unknown) => {
+        // A blocked autoplay or an interrupted load isn't a failure to report.
+        const name = err instanceof DOMException ? err.name : "";
+        if (name === "NotAllowedError" || name === "AbortError") stop();
+        else if (token === tokenRef.current) fail();
+      },
     );
+  }
+
+  function fail() {
+    stop();
+    setFailed(true);
   }
 
   /**
@@ -537,7 +583,9 @@ export function ReadingAudio({
     </button>
   );
   const allSaved = listSurahs.length > 0 && listSurahs.every((s) => savedSurahs.has(s));
-  const downloadPct = download ? Math.round((download.done / Math.max(1, download.total)) * 100) : 0;
+  const downloadPct = download
+    ? Math.round((download.done / Math.max(1, download.total)) * 100)
+    : 0;
   const downloadButton = (
     <button
       type="button"
@@ -646,29 +694,141 @@ export function ReadingAudio({
     const pct = pos >= 0 && list.length > 0 ? ((pos + 1) / list.length) * 100 : 0;
     const currentAya = current ? parseKey(current).aya : null;
     const reciterName =
-      reciters.find((r) => r.id === reciterId)?.name ?? reciters[0]?.name ?? "Reciter";
-    return (
-      <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        {rangePanel}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            padding: "10px clamp(14px, 4vw, 40px)",
-            borderTop: `1px solid ${N.border}`,
-            background: N.bg2,
-          }}
+      reciters.find((r) => r.id === reciterId)?.name ?? reciters[0]?.name ?? t("dock.reciter");
+    // Labelled option buttons: icon/value on top, a word underneath, 48px tall.
+    const opt = (active: boolean) =>
+      ({
+        display: "inline-flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 2,
+        minWidth: 64,
+        minHeight: 48,
+        padding: "4px 10px",
+        borderRadius: 12,
+        border: `1px solid ${active ? N.gold : N.border}`,
+        background: active ? N.goldSoft : N.card,
+        color: active ? N.gold : N.fg,
+        fontFamily: N.ui,
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: "pointer",
+        flexShrink: 0,
+      }) as const;
+    const optionsRow = showOptions ? (
+      <div className="dock-options" role="group" aria-label={t("dock.audioOptions")}>
+        <button
+          type="button"
+          onClick={cycleRate}
+          style={opt(rate !== 1)}
+          aria-label={tf("dock.speedAria", { rate: rateLabel(rate) })}
         >
+          <span style={{ fontSize: 15, fontWeight: 800 }}>{rateLabel(rate)}</span>
+          <span>{t("dock.speed")}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowRange((v) => !v)}
+          aria-pressed={showRange}
+          style={opt(showRange)}
+        >
+          <span style={{ fontSize: 15, fontWeight: 800 }}>A–B</span>
+          <span>{t("dock.repeatRange")}</span>
+        </button>
+        <button type="button" onClick={toggleLoop} aria-pressed={loop} style={opt(loop)}>
+          <Icon name="repeat" size={18} />
+          <span>{t("dock.repeatSurah")}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => void downloadAudio()}
+          disabled={download !== null || allSaved}
+          style={opt(download !== null || allSaved)}
+        >
+          {download ? (
+            <span style={{ fontSize: 15, fontWeight: 800 }}>
+              {tf("dock.percent", { n: downloadPct })}
+            </span>
+          ) : (
+            <Icon name={allSaved ? "check" : "download"} size={18} />
+          )}
+          <span>
+            {allSaved
+              ? t("dock.savedOffline")
+              : download
+                ? t("dock.saving")
+                : t("dock.saveOffline")}
+          </span>
+        </button>
+        {reciters.length > 1 && (
+          <label
+            style={{
+              display: "grid",
+              gap: 2,
+              fontFamily: N.ui,
+              fontSize: 13,
+              fontWeight: 600,
+              color: N.muted,
+            }}
+          >
+            {t("dock.reciter")}
+            <select
+              aria-label={t("dock.reciter")}
+              value={reciterId}
+              onChange={(e) => {
+                setReciterId(e.target.value);
+                void writeReciter(e.target.value);
+                stop();
+              }}
+              style={{
+                minHeight: 44,
+                background: N.card,
+                color: N.fg,
+                border: `1px solid ${N.border}`,
+                borderRadius: 12,
+                padding: "8px 10px",
+                fontFamily: N.ui,
+                fontSize: 14.5,
+                maxWidth: 220,
+              }}
+            >
+              {reciters.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+    ) : null;
+    const status = isPlaying
+      ? `${reciterName}${currentAya ? ` · ${tf("dock.ayahN", { aya: currentAya })}` : ""}`
+      : failed
+        ? t("dock.cantPlay")
+        : (positionLabel ?? (current ? t("dock.paused") : reciterName));
+    return (
+      <div
+        className="reader-dock"
+        style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}
+      >
+        <span className="sr-only" role="status">
+          {failed && !isPlaying ? t("dock.cantPlay") : ""}
+        </span>
+        {above}
+        {rangePanel}
+        {optionsRow}
+        <div className="reader-dock-row">
           <button
             type="button"
             onClick={toggle}
             aria-pressed={isPlaying}
-            aria-label={isPlaying ? "Pause" : "Play"}
+            aria-label={isPlaying ? t("dock.pauseAria") : t("dock.playAria")}
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
+              width: 52,
+              height: 52,
+              borderRadius: 26,
               background: N.goldGrad,
               color: N.ink,
               display: "grid",
@@ -678,97 +838,48 @@ export function ReadingAudio({
               flexShrink: 0,
             }}
           >
-            <Icon name={isPlaying ? "pause" : "play"} size={18} color={N.ink} />
+            <Icon name={isPlaying ? "pause" : "play"} size={20} color={N.ink} />
           </button>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, fontFamily: N.ui }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: N.fg }}>
+              {isPlaying ? t("dock.listening") : t("dock.listen")}
+            </div>
             <div
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: 12.5,
-                color: N.muted,
-                marginBottom: 6,
-                fontFamily: N.ui,
+                fontSize: 13.5,
+                color: failed && !isPlaying ? N.error : N.muted,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
               }}
             >
-              <span
-                style={{
-                  fontWeight: 600,
-                  color: N.fg,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {reciterName}
-                {currentAya ? ` · Āyah ${currentAya}` : ""}
-              </span>
-              <span className="noor-hide-sm" style={{ flexShrink: 0, marginLeft: 10 }}>
-                {isPlaying ? "Now playing" : current ? "Paused" : "Tap ▶ on an āyah"}
-              </span>
+              {status}
             </div>
-            <div style={{ height: 4, borderRadius: 2, background: N.border }}>
-              <div
-                style={{
-                  width: `${pct}%`,
-                  height: "100%",
-                  borderRadius: 2,
-                  background: N.gold,
-                  transition: "width .3s",
-                }}
-              />
-            </div>
+            {current && (
+              <div style={{ height: 3, borderRadius: 2, background: N.border, marginTop: 5 }}>
+                <div
+                  style={{
+                    width: `${pct}%`,
+                    height: "100%",
+                    borderRadius: 2,
+                    background: N.gold,
+                    transition: "width .3s",
+                  }}
+                />
+              </div>
+            )}
           </div>
-          {speedButton}
-          {rangeButton}
-          {downloadButton}
+          {trailing}
           <button
             type="button"
-            onClick={toggleLoop}
-            aria-pressed={loop}
-            title="Repeat the surah continuously"
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: loop ? N.gold : N.muted,
-              display: "grid",
-              placeItems: "center",
-              flexShrink: 0,
-              padding: 4,
-            }}
+            className="dock-lbtn"
+            onClick={() => setShowOptions((v) => !v)}
+            aria-expanded={showOptions}
+            style={{ color: showOptions ? N.gold : N.muted }}
           >
-            <Icon name="repeat" size={18} />
+            <Icon name="settings" size={20} />
+            <span>{t("dock.options")}</span>
           </button>
-          {reciters.length > 1 && (
-            <select
-              className="noor-hide-sm"
-              aria-label="Reciter"
-              value={reciterId}
-              onChange={(e) => {
-                setReciterId(e.target.value);
-                void writeReciter(e.target.value);
-                stop();
-              }}
-              style={{
-                flexShrink: 0,
-                background: N.card,
-                color: N.muted,
-                border: `1px solid ${N.border}`,
-                borderRadius: 9,
-                padding: "7px 10px",
-                fontFamily: N.ui,
-                fontSize: 13,
-                maxWidth: 160,
-              }}
-            >
-              {reciters.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          )}
         </div>
       </div>
     );
@@ -776,6 +887,9 @@ export function ReadingAudio({
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
+      <span className="sr-only" role="status">
+        {failed && !isPlaying ? t("dock.cantPlay") : ""}
+      </span>
       <div className="audio-bar">
         <button type="button" className="audio-play" onClick={toggle} aria-pressed={isPlaying}>
           {isPlaying ? "❚❚ Pause" : "▶ Play"}
@@ -793,7 +907,11 @@ export function ReadingAudio({
         {rangeButton}
         {downloadButton}
         <span className="audio-status">
-          {current ? `Playing ${current}` : "Tap ▶ to play one āyah, or its number to play on"}
+          {current
+            ? `Playing ${current}`
+            : failed
+              ? t("dock.cantPlay")
+              : "Tap ▶ to play one āyah, or its number to play on"}
         </span>
         {reciters.length > 1 && (
           <select

@@ -16,7 +16,13 @@ import type { Notifier, PlanStore, PrayerTimingsProvider, ReminderStore } from "
 import { nextAdhkarReminder } from "./adhkar";
 import { addGregorianDays } from "./hijri";
 import { ISLAMIC_EVENTS, upcomingIslamicEvents } from "./islamic-events";
-import { OBLIGATORY_PRAYERS, PRAYER_LABELS, type PrayerName, prayerReminders } from "./prayer";
+import {
+  OBLIGATORY_PRAYERS,
+  PRAYER_LABELS,
+  type PrayerName,
+  type PrayerTimings,
+  prayerReminders,
+} from "./prayer";
 import { nextDailyReminder, planReminderContent } from "./reading-plans";
 import { nextSunnahFastReminder } from "./sunnah-fasting";
 
@@ -45,6 +51,36 @@ function localDateStr(now: Date): string {
   return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
 }
 
+/**
+ * A daily reading reminder anchored to a prayer (ADR 0041): "after:fajr",
+ * "after:maghrib", "after:isha" … — or a plain wall-clock "HH:MM". Prayer
+ * anchors resolve to that prayer's time today plus `offsetMinutes`; once that
+ * has passed, tomorrow's (prayer times move about a minute a day, so today's
+ * time + 24h is close enough). Returns null when the anchor can't be resolved.
+ */
+export const PRAYER_ANCHOR_OFFSET_MINUTES = 15;
+
+export function isPrayerAnchor(time: string): boolean {
+  return /^after:(fajr|dhuhr|asr|maghrib|isha)$/.test(time.trim());
+}
+
+export function resolveReminderTime(
+  time: string,
+  timings: PrayerTimings | null,
+  now: Date,
+  offsetMinutes = PRAYER_ANCHOR_OFFSET_MINUTES,
+): Date | null {
+  const t = time.trim();
+  const m = /^after:(fajr|dhuhr|asr|maghrib|isha)$/.exec(t);
+  if (!m) return nextDailyReminder(t, now);
+  if (!timings) return null;
+  const base = new Date(timings[m[1] as PrayerName]);
+  if (Number.isNaN(base.getTime())) return null;
+  const at = new Date(base.getTime() + offsetMinutes * 60_000);
+  while (at.getTime() <= now.getTime()) at.setTime(at.getTime() + 86_400_000);
+  return at;
+}
+
 /** Shared dependencies — every external concern is a port; the clock is injected. */
 export interface ReminderSyncDeps {
   notifier: Notifier;
@@ -61,7 +97,7 @@ export interface ReminderSyncDeps {
  * malformed.
  */
 export async function syncPlanReminder(
-  deps: ReminderSyncDeps & { plans: PlanStore },
+  deps: ReminderSyncDeps & { plans: PlanStore; timings?: PrayerTimingsProvider },
 ): Promise<void> {
   const { notifier, reminders, plans, now } = deps;
   await notifier.cancel(PLAN_REMINDER_ID);
@@ -72,7 +108,10 @@ export async function syncPlanReminder(
   const plan = await plans.read();
   if (!plan || plan.pausedOn) return;
 
-  const at = nextDailyReminder(pref.time, now());
+  // A prayer anchor ("after:maghrib") needs today's timings; a clock time doesn't.
+  const timings =
+    isPrayerAnchor(pref.time) && deps.timings ? await deps.timings.getTodaysTimings() : null;
+  const at = resolveReminderTime(pref.time, timings, now());
   if (!at) return;
 
   const { title, body } = planReminderContent(plan, localDateStr(now()));

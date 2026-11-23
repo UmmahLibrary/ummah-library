@@ -15,14 +15,6 @@ export function adhkarToday(d = new Date()): string {
   return localISODate(d);
 }
 
-/** Format an ISO timestamp or Date as a short locale time (e.g. "5:32 AM"). */
-export function fmtTime(src: string | Date): string {
-  const d = typeof src === "string" ? new Date(src) : src;
-  // A polar-invalid prayer time arrives as "" (→ Invalid Date); show a dash, not "Invalid Date".
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
 /** The IANA timezone for a location, or `undefined` if none is known/valid. */
 export function timeZoneFor(coords: Coordinates | null | undefined): string | undefined {
   if (!coords) return undefined;
@@ -45,7 +37,11 @@ export function fmtPrayerTime(src: string | Date, coords: Coordinates | null | u
   const d = typeof src === "string" ? new Date(src) : src;
   if (Number.isNaN(d.getTime())) return "—";
   const timeZone = timeZoneFor(coords);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", ...(timeZone && { timeZone }) });
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    ...(timeZone && { timeZone }),
+  });
 }
 
 /** Human-readable countdown: "2h 15m" or "8m". Returns "0m" when target is past. */
@@ -63,4 +59,48 @@ export function fmtCountdown(target: Date, now: Date): string {
  */
 export function weekdayOfGregorian(year: number, month: number, day: number): number {
   return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+/**
+ * Wraps a state setter so a stale async result is silently discarded
+ * instead of clobbering fresher state — guards a reload (e.g. a
+ * sync-triggered `store.read()`) that raced an in-flight local write and
+ * would otherwise revert it. `currentGen` reads the live generation
+ * counter; `gen` is the value it held when the async call this wraps was
+ * dispatched. Bump the counter on every local write; the wrapped setter
+ * only fires if no write landed between dispatch and resolution.
+ */
+export function ignoreStale<T>(
+  currentGen: () => number,
+  gen: number,
+  setter: (v: T) => void,
+): (v: T) => void {
+  return (v) => {
+    if (currentGen() === gen) setter(v);
+  };
+}
+
+/**
+ * Races a promise against a timeout, rejecting if it doesn't settle in time.
+ * `Location.getCurrentPositionAsync` (Mosque Finder, Qibla, Prayer Times) has
+ * no built-in deadline — with weak/no GPS (common indoors, where these
+ * screens are realistically used) it can hang indefinitely, leaving the UI
+ * stuck on a loading spinner forever with nothing to catch and show the
+ * existing "couldn't get your location" error state. This turns that
+ * silent hang into a normal, already-handled rejection.
+ */
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timed out")), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
 }

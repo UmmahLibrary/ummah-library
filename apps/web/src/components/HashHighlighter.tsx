@@ -25,7 +25,9 @@ export function HashHighlighter() {
       timers.push(setTimeout(() => el.classList.remove("ayah--target"), 1500));
       // Position once, instantly — a single jump, not a smooth scroll that the
       // async translation layout-shift then fights (which read as "shaky").
-      el.scrollIntoView({ block: "center" });
+      // Tall āyāt (e.g. 2:282) align to the top so their first line isn't cut off.
+      const tall = el.getBoundingClientRect().height > window.innerHeight * 0.6;
+      el.scrollIntoView({ block: tall ? "start" : "center" });
       // Translations load after mount and shift the layout; the browser's
       // scroll-anchoring keeps the āyah in place, so only nudge it back in the
       // rare case it was actually pushed off-screen — and never after the user
@@ -37,7 +39,10 @@ export function HashHighlighter() {
           if (!node) return;
           const r = node.getBoundingClientRect();
           if (r.bottom < 90 || r.top > window.innerHeight - 90) {
-            node.scrollIntoView({ block: "center" });
+            node.scrollIntoView({
+              block:
+                node.getBoundingClientRect().height > window.innerHeight * 0.6 ? "start" : "center",
+            });
           }
         }, 650),
       );

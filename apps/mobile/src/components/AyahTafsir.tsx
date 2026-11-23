@@ -4,6 +4,7 @@ import { api } from "../api";
 import { TAFSIRS } from "../plugins";
 import { useTheme, type Palette } from "../theme";
 import { useSettings } from "../state/SettingsContext";
+import { useIntl } from "../i18n/I18nProvider";
 
 // One shared fetch per (tafsir, surah); every āyah/column toggle reuses it.
 const cache = new Map<string, Promise<Map<number, string>>>();
@@ -34,13 +35,24 @@ interface Loaded {
  * "parallel columns"). The selection persists (`ul.tafsirCompare`); an empty set
  * falls back to the single chosen tafsir — the original one-edition behaviour.
  */
-export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
+export function AyahTafsir({
+  sura,
+  aya,
+  open: openProp,
+}: {
+  sura: number;
+  aya: number;
+  /** Controlled by the āyah's Tafsir action (as on web); the inline toggle
+   *  line is then hidden. Uncontrolled when omitted. */
+  open?: boolean;
+}) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { tafsirId, tafsirCompare, tafsirs, setTafsirCompare } = useSettings();
+  const { t: tr, tf, dir } = useIntl();
 
   const allTafsirs = tafsirs.length > 0 ? tafsirs : TAFSIRS;
-  const nameOf = (id: string) => allTafsirs.find((t) => t.id === id)?.name ?? "Tafsir";
+  const nameOf = (id: string) => allTafsirs.find((t) => t.id === id)?.name ?? tr("rd.tafsir");
 
   // The editions to show: the explicit comparison set (validated), else the primary.
   const editions = useMemo(() => {
@@ -49,7 +61,9 @@ export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
     return sel.length > 0 ? sel : tafsirId ? [tafsirId] : [];
   }, [tafsirCompare, tafsirId, allTafsirs]);
 
-  const [open, setOpen] = useState(false);
+  const [openState, setOpen] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp : openState;
   const [loaded, setLoaded] = useState<Record<string, Loaded>>({});
 
   useEffect(() => {
@@ -81,15 +95,24 @@ export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
   }
 
   const header =
-    editions.length > 1 ? `Tafsir · comparing ${editions.length}` : `Tafsir · ${nameOf(editions[0] ?? "")}`;
+    editions.length > 1
+      ? tf("rd.tafsir.comparing", { n: editions.length })
+      : tf("rd.tafsir.named", { name: nameOf(editions[0] ?? "") });
 
+  if (controlled && !open) return null;
   return (
     <View style={styles.wrap}>
-      <Pressable onPress={() => setOpen((o) => !o)}>
-        <Text style={styles.toggle}>
-          {open ? "▾" : "▸"} {header}
-        </Text>
-      </Pressable>
+      {controlled ? (
+        open ? (
+          <Text style={styles.toggle}>{header}</Text>
+        ) : null
+      ) : (
+        <Pressable onPress={() => setOpen((o) => !o)}>
+          <Text style={styles.toggle}>
+            {open ? "▾" : dir === "rtl" ? "◂" : "▸"} {header}
+          </Text>
+        </Pressable>
+      )}
       {open && (
         <View style={styles.body}>
           {allTafsirs.length > 1 && (
@@ -115,7 +138,9 @@ export function AyahTafsir({ sura, aya }: { sura: number; aya: number }) {
               <View key={id} style={editions.length > 1 ? styles.section : undefined}>
                 {editions.length > 1 && <Text style={styles.sectionName}>{nameOf(id)}</Text>}
                 {(!d || d.state === "loading") && <ActivityIndicator color={colors.accent} />}
-                {d?.state === "empty" && <Text style={styles.muted}>No tafsir for this āyah.</Text>}
+                {d?.state === "empty" && (
+                  <Text style={styles.muted}>{tr("rd.tafsir.noneForAyah")}</Text>
+                )}
                 {d?.state === "ready" &&
                   d.text
                     .split("\n")

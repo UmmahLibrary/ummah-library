@@ -175,7 +175,7 @@ export interface HadithRepository {
 }
 
 /**
- * Verse → hadith links (#200, ADR 0042). Links are **verbatim quotations**: a
+ * Verse → hadith links (#200, ADR 0044). Links are **verbatim quotations**: a
  * hadith appears under an ayah only when its Arabic contains a contiguous run of
  * that ayah's words. Generated at build time from the two corpora we already
  * ship, so a lookup needs no network and works offline.
@@ -458,7 +458,7 @@ export interface PrayerTimingsProvider {
 /** A reading-plan daily-reminder preference. */
 export interface PlanReminderPref {
   on: boolean;
-  /** Local wall-clock time, `HH:MM`. */
+  /** Local wall-clock time `HH:MM`, or a prayer anchor such as `after:maghrib` (ADR 0041). */
   time: string;
 }
 

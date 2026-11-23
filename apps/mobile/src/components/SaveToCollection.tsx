@@ -1,14 +1,20 @@
-import { useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "../Type";
+import { useMemo, useState, type ReactNode } from "react";
 import {
-  createCollection,
-  isInCollection,
-  toggleAyah,
-  type VerseKey,
-} from "@ummahlibrary/core";
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "../Type";
+import { createCollection, isInCollection, toggleAyah, type VerseKey } from "@ummahlibrary/core";
 import { Icon } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { useLibrary, newCollectionId } from "../state/LibraryContext";
+import { useIntl } from "../i18n/I18nProvider";
 
 /**
  * Per-ayah "Save" affordance: toggles the ayah into one or more bookmark
@@ -19,14 +25,18 @@ export function SaveToCollection({
   sura,
   aya,
   asIcon = false,
+  trigger,
 }: {
   sura: number;
   aya: number;
   asIcon?: boolean;
+  /** Custom trigger (e.g. the reader's labelled per-āyah action button). */
+  trigger?: (open: () => void, saved: boolean) => ReactNode;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { collections, updateCollections } = useLibrary();
+  const { t, tf, num } = useIntl();
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
 
@@ -48,57 +58,83 @@ export function SaveToCollection({
 
   return (
     <>
-      {asIcon ? (
-        <Pressable onPress={() => setOpen(true)} hitSlop={8} accessibilityLabel="Save āyah">
+      {trigger ? (
+        trigger(() => setOpen(true), saved)
+      ) : asIcon ? (
+        <Pressable
+          onPress={() => setOpen(true)}
+          // 18px icon + 8px hitSlop was a 34×34 tap target, short of the
+          // 44×44dp minimum — for a button rendered once per āyah across
+          // the whole reader, worth getting right. 13 on each side reaches
+          // 44×44 exactly.
+          hitSlop={13}
+          accessibilityLabel={t("rd.save.ayahA11y")}
+        >
           <Icon name="bookmark" size={18} color={saved ? colors.accent : colors.faint} sw={1.8} />
         </Pressable>
       ) : (
         <Pressable style={[styles.btn, saved && styles.btnOn]} onPress={() => setOpen(true)}>
-          <Text style={[styles.btnText, saved && styles.btnTextOn]}>{saved ? "★ Saved" : "☆ Save"}</Text>
+          <Text style={[styles.btnText, saved && styles.btnTextOn]}>
+            {saved ? `★ ${t("ayah.saved")}` : `☆ ${t("ayah.save")}`}
+          </Text>
         </Pressable>
       )}
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.title}>Save āyah {sura}:{aya}</Text>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+              <Text style={styles.title}>
+                {tf("rd.save.title", { ref: `${num(sura)}:${num(aya)}` })}
+              </Text>
 
-            <ScrollView style={{ maxHeight: 280 }} keyboardShouldPersistTaps="handled">
-              {collections.length === 0 ? (
-                <Text style={styles.muted}>No collections yet — create one below.</Text>
-              ) : (
-                collections.map((c) => {
-                  const on = isInCollection(c, ref);
-                  return (
-                    <Pressable key={c.id} style={styles.row} onPress={() => toggle(c.id)}>
-                      <Text style={[styles.check, on && styles.checkOn]}>{on ? "☑" : "☐"}</Text>
-                      <Text style={styles.rowName}>{c.name}</Text>
-                      <Text style={styles.rowCount}>{c.ayahs.length}</Text>
-                    </Pressable>
-                  );
-                })
-              )}
-            </ScrollView>
+              <ScrollView style={{ maxHeight: 280 }} keyboardShouldPersistTaps="handled">
+                {collections.length === 0 ? (
+                  <Text style={styles.muted}>{t("rd.save.empty")}</Text>
+                ) : (
+                  collections.map((c) => {
+                    const on = isInCollection(c, ref);
+                    return (
+                      <Pressable
+                        key={c.id}
+                        style={styles.row}
+                        onPress={() => toggle(c.id)}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: on }}
+                        accessibilityLabel={tf("rd.save.rowA11y", {
+                          name: c.name,
+                          n: c.ayahs.length,
+                        })}
+                      >
+                        <Text style={[styles.check, on && styles.checkOn]}>{on ? "☑" : "☐"}</Text>
+                        <Text style={styles.rowName}>{c.name}</Text>
+                        <Text style={styles.rowCount}>{num(c.ayahs.length)}</Text>
+                      </Pressable>
+                    );
+                  })
+                )}
+              </ScrollView>
 
-            <View style={styles.newRow}>
-              <TextInput
-                style={styles.input}
-                placeholder="New collection…"
-                placeholderTextColor={colors.muted}
-                value={newName}
-                onChangeText={setNewName}
-                onSubmitEditing={addCollection}
-                returnKeyType="done"
-              />
-              <Pressable style={styles.addBtn} onPress={addCollection}>
-                <Text style={styles.addText}>Add</Text>
+              <View style={styles.newRow}>
+                <TextInput
+                  style={styles.input}
+                  placeholder={t("rd.save.newPh")}
+                  placeholderTextColor={colors.muted}
+                  value={newName}
+                  onChangeText={setNewName}
+                  onSubmitEditing={addCollection}
+                  returnKeyType="done"
+                />
+                <Pressable style={styles.addBtn} onPress={addCollection}>
+                  <Text style={styles.addText}>{t("rd.add")}</Text>
+                </Pressable>
+              </View>
+
+              <Pressable style={styles.done} onPress={() => setOpen(false)}>
+                <Text style={styles.doneText}>{t("rd.done")}</Text>
               </Pressable>
-            </View>
-
-            <Pressable style={styles.done} onPress={() => setOpen(false)}>
-              <Text style={styles.doneText}>Done</Text>
             </Pressable>
-          </Pressable>
+          </KeyboardAvoidingView>
         </Pressable>
       </Modal>
     </>
@@ -125,8 +161,8 @@ function makeStyles(c: Palette) {
     },
     sheet: {
       backgroundColor: c.bgElev,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      borderTopStartRadius: 20,
+      borderTopEndRadius: 20,
       borderWidth: 1,
       borderColor: c.border,
       padding: 20,

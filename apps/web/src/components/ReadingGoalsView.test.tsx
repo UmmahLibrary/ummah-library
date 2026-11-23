@@ -28,6 +28,20 @@ describe("ReadingGoalsView", () => {
     );
   });
 
+  it("tells assistive tech which daily goal is selected", async () => {
+    localStorage.setItem("ul.readingGoal", JSON.stringify({ target: 8 }));
+    render(<ReadingGoalsView />);
+
+    expect(await screen.findByRole("button", { name: "8 pages" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "4 pages" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
   it("shows a completion message instead of 'Resume' once the khatm is finished", async () => {
     localStorage.setItem(
       "ul.khatma",

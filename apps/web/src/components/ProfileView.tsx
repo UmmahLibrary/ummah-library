@@ -12,13 +12,27 @@ import {
   unlockedIds,
 } from "@ummahlibrary/core";
 import { N, Khatam } from "@ummahlibrary/ui";
-import { countLearned } from "../lib/asma-store";
-import { allRecords, surahProgressMap } from "../lib/hifz-store";
+import { ASMA_EVENT, countLearned } from "../lib/asma-store";
+import { HIFZ_EVENT, allRecords, surahProgressMap } from "../lib/hifz-store";
 import { getStreak } from "../lib/hifz-streak";
-import { readPrayerLog, today } from "../lib/prayer-tracker";
-import { readReadingState } from "../lib/reading-goals";
-import { readCollections } from "../lib/collections";
-import { acknowledge, readAcknowledged } from "../lib/achievements";
+import { useShowStreaks } from "../lib/use-show-streaks";
+import { readComfort } from "../lib/comfort-store";
+import { PRAYER_TRACKER_EVENT, readPrayerLog, today } from "../lib/prayer-tracker";
+import { READING_EVENT, readReadingState } from "../lib/reading-goals";
+import { COLLECTIONS_EVENT, readCollections } from "../lib/collections";
+import { BADGES_EVENT, acknowledge, readAcknowledged } from "../lib/achievements";
+
+/** Underlying keys a badge/stat is derived from — re-run the stats+unlock pass
+ * when any of them change live (e.g. a sync-applied change to another device's
+ * hifz progress), not just on mount. */
+const STATS_REFRESH_EVENTS = [
+  HIFZ_EVENT,
+  ASMA_EVENT,
+  PRAYER_TRACKER_EVENT,
+  READING_EVENT,
+  COLLECTIONS_EVENT,
+  BADGES_EVENT,
+];
 
 interface Stats {
   hifzStreak: number;
@@ -49,6 +63,9 @@ const toBadgeStats = (s: Stats): BadgeStats => ({
   savedVerses: s.saved,
 });
 
+/** Badges that count days in a row — hidden unless streaks are switched on. */
+const STREAK_METRICS: ReadonlySet<string> = new Set(["bestStreak", "prayerStreak"]);
+
 const toastStyle: CSSProperties = {
   position: "fixed",
   left: "50%",
@@ -74,12 +91,18 @@ const toastStyle: CSSProperties = {
 export function ProfileView() {
   const [s, setS] = useState<Stats>(ZERO);
   const [toast, setToast] = useState<string | null>(null);
+  const showStreaks = useShowStreaks();
 
   useEffect(() => {
-    const t = today();
-    const hifzStreak = getStreak().count;
-    void Promise.all([readReadingState(), readCollections(), readPrayerLog(), readAcknowledged()]).then(
-      ([reading, collections, log, ack]) => {
+    function refresh() {
+      const t = today();
+      const hifzStreak = getStreak().count;
+      void Promise.all([
+        readReadingState(),
+        readCollections(),
+        readPrayerLog(),
+        readAcknowledged(),
+      ]).then(([reading, collections, log, ack]) => {
         const prayer = prayerStreak(log, t);
         const next: Stats = {
           hifzStreak,
@@ -88,12 +111,21 @@ export function ProfileView() {
           prayerStreak: prayer,
           names: countLearned(),
           saved: totalSavedAyahs(collections),
-          bestStreak: Math.max(hifzStreak, prayer, longestStreak(log), computeStreak(reading.activeDates, t)),
+          bestStreak: Math.max(
+            hifzStreak,
+            prayer,
+            longestStreak(log),
+            computeStreak(reading.activeDates, t),
+          ),
         };
         setS(next);
 
         const bs = toBadgeStats(next);
-        const fresh = newlyUnlocked(bs, ack);
+        // No "streak unlocked" toast for someone who turned streaks off.
+        const streaksOn = readComfort().showStreaks;
+        const fresh = newlyUnlocked(bs, ack).filter(
+          (b) => streaksOn || !STREAK_METRICS.has(b.metric),
+        );
         if (fresh.length > 0) {
           const first = fresh[0];
           setToast(
@@ -103,8 +135,13 @@ export function ProfileView() {
           );
           void acknowledge(unlockedIds(bs));
         }
-      },
-    );
+      });
+    }
+    refresh();
+    for (const event of STATS_REFRESH_EVENTS) window.addEventListener(event, refresh);
+    return () => {
+      for (const event of STATS_REFRESH_EVENTS) window.removeEventListener(event, refresh);
+    };
   }, []);
 
   useEffect(() => {
@@ -113,14 +150,17 @@ export function ProfileView() {
     return () => clearTimeout(id);
   }, [toast]);
 
-  const badgeProgress = evaluateBadges(toBadgeStats(s));
+  // Streak counts and streak badges are opt-in (ADR 0041).
+  const badgeProgress = evaluateBadges(toBadgeStats(s)).filter(
+    (b) => showStreaks || !STREAK_METRICS.has(b.badge.metric),
+  );
   const earned = badgeProgress.filter((b) => b.unlocked).length;
 
   const statCards: [string, string][] = [
-    [`${s.hifzStreak} 🔥`, "Hifz streak"],
+    ...(showStreaks ? ([[String(s.hifzStreak), "Hifz streak"]] as [string, string][]) : []),
     [String(s.memorized), "Āyāt memorized"],
     [String(s.surahsStarted), "Surahs started"],
-    [String(s.prayerStreak), "Prayer streak"],
+    ...(showStreaks ? ([[String(s.prayerStreak), "Prayer streak"]] as [string, string][]) : []),
     [`${s.names}/99`, "Names learned"],
     [String(s.saved), "Saved verses"],
   ];
@@ -141,7 +181,10 @@ export function ProfileView() {
           overflow: "hidden",
         }}
       >
-        <div aria-hidden="true" style={{ position: "absolute", right: -34, bottom: -40, pointerEvents: "none" }}>
+        <div
+          aria-hidden="true"
+          style={{ position: "absolute", right: -34, bottom: -40, pointerEvents: "none" }}
+        >
           <Khatam size={150} color={N.gold} sw={1.1} opacity={0.08} />
         </div>
         <div
@@ -158,7 +201,15 @@ export function ProfileView() {
           <Khatam size={34} color={N.ink} sw={2} />
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.5, color: N.fg, fontFamily: N.ui }}>
+          <div
+            style={{
+              fontSize: 21,
+              fontWeight: 800,
+              letterSpacing: -0.5,
+              color: N.fg,
+              fontFamily: N.ui,
+            }}
+          >
             Your journey
           </div>
           <div style={{ fontSize: 13.5, color: N.muted, marginTop: 3, fontFamily: N.ui }}>
@@ -178,12 +229,27 @@ export function ProfileView() {
         {statCards.map(([v, l]) => (
           <div
             key={l}
-            style={{ background: N.card, border: `1px solid ${N.border}`, borderRadius: 14, padding: "16px 18px" }}
+            style={{
+              background: N.card,
+              border: `1px solid ${N.border}`,
+              borderRadius: 14,
+              padding: "16px 18px",
+            }}
           >
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5, color: N.gold, fontFamily: N.ui }}>
+            <div
+              style={{
+                fontSize: 24,
+                fontWeight: 800,
+                letterSpacing: -0.5,
+                color: N.gold,
+                fontFamily: N.ui,
+              }}
+            >
               {v}
             </div>
-            <div style={{ fontSize: 12.5, color: N.faint, marginTop: 4, fontFamily: N.ui }}>{l}</div>
+            <div style={{ fontSize: 12.5, color: N.faint, marginTop: 4, fontFamily: N.ui }}>
+              {l}
+            </div>
           </div>
         ))}
       </div>
@@ -240,7 +306,15 @@ export function ProfileView() {
               >
                 {badge.glyph}
               </div>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: N.fg, textAlign: "center", fontFamily: N.ui }}>
+              <div
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  color: N.fg,
+                  textAlign: "center",
+                  fontFamily: N.ui,
+                }}
+              >
                 {badge.name}
               </div>
               <div

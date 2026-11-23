@@ -9,6 +9,17 @@ import { SITE_URL } from "../../../lib/site";
 const RECITERS = pluginRegistry.byKind("reciter");
 const TAFSIRS = pluginRegistry.byKind("tafsir").map((t) => ({ id: t.id, name: t.name }));
 
+// All 114 names for the Go-to box (static, resolved once per build).
+async function surahNames() {
+  const all = await quranRepository.listSurahs();
+  return all.map((s) => ({
+    number: s.number,
+    name: s.name,
+    transliteration: s.transliteration,
+    englishName: s.englishName,
+  }));
+}
+
 // Render all 114 surahs at build time — no data access at runtime.
 export const dynamicParams = false;
 
@@ -60,6 +71,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
   const data = await loadSurah(numberParam);
   if (!data) notFound();
   const { surah, ayahs, bismillah, prevSurah, nextSurah } = data;
+  const names = await surahNames();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -113,6 +125,7 @@ export default async function SurahPage({ params }: { params: Promise<{ number: 
         }
         reciters={RECITERS}
         tafsirs={TAFSIRS}
+        surahNames={names}
       />
     </div>
   );

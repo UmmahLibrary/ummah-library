@@ -124,3 +124,28 @@ non-extractable WebCrypto key in IndexedDB — is a later option.) The Settings 
   true on web, mobile, and the extension alike); and the v2 refinements (element-level
   merge for set/map keys, atomic server merge under concurrent push, an incremental
   pull cursor).
+- **Landed since (2026-09-20): BIP39 recovery phrase.** §1's "BIP39 words are a
+  later polish" has shipped: `generateRecoveryPhrase` now emits a 12-word BIP39
+  English phrase (132 bits of entropy, no checksum word — this isn't a wallet,
+  and a wrong phrase already just derives a harmlessly different account) instead
+  of the original 25-character grouped alphanumeric code. The wordlist and the
+  bytes-to-words encoding are pure and now live once in `core`
+  (`recovery-phrase.ts`) instead of being duplicated per platform.
+  `canonicalizeRecoverySecret` (the one choke point every `createXCipher` derives
+  keys through) also moved to `core` and recognizes **both** formats — a real
+  12-word phrase canonicalizes by word, anything else falls back to the original
+  strip-and-uppercase rule — so accounts created under the old code keep deriving
+  the same key after the upgrade; nothing was migrated or invalidated.
+- **Landed since (2026-09-20): at-rest secret hardening.** §5's "later option"
+  has shipped on all three platforms. **Mobile** moved the secret from plain
+  AsyncStorage into `expo-secure-store` (iOS Keychain / Android Keystore); a
+  pre-hardening install's plaintext copy is migrated in on first read, in
+  place. **Web and the extension** wrap the secret with a non-extractable
+  AES-256-GCM key generated once and kept in IndexedDB (`secret-vault-store.ts`,
+  duplicated per app like the ciphers) before it touches `localStorage` /
+  `chrome.storage.local`; a legacy plaintext value is unwrapped straight
+  through and opportunistically re-wrapped. None of this changes the trust
+  model: it protects against reading storage at rest without code execution
+  (devtools, a profile-sync tool, disk access) — it does **not** protect
+  against script already running in the origin, which could just call the
+  same wrap/unwrap functions. The device is still the trust boundary.

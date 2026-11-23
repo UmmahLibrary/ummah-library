@@ -73,9 +73,18 @@ follow it.
   custom properties are **generated** from `themes.ts` (ADR 0027); never hand-edit
   the `.css`. Web/extension import `noor-themes.css`; a drift test guards them.
 - `src/tokens.ts` — `N.*` CSS variable strings for web inline styles.
+- `src/scale.ts` — type ramp (incl. Arabic/Urdu/Quran roles), spacing, radius,
+  elevation, motion, icon and touch-target sizes (ADR 0042). Mobile uses the
+  numbers (`space[4]`, `nativeText("body")`); web uses `sp()`/`rad()`/`text()`
+  from `scale-css.ts`, which return the generated `--noor-*` variables. Use
+  these instead of raw sizes in new UI.
 - `src/NoorThemeContext.tsx` — `NoorThemeProvider` + `useNoorTheme()` for native.
 - `src/Btn.tsx` / `src/Btn.native.tsx` (and Seg, Icon, Khatam, Logo) — shared
   component primitives.
+- Shared parts (ADR 0042): `Text`, `Card`, `SectionHeader`, `ListRow`, `Chip`,
+  `Stepper`, `NumberBadge`, `AyahBlock` — same anatomy and sizes on web and mobile. Reach for
+  these before writing a new card, row, heading or stepper in an app.
+  `AyahBlock` lays out an āyah; the reader still renders the Quranic text.
 
 **Platform files pattern:**
 
@@ -91,8 +100,10 @@ packages/ui/src/
 
 **`*.native.tsx` type-checking:**
 
-`packages/ui/tsconfig.json` excludes `*.native.tsx`. Native files are
-validated by Metro at bundle time. Keep the props interface compatible across
+`packages/ui/tsconfig.json` excludes `*.native.tsx`. They are type-checked by
+the mobile app instead (`moduleSuffixes: [".native", ""]` in
+`apps/mobile/tsconfig.json`, the same resolution Metro uses), so
+`pnpm typecheck` covers them. Keep the props interface compatible across
 both files — callers use the exported web type.
 
 **Adding a new theme:** add one row to `noorThemes` in `themes.ts`, then run
