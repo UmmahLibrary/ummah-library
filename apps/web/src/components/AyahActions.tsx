@@ -13,7 +13,7 @@ import type { IconName } from "@ummahlibrary/ui";
 import { newId, readCollections, readNote, writeCollections, writeNote } from "../lib/collections";
 import { HIFZ_EVENT, isTracked, removeCard, setCard } from "../lib/hifz-store";
 import { TafsirCompare } from "./TafsirCompare";
-import { useT } from "../i18n/I18nProvider";
+import { useIntl } from "../i18n/I18nProvider";
 
 interface TafsirMeta {
   id: string;
@@ -55,11 +55,15 @@ function BarBtn({
   );
 }
 
+/** Space the More menu needs below its button (5 rows + the bottom dock). */
+const MORE_MENU_ROOM = 340;
+
 /** A row in the "More" menu. */
 function MenuRow({ icon, label, onClick }: { icon: IconName; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
       style={{
         display: "flex",
@@ -75,7 +79,7 @@ function MenuRow({ icon, label, onClick }: { icon: IconName; label: string; onCl
         fontFamily: N.ui,
         fontSize: 14,
         fontWeight: 600,
-        textAlign: "left",
+        textAlign: "start",
         whiteSpace: "nowrap",
       }}
       onMouseEnter={(e) => (e.currentTarget.style.background = N.cardHi)}
@@ -102,7 +106,7 @@ export function AyahActions({
   aya: number;
   tafsirs: TafsirMeta[];
 }) {
-  const t = useT();
+  const { t, tf } = useIntl();
   const ref = { sura: surah, aya };
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,6 +114,8 @@ export function AyahActions({
   const [saveOpen, setSaveOpen] = useState(false);
   const [tafsirOpen, setTafsirOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  // Open the menu upwards when there isn't room for it above the bottom dock.
+  const [moreUp, setMoreUp] = useState(false);
 
   const [collections, setCollections] = useState<Collection[]>([]);
   const [note, setNote] = useState("");
@@ -138,6 +144,25 @@ export function AyahActions({
       block.classList.remove("ayah-hifz");
     };
   }, [tracked]);
+
+  // Escape closes the More menu, as it does every other popup in the reader.
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMoreOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
+
+  function toggleMore(e: React.MouseEvent<HTMLButtonElement>) {
+    if (!moreOpen) {
+      const r = e.currentTarget.getBoundingClientRect();
+      // ~5 rows plus padding, and room for the fixed bottom dock.
+      setMoreUp(window.innerHeight - r.bottom < MORE_MENU_ROOM);
+    }
+    setMoreOpen((o) => !o);
+  }
 
   function flash(message: string) {
     setToast(message);
@@ -191,7 +216,7 @@ export function AyahActions({
     const text = [arabic, ...translations, `— ${surah}:${aya}`].filter(Boolean).join("\n");
     try {
       await navigator.clipboard.writeText(text);
-      flash("Verse copied");
+      flash(t("ayah.copied"));
     } catch {
       /* clipboard unavailable */
     }
@@ -201,7 +226,7 @@ export function AyahActions({
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(`${location.origin}/surah/${surah}#${surah}:${aya}`);
-      flash("Link copied");
+      flash(t("ayah.linkCopied"));
     } catch {
       /* clipboard unavailable */
     }
@@ -229,11 +254,11 @@ export function AyahActions({
     if (isTracked(ref)) {
       removeCard(ref);
       setTracked(false);
-      flash("Removed from Hifz");
+      flash(t("ayah.removedHifz"));
     } else {
       setCard(ref, createCard());
       setTracked(true);
-      flash("Added to Hifz");
+      flash(t("ayah.addedHifz"));
     }
     setMoreOpen(false);
   }
@@ -255,7 +280,7 @@ export function AyahActions({
           icon="play"
           label={t("ayah.play")}
           data-play-one={`${surah}:${aya}`}
-          aria-label={`Play āyah ${aya}`}
+          aria-label={tf("ayah.playN", { n: aya })}
         />
         <BarBtn
           icon="bookmark"
@@ -275,7 +300,9 @@ export function AyahActions({
             icon="more"
             label={t("ayah.more")}
             active={moreOpen}
-            onClick={() => setMoreOpen((o) => !o)}
+            aria-haspopup="menu"
+            aria-expanded={moreOpen}
+            onClick={toggleMore}
           />
           {moreOpen && (
             <>
@@ -288,9 +315,8 @@ export function AyahActions({
                 role="menu"
                 style={{
                   position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  marginTop: 8,
+                  ...(moreUp ? { bottom: "100%", marginBottom: 8 } : { top: "100%", marginTop: 8 }),
+                  insetInlineStart: 0,
                   zIndex: 41,
                   minWidth: 210,
                   padding: 6,
@@ -331,18 +357,16 @@ export function AyahActions({
         )}
       </div>
 
-      {toast && (
+      {(toast || imaging) && (
         <div style={{ fontSize: 12, color: N.gold, marginTop: 6, fontFamily: N.ui }} role="status">
-          {imaging ? "Preparing image…" : toast}
+          {imaging ? t("ayah.preparingImage") : toast}
         </div>
       )}
 
       {saveOpen && (
-        <div className="ayah-save" role="dialog" aria-label="Save ayah">
+        <div className="ayah-save" role="dialog" aria-label={t("ayah.saveLabel")}>
           <div className="ayah-save-cols">
-            {collections.length === 0 && (
-              <p className="hifz-muted">No collections yet — create one below.</p>
-            )}
+            {collections.length === 0 && <p className="hifz-muted">{t("ayah.noCollections")}</p>}
             {collections.map((c) => (
               <label key={c.id} className="ayah-save-col">
                 <input
@@ -357,7 +381,7 @@ export function AyahActions({
           <div className="ayah-save-new">
             <input
               type="text"
-              placeholder="New collection…"
+              placeholder={t("ayah.newCollection")}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => {
@@ -370,12 +394,12 @@ export function AyahActions({
               disabled={!newName.trim()}
               onClick={addCollection}
             >
-              Add
+              {t("ayah.add")}
             </button>
           </div>
           <textarea
             className="ayah-note"
-            placeholder="Add a note / reflection…"
+            placeholder={t("ayah.notePlaceholder")}
             value={note}
             onChange={(e) => saveNote(e.target.value)}
             rows={2}

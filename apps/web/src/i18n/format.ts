@@ -2,6 +2,7 @@
  * Tiny, dependency-free formatting helpers for UI strings (#208, ADR 0040).
  * Pure functions — no React — so they are unit-tested directly.
  */
+import { type HijriDate, hijriMonth } from "@ummahlibrary/core";
 import type { Locale } from "./config";
 
 /**
@@ -52,4 +53,20 @@ export function fmt(template: string, vars: FmtVars, locale?: Locale): string {
 /** A BCP 47 tag that pins the locale's digits, for `toLocaleDateString` etc. */
 export function intlTag(locale: Locale): string {
   return `${locale}-u-nu-${NUMBERING[locale]}`;
+}
+
+/**
+ * Today's Hijri date for the interface language. Arabic and Urdu use the
+ * Arabic month name and "هـ"; the others keep the transliterated name. Digits
+ * follow the locale. Built as one coherent string so a right-to-left page
+ * doesn't scramble a Latin "12 … 1448 AH" into "… 1448 AH 12".
+ */
+export function formatHijriFor(date: HijriDate, locale: Locale): string {
+  const m = hijriMonth(date.month);
+  const day = formatNumber(date.day, locale);
+  const year = formatNumber(date.year, locale);
+  // Year digits without grouping ("1,448" would be wrong).
+  const plainYear = year.replace(/[,.٬،\s]/g, "");
+  if (locale === "ar" || locale === "ur") return `${day} ${m.arabic} ${plainYear} هـ`;
+  return `${day} ${m.name} ${plainYear} AH`;
 }

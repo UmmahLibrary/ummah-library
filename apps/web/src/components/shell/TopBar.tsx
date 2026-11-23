@@ -5,10 +5,10 @@ import { useRef, useState, useEffect } from "react";
 import { N, Icon } from "@ummahlibrary/ui";
 import { ThemeToggle } from "../ThemeToggle";
 import { useSearch } from "./SearchContext";
-import { formatHijri, gregorianToHijri } from "@ummahlibrary/core";
+import { gregorianToHijri } from "@ummahlibrary/core";
 import { HIJRI_ADJUST_KEY, readHijriAdjust } from "../../lib/hijri";
 import { useIntl } from "../../i18n/I18nProvider";
-import { intlTag } from "../../i18n/format";
+import { formatHijriFor, intlTag } from "../../i18n/format";
 
 function localToday() {
   const d = new Date();
@@ -26,7 +26,7 @@ export function TopBar() {
 
   useEffect(() => {
     const update = () => {
-      setHijriLabel(formatHijri(gregorianToHijri(localToday(), readHijriAdjust())));
+      setHijriLabel(formatHijriFor(gregorianToHijri(localToday(), readHijriAdjust()), locale));
       setGregLabel(
         new Date().toLocaleDateString(locale === "en" ? "en-GB" : intlTag(locale), {
           weekday: "long",

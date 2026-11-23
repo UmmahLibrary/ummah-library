@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LOCALES, isLocale, localeDir } from "./config";
-import { fmt, formatNumber, intlTag } from "./format";
+import { fmt, formatHijriFor, formatNumber, intlTag } from "./format";
 import { MESSAGES, en, type MessageKey } from "./messages";
 
 const KEYS = Object.keys(en) as MessageKey[];
@@ -48,5 +48,21 @@ describe("fmt", () => {
     expect(fmt("Āyah {aya} of {total}", { aya: 2, total: 7 })).toBe("Āyah 2 of 7");
     expect(fmt("{n} · {ref}", { n: 12, ref: "2:255" }, "ar")).toBe("١٢ · 2:255");
     expect(fmt("Hi {who}", {})).toBe("Hi {who}");
+  });
+});
+
+describe("formatHijriFor", () => {
+  const date = { year: 1448, month: 6, day: 12 };
+  it("keeps English as a transliterated, ungrouped date", () => {
+    expect(formatHijriFor(date, "en")).toBe("12 Jumādā al-Ākhirah 1448 AH");
+  });
+  it("uses the Arabic month name and native digits for Arabic and Urdu", () => {
+    expect(formatHijriFor(date, "ar")).toBe("١٢ جمادى الآخرة ١٤٤٨ هـ");
+    expect(formatHijriFor(date, "ur")).toBe("۱۲ جمادى الآخرة ۱۴۴۸ هـ");
+  });
+  it("never groups the year's digits", () => {
+    for (const code of ["en", "ar", "ur", "id", "bn", "tr"] as const) {
+      expect(formatHijriFor(date, code)).not.toMatch(/\d[,.٬]\d/);
+    }
   });
 });

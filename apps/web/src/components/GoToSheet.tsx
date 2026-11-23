@@ -154,7 +154,9 @@ export function GoToSheet({
               setTried(false);
             }}
           />
-          <button type="submit" className="goto-go" disabled={!target}>
+          {/* Not `disabled`: a disabled default button blocks Enter-to-submit,
+              so an unrecognised entry would never show the "not found" hint. */}
+          <button type="submit" className="goto-go" aria-disabled={!target}>
             {tr("goto.go")}
           </button>
         </form>

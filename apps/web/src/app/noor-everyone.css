@@ -329,7 +329,7 @@
   font-weight: 800;
   cursor: pointer;
 }
-.goto-go:disabled {
+.goto-go[aria-disabled="true"] {
   opacity: 0.45;
   cursor: default;
 }
