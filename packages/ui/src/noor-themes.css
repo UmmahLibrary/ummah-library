@@ -162,11 +162,11 @@
   --noor-muted: #6e6757;
   --noor-faint: #746952;
   --noor-gold: #876520;
-  --noor-gold-hi: #a78030;
+  --noor-gold-hi: #846526;
   --noor-gold-dim: #cbb488;
   --noor-gold-soft: rgba(176,132,40,0.14);
-  --noor-gold-grad: linear-gradient(180deg,#f4d58a,#e6b855);
-  --noor-ink: #2a1f08;
+  --noor-gold-grad: linear-gradient(180deg,#8f6c24,#7a5b1c);
+  --noor-ink: #fffaf0;
   --noor-error: #c0392b;
   color-scheme: light;
 }
@@ -182,11 +182,11 @@
   --noor-muted: #6e5c3f;
   --noor-faint: #716143;
   --noor-gold: #815d17;
-  --noor-gold-hi: #9f7930;
+  --noor-gold-hi: #7c5e25;
   --noor-gold-dim: #c8b07a;
   --noor-gold-soft: rgba(166,120,30,0.16);
-  --noor-gold-grad: linear-gradient(180deg,#e7c572,#c99a3a);
-  --noor-ink: #2a1e08;
+  --noor-gold-grad: linear-gradient(180deg,#8a6420,#745316);
+  --noor-ink: #fff8ec;
   --noor-error: #b53629;
   color-scheme: light;
 }
@@ -202,10 +202,10 @@
   --noor-muted: #5a6e64;
   --noor-faint: #5a6f63;
   --noor-gold: #11776d;
-  --noor-gold-hi: #199789;
+  --noor-gold-hi: #14776c;
   --noor-gold-dim: #7fb3a9;
   --noor-gold-soft: rgba(19,133,122,0.13);
-  --noor-gold-grad: linear-gradient(180deg,#2fb3a4,#13857a);
+  --noor-gold-grad: linear-gradient(180deg,#167f74,#11776d);
   --noor-ink: #eafbf6;
   --noor-error: #c0392b;
   color-scheme: light;
@@ -222,10 +222,10 @@
   --noor-muted: #6e5a56;
   --noor-faint: #7c6159;
   --noor-gold: #a84666;
-  --noor-gold-hi: #c76283;
+  --noor-gold-hi: #9d4d67;
   --noor-gold-dim: #c99aa6;
   --noor-gold-soft: rgba(177,74,107,0.12);
-  --noor-gold-grad: linear-gradient(180deg,#ce6e8c,#b14a6b);
+  --noor-gold-grad: linear-gradient(180deg,#ac4d6c,#9d4361);
   --noor-ink: #fff0f4;
   --noor-error: #bc382a;
   color-scheme: light;

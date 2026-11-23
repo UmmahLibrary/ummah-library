@@ -32,10 +32,24 @@ describe("Noor palettes — text contrast (ADR 0041: labels at 4.5:1 or better)"
   }
 
   for (const key of Object.keys(noorThemes) as ThemeKey[]) {
-    it(`${key}: accentHi reads at 3:1 on every surface (large text, e.g. surah names)`, () => {
+    // accentHi is also used as text (Arabic surah names, search highlights).
+    it(`${key}: accentHi reads at 4.5:1 on every surface`, () => {
       const p = noorThemes[key];
       for (const surface of SURFACES) {
-        expect(contrast(p.accentHi, p[surface] as string), surface).toBeGreaterThanOrEqual(3);
+        expect(contrast(p.accentHi, p[surface] as string), surface).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+  }
+
+  // `ink` is the text on accent surfaces: the solid accent (native, and
+  // segmented controls) and both stops of the accent gradient (web buttons).
+  for (const key of Object.keys(noorThemes) as ThemeKey[]) {
+    it(`${key}: ink reads at 4.5:1 on every accent surface`, () => {
+      const p = noorThemes[key];
+      const stops = p.accentGrad.match(/#[0-9a-f]{6}/gi) ?? [];
+      expect(stops.length).toBeGreaterThanOrEqual(2);
+      for (const surface of [p.accent, ...stops]) {
+        expect(contrast(p.ink, surface), surface).toBeGreaterThanOrEqual(4.5);
       }
     });
   }
