@@ -59,6 +59,17 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
 
   const verse = ayahs.find((a) => a.aya === current) ?? ayahs[0]!;
   const step = (d: number) => Math.min(surah.ayahCount, Math.max(1, current + d));
+  // Move the text straight away; the recitation follows when it can play. Without
+  // this, Previous/Next looked dead offline, on a failed stream or while it
+  // buffered. Deferred so the audio engine's document click handler still reads
+  // this click's `data-play-key` before the re-render changes it.
+  const moveTo = (aya: number) => {
+    setTimeout(() => {
+      startRef.current = aya;
+      setCurrent(aya);
+      history.replaceState(null, "", `#${aya}`);
+    }, 0);
+  };
 
   return (
     <div
@@ -167,6 +178,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
                 className="nf-btn"
                 data-play-key={`${surah.number}:${step(-1)}`}
                 disabled={current <= 1}
+                onClick={() => moveTo(step(-1))}
                 style={{ minWidth: 120 }}
               >
                 ⏮ {t("reader.previous")}
@@ -184,6 +196,7 @@ export function ListenClient({ surah, ayahs, reciters, prev, next }: Props) {
                 className="nf-btn"
                 data-play-key={`${surah.number}:${step(1)}`}
                 disabled={current >= surah.ayahCount}
+                onClick={() => moveTo(step(1))}
                 style={{ minWidth: 120 }}
               >
                 {t("reader.next")} ⏭
