@@ -136,3 +136,30 @@ describe("NoorHomePage in Easy mode", () => {
     expect(screen.getByText("Juzʾ")).toBeInTheDocument();
   });
 });
+
+describe("Today — the setup's reading path decides which action leads", () => {
+  afterEach(() => localStorage.clear());
+
+  const actionLinks = () =>
+    screen
+      .getAllByRole("link")
+      .filter((a) => /^\/(surah\/1|listen\/112)$/.test(a.getAttribute("href") ?? ""));
+
+  it("leads with reading by default", async () => {
+    render(<NoorHomePage surahs={surahs} />);
+    await screen.findByRole("link", { name: /Read Al-Fātiḥah/ });
+    const [first, second] = actionLinks();
+    expect(first).toHaveAttribute("href", "/surah/1");
+    expect(first).toHaveClass("nf-btn--gold");
+    expect(second).not.toHaveClass("nf-btn--gold");
+  });
+
+  it("leads with recitation for someone who said they mostly listen", async () => {
+    localStorage.setItem("ul.comfort", JSON.stringify({ readingPath: "listen" }));
+    render(<NoorHomePage surahs={surahs} />);
+    await screen.findByRole("link", { name: /Read Al-Fātiḥah/ });
+    await vi.waitFor(() => expect(actionLinks()[0]).toHaveAttribute("href", "/listen/112"));
+    expect(actionLinks()[0]).toHaveClass("nf-btn--gold");
+    expect(actionLinks()[1]).not.toHaveClass("nf-btn--gold");
+  });
+});
