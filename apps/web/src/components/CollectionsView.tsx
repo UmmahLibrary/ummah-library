@@ -178,6 +178,7 @@ export function CollectionsView() {
             </span>
             <button
               type="button"
+              aria-label={`Delete collection ${c.name}`}
               onClick={() => {
                 if (confirm(`Delete the collection “${c.name}”?`)) {
                   persist(deleteCollection(collections, c.id));
