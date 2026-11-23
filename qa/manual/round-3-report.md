@@ -59,7 +59,7 @@ widgets that depend on its sighting-adjustment setting.
   both `/names` and `/profile`.
 - **Reading Plans:** starting "Jewels of the Quran" (5 days), marking Day 1 done
   (0% → 20%, "✓ Day done"), and "Leave plan" (native-`confirm`-gated) all worked
-  correctly. The "Today" portion preview advancing to the *next* day's reading
+  correctly. The "Today" portion preview advancing to the _next_ day's reading
   (Sūrah 36) immediately after marking Day 1 done, while the header still correctly
   read "Day 1 of 5" — traced to `computeTodayPortion` in
   `packages/core/src/reading-plans.ts`, which intentionally computes "what's next from

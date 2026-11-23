@@ -30,7 +30,7 @@ Search, saving to collections, Bookmarks, and a link crawl of every hub page.
 
 ## Investigated, no bug found
 
-- Save → new collection: the name is trimmed ("  Favourites  " → "Favourites"),
+- Save → new collection: the name is trimmed (" Favourites " → "Favourites"),
   the āyah is added, the button flips to "Saved"; Bookmarks lists it with a
   "Remove 112:1" control and "Open in reader".
 - Link crawl: all 166 distinct internal links on Today, More, Learn, Prayer,
