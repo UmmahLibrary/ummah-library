@@ -59,7 +59,14 @@ const spec = {
             schema: { type: "integer", minimum: 1, maximum: 114 },
           },
           { name: "aya", in: "path", required: true, schema: { type: "integer", minimum: 1 } },
-          { name: "edition", in: "query", required: false, schema: { type: "string" } },
+          {
+            name: "edition",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+            description:
+              "A bundled edition id (see /editions). For any other id the Arabic is still returned, with translation: null.",
+          },
         ],
         responses: {
           "200": { description: "Ayah (+ translation)" },

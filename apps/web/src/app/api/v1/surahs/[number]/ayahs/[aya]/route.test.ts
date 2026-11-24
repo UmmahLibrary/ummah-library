@@ -15,9 +15,13 @@ describe("GET /api/v1/surahs/{n}/ayahs/{a}", () => {
     expect(body.translation?.text.length).toBeGreaterThan(10);
   });
 
-  it("404s an unknown edition instead of a silent null translation", async () => {
+  // Deliberately not a 404: the browser extension asks with the user's stored
+  // edition and falls back to Arabic-only — a 404 would blank its popup.
+  it("keeps the Arabic and a null translation for an edition it doesn't bundle", async () => {
     const res = await call("255", "?edition=bogus");
-    expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: "translation_not_found" });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ayah.aya).toBe(255);
+    expect(body.translation).toBeNull();
   });
 });
