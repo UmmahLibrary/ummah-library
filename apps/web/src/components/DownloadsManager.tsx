@@ -42,12 +42,23 @@ export function DownloadsManager({
         <div style={{ opacity: 0.5, marginBottom: 14, display: "grid", placeItems: "center" }}>
           <Icon name="download" size={40} color={N.goldDim} />
         </div>
-        <div style={{ fontSize: 17, fontWeight: 700, color: N.fg, fontFamily: N.ui, marginBottom: 8 }}>
+        <div
+          style={{ fontSize: 17, fontWeight: 700, color: N.fg, fontFamily: N.ui, marginBottom: 8 }}
+        >
           Nothing downloaded yet
         </div>
-        <div style={{ fontSize: 14, color: N.muted, fontFamily: N.ui, maxWidth: 420, margin: "0 auto", lineHeight: 1.6 }}>
-          Open a surah, pick a reciter, and tap the download button in the audio player to save it for
-          offline listening. Saved recitations play with no connection.
+        <div
+          style={{
+            fontSize: 14,
+            color: N.muted,
+            fontFamily: N.ui,
+            maxWidth: 420,
+            margin: "0 auto",
+            lineHeight: 1.6,
+          }}
+        >
+          Open a surah, choose Options in the audio player, then Save offline. Saved recitations
+          play with no connection.
         </div>
       </div>
     );
@@ -64,7 +75,13 @@ export function DownloadsManager({
         return (
           <div
             key={`${it.reciterId}:${it.surah}`}
-            style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 }}
+            style={{
+              ...card,
+              padding: "14px 18px",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+            }}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
@@ -79,6 +96,9 @@ export function DownloadsManager({
             <button
               type="button"
               onClick={async () => {
+                // Same guard as the mobile app: re-downloading costs data and time.
+                const name = surahNames[it.surah] ?? `Surah ${it.surah}`;
+                if (!window.confirm(`Remove ${name} from this device?`)) return;
                 await webAudioStore.removeSurah(it.reciterId, it.surah);
                 refresh();
               }}
