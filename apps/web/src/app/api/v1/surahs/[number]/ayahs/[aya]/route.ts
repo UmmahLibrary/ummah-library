@@ -20,5 +20,11 @@ export async function GET(
     quranRepository.getAyah(ref),
     edition ? translationRepository.getTranslatedAyah(edition, ref) : Promise.resolve(null),
   ]);
+  // An unknown (or not bundled) edition was a silent `translation: null` with a
+  // 200 — indistinguishable from a real gap. Answer like the per-surah
+  // translation route does.
+  if (edition && !translation) {
+    return apiJson({ error: "translation_not_found" }, { status: 404 });
+  }
   return apiJson({ ayah: arabic, translation });
 }
