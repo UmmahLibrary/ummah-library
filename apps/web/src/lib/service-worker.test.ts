@@ -94,6 +94,32 @@ describe("service worker", () => {
     expect(statics.entries.has("https://ummahlibrary.org/_next/static/chunks/c0.js")).toBe(false);
   }, 60_000);
 
+  it("on update, never deletes the offline recitations cache (or any cache it doesn't own)", async () => {
+    const sw = loadWorker(async () => new Response("x", { status: 200 }));
+    sw.stores.set("ul-audio-v1", new FakeCache());
+    sw.stores.set("someone-else", new FakeCache());
+    await sw.activate();
+    expect(sw.stores.has("ul-audio-v1")).toBe(true);
+    expect(sw.stores.has("someone-else")).toBe(true);
+  });
+
+  it("serves a reader content API from cache when offline, but never caches location APIs", async () => {
+    let online = true;
+    const sw = loadWorker(async () => {
+      if (!online) throw new TypeError("Failed to fetch");
+      return new Response('{"entries":[]}', { status: 200 });
+    });
+    await sw.request("/api/v1/surahs/2/tafsirs/en-ibn-kathir");
+    await sw.request("/api/v1/prayer-times?lat=21.4&lng=39.8&date=2026-11-24");
+    await sw.request("/api/v1/hadith/eng-bukhari");
+    online = false;
+    const res = await sw.request("/api/v1/surahs/2/tafsirs/en-ibn-kathir");
+    expect(await res.text()).toBe('{"entries":[]}');
+    const api = sw.stores.get("ul-api-v1")!;
+    expect([...api.entries.keys()].some((k) => k.includes("prayer-times"))).toBe(false);
+    expect([...api.entries.keys()].some((k) => k.endsWith("/hadith/eng-bukhari"))).toBe(false);
+  });
+
   it("on update, drops the old unbounded static cache but keeps saved pages", async () => {
     const sw = loadWorker(async () => new Response("x", { status: 200 }));
     sw.stores.set("ul-static-v1", new FakeCache());

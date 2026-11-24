@@ -4,13 +4,21 @@
  * - Static assets (_next/static, fonts, icons): cache-first (stale-while-revalidate).
  * - Page navigations: network-first, falling back to a cached copy, then the
  *   offline page. So any surah you've opened stays readable without a network.
+ * - Reader content APIs (tafsir, translations, related hadith, hadith, names…):
+ *   network-first, falling back to the last copy — so a tafsir or hadith you've
+ *   opened also opens offline. Location-bearing APIs are never cached.
  */
 // Pages keep their cache across updates (offline copies of surahs you've read);
 // the static cache moved to v2 when it gained a size cap, dropping the old
 // unbounded one.
 const PAGE_CACHE = "ul-pages-v1";
 const STATIC_CACHE = "ul-static-v2";
-const CURRENT = [PAGE_CACHE, STATIC_CACHE];
+const API_CACHE = "ul-api-v1";
+const CURRENT = [PAGE_CACHE, STATIC_CACHE, API_CACHE];
+// Only caches this worker owns are pruned on update. Others on the origin —
+// above all the app's offline recitations ("ul-audio-v1") — are not ours to drop.
+const OWNED = /^ul-(pages|static|api)-v\d+$/;
+const API_MAX = 120;
 // Each deploy adds new hashed chunks; keep only the most recent ones so the
 // cache can't grow without bound (a bloated origin risks the browser evicting
 // all of its storage, offline audio included).
@@ -30,7 +38,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(keys.filter((k) => !CURRENT.includes(k)).map((k) => caches.delete(k)));
+      await Promise.all(
+        keys.filter((k) => OWNED.test(k) && !CURRENT.includes(k)).map((k) => caches.delete(k)),
+      );
       await self.clients.claim();
     })(),
   );
@@ -46,6 +56,15 @@ const isStaticAsset = (url) =>
   url.pathname.startsWith("/_next/static") ||
   url.pathname.startsWith("/icons/") ||
   /\.(?:js|css|woff2?|png|svg|ico|webmanifest)$/.test(url.pathname);
+
+// Public reader content. Not prayer-times / places (they carry the user's
+// coordinates and go stale), not sync (POST, private), and not whole hadith
+// collections (~12 MB each, six prefetched by the Hadith page) — that would
+// bloat the origin toward eviction, offline audio included.
+const isContentApi = (url) =>
+  /^\/api\/v1\/(surahs|translations|tafsirs|names|adhkar|editions|search\/corpus|recitations|hadith\/[^/]+\/sections)(\/|$)/.test(
+    url.pathname,
+  );
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
@@ -71,6 +90,26 @@ self.addEventListener("fetch", (event) => {
             (await caches.match("/offline")) ||
             (await caches.match("/"))
           );
+        }
+      })(),
+    );
+    return;
+  }
+
+  if (isContentApi(url)) {
+    event.respondWith(
+      (async () => {
+        try {
+          const response = await fetch(request);
+          if (response.ok) {
+            const cache = await caches.open(API_CACHE);
+            void cache.put(request, response.clone()).then(() => trim(cache, API_MAX));
+          }
+          return response;
+        } catch {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          throw new Error("offline");
         }
       })(),
     );
