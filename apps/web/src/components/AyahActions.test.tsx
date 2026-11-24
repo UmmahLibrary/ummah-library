@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AyahActions } from "./AyahActions";
 
@@ -124,5 +124,22 @@ describe("AyahActions — Copy verse", () => {
     await userEvent.click(moreButton());
     await userEvent.click(screen.getByRole("menuitem", { name: "Copy verse" }));
     expect(writeText).toHaveBeenCalledWith("المص\nAlif-Lãm-Mĩm-Ṣãd.\n— 7:1");
+  });
+});
+
+describe("AyahActions — confirmations", () => {
+  it("keeps its live status mounted so 'Copied' is announced when it appears", async () => {
+    Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
+    render(
+      <div id="1:1" className="ayah">
+        <p className="ayah-ar">بسم</p>
+        <AyahActions surah={1} aya={1} tafsirs={[]} />
+      </div>,
+    );
+    const status = screen.getByRole("status");
+    expect(status).toBeEmptyDOMElement();
+    await userEvent.click(moreButton());
+    await userEvent.click(screen.getByRole("menuitem", { name: "Copy verse" }));
+    await waitFor(() => expect(status).toHaveTextContent(/copied/i));
   });
 });

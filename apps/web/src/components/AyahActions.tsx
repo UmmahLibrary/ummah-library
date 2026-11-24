@@ -426,11 +426,19 @@ export function AyahActions({
         )}
       </div>
 
-      {(toast || imaging) && (
-        <div style={{ fontSize: 12, color: N.gold, marginTop: 6, fontFamily: N.ui }} role="status">
-          {imaging ? t("ayah.preparingImage") : toast}
-        </div>
-      )}
+      {/* Always mounted: a live region inserted together with its text is often
+          not announced, so "Copied" / "Link copied" went unheard. */}
+      <div
+        role="status"
+        style={{
+          fontSize: 12,
+          color: N.gold,
+          marginTop: toast || imaging ? 6 : 0,
+          fontFamily: N.ui,
+        }}
+      >
+        {imaging ? t("ayah.preparingImage") : (toast ?? "")}
+      </div>
 
       {saveOpen && (
         <div className="ayah-save" role="dialog" aria-label={t("ayah.saveLabel")}>
