@@ -34,7 +34,7 @@ export function AsmaView({ names }: { names: readonly DivineName[] }) {
       {/* Marked progress — shown only once you start marking, so the default view stays clean */}
       {ready && count > 0 && (
         <div style={{ fontSize: 12.5, color: N.faint, marginBottom: 16, fontFamily: N.ui }}>
-          {count} / {names.length} marked
+          {count} of {names.length} learned
         </div>
       )}
 
