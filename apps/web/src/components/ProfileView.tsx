@@ -158,8 +158,8 @@ export function ProfileView() {
 
   const statCards: [string, string][] = [
     ...(showStreaks ? ([[String(s.hifzStreak), "Hifz streak"]] as [string, string][]) : []),
-    [String(s.memorized), "Āyāt memorized"],
-    [String(s.surahsStarted), "Surahs started"],
+    [String(s.memorized), s.memorized === 1 ? "Āyah memorized" : "Āyāt memorized"],
+    [String(s.surahsStarted), s.surahsStarted === 1 ? "Surah started" : "Surahs started"],
     ...(showStreaks ? ([[String(s.prayerStreak), "Prayer streak"]] as [string, string][]) : []),
     [`${s.names}/99`, "Names learned"],
     [String(s.saved), "Saved verses"],
