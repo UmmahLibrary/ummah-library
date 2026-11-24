@@ -29,6 +29,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # `next/font/google` fetches six font families from Google Fonts at build
+      # time (five in app/layout.tsx, one in app/blog/layout.tsx). Those fetches
+      # are the build's only external dependency, and a throttled or truncated
+      # response fails the whole build with an opaque
+      # `Cannot read properties of null (reading '1')` out of the font loader.
+      #
+      # The font loader is a webpack loader, and its results live in webpack's
+      # filesystem cache. With `.next/cache` restored, webpack replays the built
+      # modules and never re-runs the loader, so a warm run makes no font
+      # requests at all. A cold run behaves exactly as before, so this can only
+      # reduce the number of times we depend on Google Fonts, never increase it.
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/web/src/**', 'packages/*/src/**') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            next-${{ runner.os }}-
+
       - name: Lint
         run: pnpm lint
 
