@@ -3,7 +3,11 @@ import { JUZ_STARTS, TOTAL_JUZ } from "@ummahlibrary/core";
 import { quranRepository } from "@ummahlibrary/api";
 import { NoorPageFrame } from "../../components/NoorPageFrame";
 
-export const metadata = { title: "Juzʾ" };
+export const metadata = {
+  title: "Juzʾ",
+  description: "The Quran in its thirty parts (ajzāʾ) — open any juzʾ to read.",
+  alternates: { canonical: "/juz" },
+};
 
 /** The last surah a juzʾ touches (the next juzʾ starts at aya 1 of a new surah,
  * or mid-surah). */
