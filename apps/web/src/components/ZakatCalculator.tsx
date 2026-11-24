@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
-import { type NisabBasis, ZAKAT_ASSET_CATEGORIES, calculateZakat } from "@ummahlibrary/core";
+import {
+  type NisabBasis,
+  ZAKAT_ASSET_CATEGORIES,
+  calculateZakat,
+  parseAmount,
+  sanitizeAmountInput,
+} from "@ummahlibrary/core";
 import { N, Khatam } from "@ummahlibrary/ui";
 import { readZakat, writeZakat } from "../lib/zakat-store";
 
@@ -27,30 +33,20 @@ const DEFAULT_STATE: State = {
   liabilities: "",
 };
 
-function num(s: string): number {
-  const n = Number.parseFloat(s);
-  return Number.isFinite(n) ? n : 0;
-}
+// Typed amounts in any interface language: "10,000", "1.000,50", "١٠٠٠٠".
+const num = parseAmount;
 
 /** Strip digits from the currency symbol field — a symbol/code ("$", "AED") never
  *  contains one, and allowing digits here let a stray one silently fuse into the
  *  displayed totals (money() concatenates currency + amount with no separator). */
 function sanitizeCurrency(s: string): string {
-  return s.replace(/[0-9]/g, "");
+  return s.replace(/[0-9٠-٩۰-۹]/g, "");
 }
 
-/** Strip anything but digits and a single decimal point from an amount field.
- *  Wealth/price amounts can't be negative — `sumValues`/the niṣāb math already
- *  treat a negative entry as if the field were blank, so accepting the "-"
- *  keystroke just let a mistyped value vanish from the totals with no
- *  explanation. Blocking it at input time (like the currency field already
- *  blocks digits) is the same fix in the same spot. */
-function sanitizeAmount(s: string): string {
-  const cleaned = s.replace(/[^0-9.]/g, "");
-  const dot = cleaned.indexOf(".");
-  if (dot === -1) return cleaned;
-  return cleaned.slice(0, dot + 1) + cleaned.slice(dot + 1).replace(/\./g, "");
-}
+/** Digits (Western or Arabic-Indic), "." and "," while typing — no minus sign:
+ *  wealth/price amounts can't be negative, and a mistyped "-" used to vanish
+ *  from the totals with no explanation. `num`/`parseAmount` reads the result. */
+const sanitizeAmount = sanitizeAmountInput;
 
 const sectionLabel = {
   fontSize: 12,

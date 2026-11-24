@@ -17,6 +17,7 @@ export * from "./languages";
 export * from "./translations";
 export * from "./search";
 export * from "./goto";
+export * from "./amount-input";
 export * from "./consistency";
 export * from "./translation-defaults";
 export * from "./i18n-format";
