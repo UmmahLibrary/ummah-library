@@ -86,6 +86,7 @@ export function CodeBlock({ lang, code }: { lang: string; code: string }) {
             border: "none",
             cursor: "pointer",
             color: copied ? N.gold : N.faint,
+            padding: "6px 4px", // a 17px label → a 29px target
             fontSize: 12,
             fontWeight: 600,
             fontFamily: N.ui,

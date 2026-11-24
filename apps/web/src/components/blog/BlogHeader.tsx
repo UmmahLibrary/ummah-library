@@ -61,7 +61,10 @@ export function BlogHeader() {
         <Link
           href="/blog/rss.xml"
           title="RSS feed"
+          aria-label="RSS feed"
           style={{
+            // Without this the header row squeezed it to 16px wide on phones.
+            flexShrink: 0,
             width: 36,
             height: 36,
             borderRadius: 10,

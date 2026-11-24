@@ -97,7 +97,14 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "8px 0 60px" }}>
         <Link
           href="/plans"
-          style={{ color: N.muted, fontSize: 13, fontFamily: N.ui, textDecoration: "none" }}
+          style={{
+            color: N.muted,
+            fontSize: 13,
+            fontFamily: N.ui,
+            textDecoration: "none",
+            display: "inline-block",
+            padding: "4px 0",
+          }}
         >
           ← All plans
         </Link>
@@ -428,7 +435,14 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "8px 0 60px" }}>
         <Link
           href="/plans"
-          style={{ color: N.muted, fontSize: 13, fontFamily: N.ui, textDecoration: "none" }}
+          style={{
+            color: N.muted,
+            fontSize: 13,
+            fontFamily: N.ui,
+            textDecoration: "none",
+            display: "inline-block",
+            padding: "4px 0",
+          }}
         >
           ← All plans
         </Link>

@@ -2033,6 +2033,9 @@ html.tr-soft .ayah-tr {
 .back-link {
   color: var(--accent);
   font-size: 0.9rem;
+  /* a ~23px text line → a comfortable tap target (WCAG 2.5.8) */
+  display: inline-block;
+  padding: 4px 0;
 }
 .reader-nav span {
   color: var(--faint);

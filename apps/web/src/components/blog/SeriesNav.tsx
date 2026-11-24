@@ -79,6 +79,8 @@ export function SeriesNav({ prev, next }: { prev: Article | null; next: Article 
           color: N.gold,
           fontFamily: N.ui,
           textDecoration: "none",
+          display: "inline-block",
+          padding: "4px 0",
         }}
       >
         ← Back to all posts
