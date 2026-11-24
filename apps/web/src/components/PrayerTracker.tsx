@@ -46,6 +46,15 @@ function weekdayInitial(date: string): string {
   return new Date(`${date}T00:00:00`).toLocaleDateString([], { weekday: "narrow" });
 }
 
+/** "Wed, Nov 18" — the grid's column heads are single letters (T, S twice). */
+function dayName(date: string): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export function PrayerTracker() {
   const [ready, setReady] = useState(false);
   const [log, setLog] = useState<PrayerTrackerLog>({});
@@ -218,10 +227,10 @@ export function PrayerTracker() {
                     type="button"
                     disabled={dayPaused}
                     onClick={() => void cyclePrayer(d.date, p).then(setLog)}
-                    aria-label={`${PRAYER_LABELS[p]} · ${weekdayInitial(d.date)}: ${
+                    aria-label={`${PRAYER_LABELS[p]} · ${dayName(d.date)}: ${
                       dayPaused ? "Paused" : statusLabel(st)
                     } — tap to change`}
-                    title={`${PRAYER_LABELS[p]} · ${weekdayInitial(d.date)}: ${
+                    title={`${PRAYER_LABELS[p]} · ${dayName(d.date)}: ${
                       dayPaused ? "Paused" : statusLabel(st)
                     }`}
                     style={{
