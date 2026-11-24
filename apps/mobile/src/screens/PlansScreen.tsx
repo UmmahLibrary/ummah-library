@@ -46,6 +46,7 @@ import {
   toggleDay,
   validatePlanDraft,
 } from "../plans";
+import { toWesternDigits } from "@ummahlibrary/core";
 import { PlanCompletionCard } from "../components/PlanCompletionCard";
 import type { ReadStackParamList } from "../navigation/types";
 import { useIntl } from "../i18n/I18nProvider";
@@ -106,8 +107,12 @@ export function PlansScreen({ navigation }: Props) {
   const customRange = rangeOfPages(1, 604);
   const customSchedule: ScheduleStrategy =
     mode === "pace"
-      ? { kind: "fixed", unitsPerDay: Number(perDay) || 0 }
-      : { kind: "targetDate", endDate: addDays(today, Math.max(0, Math.floor(Number(days) || 0))) };
+      ? { kind: "fixed", unitsPerDay: Number(toWesternDigits(perDay)) || 0 }
+      : {
+          kind: "targetDate",
+          // An Arabic/Urdu number pad types ١٢٣ — Number("٩٠") is NaN.
+          endDate: addDays(today, Math.max(0, Math.floor(Number(toWesternDigits(days)) || 0))),
+        };
   const customErrors = validatePlanDraft({
     range: customRange,
     schedule: customSchedule,
