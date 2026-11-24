@@ -187,6 +187,14 @@ export interface HadithRepository {
 export interface VerseHadithLinkRepository {
   /** The hadith linked to one ayah — `[]` when none are. */
   linksForVerse(ref: VerseKey): Promise<readonly HadithLink[]>;
+  /**
+   * Every ayah that has at least one link, in dataset order.
+   *
+   * Exists so the delivery layer can prerender exactly the ayahs that have
+   * something to show (ADR 0044, amended) — a small fraction of the 6,236 —
+   * instead of rendering all of them or none.
+   */
+  linkedVerses(): Promise<readonly VerseKey[]>;
 }
 
 /** Access to the 99 Names of Allah. */

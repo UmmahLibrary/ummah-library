@@ -90,11 +90,18 @@ lives in `hadiths/*.json`. Duplicating it would double the payload for nothing.
 `packages/api/src/related-hadith.ts` joins references to text, grouping by
 collection so each file loads once. Result: **159 KB**, comfortably bundleable.
 
-**5. A dynamic REST route, not 6,236 prerendered ones.** Only 411 ayahs have any
-links, so prerendering the other 5,825 would spend most of the build writing
-empty responses. `GET /api/v1/surahs/{n}/ayahs/{a}/hadith` is `force-dynamic`,
-reads only bundled files, and lets `apiJson`'s cache headers absorb repeats. Both
-dataset slices are added to `outputFileTracingIncludes` (AGENTS rule 5).
+**5. Prerender the 411 ayahs that have links; serve the rest on demand.**
+_(Amended 2026-11-24 — see the amendment below. As first accepted, this decision
+read "a dynamic REST route, not 6,236 prerendered ones": `force-dynamic`,
+reasoning that prerendering the other 5,825 would spend most of the build writing
+empty responses.)_
+
+`GET /api/v1/surahs/{n}/ayahs/{a}/hadith` is `force-static` with a
+`generateStaticParams` that emits exactly the ayahs `linkedVerses()` reports —
+411 of 6,236. `dynamicParams` stays `true`, so an unlinked ayah still reaches the
+handler and gets the documented `{ count: 0, hadiths: [] }` rather than Next's
+HTML not-found page. Both dataset slices remain in `outputFileTracingIncludes`
+(AGENTS rule 5), because that on-demand path still reads them at runtime.
 
 **6. The UI states how the link was made.** The panel mirrors the `TafsirCompare`
 toggle, and each card shows the **matched span**. These links are generated, not
@@ -102,6 +109,70 @@ curated, and the panel says so: _"Matched automatically where the hadith's Arabi
 repeats this āyah's words. A shared wording is not by itself a commentary on the
 verse."_ A reader can see the evidence and judge it, rather than inheriting a
 claim of editorial endorsement we have not made.
+
+## Amendment, 2026-11-24 — prerender the linked ayahs
+
+Decision 5 originally read "a dynamic REST route, not 6,236 prerendered ones":
+`force-dynamic`, on the reasoning that prerendering the other 5,825 would spend
+most of the build writing empty responses.
+
+That reasoning is sound for all 6,236 and does not apply to the **411 that have
+links**, which were already known at build time. Treating prerendering as
+all-or-nothing was the error. `generateStaticParams` now emits exactly those 411
+(`linkedVerses()`), `dynamicParams` stays `true` so an unlinked ayah still
+reaches the handler for its documented `{ count: 0, hadiths: [] }`, and the
+empty majority keeps the on-demand path at no build cost. Measured: static
+pages 2,544 → 2,955, exactly +411, and 411 `hadith.body` files on disk.
+
+This needed one new port method rather than a redesign:
+`VerseHadithLinkRepository.linkedVerses()`, implemented over the keys the
+dataset already has and surfaced as `relatedHadithVerses()` in `api`. A future
+topical mapping prerenders on the same path for free.
+
+### What this does NOT do: it does not close the offline gap
+
+#200's criterion "works offline for bundled collections" is **still unmet**, and
+prerendering does not meet it. Measured against the built app with the server
+killed, which is a true offline test rather than an emulated one:
+
+| Case | Server down |
+| --- | --- |
+| `33:21` fetched once while online, then server down | **200, 34 links** |
+| `33:21` never fetched, then server down | **fails** |
+| `1:1` (unlinked, never prerendered) | fails |
+
+The first row is the **browser's HTTP cache**, not prerendering: `apiJson` sets
+`max-age=3600` on every success, so a visited response survives a server outage
+whether the route is static or dynamic. The second row is the one that matters
+for offline-first, and it fails, because prerendering puts the file on the
+*server*. Nothing caches it on the client: `apps/web/public/sw.js` handles
+navigations and static assets only, and
+
+```js
+const isStaticAsset = (url) =>
+  url.pathname.startsWith("/_next/static") ||
+  url.pathname.startsWith("/icons/") ||
+  /\.(?:js|css|woff2?|png|svg|ico|webmanifest)$/.test(url.pathname);
+```
+
+`/api/v1/...` matches none of those — and prerendering does not change the URL,
+so it does not change what the service worker will cache.
+
+So this amendment is worth having on its own terms — static delivery, no
+function invocation per request, CDN-cacheable under `s-maxage=86400` — but it is
+**groundwork for** an offline fix, not the fix. Closing the criterion needs a
+client-side mechanism, and the three candidates differ enough in cost that the
+choice is deliberately left open here:
+
+1. **A service-worker tier for `/api/v1` responses.** Smallest change, but only
+   gives "works offline once seen" — a never-visited ayah still fails. Changes
+   caching for every API route.
+2. **Precache all 411 responses at install.** True offline-first, but 33:21
+   alone is 76 KB, so the set runs to several MB of install-time download.
+3. **Stop fetching for the panel: pass links down from the already-static surah
+   page.** Architecturally the cleanest and needs no cache at all, but the panel
+   renders hadith *text*, and inlining that into every reader page trades a
+   request for a much larger page payload.
 
 ## Consequences
 
