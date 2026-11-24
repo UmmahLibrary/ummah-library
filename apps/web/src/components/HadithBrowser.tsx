@@ -138,6 +138,18 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
   const [visible, setVisible] = useState(PAGE);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debounced, setDebounced] = useState("");
+  // A deep link to one hadith (`?collection=<id>&hadith=<number>`), e.g. from the
+  // reader's Related panel. Read once on mount; any filter change drops it.
+  const [focus, setFocus] = useState<{ collection: string; number: number } | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const collection = params.get("collection");
+    if (!collection || !collections.some((c) => c.id === collection)) return;
+    setBook(collection);
+    const number = Number(params.get("hadith"));
+    if (Number.isInteger(number) && number > 0) setFocus({ collection, number });
+  }, [collections]);
 
   // Background-prefetch every collection so global search fills in; each static
   // file is cached, so this is a one-time per-device cost (ADR 0022).
@@ -157,6 +169,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
   }, [collections]);
 
   function run(value: string) {
+    setFocus(null);
     setQuery(value);
     setVisible(PAGE);
     if (debounce.current) clearTimeout(debounce.current);
@@ -168,6 +181,10 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
 
   // Flatten the loaded collections once; filter by book + grade; rank by query.
   const results = useMemo(() => {
+    if (focus) {
+      const one = loaded[focus.collection]?.hadiths.find((h) => h.number === focus.number);
+      return one ? [one] : [];
+    }
     const pool: Hadith[] = [];
     for (const id of Object.keys(loaded)) {
       if (book !== "all" && id !== book) continue;
@@ -178,7 +195,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
         ? pool
         : pool.filter((h) => hadithGradeCategory(h.collectionId, h.grades) === grade);
     return q.length >= 2 ? searchText(filtered, q, 300) : filtered;
-  }, [loaded, book, grade, q]);
+  }, [loaded, book, grade, q, focus]);
 
   const sectionName = (h: Hadith): string =>
     loaded[h.collectionId]?.sections[String(h.reference.book)] ?? "";
@@ -187,6 +204,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
   const ordered = [...collections].sort((a, b) => ORDER(a.id) - ORDER(b.id));
 
   const clearAll = () => {
+    setFocus(null);
     run("");
     setDebounced("");
     setBook("all");
@@ -258,11 +276,24 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
         >
           BOOK
         </span>
-        <Chip on={book === "all"} onClick={() => setBook("all")}>
+        <Chip
+          on={book === "all"}
+          onClick={() => {
+            setFocus(null);
+            setBook("all");
+          }}
+        >
           All
         </Chip>
         {ordered.map((c) => (
-          <Chip key={c.id} on={book === c.id} onClick={() => setBook(book === c.id ? "all" : c.id)}>
+          <Chip
+            key={c.id}
+            on={book === c.id}
+            onClick={() => {
+              setFocus(null);
+              setBook(book === c.id ? "all" : c.id);
+            }}
+          >
             {shortName(c.id)}
           </Chip>
         ))}
@@ -288,7 +319,14 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
           GRADE
         </span>
         {GRADE_FILTERS.map((g) => (
-          <Chip key={g.key} on={grade === g.key} onClick={() => setGrade(g.key)}>
+          <Chip
+            key={g.key}
+            on={grade === g.key}
+            onClick={() => {
+              setFocus(null);
+              setGrade(g.key);
+            }}
+          >
             {g.label}
           </Chip>
         ))}
@@ -323,7 +361,10 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setBook(c.id)}
+                  onClick={() => {
+                    setFocus(null);
+                    setBook(c.id);
+                  }}
                   className="noor-press"
                   style={{
                     ...card,
@@ -411,7 +452,10 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
                 </>
               )}
               {book !== "all" && <> in {shortName(book)}</>}
-              {!allLoaded && <span style={{ color: N.faint }}> · indexing…</span>}
+              {focus && <> · #{focus.number}</>}
+              {!(focus ? loaded[focus.collection] : allLoaded) && (
+                <span style={{ color: N.faint }}> · indexing…</span>
+              )}
             </div>
             <button
               type="button"
@@ -552,7 +596,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
             </button>
           )}
 
-          {allLoaded && results.length === 0 && (
+          {(focus ? !!loaded[focus.collection] : allLoaded) && results.length === 0 && (
             <div style={{ textAlign: "center", padding: "50px 20px" }}>
               <div
                 style={{

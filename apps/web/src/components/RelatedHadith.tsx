@@ -36,6 +36,8 @@ function loadRelated(surah: number, aya: number): Promise<RelatedHadithItem[]> {
         return res.json() as Promise<Response>;
       })
       .then((data) => data.hadiths);
+    // Forget a failure so the next open retries (e.g. after coming back online).
+    pending.catch(() => cache.delete(key));
     cache.set(key, pending);
   }
   return pending;
@@ -88,11 +90,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
   } as const;
 
   if (failed) {
-    return (
-      <div style={{ ...frame, fontSize: 13.5, color: N.muted }}>
-        {t("related.failed")}
-      </div>
-    );
+    return <div style={{ ...frame, fontSize: 13.5, color: N.muted }}>{t("related.failed")}</div>;
   }
 
   if (items === null) {
@@ -104,11 +102,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
   }
 
   if (items.length === 0) {
-    return (
-      <div style={{ ...frame, fontSize: 13.5, color: N.muted }}>
-        {t("related.none")}
-      </div>
-    );
+    return <div style={{ ...frame, fontSize: 13.5, color: N.muted }}>{t("related.none")}</div>;
   }
 
   return (
@@ -153,7 +147,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
                 }}
               >
                 <a
-                  href={`/hadith?collection=${h.collectionId}&section=${h.reference.book}`}
+                  href={`/hadith?collection=${h.collectionId}&hadith=${h.number}`}
                   style={{ fontSize: 13.5, fontWeight: 700, color: N.gold, textDecoration: "none" }}
                 >
                   {h.collectionName} · {h.number}
