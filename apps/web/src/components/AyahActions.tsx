@@ -13,6 +13,7 @@ import type { IconName } from "@ummahlibrary/ui";
 import { newId, readCollections, readNote, writeCollections, writeNote } from "../lib/collections";
 import { HIFZ_EVENT, isTracked, removeCard, setCard } from "../lib/hifz-store";
 import { TafsirCompare } from "./TafsirCompare";
+import { RelatedHadith } from "./RelatedHadith";
 import { useIntl } from "../i18n/I18nProvider";
 
 interface TafsirMeta {
@@ -115,6 +116,7 @@ export function AyahActions({
 
   const [saveOpen, setSaveOpen] = useState(false);
   const [tafsirOpen, setTafsirOpen] = useState(false);
+  const [relatedOpen, setRelatedOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   // Open the menu upwards when there isn't room for it above the bottom dock.
   const [moreUp, setMoreUp] = useState(false);
@@ -343,6 +345,14 @@ export function AyahActions({
           active={tafsirOpen}
           onClick={() => setTafsirOpen((o) => !o)}
         />
+        <BarBtn
+          icon="globe"
+          label={t("ayah.related")}
+          active={relatedOpen}
+          aria-expanded={relatedOpen}
+          aria-label={tf("ayah.relatedLabel", { n: aya })}
+          onClick={() => setRelatedOpen((o) => !o)}
+        />
         <div style={{ position: "relative", display: "inline-flex" }}>
           <BarBtn
             icon="more"
@@ -462,6 +472,7 @@ export function AyahActions({
       )}
 
       {tafsirOpen && <TafsirCompare surah={surah} aya={aya} tafsirs={tafsirs} />}
+      {relatedOpen && <RelatedHadith surah={surah} aya={aya} />}
     </div>
   );
 }
