@@ -94,7 +94,13 @@ export function CodeBlock({ lang, code }: { lang: string; code: string }) {
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      <pre style={{ margin: 0, padding: "16px 18px", overflowX: "auto" }}>
+      <pre
+        // A long line scrolls sideways; without a tab stop keyboard users
+        // can't reach the rest of it (WCAG 2.1.1).
+        tabIndex={0}
+        aria-label={`${lang || "Code"} example`}
+        style={{ margin: 0, padding: "16px 18px", overflowX: "auto" }}
+      >
         <code
           style={{
             fontFamily: "ui-monospace, Menlo, monospace",
