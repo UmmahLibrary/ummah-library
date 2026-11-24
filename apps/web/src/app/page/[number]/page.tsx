@@ -95,16 +95,20 @@ export default async function MushafPage({ params }: { params: Promise<{ number:
             <section key={section.surah.number}>
               {section.startsSurah && (
                 <header className="mushaf-surah-head">
-                  <span className="name-ar arabic">{section.surah.name}</span>
+                  <span className="name-ar arabic" lang="ar" dir="rtl">
+                    {section.surah.name}
+                  </span>
                   <span className="sub">
                     {section.surah.transliteration} · {section.surah.englishName}
                   </span>
                 </header>
               )}
               {section.startsSurah && section.surah.hasBismillah && section.surah.number !== 1 && (
-                <p className="basmala arabic">{bismillah}</p>
+                <p className="basmala arabic" lang="ar" dir="rtl">
+                  {bismillah}
+                </p>
               )}
-              <p className="mushaf arabic">
+              <p className="mushaf arabic" lang="ar" dir="rtl">
                 {section.ayahs.map((ayah) => (
                   <span key={ayah.aya}>
                     {ayah.text}

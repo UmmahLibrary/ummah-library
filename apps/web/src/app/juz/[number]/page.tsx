@@ -157,15 +157,21 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
           {sections.map((section) => (
             <section key={section.surah.number}>
               <header className="juz-surah-head">
-                <span className="name-ar arabic">{section.surah.name}</span>
+                <span className="name-ar arabic" lang="ar" dir="rtl">
+                  {section.surah.name}
+                </span>
                 <span className="sub">
                   {section.surah.transliteration} · {section.surah.englishName}
                 </span>
               </header>
-              {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
+              {section.showBismillah && (
+                <p className="basmala arabic" lang="ar" dir="rtl">
+                  {bismillah}
+                </p>
+              )}
               {section.ayahs.map((ayah) => (
                 <div key={ayah.aya} id={`${section.surah.number}:${ayah.aya}`} className="ayah">
-                  <p className="ayah-ar arabic">
+                  <p className="ayah-ar arabic" lang="ar" dir="rtl">
                     <AyahWords surah={section.surah.number} aya={ayah.aya} text={ayah.text} />
                     <button
                       type="button"
@@ -200,13 +206,19 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
           {sections.map((section) => (
             <section key={section.surah.number}>
               <header className="juz-surah-head">
-                <span className="name-ar arabic">{section.surah.name}</span>
+                <span className="name-ar arabic" lang="ar" dir="rtl">
+                  {section.surah.name}
+                </span>
                 <span className="sub">
                   {section.surah.transliteration} · {section.surah.englishName}
                 </span>
               </header>
-              {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
-              <p className="mushaf arabic">
+              {section.showBismillah && (
+                <p className="basmala arabic" lang="ar" dir="rtl">
+                  {bismillah}
+                </p>
+              )}
+              <p className="mushaf arabic" lang="ar" dir="rtl">
                 {section.ayahs.map((ayah) => (
                   <span key={ayah.aya}>
                     {ayah.text}
@@ -232,13 +244,19 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
             {sections.map((section) => (
               <section key={section.surah.number}>
                 <header className="mushaf-surah-head">
-                  <span className="name-ar arabic">{section.surah.name}</span>
+                  <span className="name-ar arabic" lang="ar" dir="rtl">
+                    {section.surah.name}
+                  </span>
                   <span className="sub">
                     {section.surah.transliteration} · {section.surah.englishName}
                   </span>
                 </header>
-                {section.showBismillah && <p className="basmala arabic">{bismillah}</p>}
-                <p className="mushaf arabic">
+                {section.showBismillah && (
+                  <p className="basmala arabic" lang="ar" dir="rtl">
+                    {bismillah}
+                  </p>
+                )}
+                <p className="mushaf arabic" lang="ar" dir="rtl">
                   {section.ayahs.map((ayah) => (
                     <span key={ayah.aya}>
                       {ayah.text}

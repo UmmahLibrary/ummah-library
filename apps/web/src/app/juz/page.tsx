@@ -41,7 +41,9 @@ export default async function JuzIndexPage() {
                 <br />
                 <span className="sub">{span}</span>
               </span>
-              <span className="name-ar arabic">{first?.name}</span>
+              <span className="name-ar arabic" lang="ar" dir="rtl">
+                {first?.name}
+              </span>
             </Link>
           );
         })}

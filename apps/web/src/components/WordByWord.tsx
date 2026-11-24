@@ -114,7 +114,9 @@ export function WordByWord() {
       role="dialog"
       aria-label="Word meaning"
     >
-      <span className="wbw-arabic arabic">{popover.word.arabic}</span>
+      <span className="wbw-arabic arabic" lang="ar" dir="rtl">
+        {popover.word.arabic}
+      </span>
       {popover.word.translit && <span className="wbw-translit">{popover.word.translit}</span>}
       <span className="wbw-translation">{popover.word.translation ?? "—"}</span>
       <span className="wbw-source">via quran.com</span>

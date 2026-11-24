@@ -236,7 +236,12 @@ export function HifzReview({
           {surahMeta?.transliteration ?? `Surah ${current.ref.sura}`} · Āyah {current.ref.aya}
         </div>
         {surahMeta && (
-          <div className="arabic" style={{ fontSize: 18, color: N.goldDim, marginBottom: 18 }}>
+          <div
+            className="arabic"
+            lang="ar"
+            dir="rtl"
+            style={{ fontSize: 18, color: N.goldDim, marginBottom: 18 }}
+          >
             {surahMeta.name}
           </div>
         )}
@@ -246,6 +251,8 @@ export function HifzReview({
             ref={ayahText}
             tabIndex={-1}
             className="arabic"
+            lang="ar"
+            dir="rtl"
             style={{
               outline: "none",
               fontSize: "clamp(26px, 5vw, 38px)",
