@@ -5,7 +5,11 @@ import { type UpcomingSunnahFast, upcomingSunnahFasts } from "@ummahlibrary/core
 import { N } from "@ummahlibrary/ui";
 import { HIJRI_ADJUST_KEY, readHijriAdjust } from "../lib/hijri";
 import { WebNotifier } from "../lib/web-notifier";
-import { remindersEnabled, setRemindersEnabled, syncSunnahFastReminder } from "../lib/sunnah-fast-reminders";
+import {
+  remindersEnabled,
+  setRemindersEnabled,
+  syncSunnahFastReminder,
+} from "../lib/sunnah-fast-reminders";
 
 const notifier = new WebNotifier();
 
@@ -88,10 +92,27 @@ export function SunnahFastReminderToggle() {
       <div style={{ ...sectionLabel, marginBottom: 12 }}>Sunnah fasting</div>
 
       <div style={{ ...lcard, padding: "16px 18px" }}>
-        <div style={{ display: "flex", gap: 14, alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 14,
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+          }}
+        >
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14.5, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>Reminders</div>
-            <p style={{ fontSize: 12.5, color: N.faint, lineHeight: 1.6, marginTop: 4, fontFamily: N.ui }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
+              Reminders
+            </div>
+            <p
+              style={{
+                fontSize: 12.5,
+                color: N.faint,
+                lineHeight: 1.6,
+                marginTop: 4,
+                fontFamily: N.ui,
+              }}
+            >
               A nudge the evening before Mondays &amp; Thursdays and the white days (Ayyām al-Bīḍ,
               13–15 of each month), so you can make the intention and plan suhoor. Works while Ummah
               Library is open.
@@ -119,8 +140,25 @@ export function SunnahFastReminderToggle() {
           </button>
         </div>
         {enabled && next && (
-          <p style={{ fontSize: 12.5, color: N.gold, fontWeight: 600, marginTop: 12, fontFamily: N.ui }}>
+          <p
+            style={{
+              fontSize: 12.5,
+              color: N.gold,
+              fontWeight: 600,
+              marginTop: 12,
+              fontFamily: N.ui,
+            }}
+          >
             Next: {next.name} · {countdownLabel(next.daysUntil)}
+          </p>
+        )}
+        {enabled && notifier.permission() === "denied" && (
+          <p
+            role="status"
+            style={{ fontSize: 12.5, color: N.faint, marginTop: 10, fontFamily: N.ui }}
+          >
+            Notifications are blocked in your browser — enable them in site settings to get the
+            nudge.
           </p>
         )}
       </div>
@@ -155,7 +193,9 @@ export function SunnahFastReminderToggle() {
               {GLYPH[f.kind]}
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>{f.name}</div>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
+                {f.name}
+              </div>
               <div style={{ fontSize: 12.5, color: N.faint, marginTop: 1, fontFamily: N.ui }}>
                 {gregorianFull(f.gregorian)} · {f.note}
               </div>

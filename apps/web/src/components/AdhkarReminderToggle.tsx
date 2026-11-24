@@ -96,6 +96,13 @@ export function AdhkarReminderToggle() {
       {enabled && hasCoords && nextLabel && (
         <p className="hifz-muted adhkar-remind-next">{nextLabel}</p>
       )}
+      {/* Same notice as plan reminders: "On" with blocked notifications only
+          shows the in-app banner, which isn't what most people expect. */}
+      {enabled && notifier.permission() === "denied" && (
+        <p className="hifz-muted" role="status">
+          Notifications are blocked in your browser — enable them in site settings to get the nudge.
+        </p>
+      )}
     </div>
   );
 }

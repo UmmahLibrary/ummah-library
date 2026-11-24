@@ -31,3 +31,23 @@ describe("SunnahFastReminderToggle", () => {
     expect(after).not.toBe(before);
   });
 });
+
+describe("SunnahFastReminderToggle — blocked notifications", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("says so when reminders are on but the browser blocks notifications", async () => {
+    vi.stubGlobal(
+      "Notification",
+      Object.assign(function Notification() {}, {
+        permission: "denied",
+        requestPermission: async () => "denied",
+      }),
+    );
+    render(<SunnahFastReminderToggle />);
+    const toggle = await screen.findByRole("button", { name: /Off/ });
+    await act(async () => toggle.click());
+    expect(
+      await screen.findByText(/Notifications are blocked in your browser/),
+    ).toBeInTheDocument();
+  });
+});
