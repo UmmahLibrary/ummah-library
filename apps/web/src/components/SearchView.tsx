@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { parseGoTo, searchText } from "@ummahlibrary/core";
-import { N, Icon, Khatam } from "@ummahlibrary/ui";
+import { N, Icon, Khatam, STATUS_HUES, readableHue } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
 import { FEATURE_KEYWORDS, NAV_DESTINATIONS } from "../lib/nav";
 import { en as EN } from "../i18n/messages";
@@ -58,11 +58,11 @@ interface SearchItem {
 
 /** Per-type presentation: badge label, accent colour, icon. */
 const TYPE_META: Record<ResultType, { label: string; color: string; icon: IconName }> = {
-  feature: { label: "In the app", color: "#E6B855", icon: "grid" },
-  ayah: { label: "Verse", color: "#E6B855", icon: "book" },
-  surah: { label: "Surah", color: "#E6B855", icon: "book" },
-  name: { label: "Name of Allah", color: "#4F90FF", icon: "star" },
-  adhkar: { label: "Adhkār", color: "#B677EE", icon: "repeat" },
+  feature: { label: "In the app", color: readableHue(STATUS_HUES.fair), icon: "grid" },
+  ayah: { label: "Verse", color: readableHue(STATUS_HUES.fair), icon: "book" },
+  surah: { label: "Surah", color: readableHue(STATUS_HUES.fair), icon: "book" },
+  name: { label: "Name of Allah", color: readableHue(STATUS_HUES.blue), icon: "star" },
+  adhkar: { label: "Adhkār", color: readableHue(STATUS_HUES.violet), icon: "repeat" },
 };
 
 /** Filter pills — only those with results are shown. `ayah` also counts surahs. */

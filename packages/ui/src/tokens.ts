@@ -37,6 +37,9 @@ export const STATUS_HUES = {
   fair: "#E6B855",
   weak: "#C98A57",
   neutral: "#8A93A6",
+  alert: "#C56A52",
+  blue: "#4F90FF",
+  violet: "#B677EE",
 } as const;
 
 /** How much of the hue survives the blend toward the theme's foreground colour. */

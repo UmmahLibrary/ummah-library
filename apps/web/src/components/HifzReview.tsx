@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { type ReviewRating, reviewByRating } from "@ummahlibrary/core";
-import { N, Khatam, Icon } from "@ummahlibrary/ui";
+import { N, Khatam, Icon, STATUS_HUES, readableHue } from "@ummahlibrary/ui";
 import { type HifzRecord, allRecords, dueRecords, setCard } from "../lib/hifz-store";
 import { touchStreak } from "../lib/hifz-streak";
 import { recordReview } from "../lib/hifz-review-log-store";
@@ -25,10 +25,10 @@ function loadSurahArabic(surah: number): Promise<Map<number, string>> {
 }
 
 const RATINGS: { rating: ReviewRating; label: string; color: string }[] = [
-  { rating: "again", label: "Again", color: "#C56A52" },
+  { rating: "again", label: "Again", color: readableHue(STATUS_HUES.alert) },
   { rating: "hard", label: "Hard", color: N.muted },
   { rating: "good", label: "Good", color: N.gold },
-  { rating: "easy", label: "Easy", color: "#5BBF8A" },
+  { rating: "easy", label: "Easy", color: readableHue(STATUS_HUES.good) },
 ];
 
 export function HifzReview({
