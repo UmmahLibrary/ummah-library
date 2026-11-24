@@ -350,7 +350,8 @@ export function AyahActions({
           label={t("ayah.related")}
           active={relatedOpen}
           aria-expanded={relatedOpen}
-          aria-label={tf("ayah.relatedLabel", { n: aya })}
+          // The name starts with the visible word so voice control can find it (WCAG 2.5.3).
+          aria-label={`${t("ayah.related")}: ${tf("ayah.relatedLabel", { n: aya })}`}
           onClick={() => setRelatedOpen((o) => !o)}
         />
         <div style={{ position: "relative", display: "inline-flex" }}>
