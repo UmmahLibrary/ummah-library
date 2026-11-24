@@ -484,6 +484,15 @@ body.script-indopak .ayah-ar {
 .ayah-marker:hover {
   opacity: 0.7;
 }
+/* For children the āyah's play button is a big, easy target — the shared 1rem
+   marker was a 28px tap. The Arabic line is ~95px tall, so this fits in it. */
+.ayah-marker.kids-play {
+  font-size: 1.6rem;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
 .ayah--playing {
   background: var(--accent-soft);
   border-radius: 10px;
