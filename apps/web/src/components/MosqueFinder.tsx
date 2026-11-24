@@ -12,7 +12,15 @@ import {
 import { N } from "@ummahlibrary/ui";
 import { PRAYER_COORDS_EVENT, webPrayerSettingsStore } from "../lib/prayer-settings-store";
 
-type Status = "idle" | "locating" | "loading" | "ready" | "denied" | "error" | "offline";
+type Status =
+  | "idle"
+  | "locating"
+  | "loading"
+  | "ready"
+  | "denied"
+  | "unavailable"
+  | "error"
+  | "offline";
 
 const RADIUS_OPTIONS = [
   { meters: 2000, label: "2 km" },
@@ -123,7 +131,9 @@ export function MosqueFinder() {
         void webPrayerSettingsStore.writeCoords(c);
         void fetchNearby(c, radius);
       },
-      () => setStatus("denied"),
+      // Only code 1 is a refusal; a timeout or switched-off location services
+      // (2/3) needs a different fix than the browser's permission setting.
+      (err) => setStatus(err.code === 1 ? "denied" : "unavailable"),
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 3600000 },
     );
   }
@@ -149,10 +159,25 @@ export function MosqueFinder() {
         </div>
       )}
 
-      {status === "locating" && <p style={{ color: N.muted }}>Getting your location…</p>}
+      {status === "locating" && (
+        <p role="status" style={{ color: N.muted }}>
+          Getting your location…
+        </p>
+      )}
+
+      {status === "unavailable" && (
+        <div style={ctaCard} role="alert">
+          <p style={{ margin: 0, color: N.muted, lineHeight: 1.6 }}>
+            Couldn’t get your location. Check that location services are turned on, then try again.
+          </p>
+          <button type="button" style={{ ...ghostBtn, alignSelf: "flex-start" }} onClick={locate}>
+            Try again
+          </button>
+        </div>
+      )}
 
       {status === "denied" && (
-        <div style={ctaCard}>
+        <div style={ctaCard} role="alert">
           <p style={{ margin: 0, color: N.muted, lineHeight: 1.6 }}>
             Location permission was denied. Enable it in your browser to find nearby mosques.
           </p>
@@ -163,7 +188,7 @@ export function MosqueFinder() {
       )}
 
       {status === "offline" && (
-        <div style={ctaCard}>
+        <div style={ctaCard} role="alert">
           <p style={{ margin: 0, color: N.muted, lineHeight: 1.6 }}>
             You’re offline. Mosque search needs an internet connection to reach OpenStreetMap.
           </p>
@@ -178,7 +203,7 @@ export function MosqueFinder() {
       )}
 
       {status === "error" && (
-        <div style={ctaCard}>
+        <div style={ctaCard} role="alert">
           <p style={{ margin: 0, color: N.muted, lineHeight: 1.6 }}>
             Couldn’t load nearby mosques. Check your connection and retry.
           </p>
@@ -225,7 +250,11 @@ export function MosqueFinder() {
             </button>
           </div>
 
-          {status === "loading" && <p style={{ color: N.muted }}>Searching nearby…</p>}
+          {status === "loading" && (
+            <p role="status" style={{ color: N.muted }}>
+              Searching nearby…
+            </p>
+          )}
 
           {status === "ready" && places.length === 0 && (
             <p style={{ color: N.muted }}>
@@ -269,8 +298,7 @@ export function MosqueFinder() {
       )}
 
       <p style={{ marginTop: 18, color: N.faint, fontSize: 12.5 }}>
-        Mosque data © OpenStreetMap contributors, published under the Open Database License
-        (ODbL).
+        Mosque data © OpenStreetMap contributors, published under the Open Database License (ODbL).
       </p>
     </div>
   );

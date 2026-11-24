@@ -77,13 +77,37 @@ describe("MosqueFinder", () => {
     expect(JSON.parse(localStorage.getItem(COORDS_KEY)!)).toMatchObject(london);
   });
 
+  it("tells a refusal apart from location being unavailable, and announces it", async () => {
+    let code = 2; // POSITION_UNAVAILABLE (location services off)
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: {
+        getCurrentPosition: (_ok: PositionCallback, err: PositionErrorCallback) =>
+          err({ code } as GeolocationPositionError),
+      },
+    });
+    const { unmount } = render(<MosqueFinder />);
+    await userEvent.click(screen.getByRole("button", { name: /Use my location/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/location services/);
+    expect(screen.queryByText(/permission was denied/)).toBeNull();
+    unmount();
+
+    code = 1; // PERMISSION_DENIED
+    render(<MosqueFinder />);
+    await userEvent.click(screen.getByRole("button", { name: /Use my location/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/permission was denied/);
+  });
+
   it("shows an empty state distinct from an error when nothing is nearby", async () => {
     localStorage.setItem(COORDS_KEY, JSON.stringify(london));
     vi.stubGlobal(
       "fetch",
       vi
         .fn()
-        .mockResolvedValue({ ok: true, json: () => Promise.resolve({ ...PLACES_RESPONSE, places: [] }) }),
+        .mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ ...PLACES_RESPONSE, places: [] }),
+        }),
     );
 
     render(<MosqueFinder />);
@@ -110,9 +134,8 @@ describe("MosqueFinder", () => {
   });
 
   it("denies gracefully when geolocation permission is refused", async () => {
-    const getCurrentPosition = vi.fn(
-      (_success: PositionCallback, error?: PositionErrorCallback) =>
-        error?.({ code: 1 } as GeolocationPositionError),
+    const getCurrentPosition = vi.fn((_success: PositionCallback, error?: PositionErrorCallback) =>
+      error?.({ code: 1 } as GeolocationPositionError),
     );
     Object.defineProperty(navigator, "geolocation", {
       configurable: true,
