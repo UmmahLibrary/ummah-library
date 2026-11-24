@@ -216,6 +216,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
     <div>
       {/* Search field */}
       <div
+        className="noor-field"
         style={{
           ...card,
           display: "flex",

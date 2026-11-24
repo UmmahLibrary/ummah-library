@@ -352,6 +352,7 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
     <div>
       {/* Search field */}
       <div
+        className="noor-field"
         style={{
           ...card,
           display: "flex",

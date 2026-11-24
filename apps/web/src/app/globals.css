@@ -33,6 +33,13 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+/* Search boxes and number fields are a bare <input> inside a styled pill, with
+   the input's own outline turned off — ring the pill instead, or keyboard users
+   see no focus at all (WCAG 2.4.7). */
+.noor-field:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 /* Hidden-until-focused via clipping to a 1px box, not an off-canvas offset —
    an offset like `left: -9999px` extends the document's scrollable area in
    that direction, which is catastrophic under `dir="rtl"` (ADR 0040): the
@@ -1466,7 +1473,8 @@ body.peek-on.peek-hide-tr .ayah-tr {
 }
 .collection-name:focus {
   outline: none;
-  border-bottom: 1px solid var(--accent);
+  /* !important: the input's inline style sets a transparent bottom border. */
+  border-bottom: 1px solid var(--accent) !important;
 }
 .collection-count {
   font-size: 0.8rem;
