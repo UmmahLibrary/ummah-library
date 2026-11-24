@@ -106,3 +106,23 @@ describe("AyahActions — keyboard", () => {
     expect(screen.getByRole("button", { name: "Save" })).toHaveFocus();
   });
 });
+
+describe("AyahActions — Copy verse", () => {
+  it("copies the Arabic and real translations, never the 'no translation' note", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(
+      <div id="7:1" className="ayah">
+        <p className="ayah-ar">المص</p>
+        <p className="ayah-tr">
+          <span className="tr-missing">Irfan-ul-Quran has no translation for this āyah.</span>
+        </p>
+        <p className="ayah-tr">Alif-Lãm-Mĩm-Ṣãd.</p>
+        <AyahActions surah={7} aya={1} tafsirs={[]} />
+      </div>,
+    );
+    await userEvent.click(moreButton());
+    await userEvent.click(screen.getByRole("menuitem", { name: "Copy verse" }));
+    expect(writeText).toHaveBeenCalledWith("المص\nAlif-Lãm-Mĩm-Ṣãd.\n— 7:1");
+  });
+});

@@ -256,6 +256,9 @@ export function AyahActions({
     const translations = [...block.querySelectorAll<HTMLElement>(".ayah-tr")].map((node) => {
       const clone = node.cloneNode(true) as HTMLElement;
       clone.querySelector(".tr-name")?.remove();
+      // "…has no translation for this āyah" is a note to the reader, not text
+      // to copy or put on a share image.
+      clone.querySelector(".tr-missing")?.remove();
       return clone.textContent?.trim() ?? "";
     });
     return { arabic, translations: translations.filter(Boolean) };
