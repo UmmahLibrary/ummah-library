@@ -10,7 +10,12 @@ import {
   TextInput,
   View,
 } from "../Type";
-import { createCollection, isInCollection, toggleAyah, type VerseKey } from "@ummahlibrary/core";
+import {
+  isInCollection,
+  saveToNamedCollection,
+  toggleAyah,
+  type VerseKey,
+} from "@ummahlibrary/core";
 import { Icon } from "@ummahlibrary/ui";
 import { useTheme, type Palette } from "../theme";
 import { useLibrary, newCollectionId } from "../state/LibraryContext";
@@ -51,8 +56,8 @@ export function SaveToCollection({
     const name = newName.trim();
     if (!name) return;
     const id = newCollectionId();
-    // Create, then add this ayah to the new collection.
-    updateCollections(toggleAyah(createCollection(collections, id, name), id, ref));
+    // Create and add — or, if that name already exists, save into it.
+    updateCollections(saveToNamedCollection(collections, id, name, ref));
     setNewName("");
   }
 
@@ -81,9 +86,21 @@ export function SaveToCollection({
       )}
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => setOpen(false)}
+          // Tap-outside wrappers aren't a11y elements: accessible, they folded
+          // the whole sheet into one node VoiceOver couldn't look inside.
+          accessible={false}
+        >
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <Pressable
+              style={styles.sheet}
+              onPress={(e) => e.stopPropagation()}
+              accessible={false}
+              accessibilityViewIsModal
+              onAccessibilityEscape={() => setOpen(false)}
+            >
               <Text style={styles.title}>
                 {tf("rd.save.title", { ref: `${num(sura)}:${num(aya)}` })}
               </Text>

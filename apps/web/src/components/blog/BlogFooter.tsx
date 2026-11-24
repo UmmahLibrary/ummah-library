@@ -24,11 +24,26 @@ export function BlogFooter() {
             href="https://github.com/UmmahLibrary/ummah-library"
             target="_blank"
             rel="noreferrer"
-            style={{ fontSize: 13, color: N.muted, textDecoration: "none" }}
+            style={{
+              fontSize: 13,
+              color: N.muted,
+              textDecoration: "none",
+              display: "inline-block",
+              padding: "4px 0",
+            }}
           >
             GitHub
           </a>
-          <Link href="/" style={{ fontSize: 13, color: N.muted, textDecoration: "none" }}>
+          <Link
+            href="/"
+            style={{
+              fontSize: 13,
+              color: N.muted,
+              textDecoration: "none",
+              display: "inline-block",
+              padding: "4px 0",
+            }}
+          >
             Open the app
           </Link>
         </div>

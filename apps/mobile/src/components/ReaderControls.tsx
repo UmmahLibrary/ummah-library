@@ -158,9 +158,17 @@ export function ReaderControls({
         <Pressable
           style={styles.backdrop}
           onPress={() => setReciterOpen(false)}
-          accessibilityLabel={t("rd.close")}
+          // Tap-outside wrappers aren't a11y elements: accessible, they folded
+          // the reciter list into one node VoiceOver couldn't look inside.
+          accessible={false}
         >
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={styles.sheet}
+            onPress={(e) => e.stopPropagation()}
+            accessible={false}
+            accessibilityViewIsModal
+            onAccessibilityEscape={() => setReciterOpen(false)}
+          >
             <Text style={styles.sheetTitle} accessibilityRole="header">
               {t("rd.reciter")}
             </Text>

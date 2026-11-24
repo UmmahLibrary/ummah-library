@@ -4,6 +4,7 @@ import {
   ayahKey,
   collectionsWithAyah,
   createCollection,
+  saveToNamedCollection,
   deleteCollection,
   isInCollection,
   renameCollection,
@@ -60,5 +61,24 @@ describe("rename / delete", () => {
     expect(renameCollection(cols, "a", " Favourites ")[0]!.name).toBe("Favourites");
     expect(renameCollection(cols, "a", "  ")[0]!.name).toBe("A");
     expect(deleteCollection(cols, "a")).toEqual([]);
+  });
+});
+
+describe("saveToNamedCollection", () => {
+  const ref = { sura: 2, aya: 255 };
+  it("reuses a same-named collection instead of creating a duplicate", () => {
+    const start = [{ id: "a", name: "Favourites", ayahs: [] }];
+    const next = saveToNamedCollection(start, "b", "  favourites ", ref);
+    expect(next).toHaveLength(1);
+    expect(next[0]!.ayahs).toEqual([ref]);
+    // Saving again keeps it saved — it never toggles the āyah back out.
+    expect(saveToNamedCollection(next, "c", "Favourites", ref)[0]!.ayahs).toEqual([ref]);
+  });
+
+  it("creates a new collection for a new name, and ignores a blank one", () => {
+    expect(saveToNamedCollection([], "a", "Duas", ref)).toEqual([
+      { id: "a", name: "Duas", ayahs: [ref] },
+    ]);
+    expect(saveToNamedCollection([], "a", "   ", ref)).toEqual([]);
   });
 });

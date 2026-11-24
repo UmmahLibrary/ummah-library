@@ -232,8 +232,9 @@ export function PrayerTrackerScreen() {
                   key={d.date}
                   disabled={dayPaused}
                   onPress={() => cycleDate(d.date, p)}
+                  // The date too — otherwise all seven cells in a row read the same.
                   accessibilityLabel={tf("pr.cellA11y", {
-                    name: prayerName(p),
+                    name: `${prayerName(p)} · ${isoDateLabel(d.date)}`,
                     status: dayPaused ? t("pr.paused") : t(STATUS_LABEL[st]),
                   })}
                   style={[

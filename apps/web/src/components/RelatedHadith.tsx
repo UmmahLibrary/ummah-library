@@ -36,6 +36,8 @@ function loadRelated(surah: number, aya: number): Promise<RelatedHadithItem[]> {
         return res.json() as Promise<Response>;
       })
       .then((data) => data.hadiths);
+    // Forget a failure so the next open retries (e.g. after coming back online).
+    pending.catch(() => cache.delete(key));
     cache.set(key, pending);
   }
   return pending;
@@ -57,10 +59,15 @@ const GRADE_COLOR: Record<HadithGrade, string> = {
  * matched span as evidence and says plainly how the connection was made, rather
  * than presenting it as an editorial judgement it is not.
  */
+const PREVIEW = 3;
+
 export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
   const { t, tf } = useIntl();
   const [items, setItems] = useState<RelatedHadithItem[] | null>(null);
   const [failed, setFailed] = useState(false);
+  // 33:21 alone has 34 long hadith — ~29,000px on a phone between one āyah and
+  // the next. Show a few; the rest on request.
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -88,11 +95,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
   } as const;
 
   if (failed) {
-    return (
-      <div style={{ ...frame, fontSize: 13.5, color: N.muted }}>
-        {t("related.failed")}
-      </div>
-    );
+    return <div style={{ ...frame, fontSize: 13.5, color: N.muted }}>{t("related.failed")}</div>;
   }
 
   if (items === null) {
@@ -104,11 +107,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
   }
 
   if (items.length === 0) {
-    return (
-      <div style={{ ...frame, fontSize: 13.5, color: N.muted }}>
-        {t("related.none")}
-      </div>
-    );
+    return <div style={{ ...frame, fontSize: 13.5, color: N.muted }}>{t("related.none")}</div>;
   }
 
   return (
@@ -130,7 +129,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {items.map((h) => {
+        {(showAll ? items : items.slice(0, PREVIEW)).map((h) => {
           const grade = hadithGradeCategory(h.collectionId, h.grades);
           return (
             <article
@@ -153,7 +152,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
                 }}
               >
                 <a
-                  href={`/hadith?collection=${h.collectionId}&section=${h.reference.book}`}
+                  href={`/hadith?collection=${h.collectionId}&hadith=${h.number}`}
                   style={{ fontSize: 13.5, fontWeight: 700, color: N.gold, textDecoration: "none" }}
                 >
                   {h.collectionName} · {h.number}
@@ -201,6 +200,16 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
           );
         })}
       </div>
+      {!showAll && items.length > PREVIEW && (
+        <button
+          type="button"
+          className="nf-btn"
+          onClick={() => setShowAll(true)}
+          style={{ marginTop: 12, minHeight: 44, padding: "0 16px", fontSize: 14 }}
+        >
+          {tf("related.showAll", { n: items.length })}
+        </button>
+      )}
     </div>
   );
 }

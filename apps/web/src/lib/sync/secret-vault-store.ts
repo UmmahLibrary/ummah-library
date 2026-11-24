@@ -80,6 +80,15 @@ async function getWrapKey(): Promise<CryptoKey> {
 }
 
 /** True for a value this module produced — anything else is a legacy plaintext secret. */
+/** Drop the wrapping key's database (Settings → Erase all data). */
+export function deleteVault(): void {
+  try {
+    indexedDB.deleteDatabase(DB_NAME);
+  } catch {
+    /* IndexedDB unavailable */
+  }
+}
+
 export function isWrappedSecret(value: string): boolean {
   return value.startsWith(BLOB_PREFIX) && value.split(":").length === 3;
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DUAS, DUA_CATEGORIES, type Dua, duaOfToday } from "@ummahlibrary/core";
+import Link from "next/link";
+import { DUAS, DUA_CATEGORIES, type Dua, duaOfToday, duaVerse } from "@ummahlibrary/core";
 import { N, Khatam } from "@ummahlibrary/ui";
 
 const refStyle = { fontSize: 13, color: N.gold, fontWeight: 600, fontFamily: N.ui } as const;
@@ -11,6 +12,21 @@ const arStyle = {
   textAlign: "right",
   color: N.fg,
 } as const;
+
+/** The reference, linking to the āyah in the reader so it can be read in context. */
+function DuaRef({ dua }: { dua: Dua }) {
+  const v = duaVerse(dua);
+  if (!v) return <div style={refStyle}>{dua.ref}</div>;
+  return (
+    <Link
+      href={`/surah/${v.sura}#${v.sura}:${v.aya}`}
+      aria-label={`${dua.ref} — read in context`}
+      style={{ ...refStyle, textDecoration: "none", display: "inline-block", padding: "4px 0" }}
+    >
+      {dua.ref} →
+    </Link>
+  );
+}
 
 /** Qurʾānic duʿās — a featured duʿā of the day plus the collection grouped by
  *  moment. Shares the curated set with mobile via core. */
@@ -34,7 +50,10 @@ export function DuasView() {
           marginBottom: 8,
         }}
       >
-        <div aria-hidden="true" style={{ position: "absolute", right: -34, top: -40, pointerEvents: "none" }}>
+        <div
+          aria-hidden="true"
+          style={{ position: "absolute", right: -34, top: -40, pointerEvents: "none" }}
+        >
           <Khatam size={140} color={N.gold} sw={1.1} opacity={0.07} />
         </div>
         <div
@@ -53,10 +72,18 @@ export function DuasView() {
         <div className="noor-ar" dir="rtl" lang="ar" style={{ ...arStyle, fontSize: 25 }}>
           {featured.ar}
         </div>
-        <div style={{ fontSize: 15, lineHeight: 1.65, color: N.muted, margin: "12px 0 10px", fontFamily: N.ui }}>
+        <div
+          style={{
+            fontSize: 15,
+            lineHeight: 1.65,
+            color: N.muted,
+            margin: "12px 0 10px",
+            fontFamily: N.ui,
+          }}
+        >
           “{featured.en}”
         </div>
-        <div style={refStyle}>{featured.ref}</div>
+        <DuaRef dua={featured} />
       </div>
 
       {DUA_CATEGORIES.map((cat) => {
@@ -81,15 +108,28 @@ export function DuasView() {
               {list.map((d) => (
                 <div
                   key={d.ref}
-                  style={{ background: N.card, border: `1px solid ${N.border}`, borderRadius: 14, padding: "16px 18px" }}
+                  style={{
+                    background: N.card,
+                    border: `1px solid ${N.border}`,
+                    borderRadius: 14,
+                    padding: "16px 18px",
+                  }}
                 >
                   <div className="noor-ar" dir="rtl" lang="ar" style={arStyle}>
                     {d.ar}
                   </div>
-                  <div style={{ fontSize: 14.5, lineHeight: 1.6, color: N.muted, margin: "10px 0 8px", fontFamily: N.ui }}>
+                  <div
+                    style={{
+                      fontSize: 14.5,
+                      lineHeight: 1.6,
+                      color: N.muted,
+                      margin: "10px 0 8px",
+                      fontFamily: N.ui,
+                    }}
+                  >
                     {d.en}
                   </div>
-                  <div style={refStyle}>{d.ref}</div>
+                  <DuaRef dua={d} />
                 </div>
               ))}
             </div>
@@ -97,7 +137,16 @@ export function DuasView() {
         );
       })}
 
-      <div style={{ fontSize: 12.5, color: N.faint, textAlign: "center", lineHeight: 1.6, marginTop: 20, fontFamily: N.ui }}>
+      <div
+        style={{
+          fontSize: 12.5,
+          color: N.faint,
+          textAlign: "center",
+          lineHeight: 1.6,
+          marginTop: 20,
+          fontFamily: N.ui,
+        }}
+      >
         Qurʾānic supplications · recite with presence of heart and certainty of response.
       </div>
     </div>

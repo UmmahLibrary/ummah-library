@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { N, Icon } from "@ummahlibrary/ui";
 import { useIntl } from "../i18n/I18nProvider";
 import { fetchCatalogue } from "../lib/catalogue";
+import { focusSoon, focusTargetAfterRemoving } from "../lib/focus";
 import { EDITIONS_KEY, editionsChosen, readEditions, writeEditions } from "../lib/editions";
 
 /** Window event the reader toolbar listens for to open the translation chooser. */
@@ -18,6 +19,16 @@ export function TranslationNotice() {
   const { t, tf } = useIntl();
   const [show, setShow] = useState(false);
   const [label, setLabel] = useState<string | null>(null);
+  const box = useRef<HTMLDivElement>(null);
+
+  // "Keep" removes the notice — and the focused button with it. Hand focus to
+  // whatever comes next on the page instead of dropping it to <body>.
+  function keep() {
+    const next = focusTargetAfterRemoving(box.current);
+    void readEditions()
+      .then((ids) => writeEditions(ids))
+      .then(() => focusSoon(next));
+  }
 
   useEffect(() => {
     let active = true;
@@ -46,6 +57,7 @@ export function TranslationNotice() {
 
   return (
     <div
+      ref={box}
       role="status"
       style={{
         display: "flex",
@@ -78,7 +90,7 @@ export function TranslationNotice() {
         type="button"
         className="nf-btn"
         style={{ minHeight: 44, padding: "0 14px", fontSize: 14.5, border: "none", color: N.muted }}
-        onClick={() => void readEditions().then((ids) => writeEditions(ids))}
+        onClick={keep}
       >
         {t("tr.keep")}
       </button>

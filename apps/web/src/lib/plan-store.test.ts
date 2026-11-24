@@ -26,7 +26,8 @@ import {
 import { clearAllData, collectLocalData, importBackup } from "./backup";
 
 /** An active plan with a little progress, for round-trip checks. */
-const samplePlan = () => toggleDayComplete(activatePlan(templateById("ramadan-khatm")!, "2026-03-01"), 3);
+const samplePlan = () =>
+  toggleDayComplete(activatePlan(templateById("ramadan-khatm")!, "2026-03-01"), 3);
 
 describe("webPlanStore (PlanStore adapter)", () => {
   beforeEach(() => localStorage.clear());
@@ -120,7 +121,7 @@ describe("plan state through export/import (acceptance #61)", () => {
 
     // Export everything, then simulate a fresh device.
     const fileText = JSON.stringify(buildBackup(collectLocalData(), new Date()));
-    clearAllData();
+    await clearAllData();
     expect(await webPlanStore.read()).toBeNull();
 
     // Import the backup → the plan comes back intact.

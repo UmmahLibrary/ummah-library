@@ -295,12 +295,13 @@ export function HijriCalendarScreen() {
                 <Pressable
                   onPress={() => void toggleReminder(m.event.id)}
                   hitSlop={8}
-                  accessibilityLabel={tf(
-                    reminders[m.event.id] ? "pr.reminderOff" : "pr.reminderOn",
-                    {
-                      name: eventName(m.event.id, m.event.name),
-                    },
-                  )}
+                  // Announced as a switch with its state, under one fixed name —
+                  // it had no role, so it wasn't even read as a control.
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: !!reminders[m.event.id] }}
+                  accessibilityLabel={tf("pr.reminderFor", {
+                    name: eventName(m.event.id, m.event.name),
+                  })}
                   style={[styles.bellBtn, reminders[m.event.id] && styles.bellBtnOn]}
                 >
                   <Icon

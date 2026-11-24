@@ -58,6 +58,35 @@ export type SupplementaryTimings = Record<SupplementaryTimingName, string>;
 export type ExtendedPrayerTimings = PrayerTimings & SupplementaryTimings;
 
 /**
+ * Blank out times that can't be right because they're out of order. Close to the
+ * poles the astronomy can still return a number where the real answer is "no such
+ * time": in Tromsø in late November the sun is up for two hours, the Asr shadow
+ * length is never reached, and the library hands back an Asr *before sunrise*.
+ * Dhuhr (solar noon) always exists, so it is the anchor: Fajr and sunrise must
+ * come before it; Asr, Maghrib and Isha after it, Asr before Maghrib and Maghrib
+ * before Isha. A blanked time renders as "—", the same as one the library
+ * couldn't compute at all.
+ */
+export function withoutImpossibleTimes<T extends PrayerTimings>(t: T): T {
+  const at = (iso: string) => (iso ? new Date(iso).getTime() : Number.NaN);
+  const out = { ...t };
+  const dhuhr = at(t.dhuhr);
+  if (Number.isNaN(dhuhr)) return out;
+  const drop = (k: PrayerName) => {
+    out[k] = "" as T[PrayerName];
+  };
+  if (at(t.fajr) >= dhuhr) drop("fajr");
+  if (at(t.sunrise) >= dhuhr) drop("sunrise");
+  if (at(out.fajr) >= at(out.sunrise)) drop("fajr");
+  if (at(t.asr) <= dhuhr) drop("asr");
+  if (at(t.maghrib) <= dhuhr) drop("maghrib");
+  if (at(t.isha) <= dhuhr) drop("isha");
+  if (at(out.asr) >= at(out.maghrib)) drop("asr");
+  if (at(out.isha) <= at(out.maghrib)) drop("isha");
+  return out;
+}
+
+/**
  * Imsāk precedes Fajr by this many minutes — the common fixed precautionary
  * offset used when a method carries no Imsāk angle of its own.
  */
@@ -111,7 +140,11 @@ export function isCalculationMethod(id: string): boolean {
  * keeps the raw method (correct for most latitudes); the others split the night
  * into portions. Ids map to `adhan`'s `HighLatitudeRule` in the adapter.
  */
-export type HighLatitudeRuleId = "none" | "MiddleOfTheNight" | "SeventhOfTheNight" | "TwilightAngle";
+export type HighLatitudeRuleId =
+  | "none"
+  | "MiddleOfTheNight"
+  | "SeventhOfTheNight"
+  | "TwilightAngle";
 
 export interface HighLatitudeRuleInfo {
   id: HighLatitudeRuleId;

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { HifzCard } from "./hifz";
 import {
   type HifzActivityLog,
+  activityDateKey,
   activityHeatmap,
   cardStrength,
   hifzStreaks,
@@ -22,8 +23,12 @@ const card = (opts: Partial<HifzCard> = {}): HifzCard => ({
 describe("cardStrength", () => {
   it("is 0 when never reviewed, proportional to interval, capped at 1", () => {
     expect(cardStrength(card())).toBe(0);
-    expect(cardStrength(card({ lastReviewed: "2026-06-01T00:00:00.000Z", intervalDays: 15 }))).toBe(0.5);
-    expect(cardStrength(card({ lastReviewed: "2026-06-01T00:00:00.000Z", intervalDays: 60 }))).toBe(1);
+    expect(cardStrength(card({ lastReviewed: "2026-06-01T00:00:00.000Z", intervalDays: 15 }))).toBe(
+      0.5,
+    );
+    expect(cardStrength(card({ lastReviewed: "2026-06-01T00:00:00.000Z", intervalDays: 60 }))).toBe(
+      1,
+    );
   });
 });
 
@@ -31,12 +36,26 @@ describe("surahProgressMap + weakestSurahs", () => {
   const now = new Date("2026-06-14T00:00:00.000Z");
   const records = [
     // Surah 2: one strong+due (strength 1), one fresh not-due (strength 0) → avg 0.5.
-    { ref: { sura: 2, aya: 1 }, card: card({ due: "2000-01-01T00:00:00.000Z", lastReviewed: "2026-06-01T00:00:00.000Z", intervalDays: 30 }) },
+    {
+      ref: { sura: 2, aya: 1 },
+      card: card({
+        due: "2000-01-01T00:00:00.000Z",
+        lastReviewed: "2026-06-01T00:00:00.000Z",
+        intervalDays: 30,
+      }),
+    },
     { ref: { sura: 2, aya: 2 }, card: card({ due: "2099-01-01T00:00:00.000Z" }) },
     // Surah 1: a single due, fresh card → avg 0.
     { ref: { sura: 1, aya: 1 }, card: card({ due: "2000-06-01T00:00:00.000Z" }) },
     // Surah 3: one strong card → avg 1.
-    { ref: { sura: 3, aya: 5 }, card: card({ due: "2099-01-01T00:00:00.000Z", lastReviewed: "2026-06-01T00:00:00.000Z", intervalDays: 40 }) },
+    {
+      ref: { sura: 3, aya: 5 },
+      card: card({
+        due: "2099-01-01T00:00:00.000Z",
+        lastReviewed: "2026-06-01T00:00:00.000Z",
+        intervalDays: 40,
+      }),
+    },
   ];
 
   it("aggregates tracked/due/strength/earliest-due per surah", () => {
@@ -57,12 +76,20 @@ describe("surahProgressMap + weakestSurahs", () => {
 });
 
 describe("logReview", () => {
-  it("increments today's UTC day count without mutating the input", () => {
+  it("increments the reader's local day count without mutating the input", () => {
     const log: HifzActivityLog = { "2026-06-13": 2 };
-    const next = logReview(log, new Date("2026-06-14T09:30:00.000Z"));
+    const next = logReview(log, new Date(2026, 5, 14, 9, 30)); // local 09:30
     expect(next["2026-06-14"]).toBe(1);
-    expect(logReview(next, new Date("2026-06-14T21:00:00.000Z"))["2026-06-14"]).toBe(2);
+    expect(logReview(next, new Date(2026, 5, 14, 21, 0))["2026-06-14"]).toBe(2); // local 21:00
     expect(log).toEqual({ "2026-06-13": 2 }); // original untouched
+  });
+
+  it("keys by the local calendar day, not the UTC one", () => {
+    // Reviews at 23:30 and 00:30 local fall on two local days, whatever the
+    // timezone — under UTC keys an evening review in the Americas landed on
+    // "tomorrow" and broke daily streaks.
+    expect(activityDateKey(new Date(2026, 5, 14, 23, 30))).toBe("2026-06-14");
+    expect(activityDateKey(new Date(2026, 5, 15, 0, 30))).toBe("2026-06-15");
   });
 });
 
@@ -79,7 +106,12 @@ describe("activityHeatmap", () => {
   });
 
   it("buckets counts into levels 0–4", () => {
-    const log: HifzActivityLog = { "2026-06-17": 1, "2026-06-16": 3, "2026-06-15": 6, "2026-06-14": 9 };
+    const log: HifzActivityLog = {
+      "2026-06-17": 1,
+      "2026-06-16": 3,
+      "2026-06-15": 6,
+      "2026-06-14": 9,
+    };
     const byDate = new Map(activityHeatmap(log, today, 26).map((d) => [d.date, d]));
     expect(byDate.get("2026-06-18")!.level).toBe(0); // future/empty
     expect(byDate.get("2026-06-17")!.level).toBe(1);
@@ -114,6 +146,9 @@ describe("hifzStreaks", () => {
 
   it("is zero when there is no recent activity", () => {
     expect(hifzStreaks({ "2026-01-01": 1 }, new Date("2026-06-17T00:00:00.000Z")).current).toBe(0);
-    expect(hifzStreaks({}, new Date("2026-06-17T00:00:00.000Z"))).toEqual({ current: 0, longest: 0 });
+    expect(hifzStreaks({}, new Date("2026-06-17T00:00:00.000Z"))).toEqual({
+      current: 0,
+      longest: 0,
+    });
   });
 });

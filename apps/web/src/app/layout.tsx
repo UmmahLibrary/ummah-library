@@ -76,21 +76,16 @@ export const metadata: Metadata = {
   description:
     "An open-source Quran reader — read the Quran with translations, recitations, tafsir and Islamic tools.",
   manifest: "/manifest.webmanifest",
+  // Only what's true of every page. A url/title here was inherited by every page
+  // without its own `openGraph`, so sharing /names announced the home page (and
+  // og:url sent scrapers there). The home page sets its own below; other pages
+  // fall back to their <title> and description.
   openGraph: {
     type: "website",
-    url: SITE_URL,
     siteName: "Ummah Library",
-    title: "Ummah Library — the open-source Quran & Islamic library",
-    description:
-      "Read, listen, memorise and track — free, private and offline. No ads, no tracking, no account. A community Sadaqah Jariyah, licensed AGPL-3.0.",
     locale: "en_US",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Ummah Library — the open-source Quran & Islamic library",
-    description:
-      "Read, listen, memorise and track — free, private and offline. No ads, no tracking, no account.",
-  },
+  twitter: { card: "summary_large_image" },
   applicationName: "Ummah Library",
   appleWebApp: {
     capable: true,

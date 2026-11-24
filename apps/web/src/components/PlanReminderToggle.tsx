@@ -10,6 +10,7 @@ import {
 } from "../lib/plan-reminders";
 import { WebNotifier } from "../lib/web-notifier";
 import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
+import { onRadioGroupKeyDown, radioTabIndex } from "../lib/radio-group";
 
 /** When the daily nudge comes: anchored to a prayer, or a clock time (ADR 0041). */
 const ANCHORS: { value: string; label: string }[] = [
@@ -120,9 +121,10 @@ export function PlanReminderToggle() {
           <div
             role="radiogroup"
             aria-label="When to remind me"
+            onKeyDown={onRadioGroupKeyDown}
             style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
           >
-            {ANCHORS.map((a) => {
+            {ANCHORS.map((a, i) => {
               const active = anchorValue === a.value;
               return (
                 <button
@@ -130,6 +132,11 @@ export function PlanReminderToggle() {
                   type="button"
                   role="radio"
                   aria-checked={active}
+                  tabIndex={radioTabIndex(
+                    active,
+                    i,
+                    ANCHORS.some((x) => x.value === anchorValue),
+                  )}
                   onClick={() => changeTime(a.value === "clock" ? clock : a.value)}
                   style={{
                     minHeight: 44,

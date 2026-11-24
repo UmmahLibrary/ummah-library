@@ -53,6 +53,8 @@ export function ArticleTOC({ headings }: { headings: Heading[] }) {
           key={h.id}
           type="button"
           onClick={() => jump(h.id)}
+          // The gold rule shows the section you're in; say it too.
+          aria-current={active === h.id ? "location" : undefined}
           style={{
             textAlign: "left",
             background: "none",

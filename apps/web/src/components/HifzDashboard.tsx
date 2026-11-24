@@ -81,8 +81,17 @@ function levelColor(level: number): string {
 function HeatmapGrid({ days }: { days: HeatmapDay[] }) {
   const weeks: HeatmapDay[][] = [];
   for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+  const active = days.filter((d) => d.count > 0).length;
+  const reviews = days.reduce((n, d) => n + d.count, 0);
   return (
-    <div style={{ display: "flex", gap: 3, overflowX: "auto", paddingBottom: 4 }}>
+    <div
+      // Colour-only cells with hover titles: give the grid one spoken summary.
+      role="img"
+      aria-label={`Reviews over the last ${days.length} days: ${reviews} review${
+        reviews === 1 ? "" : "s"
+      } on ${active} day${active === 1 ? "" : "s"}`}
+      style={{ display: "flex", gap: 3, overflowX: "auto", paddingBottom: 4 }}
+    >
       {weeks.map((week, wi) => (
         <div key={wi} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
           {week.map((d) => (

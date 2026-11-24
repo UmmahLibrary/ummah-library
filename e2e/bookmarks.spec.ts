@@ -19,8 +19,10 @@ test.describe("Bookmarks", () => {
     await expect(page.getByText("1:1")).toBeVisible();
     await expect(page.getByText("The opening")).toBeVisible();
 
-    // Renaming round-trips back to localStorage.
+    // Renaming round-trips back to localStorage once editing ends (Enter or
+    // blur) — saving every keystroke ate typed spaces (round 111).
     await nameInput.fill("My Favourites");
+    await nameInput.press("Enter");
     await expect
       .poll(() =>
         page.evaluate(() => {

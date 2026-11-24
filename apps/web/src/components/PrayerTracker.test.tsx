@@ -78,6 +78,12 @@ describe("PrayerTracker × history grid", () => {
     const yesterdayCell = fajrCells[5]!;
     expect(yesterdayCell.getAttribute("aria-label")).toMatch(/Not yet — tap to change$/);
 
+    // Named with the full date, not the grid's ambiguous initial ("T", "S").
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    const yName = y.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+    expect(yesterdayCell.getAttribute("aria-label")).toContain(`Fajr · ${yName}:`);
+
     fireEvent.click(yesterdayCell);
 
     expect(await screen.findByLabelText(/^Fajr ·.*On time — tap to change$/)).toBeInTheDocument();

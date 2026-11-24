@@ -72,3 +72,17 @@ describe("HifzReview — keyboard and screen-reader focus", () => {
     expect(await screen.findByRole("button", { name: /Reveal āyah/ })).toHaveFocus();
   });
 });
+
+describe("HifzReview — nothing due", () => {
+  it("says when the next review is, instead of '0 āyāt reviewed'", async () => {
+    const inFiveDays = new Date(Date.now() + 5 * 86400000 - 60000).toISOString();
+    localStorage.setItem("ul.hifz", JSON.stringify({ "1:1": { ...card, due: inFiveDays } }));
+    render(<HifzReview surahNames={SURAH_NAMES} />);
+    expect(
+      await screen.findByText(
+        /Nothing is due yet — your next review is in 5 days\. 1 tracked in total\./,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/0 āyāt reviewed/)).toBeNull();
+  });
+});

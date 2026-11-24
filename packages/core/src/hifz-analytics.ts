@@ -62,10 +62,7 @@ export function surahProgressMap(
  * The tracked surahs most in need of work, weakest first (lowest average
  * strength, ties broken by surah order). Only surahs with tracked ayāt.
  */
-export function weakestSurahs(
-  progress: Iterable<SurahProgress>,
-  count: number,
-): SurahProgress[] {
+export function weakestSurahs(progress: Iterable<SurahProgress>, count: number): SurahProgress[] {
   return [...progress]
     .filter((p) => p.trackedCount > 0)
     .sort((a, b) => a.avgStrength - b.avgStrength || a.surahNumber - b.surahNumber)
@@ -74,12 +71,28 @@ export function weakestSurahs(
 
 // ── Review activity log ──────────────────────────────────────────────────────
 
-/** Number of reviews completed per day, keyed by `YYYY-MM-DD` (UTC). */
+/** Number of reviews completed per day, keyed by the reader's local `YYYY-MM-DD`. */
 export type HifzActivityLog = Record<string, number>;
 
-/** UTC `YYYY-MM-DD` for an instant (matches the streak store's day key). */
+/**
+ * The reader's *local* calendar day as a UTC-midnight Date, so day arithmetic
+ * below can stay in UTC (no daylight-saving drift). Keys used to be the UTC
+ * date: in the Americas a 7 pm review landed on "tomorrow", and a run of daily
+ * reviews either side of 19:00 EST broke the streak. Every other tracker (and
+ * the mobile streak) already used the local day.
+ */
+function localDay(d: Date): Date {
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+}
+
+/** `YYYY-MM-DD` of a UTC-midnight day from {@link localDay}. */
+function dayKey(utcDay: Date): string {
+  return utcDay.toISOString().slice(0, 10);
+}
+
+/** Local `YYYY-MM-DD` for an instant (matches the streak store's day key). */
 export function activityDateKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return dayKey(localDay(d));
 }
 
 function addUtcDays(d: Date, days: number): Date {
@@ -115,19 +128,16 @@ function intensity(count: number): HeatmapDay["level"] {
  * days after `today` sit at the end as empty (level 0) cells. Chunk into groups
  * of 7 for a columns-as-weeks render.
  */
-export function activityHeatmap(
-  log: HifzActivityLog,
-  today: Date,
-  weeks = 26,
-): HeatmapDay[] {
+export function activityHeatmap(log: HifzActivityLog, today: Date, weeks = 26): HeatmapDay[] {
   const cols = Math.max(1, weeks);
   // Sunday of the current week, then back to the first column's Sunday.
-  const todayWeekday = today.getUTCDay(); // 0 = Sunday
-  const start = addUtcDays(today, -todayWeekday - (cols - 1) * 7);
+  const day = localDay(today);
+  const todayWeekday = day.getUTCDay(); // 0 = Sunday
+  const start = addUtcDays(day, -todayWeekday - (cols - 1) * 7);
 
   const days: HeatmapDay[] = [];
   for (let i = 0; i < cols * 7; i++) {
-    const date = activityDateKey(addUtcDays(start, i));
+    const date = dayKey(addUtcDays(start, i));
     const count = log[date] ?? 0;
     days.push({ date, count, level: intensity(count) });
   }
@@ -147,7 +157,7 @@ export interface HifzStreaks {
 function runEndingAt(log: HifzActivityLog, anchor: Date): number {
   let count = 0;
   let cursor = anchor;
-  while ((log[activityDateKey(cursor)] ?? 0) > 0) {
+  while ((log[dayKey(cursor)] ?? 0) > 0) {
     count++;
     cursor = addUtcDays(cursor, -1);
   }
@@ -157,10 +167,9 @@ function runEndingAt(log: HifzActivityLog, anchor: Date): number {
 export function hifzStreaks(log: HifzActivityLog, today: Date): HifzStreaks {
   // Current: count from today; if today is blank, allow the run ending yesterday
   // so an as-yet-unreviewed day doesn't drop the streak to zero mid-day.
+  const day = localDay(today);
   const current =
-    (log[activityDateKey(today)] ?? 0) > 0
-      ? runEndingAt(log, today)
-      : runEndingAt(log, addUtcDays(today, -1));
+    (log[dayKey(day)] ?? 0) > 0 ? runEndingAt(log, day) : runEndingAt(log, addUtcDays(day, -1));
 
   // Longest: scan the active days in date order for the longest consecutive run.
   const active = Object.keys(log)
@@ -170,7 +179,10 @@ export function hifzStreaks(log: HifzActivityLog, today: Date): HifzStreaks {
   let run = 0;
   let prev: string | null = null;
   for (const key of active) {
-    run = prev !== null && key === activityDateKey(addUtcDays(new Date(`${prev}T00:00:00.000Z`), 1)) ? run + 1 : 1;
+    run =
+      prev !== null && key === dayKey(addUtcDays(new Date(`${prev}T00:00:00.000Z`), 1))
+        ? run + 1
+        : 1;
     if (run > longest) longest = run;
     prev = key;
   }

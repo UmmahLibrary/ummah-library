@@ -81,6 +81,7 @@ export function TopBar() {
       {/* Search bar */}
       <form
         onSubmit={handleSearch}
+        className="noor-field"
         style={{
           display: "flex",
           alignItems: "center",

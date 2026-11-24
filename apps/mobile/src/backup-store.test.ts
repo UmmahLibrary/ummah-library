@@ -20,7 +20,7 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
   },
 }));
 
-import { clearAll, restore, snapshot } from "./backup-store";
+import { clearAll, clearSyncState, restore, snapshot } from "./backup-store";
 
 beforeEach(() => mem.clear());
 
@@ -64,5 +64,16 @@ describe("mobile backup-store", () => {
     expect(await clearAll()).toBe(2);
     expect(mem.has("ul.a")).toBe(false);
     expect(mem.get("keep")).toBe("z");
+  });
+});
+
+describe("erase — sync state", () => {
+  it("clearSyncState removes every ul.sync.* key and nothing else", async () => {
+    mem.set("ul.sync.enabled", "1");
+    mem.set("ul.sync.cursor", "42");
+    mem.set("ul.sync.meta", "{}");
+    mem.set("ul.bookmarks", "[1]");
+    await clearSyncState();
+    expect([...mem.keys()]).toEqual(["ul.bookmarks"]);
   });
 });

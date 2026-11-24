@@ -47,7 +47,9 @@ export function SurahIndex({ surahs }: { surahs: SurahCard[] }) {
                   {surah.englishName} · {surah.ayahCount} āyāt
                 </span>
               </span>
-              <span className="name-ar arabic">{surah.name}</span>
+              <span className="name-ar arabic" lang="ar" dir="rtl">
+                {surah.name}
+              </span>
             </Link>
           ))}
         </nav>

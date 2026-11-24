@@ -93,3 +93,9 @@ export function duaOfToday(now: Date = new Date()): Dua {
   const dayOfYear = Math.floor((now.getTime() - yearStart) / 86_400_000);
   return DUAS[dayOfYear % DUAS.length]!;
 }
+
+/** The āyah a duʿā starts at, from its reference ("Ṭā-Hā 20:25–26" → 20:25). */
+export function duaVerse(dua: Pick<Dua, "ref">): { sura: number; aya: number } | null {
+  const m = /(\d+):(\d+)/.exec(dua.ref);
+  return m ? { sura: Number(m[1]), aya: Number(m[2]) } : null;
+}

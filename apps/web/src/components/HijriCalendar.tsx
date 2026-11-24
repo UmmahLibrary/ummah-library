@@ -118,13 +118,11 @@ export function HijriCalendar() {
     const firstWeekday = weekdayOf(
       hijriToGregorian({ year: view.year, month: view.month, day: 1 }, adjust),
     );
-    const out: ({ day: number; greg: string } | null)[] = [];
+    const out: ({ day: number; greg: string; gday: number } | null)[] = [];
     for (let i = 0; i < firstWeekday; i++) out.push(null);
     for (let day = 1; day <= length; day++) {
-      out.push({
-        day,
-        greg: gregorianLabel(hijriToGregorian({ year: view.year, month: view.month, day }, adjust)),
-      });
+      const g = hijriToGregorian({ year: view.year, month: view.month, day }, adjust);
+      out.push({ day, greg: gregorianLabel(g), gday: g.day });
     }
     return out;
   }, [view, adjust]);
@@ -190,7 +188,12 @@ export function HijriCalendar() {
           >
             {month.name} {view.year} AH
           </div>
-          <div className="noor-ar" style={{ fontSize: 15, color: N.gold, marginTop: 1 }}>
+          <div
+            className="noor-ar"
+            lang="ar"
+            dir="rtl"
+            style={{ fontSize: 15, color: N.gold, marginTop: 1 }}
+          >
             {month.arabic}
           </div>
         </div>
@@ -249,20 +252,47 @@ export function HijriCalendar() {
               </div>
             ))}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
+          <ol
+            aria-label={`${month.name} ${view.year} AH`}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7,1fr)",
+              gap: 4,
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+            }}
+          >
             {cells.map((cell, i) => {
-              if (!cell) return <div key={`pad-${i}`} />;
+              if (!cell) return <li key={`pad-${i}`} aria-hidden="true" />;
               const today = isToday(cell.day);
               const ev = eventDays.has(cell.day);
+              // The Gregorian date was only in a hover tooltip — invisible on touch
+              // screens and to screen readers. Name each day in full instead.
+              const label = [
+                `${cell.day} ${month.name}`,
+                cell.greg,
+                today ? "today" : "",
+                ev ? "observance" : "",
+              ]
+                .filter(Boolean)
+                .join(", ");
               return (
-                <div
+                <li
                   key={cell.day}
+                  aria-label={label}
+                  aria-current={today ? "date" : undefined}
                   title={ev ? `${cell.greg} · observance` : cell.greg}
                   style={{
                     aspectRatio: "1",
                     borderRadius: 10,
-                    display: "grid",
-                    placeItems: "center",
+                    // Hijri day over a small Gregorian one: side by side at phone
+                    // width, "13" and "24" read as an exponent ("13²⁴").
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    lineHeight: 1.1,
                     position: "relative",
                     background: today ? N.goldGrad : "transparent",
                     border: `1px solid ${today ? "transparent" : N.borderSoft}`,
@@ -272,12 +302,23 @@ export function HijriCalendar() {
                     fontFamily: N.ui,
                   }}
                 >
-                  {cell.day}
+                  <span aria-hidden="true">{cell.day}</span>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      fontSize: 9.5,
+                      fontWeight: 500,
+                      color: today ? N.ink : N.faint,
+                    }}
+                  >
+                    {cell.gday}
+                  </span>
                   {ev && !today && (
                     <div
                       style={{
                         position: "absolute",
-                        bottom: 5,
+                        top: 5,
+                        insetInlineEnd: 5,
                         width: 5,
                         height: 5,
                         borderRadius: 3,
@@ -285,10 +326,10 @@ export function HijriCalendar() {
                       }}
                     />
                   )}
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ol>
 
           {/* Legend */}
           <div
@@ -392,7 +433,7 @@ export function HijriCalendar() {
                       type="button"
                       onClick={() => void toggleReminder(m.event.id)}
                       aria-pressed={!!reminders[m.event.id]}
-                      aria-label={`${reminders[m.event.id] ? "Turn off" : "Turn on"} reminder for ${m.event.name}`}
+                      aria-label={`Remind me about ${m.event.name}`}
                       title="Remind me the evening before"
                       style={{
                         flexShrink: 0,
@@ -416,6 +457,15 @@ export function HijriCalendar() {
                 );
               })}
             </div>
+          )}
+          {Object.values(reminders).some(Boolean) && notifier.permission() === "denied" && (
+            <p
+              role="status"
+              style={{ fontSize: 12.5, color: N.faint, marginTop: 10, fontFamily: N.ui }}
+            >
+              Notifications are blocked in your browser — enable them in site settings to get these
+              reminders.
+            </p>
           )}
 
           {/* Sighting adjustment */}

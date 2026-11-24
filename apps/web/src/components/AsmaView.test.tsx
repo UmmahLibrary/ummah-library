@@ -30,7 +30,7 @@ describe("AsmaView", () => {
     expect(screen.getByText("Ar-Rahman")).toBeInTheDocument();
     expect(screen.getByText("The Most Merciful")).toBeInTheDocument();
     // Clean default — no progress line until something is marked.
-    expect(screen.queryByText(/marked/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/learned/)).not.toBeInTheDocument();
 
     const first = screen.getByRole("button", { name: /Ar-Rahman/ });
     expect(first).toHaveAttribute("aria-pressed", "false");
@@ -38,19 +38,19 @@ describe("AsmaView", () => {
     await userEvent.click(first);
 
     expect(first).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText("1 / 2 marked")).toBeInTheDocument();
+    expect(screen.getByText("1 of 2 learned")).toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem("ul.asmaLearned") ?? "{}")).toEqual({ "1": true });
 
     await userEvent.click(first); // toggle off
     expect(first).toHaveAttribute("aria-pressed", "false");
-    expect(screen.queryByText(/marked/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/learned/)).not.toBeInTheDocument();
   });
 
   it("restores 'learned' state from localStorage on mount", () => {
     localStorage.setItem("ul.asmaLearned", JSON.stringify({ "2": true }));
     render(<AsmaView names={NAMES} />);
 
-    expect(screen.getByText("1 / 2 marked")).toBeInTheDocument();
+    expect(screen.getByText("1 of 2 learned")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Ar-Rahim/ })).toHaveAttribute("aria-pressed", "true");
   });
 });

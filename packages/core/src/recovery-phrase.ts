@@ -71,3 +71,25 @@ export function canonicalizeRecoverySecret(secret: string): string {
   }
   return normalized.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
+
+/**
+ * Fewest letters/digits a typed (non-BIP39) secret must have once canonicalized.
+ * The legacy generated code was 25; anything this short is guessable.
+ */
+export const MIN_CUSTOM_SECRET_LENGTH = 20;
+
+/**
+ * Whether a recovery secret is strong enough to link a device.
+ *
+ * The secret alone derives both the server account and the encryption key (with a
+ * fixed salt), so two people who type the same weak phrase — "abc", "password",
+ * "bismillah" — land in the **same** account and can read each other's data. Accept
+ * a real 12-word phrase, or a typed secret of at least
+ * {@link MIN_CUSTOM_SECRET_LENGTH} letters/digits (which still admits every legacy
+ * 25-character code).
+ */
+export function isStrongRecoverySecret(secret: string): boolean {
+  const canonical = canonicalizeRecoverySecret(secret);
+  if (canonical.includes(" ")) return true; // a 12-word BIP39 phrase
+  return canonical.length >= MIN_CUSTOM_SECRET_LENGTH;
+}

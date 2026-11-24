@@ -86,6 +86,7 @@ export function CodeBlock({ lang, code }: { lang: string; code: string }) {
             border: "none",
             cursor: "pointer",
             color: copied ? N.gold : N.faint,
+            padding: "6px 4px", // a 17px label → a 29px target
             fontSize: 12,
             fontWeight: 600,
             fontFamily: N.ui,
@@ -93,8 +94,18 @@ export function CodeBlock({ lang, code }: { lang: string; code: string }) {
         >
           {copied ? "Copied" : "Copy"}
         </button>
+        {/* The button's own label change isn't reliably spoken; this is. */}
+        <span role="status" className="sr-only">
+          {copied ? "Code copied" : ""}
+        </span>
       </div>
-      <pre style={{ margin: 0, padding: "16px 18px", overflowX: "auto" }}>
+      <pre
+        // A long line scrolls sideways; without a tab stop keyboard users
+        // can't reach the rest of it (WCAG 2.1.1).
+        tabIndex={0}
+        aria-label={`${lang || "Code"} example`}
+        style={{ margin: 0, padding: "16px 18px", overflowX: "auto" }}
+      >
         <code
           style={{
             fontFamily: "ui-monospace, Menlo, monospace",

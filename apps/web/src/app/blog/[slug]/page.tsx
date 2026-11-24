@@ -6,7 +6,7 @@ import {
   getPublishedArticles,
   getSeriesNeighbors,
 } from "../../../lib/blog/articles";
-import { SITE_URL } from "../../../lib/site";
+import { SHARE_IMAGE, SITE_URL } from "../../../lib/site";
 import { ArticleBody } from "../../../components/blog/ArticleBody";
 import { ArticleTOC } from "../../../components/blog/ArticleTOC";
 import { ContributeCallout } from "../../../components/blog/ContributeCallout";
@@ -38,8 +38,19 @@ export async function generateMetadata({
     title: article.title,
     description: article.description,
     alternates: { canonical: url },
-    openGraph: { title: article.title, description: article.description, url, type: "article" },
-    twitter: { card: "summary", title: article.title, description: article.description },
+    openGraph: {
+      title: article.title,
+      description: article.description,
+      url,
+      type: "article",
+      images: [SHARE_IMAGE],
+    },
+    twitter: {
+      card: "summary",
+      title: article.title,
+      description: article.description,
+      images: [SHARE_IMAGE],
+    },
   };
 }
 

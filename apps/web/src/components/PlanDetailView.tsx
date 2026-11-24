@@ -95,7 +95,17 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
 
     return (
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "8px 0 60px" }}>
-        <Link href="/plans" style={{ color: N.muted, fontSize: 13, fontFamily: N.ui, textDecoration: "none" }}>
+        <Link
+          href="/plans"
+          style={{
+            color: N.muted,
+            fontSize: 13,
+            fontFamily: N.ui,
+            textDecoration: "none",
+            display: "inline-block",
+            padding: "4px 0",
+          }}
+        >
           ← All plans
         </Link>
 
@@ -132,7 +142,9 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
               }}
             >
               <div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: N.fg, fontFamily: N.ui }}>{pct}%</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: N.fg, fontFamily: N.ui }}>
+                  {pct}%
+                </div>
                 <div style={{ fontSize: 12, color: N.faint, fontFamily: N.ui }}>
                   Day {day} of {total}
                 </div>
@@ -143,7 +155,9 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
           <div style={{ minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Khatam size={26} color={N.gold} sw={1} opacity={0.7} />
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: N.fg, fontFamily: N.ui }}>
+              <h1
+                style={{ margin: 0, fontSize: 22, fontWeight: 800, color: N.fg, fontFamily: N.ui }}
+              >
                 {plan.template.name}
               </h1>
             </div>
@@ -188,7 +202,12 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
             <span style={{ color: N.muted, fontSize: 13.5, fontFamily: N.ui }}>
               Paused on {plan.pausedOn}. Your place is held — resume any time.
             </span>
-            <button type="button" className="noor-press" style={{ ...actionBtn, borderColor: N.gold, color: N.gold }} onClick={() => void resumePlan()}>
+            <button
+              type="button"
+              className="noor-press"
+              style={{ ...actionBtn, borderColor: N.gold, color: N.gold }}
+              onClick={() => void resumePlan()}
+            >
               <Icon name="play" size={14} color={N.gold} /> Resume
             </button>
           </div>
@@ -206,15 +225,40 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
             }}
           >
             <div>
-              <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: N.gold, fontWeight: 700, fontFamily: N.ui }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                  color: N.gold,
+                  fontWeight: 700,
+                  fontFamily: N.ui,
+                }}
+              >
                 Today
               </div>
-              <div style={{ marginTop: 4, color: N.fg, fontSize: 15, fontWeight: 600, fontFamily: N.ui }}>{portion.label}</div>
+              <div
+                style={{
+                  marginTop: 4,
+                  color: N.fg,
+                  fontSize: 15,
+                  fontWeight: 600,
+                  fontFamily: N.ui,
+                }}
+              >
+                {portion.label}
+              </div>
             </div>
             <Link
               href={targetHref(portion)}
               className="noor-press"
-              style={{ ...actionBtn, background: N.goldGrad, border: "none", color: N.ink, textDecoration: "none" }}
+              style={{
+                ...actionBtn,
+                background: N.goldGrad,
+                border: "none",
+                color: N.ink,
+                textDecoration: "none",
+              }}
             >
               <Icon name="book" size={15} color={N.ink} sw={1.8} /> Read now
             </Link>
@@ -223,15 +267,42 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
 
         {!paused && behind < 0 && (
           <p style={{ marginTop: 12, color: N.muted, fontSize: 13, fontFamily: N.ui }}>
-            You’re {Math.abs(behind)} {Math.abs(behind) === 1 ? "day" : "days"} behind — re-pace below to catch up gently.
+            You’re {Math.abs(behind)} {Math.abs(behind) === 1 ? "day" : "days"} behind — re-pace
+            below to catch up gently.
           </p>
         )}
 
         {/* Heatmap */}
-        <h2 style={{ fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: N.faint, fontWeight: 700, fontFamily: N.ui, margin: "28px 0 12px" }}>
+        <h2
+          style={{
+            fontSize: 12,
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            color: N.faint,
+            fontWeight: 700,
+            fontFamily: N.ui,
+            margin: "28px 0 12px",
+          }}
+        >
           Your days
         </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(16px, 1fr))", gap: 5 }}>
+        <div
+          // The cells are colour only (a hover title isn't read or touchable):
+          // announce the grid as one summary.
+          role="img"
+          aria-label={(() => {
+            let done = 0;
+            for (let d = 1; d <= total; d++) if (isDayComplete(plan, d)) done++;
+            let missed = 0;
+            for (let d = 1; d < day; d++) if (!isDayComplete(plan, d)) missed++;
+            return `Day ${Math.min(day, total)} of ${total}: ${done} done, ${missed} missed`;
+          })()}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(16px, 1fr))",
+            gap: 5,
+          }}
+        >
           {Array.from({ length: total }, (_, i) => i + 1).map((d) => {
             const done = isDayComplete(plan, d);
             const isToday = d === day;
@@ -253,35 +324,76 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
             );
           })}
         </div>
-        <div style={{ display: "flex", gap: 16, marginTop: 12, color: N.faint, fontSize: 11.5, fontFamily: N.ui }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 16,
+            marginTop: 12,
+            color: N.faint,
+            fontSize: 11.5,
+            fontFamily: N.ui,
+          }}
+        >
           <Legend swatch={N.gold} label="Done" />
           <Legend swatch={N.cardHi} label="Missed" />
           <Legend swatch="transparent" label="Upcoming" />
         </div>
 
         {/* Actions */}
-        <h2 style={{ fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: N.faint, fontWeight: 700, fontFamily: N.ui, margin: "28px 0 12px" }}>
+        <h2
+          style={{
+            fontSize: 12,
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            color: N.faint,
+            fontWeight: 700,
+            fontFamily: N.ui,
+            margin: "28px 0 12px",
+          }}
+        >
           Manage
         </h2>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          <button type="button" className="noor-press" style={actionBtn} onClick={() => void rebalancePlan()}>
+          <button
+            type="button"
+            className="noor-press"
+            style={actionBtn}
+            onClick={() => void rebalancePlan()}
+          >
             <Icon name="repeat" size={14} color={N.fg} sw={1.8} /> Re-pace (keep end date)
           </button>
-          <button type="button" className="noor-press" style={actionBtn} onClick={() => void extendPlanBy(7)}>
+          <button
+            type="button"
+            className="noor-press"
+            style={actionBtn}
+            onClick={() => void extendPlanBy(7)}
+          >
             <Icon name="plus" size={14} color={N.fg} sw={1.8} /> Extend +1 week
           </button>
           {paused ? (
-            <button type="button" className="noor-press" style={actionBtn} onClick={() => void resumePlan()}>
+            <button
+              type="button"
+              className="noor-press"
+              style={actionBtn}
+              onClick={() => void resumePlan()}
+            >
               <Icon name="play" size={14} color={N.fg} /> Resume
             </button>
           ) : (
-            <button type="button" className="noor-press" style={actionBtn} onClick={() => void pausePlan()}>
+            <button
+              type="button"
+              className="noor-press"
+              style={actionBtn}
+              onClick={() => void pausePlan()}
+            >
               <Icon name="pause" size={14} color={N.fg} /> Pause
             </button>
           )}
           {confirmAbandon ? (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <span style={{ color: N.muted, fontSize: 13, fontFamily: N.ui }}>Abandon this plan?</span>
+              <span style={{ color: N.muted, fontSize: 13, fontFamily: N.ui }}>
+                Abandon this plan?
+              </span>
               <button
                 type="button"
                 className="noor-press"
@@ -293,12 +405,22 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
               >
                 Yes, abandon
               </button>
-              <button type="button" className="noor-press" style={actionBtn} onClick={() => setConfirmAbandon(false)}>
+              <button
+                type="button"
+                className="noor-press"
+                style={actionBtn}
+                onClick={() => setConfirmAbandon(false)}
+              >
                 Keep
               </button>
             </span>
           ) : (
-            <button type="button" className="noor-press" style={{ ...actionBtn, color: N.muted }} onClick={() => setConfirmAbandon(true)}>
+            <button
+              type="button"
+              className="noor-press"
+              style={{ ...actionBtn, color: N.muted }}
+              onClick={() => setConfirmAbandon(true)}
+            >
               <Icon name="close" size={14} color={N.muted} sw={1.8} /> Abandon
             </button>
           )}
@@ -311,18 +433,48 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
   if (template) {
     return (
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "8px 0 60px" }}>
-        <Link href="/plans" style={{ color: N.muted, fontSize: 13, fontFamily: N.ui, textDecoration: "none" }}>
+        <Link
+          href="/plans"
+          style={{
+            color: N.muted,
+            fontSize: 13,
+            fontFamily: N.ui,
+            textDecoration: "none",
+            display: "inline-block",
+            padding: "4px 0",
+          }}
+        >
           ← All plans
         </Link>
-        <div style={{ marginTop: 18, padding: 22, borderRadius: 16, border: `1px solid ${N.border}`, background: N.card }}>
+        <div
+          style={{
+            marginTop: 18,
+            padding: 22,
+            borderRadius: 16,
+            border: `1px solid ${N.border}`,
+            background: N.card,
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Khatam size={28} color={N.gold} sw={1} opacity={0.7} />
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: N.fg, fontFamily: N.ui }}>{template.name}</h1>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: N.fg, fontFamily: N.ui }}>
+              {template.name}
+            </h1>
           </div>
           <p style={{ margin: "8px 0 0", color: N.muted, fontSize: 13.5, fontFamily: N.ui }}>
             {template.tag} · {template.len}
           </p>
-          <p style={{ margin: "12px 0 0", color: N.fg, fontSize: 14.5, lineHeight: 1.5, fontFamily: N.ui }}>{template.desc}</p>
+          <p
+            style={{
+              margin: "12px 0 0",
+              color: N.fg,
+              fontSize: 14.5,
+              lineHeight: 1.5,
+              fontFamily: N.ui,
+            }}
+          >
+            {template.desc}
+          </p>
           {plan && (
             <p style={{ margin: "14px 0 0", color: N.faint, fontSize: 12.5, fontFamily: N.ui }}>
               Starting this replaces your current plan ({plan.template.name}).
@@ -331,7 +483,13 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
           <button
             type="button"
             className="noor-press"
-            style={{ ...actionBtn, marginTop: 18, background: N.goldGrad, border: "none", color: N.ink }}
+            style={{
+              ...actionBtn,
+              marginTop: 18,
+              background: N.goldGrad,
+              border: "none",
+              color: N.ink,
+            }}
             onClick={() => void startPlan(templateId)}
           >
             <Icon name="book" size={15} color={N.ink} sw={1.8} /> Start this plan
@@ -355,7 +513,15 @@ export function PlanDetailView({ templateId }: { templateId: string }) {
 function Legend({ swatch, label }: { swatch: string; label: string }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-      <span style={{ width: 11, height: 11, borderRadius: 3, background: swatch, border: `1px solid ${N.border}` }} />
+      <span
+        style={{
+          width: 11,
+          height: 11,
+          borderRadius: 3,
+          background: swatch,
+          border: `1px solid ${N.border}`,
+        }}
+      />
       {label}
     </span>
   );

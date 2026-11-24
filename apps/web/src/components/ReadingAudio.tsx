@@ -823,7 +823,7 @@ export function ReadingAudio({
           <button
             type="button"
             onClick={toggle}
-            aria-pressed={isPlaying}
+            // The name already flips Play/Pause; aria-pressed as well read "Pause, pressed".
             aria-label={isPlaying ? t("dock.pauseAria") : t("dock.playAria")}
             style={{
               width: 52,

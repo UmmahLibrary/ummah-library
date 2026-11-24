@@ -136,6 +136,13 @@ non-extractable WebCrypto key in IndexedDB — is a later option.) The Settings 
   12-word phrase canonicalizes by word, anything else falls back to the original
   strip-and-uppercase rule — so accounts created under the old code keep deriving
   the same key after the upgrade; nothing was migrated or invalidated.
+- **Landed since (2026-11-24): weak typed secrets refused.** The secret alone
+  derives both the server account and the key (fixed PBKDF2 salt), so two people
+  typing the same short phrase ("abc", "bismillah") would share one account and
+  read each other's data. `isStrongRecoverySecret` (core) now gates "Turn on
+  sync" on web, mobile and the extension: a generated 12-word phrase, or a typed
+  secret of at least 20 letters/digits (every legacy 25-character code passes).
+  Already-linked devices are unaffected; only entering a new secret is checked.
 - **Landed since (2026-09-20): at-rest secret hardening.** §5's "later option"
   has shipped on all three platforms. **Mobile** moved the secret from plain
   AsyncStorage into `expo-secure-store` (iOS Keychain / Android Keystore); a

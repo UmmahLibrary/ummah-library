@@ -8,7 +8,10 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";
 import { type MergeStrategy, buildBackup, mergeBackups, validateBackup } from "@ummahlibrary/core";
-import { clearAll, restore, snapshot } from "./backup-store";
+import { clearAll, clearSyncState, restore, snapshot } from "./backup-store";
+import { deleteAllAudio } from "./audio/audio-store";
+import { disableSync } from "./lib/sync/sync-settings";
+import { resetSyncRuntime } from "./lib/sync/sync-runtime";
 
 export interface ActionResult {
   ok: boolean;
@@ -90,7 +93,17 @@ export async function importBackup(strategy: MergeStrategy): Promise<ActionResul
   return { ok: true, applied, message: `Restored ${applied} item${applied === 1 ? "" : "s"}.` };
 }
 
-/** Erase every local-first (`ul.*`) key. Returns how many were removed. */
+/**
+ * Settings → Erase all data: every `ul.*` key, and also what a backup never
+ * holds — sync's secret (SecureStore) and bookkeeping, else the next sync round
+ * would restore it all, and downloaded recitations. Returns how many saved
+ * items were removed.
+ */
 export async function clearAllData(): Promise<number> {
-  return clearAll();
+  const n = await clearAll();
+  await disableSync();
+  await clearSyncState();
+  resetSyncRuntime();
+  deleteAllAudio();
+  return n;
 }

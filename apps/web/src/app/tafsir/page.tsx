@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { pluginRegistry } from "@ummahlibrary/api";
+import { pluginRegistry, quranRepository } from "@ummahlibrary/api";
 import { NoorPageFrame } from "../../components/NoorPageFrame";
 import { TafsirPicker } from "../../components/TafsirPicker";
 import { TafsirSample } from "../../components/TafsirSample";
@@ -13,7 +13,12 @@ export const metadata: Metadata = {
 
 const TAFSIRS = pluginRegistry.byKind("tafsir").map((t) => ({ id: t.id, name: t.name }));
 
-export default function TafsirPage() {
+export default async function TafsirPage() {
+  const surahs = (await quranRepository.listSurahs()).map((s) => ({
+    number: s.number,
+    transliteration: s.transliteration,
+    ayahCount: s.ayahCount,
+  }));
   return (
     <NoorPageFrame
       title="Tafsir"
@@ -23,7 +28,7 @@ export default function TafsirPage() {
       maxW={760}
     >
       <TafsirPicker tafsirs={TAFSIRS} />
-      <TafsirSample tafsirs={TAFSIRS} />
+      <TafsirSample tafsirs={TAFSIRS} surahs={surahs} />
     </NoorPageFrame>
   );
 }

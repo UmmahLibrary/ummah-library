@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { type ReviewRating, reviewByRating } from "@ummahlibrary/core";
-import { N, Khatam, Icon } from "@ummahlibrary/ui";
+import { N, Khatam, Icon, STATUS_HUES, readableHue } from "@ummahlibrary/ui";
 import { type HifzRecord, allRecords, dueRecords, setCard } from "../lib/hifz-store";
 import { touchStreak } from "../lib/hifz-streak";
 import { recordReview } from "../lib/hifz-review-log-store";
@@ -25,10 +25,10 @@ function loadSurahArabic(surah: number): Promise<Map<number, string>> {
 }
 
 const RATINGS: { rating: ReviewRating; label: string; color: string }[] = [
-  { rating: "again", label: "Again", color: "#C56A52" },
+  { rating: "again", label: "Again", color: readableHue(STATUS_HUES.alert) },
   { rating: "hard", label: "Hard", color: N.muted },
   { rating: "good", label: "Good", color: N.gold },
-  { rating: "easy", label: "Easy", color: "#5BBF8A" },
+  { rating: "easy", label: "Easy", color: readableHue(STATUS_HUES.good) },
 ];
 
 export function HifzReview({
@@ -38,6 +38,8 @@ export function HifzReview({
 }) {
   const [ready, setReady] = useState(false);
   const [total, setTotal] = useState(0);
+  // Days until the soonest card is due, for "nothing due yet" (null = none tracked).
+  const [nextInDays, setNextInDays] = useState<number | null>(null);
   const [queue, setQueue] = useState<HifzRecord[]>([]);
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -57,8 +59,15 @@ export function HifzReview({
 
   useEffect(() => {
     const all = allRecords();
-    const due = dueRecords(new Date());
+    const now = new Date();
+    const due = dueRecords(now);
     setTotal(all.length);
+    const soonest = Math.min(...all.map((r) => new Date(r.card.due).getTime()));
+    setNextInDays(
+      Number.isFinite(soonest)
+        ? Math.max(1, Math.ceil((soonest - now.getTime()) / 86400000))
+        : null,
+    );
     setQueue(due);
     setReady(true);
   }, []);
@@ -140,7 +149,10 @@ export function HifzReview({
           All caught up!
         </div>
         <div style={{ fontSize: 14.5, color: N.muted, marginBottom: 28, fontFamily: N.ui }}>
-          {queue.length} {queue.length === 1 ? "āyah" : "āyāt"} reviewed · {total} tracked in total.
+          {queue.length === 0 && nextInDays !== null
+            ? // Arrived with nothing due: "0 āyāt reviewed" said nothing useful.
+              `Nothing is due yet — your next review is in ${nextInDays} ${nextInDays === 1 ? "day" : "days"}. ${total} tracked in total.`
+            : `${queue.length} ${queue.length === 1 ? "āyah" : "āyāt"} reviewed · ${total} tracked in total.`}
         </div>
         <Link
           href="/hifz"
@@ -224,7 +236,12 @@ export function HifzReview({
           {surahMeta?.transliteration ?? `Surah ${current.ref.sura}`} · Āyah {current.ref.aya}
         </div>
         {surahMeta && (
-          <div className="arabic" style={{ fontSize: 18, color: N.goldDim, marginBottom: 18 }}>
+          <div
+            className="arabic"
+            lang="ar"
+            dir="rtl"
+            style={{ fontSize: 18, color: N.goldDim, marginBottom: 18 }}
+          >
             {surahMeta.name}
           </div>
         )}
@@ -234,6 +251,8 @@ export function HifzReview({
             ref={ayahText}
             tabIndex={-1}
             className="arabic"
+            lang="ar"
+            dir="rtl"
             style={{
               outline: "none",
               fontSize: "clamp(26px, 5vw, 38px)",

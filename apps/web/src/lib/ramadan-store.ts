@@ -28,11 +28,11 @@ function set(key: string, value: unknown): void {
   }
 }
 
-export function readFastsRaw(): Record<number, true> {
-  return get<Record<number, true>>(FASTS_KEY, {}, isRecord);
+export function readFastsRaw(): Record<string, true> {
+  return get<Record<string, true>>(FASTS_KEY, {}, isRecord);
 }
 
-export function writeFastsRaw(value: Record<number, true>): void {
+export function writeFastsRaw(value: Record<string, true>): void {
   set(FASTS_KEY, value);
 }
 

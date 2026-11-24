@@ -21,13 +21,44 @@ function sameAyah(a: VerseKey, b: VerseKey): boolean {
   return a.sura === b.sura && a.aya === b.aya;
 }
 
-export function createCollection(collections: readonly Collection[], id: string, name: string): Collection[] {
+export function createCollection(
+  collections: readonly Collection[],
+  id: string,
+  name: string,
+): Collection[] {
   const trimmed = name.trim();
   if (!trimmed) return [...collections];
   return [...collections, { id, name: trimmed, ayahs: [] }];
 }
 
-export function renameCollection(collections: readonly Collection[], id: string, name: string): Collection[] {
+/**
+ * Save an āyah into the collection called `name`, creating it if needed. A
+ * name that already exists (ignoring case and surrounding spaces) reuses that
+ * collection instead of making a second "Favourites" — and an āyah already in
+ * it stays in (this never removes). A blank name changes nothing.
+ */
+export function saveToNamedCollection(
+  collections: readonly Collection[],
+  newId: string,
+  name: string,
+  ref: VerseKey,
+): Collection[] {
+  const trimmed = name.trim();
+  if (!trimmed) return [...collections];
+  const existing = collections.find((c) => c.name.trim().toLowerCase() === trimmed.toLowerCase());
+  if (existing) {
+    return isInCollection(existing, ref)
+      ? [...collections]
+      : toggleAyah(collections, existing.id, ref);
+  }
+  return toggleAyah(createCollection(collections, newId, trimmed), newId, ref);
+}
+
+export function renameCollection(
+  collections: readonly Collection[],
+  id: string,
+  name: string,
+): Collection[] {
   const trimmed = name.trim();
   return collections.map((c) => (c.id === id && trimmed ? { ...c, name: trimmed } : c));
 }
@@ -37,7 +68,11 @@ export function deleteCollection(collections: readonly Collection[], id: string)
 }
 
 /** Add an ayah to a collection (no duplicates) or remove it if already there. */
-export function toggleAyah(collections: readonly Collection[], id: string, ref: VerseKey): Collection[] {
+export function toggleAyah(
+  collections: readonly Collection[],
+  id: string,
+  ref: VerseKey,
+): Collection[] {
   return collections.map((c) => {
     if (c.id !== id) return c;
     const has = c.ayahs.some((a) => sameAyah(a, ref));

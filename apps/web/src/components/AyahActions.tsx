@@ -5,7 +5,7 @@ import {
   type Collection,
   collectionsWithAyah,
   createCard,
-  createCollection,
+  saveToNamedCollection,
   toggleAyah,
 } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
@@ -233,7 +233,8 @@ export function AyahActions({
   }
   function addCollection() {
     const id = newId();
-    const next = toggleAyah(createCollection(collections, id, newName), id, ref);
+    // A name that already exists saves into that collection, not a duplicate.
+    const next = saveToNamedCollection(collections, id, newName, ref);
     setCollections(next);
     void writeCollections(next);
     setNewName("");
@@ -255,6 +256,9 @@ export function AyahActions({
     const translations = [...block.querySelectorAll<HTMLElement>(".ayah-tr")].map((node) => {
       const clone = node.cloneNode(true) as HTMLElement;
       clone.querySelector(".tr-name")?.remove();
+      // "…has no translation for this āyah" is a note to the reader, not text
+      // to copy or put on a share image.
+      clone.querySelector(".tr-missing")?.remove();
       return clone.textContent?.trim() ?? "";
     });
     return { arabic, translations: translations.filter(Boolean) };
@@ -422,11 +426,19 @@ export function AyahActions({
         )}
       </div>
 
-      {(toast || imaging) && (
-        <div style={{ fontSize: 12, color: N.gold, marginTop: 6, fontFamily: N.ui }} role="status">
-          {imaging ? t("ayah.preparingImage") : toast}
-        </div>
-      )}
+      {/* Always mounted: a live region inserted together with its text is often
+          not announced, so "Copied" / "Link copied" went unheard. */}
+      <div
+        role="status"
+        style={{
+          fontSize: 12,
+          color: N.gold,
+          marginTop: toast || imaging ? 6 : 0,
+          fontFamily: N.ui,
+        }}
+      >
+        {imaging ? t("ayah.preparingImage") : (toast ?? "")}
+      </div>
 
       {saveOpen && (
         <div className="ayah-save" role="dialog" aria-label={t("ayah.saveLabel")}>

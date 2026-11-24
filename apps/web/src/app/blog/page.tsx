@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { N } from "@ummahlibrary/ui";
 import { getPublishedArticles } from "../../lib/blog/articles";
 import { BlogIndexClient } from "../../components/blog/BlogIndexClient";
+import { SHARE_IMAGE } from "../../lib/site";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
       "Ideas, architecture write-ups, and lessons from building Ummah Library in the open.",
     url: "/blog",
     type: "website",
+    images: [SHARE_IMAGE],
   },
 };
 

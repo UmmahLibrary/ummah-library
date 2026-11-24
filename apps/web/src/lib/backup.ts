@@ -5,7 +5,10 @@
  */
 
 import { type MergeStrategy, buildBackup, mergeBackups, validateBackup } from "@ummahlibrary/core";
-import { clearAll, restore, snapshot } from "./backup-store";
+import { deleteAllAudio } from "./audio-store";
+import { clearAll, clearSyncState, restore, snapshot } from "./backup-store";
+import { deleteVault } from "./sync/secret-vault-store";
+import { resetSyncRuntime } from "./sync/sync-runtime";
 
 /** Every local-first (`ul.*`) key in localStorage, with its raw string value. */
 export function collectLocalData(): Record<string, string> {
@@ -56,6 +59,17 @@ export function importBackup(text: string, strategy: MergeStrategy): ImportResul
   };
 }
 
-export function clearAllData(): number {
-  return clearAll();
+/**
+ * Settings → Erase all data: every `ul.*` entry, and also what a backup never
+ * holds — sync's secret and bookkeeping (else sync would restore it all on the
+ * next round), the recovery-key vault, and downloaded recitations. Returns how
+ * many saved items were removed.
+ */
+export async function clearAllData(): Promise<number> {
+  const n = clearAll();
+  clearSyncState();
+  resetSyncRuntime();
+  deleteVault();
+  await deleteAllAudio();
+  return n;
 }

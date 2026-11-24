@@ -70,7 +70,12 @@ describe("AdhanPrayerTimes", () => {
     // London in midsummer: the standard angle pushes Isha very late; the
     // one-seventh-of-the-night rule pulls it earlier into a real night.
     const LONDON = { latitude: 51.5074, longitude: -0.1278 };
-    const q = { coordinates: LONDON, date: "2026-06-21", method: "MuslimWorldLeague", madhab: "shafi" } as const;
+    const q = {
+      coordinates: LONDON,
+      date: "2026-06-21",
+      method: "MuslimWorldLeague",
+      madhab: "shafi",
+    } as const;
     const standard = await calc.calculate(q);
     const ruled = await calc.calculate({ ...q, highLatitudeRule: "SeventhOfTheNight" });
     expect(Number.isFinite(new Date(standard.isha).getTime())).toBe(true);
@@ -97,10 +102,36 @@ describe("AdhanPrayerTimes", () => {
   });
 
   it("leaves the result unchanged at a normal latitude when a rule is set", async () => {
-    const q = { coordinates: MAKKAH, date: "2026-01-01", method: "UmmAlQura", madhab: "shafi" } as const;
+    const q = {
+      coordinates: MAKKAH,
+      date: "2026-01-01",
+      method: "UmmAlQura",
+      madhab: "shafi",
+    } as const;
     const plain = await calc.calculate(q);
     const ruled = await calc.calculate({ ...q, highLatitudeRule: "TwilightAngle" });
     expect(ruled.isha).toBe(plain.isha);
     expect(ruled.fajr).toBe(plain.fajr);
+  });
+});
+
+describe("AdhanPrayerTimes — no markers without their prayer", () => {
+  it("never gives an Imsāk without a Fajr, or a midnight without both Fajr and Maghrib", async () => {
+    const calc = new AdhanPrayerTimes();
+    for (const latitude of [64, 66.5, 69.65, 72, 78.2, -69]) {
+      for (const date of ["2026-03-20", "2026-05-20", "2026-06-21", "2026-11-24", "2026-12-21"]) {
+        const t = await calc.calculate({
+          coordinates: { latitude, longitude: 18.96 },
+          date,
+          method: "MuslimWorldLeague",
+          madhab: "shafi",
+        });
+        if (!t.fajr) expect(t.imsak, `${latitude} ${date}`).toBe("");
+        if (!t.fajr || !t.maghrib) {
+          expect(t.midnight, `${latitude} ${date}`).toBe("");
+          expect(t.lastThird, `${latitude} ${date}`).toBe("");
+        }
+      }
+    }
   });
 });

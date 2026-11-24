@@ -15,8 +15,14 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const name = templateById(id)?.name ?? "Reading plan";
-  return { title: `${name} · Reading plans` };
+  const template = templateById(id);
+  return {
+    title: `${template?.name ?? "Reading plan"} · Reading plans`,
+    ...(template && {
+      description: template.desc,
+      alternates: { canonical: `/plans/${id}` },
+    }),
+  };
 }
 
 export default async function PlanDetailPage({ params }: { params: Promise<{ id: string }> }) {

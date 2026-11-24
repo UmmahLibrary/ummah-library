@@ -15,6 +15,7 @@ import { ComfortSettings } from "./ComfortSettings";
 import { SyncSettings } from "./SyncSettings";
 import { DataBackup } from "./DataBackup";
 import { NoorPageFrame } from "./NoorPageFrame";
+import { onRadioGroupKeyDown, radioTabIndex } from "../lib/radio-group";
 
 interface Section {
   id: string;
@@ -144,7 +145,12 @@ function ScriptChoice() {
     void writeScript(s);
   };
   return (
-    <div role="radiogroup" aria-label={t("settings.script")} style={{ display: "grid", gap: 8 }}>
+    <div
+      role="radiogroup"
+      aria-label={t("settings.script")}
+      onKeyDown={onRadioGroupKeyDown}
+      style={{ display: "grid", gap: 8 }}
+    >
       <span style={{ fontFamily: N.ui, fontSize: 15, fontWeight: 700, color: N.fg }}>
         {t("settings.script")}
       </span>
@@ -153,12 +159,13 @@ function ScriptChoice() {
           ["uthmani", "settings.scriptUthmani"],
           ["indopak", "settings.scriptIndopak"],
         ] as const
-      ).map(([value, label]) => (
+      ).map(([value, label], i) => (
         <button
           key={value}
           type="button"
           role="radio"
           aria-checked={script === value}
+          tabIndex={radioTabIndex(script === value, i, true)}
           className="nf-switch"
           onClick={() => choose(value)}
           style={{
