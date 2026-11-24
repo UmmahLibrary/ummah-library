@@ -33,6 +33,24 @@ export function restore(entries: Record<string, string>, replace: boolean): void
   }
 }
 
+/**
+ * Remove sync's own bookkeeping (`ul.sync.*`: secret, cursor, clocks) — never
+ * part of a backup, but an erase must not leave it, or the next sync round
+ * would quietly pull everything back.
+ */
+export function clearSyncState(): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("ul.sync.")) keys.push(key);
+    }
+    for (const key of keys) localStorage.removeItem(key);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 /** Remove every local-first (`ul.*`) key. Returns how many were removed. */
 export function clearAll(): number {
   const keys = Object.keys(snapshot());

@@ -65,14 +65,31 @@ describe("data backup", () => {
     expect(result).toEqual({ ok: false, message: "Couldn’t write to local storage." });
   });
 
-  it("clears every ul.* key and returns the count", () => {
+  it("clears every ul.* key and returns the count", async () => {
     localStorage.setItem("ul.a", "1");
     localStorage.setItem("ul.b", "2");
     localStorage.setItem("keep", "y");
 
-    expect(clearAllData()).toBe(2);
+    expect(await clearAllData()).toBe(2);
     expect(collectLocalData()).toEqual({});
     expect(localStorage.getItem("keep")).toBe("y");
+  });
+
+  it("also turns sync off and forgets its state, and deletes downloaded audio", async () => {
+    // Left behind, sync would pull everything straight back on its next round.
+    localStorage.setItem("ul.sync.enabled", "1");
+    localStorage.setItem("ul.sync.secret", "v1:abc");
+    localStorage.setItem("ul.sync.cursor", "42");
+    const del = vi.fn().mockResolvedValue(true);
+    vi.stubGlobal("caches", { delete: del });
+
+    await clearAllData();
+
+    expect(localStorage.getItem("ul.sync.enabled")).toBeNull();
+    expect(localStorage.getItem("ul.sync.secret")).toBeNull();
+    expect(localStorage.getItem("ul.sync.cursor")).toBeNull();
+    expect(del).toHaveBeenCalledWith("ul-audio-v1");
+    vi.unstubAllGlobals();
   });
 
   it("exportBackup triggers a download of the collected data as JSON", () => {

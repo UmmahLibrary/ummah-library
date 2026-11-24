@@ -36,6 +36,19 @@ export async function restore(entries: Record<string, string>, replace: boolean)
 }
 
 /** Remove every local-first (`ul.*`) key. Returns how many were removed. */
+/**
+ * Remove sync's own bookkeeping (`ul.sync.*`) — never in a backup, but an erase
+ * must not leave it, or the next sync round would pull everything back.
+ */
+export async function clearSyncState(): Promise<void> {
+  try {
+    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith("ul.sync."));
+    if (keys.length) await AsyncStorage.multiRemove(keys);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 export async function clearAll(): Promise<number> {
   const keys = Object.keys(await snapshot());
   try {

@@ -46,9 +46,14 @@ export function DataBackup() {
     reader.readAsText(file);
   }
 
-  function onClear() {
-    if (!confirm("Erase all Ummah Library data on this device? This can’t be undone.")) return;
-    const n = clearAllData();
+  async function onClear() {
+    if (
+      !confirm(
+        "Erase all Ummah Library data on this device — progress, settings, sync and downloaded recitations? This can’t be undone.",
+      )
+    )
+      return;
+    const n = await clearAllData();
     setStatus({ ok: true, message: `Cleared ${n} items. Reload to start fresh.` });
   }
 
@@ -67,7 +72,15 @@ export function DataBackup() {
 
   return (
     <div>
-      <p style={{ fontSize: 14.5, color: N.muted, lineHeight: 1.65, margin: "0 0 20px", fontFamily: N.ui }}>
+      <p
+        style={{
+          fontSize: 14.5,
+          color: N.muted,
+          lineHeight: 1.65,
+          margin: "0 0 20px",
+          fontFamily: N.ui,
+        }}
+      >
         Everything you do here stays on this device — no account, no server. Export a backup file to
         move your data to another device or keep it safe; import it to restore.
       </p>
@@ -115,21 +128,43 @@ export function DataBackup() {
           >
             ⬆ Import a backup
           </button>
-          <input ref={fileInput} type="file" accept="application/json,.json" onChange={onFile} hidden />
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            onChange={onFile}
+            hidden
+          />
         </div>
       </div>
 
       <GroupLabel>On import</GroupLabel>
       <div style={{ ...lcard, padding: 20, marginBottom: 22 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button type="button" style={pill(strategy === "replace")} onClick={() => setStrategy("replace")}>
+          <button
+            type="button"
+            style={pill(strategy === "replace")}
+            onClick={() => setStrategy("replace")}
+          >
             Replace my data
           </button>
-          <button type="button" style={pill(strategy === "keep-mine")} onClick={() => setStrategy("keep-mine")}>
+          <button
+            type="button"
+            style={pill(strategy === "keep-mine")}
+            onClick={() => setStrategy("keep-mine")}
+          >
             Keep mine on conflict
           </button>
         </div>
-        <p style={{ fontSize: 13, color: N.faint, lineHeight: 1.6, margin: "14px 0 0", fontFamily: N.ui }}>
+        <p
+          style={{
+            fontSize: 13,
+            color: N.faint,
+            lineHeight: 1.6,
+            margin: "14px 0 0",
+            fontFamily: N.ui,
+          }}
+        >
           {strategy === "replace"
             ? "The backup fully restores your data, overwriting what’s here."
             : "The backup only fills in things you don’t already have."}
@@ -149,13 +184,21 @@ export function DataBackup() {
         </p>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
         <span style={{ fontSize: 13, color: N.faint, fontFamily: N.ui }}>
           {itemCount ?? "—"} item{itemCount === 1 ? "" : "s"} stored on this device.
         </span>
         <button
           type="button"
-          onClick={onClear}
+          onClick={() => void onClear()}
           style={{
             padding: "8px 16px",
             borderRadius: 999,
@@ -172,7 +215,15 @@ export function DataBackup() {
         </button>
       </div>
 
-      <div style={{ textAlign: "center", fontSize: 12.5, color: N.faint, marginTop: 28, fontFamily: N.ui }}>
+      <div
+        style={{
+          textAlign: "center",
+          fontSize: 12.5,
+          color: N.faint,
+          marginTop: 28,
+          fontFamily: N.ui,
+        }}
+      >
         Ummah Library · local-first · Free &amp; open source
       </div>
     </div>
