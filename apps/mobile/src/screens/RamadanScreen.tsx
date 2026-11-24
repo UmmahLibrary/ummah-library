@@ -7,9 +7,10 @@ import {
   type Madhab,
   type PrayerTimings,
   gregorianToHijri,
-  hijriToGregorian,
   keptFastDays,
   migrateRamadanFasts,
+  pagesReadBetween,
+  ramadanDateRange,
   ramadanYearFor,
   toggleRamadanFast,
 } from "@ummahlibrary/core";
@@ -51,7 +52,7 @@ export function RamadanScreen({ navigation }: Props) {
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [fasts, setFasts] = useState<Record<string, true>>({});
   const [worship, setWorship] = useState<Record<string, true>>({});
-  const [pagesRead, setPagesRead] = useState(0);
+  const [readingLog, setReadingLog] = useState<Record<string, number>>({});
   const [hijriAdjust, setHijriAdjust] = useState(0);
 
   // Guards the same sync-reload-vs-local-write race this loop already fixed
@@ -71,14 +72,6 @@ export function RamadanScreen({ navigation }: Props) {
   // (fasts are keyed "<hijriYear>:<day>" so they don't carry into the next year).
   const fastYear = ramadanYearFor(hijri);
   const kept = keptFastDays(migrateRamadanFasts(fasts, fastYear), fastYear);
-
-  // The Gregorian date Ramadan 1 falls on this Hijri year — used to scope the
-  // khatm-progress reading count to pages read during Ramadan itself, not the
-  // reader's entire reading history.
-  const ramadanStartGreg = hijriToGregorian({ year: hijri.year, month: 9, day: 1 }, hijriAdjust);
-  const ramadanStartStr = localISODate(
-    new Date(ramadanStartGreg.year, ramadanStartGreg.month - 1, ramadanStartGreg.day),
-  );
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -114,13 +107,7 @@ export function RamadanScreen({ navigation }: Props) {
         {},
         isObjectRecord,
       ).then((m) => ignoreStale(currentGen, gen, setWorship)(m[today] ?? {}));
-      void getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord).then((log) =>
-        setPagesRead(
-          // YYYY-MM-DD keys sort lexicographically, so a plain string compare
-          // scopes the sum to Ramadan itself rather than the reader's lifetime log.
-          Object.entries(log).reduce((a, [date, n]) => (date >= ramadanStartStr ? a + n : a), 0),
-        ),
-      );
+      void getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord).then(setReadingLog);
       void (async () => {
         const c = await getJSON<Coordinates | null>(KEYS.prayerCoords, null);
         if (!c) return;
@@ -172,6 +159,9 @@ export function RamadanScreen({ navigation }: Props) {
 
   const fastsKept = kept.size;
   const worshipDone = Object.keys(worship).length;
+  // Khatm progress is the shown Ramaḍān's reading only (its first to last day),
+  // not every page logged since it began.
+  const pagesRead = pagesReadBetween(readingLog, ramadanDateRange(fastYear, hijriAdjust));
   const khatmPct = Math.min(100, Math.round((pagesRead / 604) * 100));
   const monthName = t(HIJRI_MONTH_KEY[hijri.month - 1] ?? "lr.hm1");
 

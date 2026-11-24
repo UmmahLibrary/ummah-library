@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   keptFastDays,
   migrateRamadanFasts,
+  pagesReadBetween,
+  ramadanDateRange,
   ramadanYearFor,
   toggleRamadanFast,
 } from "./ramadan-fasts";
@@ -26,5 +28,25 @@ describe("ramadan fasts", () => {
   it("moves year-less legacy entries to the given year", () => {
     const migrated = migrateRamadanFasts({ "3": true, "30": true, "1446:1": true }, 1447);
     expect(migrated).toEqual({ "1447:3": true, "1447:30": true, "1446:1": true });
+  });
+});
+
+describe("ramadan reading", () => {
+  it("counts only the pages read during that Ramaḍān", () => {
+    const range = ramadanDateRange(1447);
+    expect(range.start < range.end).toBe(true);
+    const log = {
+      "2025-01-01": 40, // long before
+      [range.start]: 20,
+      [range.end]: 10,
+      "2099-01-01": 99, // after
+    };
+    expect(pagesReadBetween(log, range)).toBe(30);
+  });
+
+  it("moves with the sighting adjustment", () => {
+    const base = ramadanDateRange(1447);
+    const later = ramadanDateRange(1447, -1);
+    expect(later.start > base.start).toBe(true);
   });
 });

@@ -9,6 +9,8 @@ import {
   hijriMonth,
   keptFastDays,
   migrateRamadanFasts,
+  pagesReadBetween,
+  ramadanDateRange,
   ramadanYearFor,
 } from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
@@ -67,7 +69,7 @@ export function RamadanView() {
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [fasts, setFasts] = useState<Record<string, true>>({});
   const [worship, setWorship] = useState<Record<string, true>>({});
-  const [pagesRead, setPagesRead] = useState(0);
+  const [readingLog, setReadingLog] = useState<Record<string, number>>({});
   const [hijriAdjust, setHijriAdjust] = useState(0);
   const today = localDate(new Date());
 
@@ -75,9 +77,7 @@ export function RamadanView() {
     const sync = () => {
       setFasts(readFastsRaw());
       setWorship(readWorship(today));
-      void readReadingState().then((s) =>
-        setPagesRead(Object.values(s.log).reduce((a, b) => a + b, 0)),
-      );
+      void readReadingState().then((s) => setReadingLog(s.log));
     };
     sync();
     window.addEventListener(RAMADAN_EVENT, sync);
@@ -124,6 +124,8 @@ export function RamadanView() {
   const fastYear = ramadanYearFor(hijri);
   const kept = keptFastDays(migrateRamadanFasts(fasts, fastYear), fastYear);
   const fastsKept = kept.size;
+  // Khatm progress is that Ramaḍān's reading, not every page ever logged.
+  const pagesRead = pagesReadBetween(readingLog, ramadanDateRange(fastYear, hijriAdjust));
   const worshipDone = Object.keys(worship).length;
   const khatmPct = Math.min(100, Math.round((pagesRead / 604) * 100));
 

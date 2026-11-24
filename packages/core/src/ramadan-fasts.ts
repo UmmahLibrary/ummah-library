@@ -7,7 +7,7 @@
  * the synced shape (`recordShape`) and per-entry merge are unchanged. Pure; the
  * apps read/write storage and pass "today" in.
  */
-import type { HijriDate } from "./hijri";
+import { type HijriDate, hijriMonthLength, hijriToGregorian } from "./hijri";
 
 export type RamadanFasts = Readonly<Record<string, true>>;
 
@@ -56,4 +56,33 @@ export function toggleRamadanFast(
   if (next[key]) delete next[key];
   else next[key] = true;
   return next;
+}
+
+const iso = (g: { year: number; month: number; day: number }): string =>
+  `${String(g.year).padStart(4, "0")}-${String(g.month).padStart(2, "0")}-${String(g.day).padStart(2, "0")}`;
+
+/** First and last Gregorian dates (YYYY-MM-DD) of `year`'s Ramaḍān, after the user's adjustment. */
+export function ramadanDateRange(year: number, adjustmentDays = 0): { start: string; end: string } {
+  const last = hijriMonthLength(year, 9);
+  return {
+    start: iso(hijriToGregorian({ year, month: 9, day: 1 }, adjustmentDays)),
+    end: iso(hijriToGregorian({ year, month: 9, day: last }, adjustmentDays)),
+  };
+}
+
+/**
+ * Pages logged (date → pages) within a date range, inclusive — a Ramaḍān's khatm
+ * progress counts that month's reading, not the reader's whole history.
+ */
+export function pagesReadBetween(
+  log: Readonly<Record<string, number>>,
+  range: { start: string; end: string },
+): number {
+  let total = 0;
+  for (const [date, pages] of Object.entries(log)) {
+    if (date >= range.start && date <= range.end && Number.isFinite(pages) && pages > 0) {
+      total += pages;
+    }
+  }
+  return total;
 }
