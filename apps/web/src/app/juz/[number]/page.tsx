@@ -22,6 +22,9 @@ import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
 import { SHARE_IMAGE, SITE_URL } from "../../../lib/site";
 import { WordByWord } from "../../../components/WordByWord";
 import { MemorizeBar } from "../../../components/MemorizeBar";
+import { AyahActions } from "../../../components/AyahActions";
+
+const TAFSIRS = pluginRegistry.byKind("tafsir").map((t) => ({ id: t.id, name: t.name }));
 
 const RECITERS = pluginRegistry.byKind("reciter");
 
@@ -184,16 +187,10 @@ export default async function JuzReaderPage({ params }: { params: Promise<{ numb
                   </p>
                   <AyahTransliteration surah={section.surah.number} aya={ayah.aya} />
                   <AyahTranslations surah={section.surah.number} aya={ayah.aya} />
-                  <div className="ayah-actions">
-                    <button
-                      type="button"
-                      className="hifz-btn"
-                      data-play-one={`${section.surah.number}:${ayah.aya}`}
-                      aria-label={`Play āyah ${ayah.aya}`}
-                    >
-                      ▶ Play
-                    </button>
-                  </div>
+                  {/* The same actions as the surah reader — Play, Save, Tafsir,
+                      Related, More. The juzʾ reader only had Play, so a daily
+                      juzʾ reader couldn't bookmark an āyah or open its tafsir. */}
+                  <AyahActions surah={section.surah.number} aya={ayah.aya} tafsirs={TAFSIRS} />
                 </div>
               ))}
             </section>
