@@ -41,3 +41,12 @@ describe("Seg", () => {
     expect(style).toContain("var(--noor-space-2) var(--noor-space-3-5)");
   });
 });
+
+describe("Seg — named group", () => {
+  it("is a group named by ariaLabel", () => {
+    render(
+      <Seg ariaLabel="Browse by" options={["Surah", "Juz"]} value="Surah" onChange={() => {}} />,
+    );
+    expect(screen.getByRole("group", { name: "Browse by" })).toBeInTheDocument();
+  });
+});

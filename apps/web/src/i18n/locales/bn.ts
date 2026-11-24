@@ -125,6 +125,7 @@ export const bn: Record<MessageKey, string> = {
   "quran.tabSurah": "সূরা",
   "quran.tabJuz": "পারা",
   "quran.tabRevelation": "অবতরণ",
+  "quran.browseBy": "যেভাবে দেখবেন",
   "quran.ayahCount": "{n} আয়াত",
   "quran.meccan": "মাক্কী",
   "quran.medinan": "মাদানী",

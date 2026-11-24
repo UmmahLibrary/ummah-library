@@ -115,7 +115,9 @@ export function TafsirCompare({
                   borderRadius: 999,
                   border: `1px solid ${on ? N.gold : N.border}`,
                   background: on ? N.goldSoft : N.card,
-                  color: on ? N.gold : N.muted,
+                  // fg, not gold: this pill sits on the highlighted āyah, so a selected
+                  // pill is gold-on-two-tints — too faint for gold text.
+                  color: on ? N.fg : N.muted,
                   fontFamily: N.ui,
                   fontSize: 12.5,
                   fontWeight: 600,

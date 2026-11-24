@@ -12,9 +12,18 @@ interface SegProps {
   size?: "sm" | "md";
   /** Script of the labels, for their face (Urdu → Nastaʿlīq). */
   script?: Script;
+  /** Names the group for assistive tech; mirrors the web prop. */
+  ariaLabel?: string;
 }
 
-export function Seg({ options, value, onChange, size = "md", script = "latin" }: SegProps) {
+export function Seg({
+  options,
+  value,
+  onChange,
+  size = "md",
+  script = "latin",
+  ariaLabel,
+}: SegProps) {
   const c = useNoorTheme();
   const z = segment[size];
   const py = space[z.padY];
@@ -22,6 +31,7 @@ export function Seg({ options, value, onChange, size = "md", script = "latin" }:
 
   return (
     <View
+      accessibilityLabel={ariaLabel}
       style={[
         styles.wrap,
         { borderColor: c.border, backgroundColor: c.bgElev, borderRadius: radius[z.radius] },

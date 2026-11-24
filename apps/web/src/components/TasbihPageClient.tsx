@@ -144,7 +144,6 @@ export function TasbihPageClient() {
           <div
             onClick={tap}
             role="button"
-            aria-label={`Count — ${view.count} of ${target}`}
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -191,6 +190,9 @@ export function TasbihPageClient() {
               />
             </svg>
 
+            {/* The dial's name is this hidden text; the visible digits below are
+                decorative copies, so the name always matches what's shown. */}
+            <span className="sr-only">{`Count — ${view.count} of ${target}`}</span>
             {/* Inner dial with tap animation */}
             <div
               key={pulse}
@@ -206,7 +208,7 @@ export function TasbihPageClient() {
                 animation: "ulTap .18s ease",
               }}
             >
-              <div>
+              <div aria-hidden="true">
                 <div
                   style={{
                     fontFamily: N.ar,

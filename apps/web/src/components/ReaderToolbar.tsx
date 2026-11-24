@@ -45,6 +45,7 @@ function IconBtn({
   label,
   on,
   onClick,
+  extra,
 }: {
   icon: IconName;
   title: string;
@@ -52,19 +53,24 @@ function IconBtn({
   label: string;
   on?: boolean;
   onClick: () => void;
+  /** Hidden words appended to the visible label, when the label alone is
+   *  ambiguous (e.g. "Save" → "Save surah"). */
+  extra?: string;
 }) {
+  // The visible word is the accessible name (WCAG 2.5.3 label in name); the
+  // longer title stays as the tooltip/description.
   return (
     <button
       type="button"
       title={title}
-      aria-label={title}
       aria-pressed={on}
       onClick={onClick}
       className="tb-btn"
       data-on={on ? "true" : undefined}
     >
       <Icon name={icon} size={20} />
-      <span aria-hidden="true">{label}</span>
+      <span>{label}</span>
+      {extra && <span className="sr-only"> {extra}</span>}
     </button>
   );
 }
@@ -530,6 +536,8 @@ export function ReaderToolbar({
         icon="bookmark"
         title={bookmarked ? t("toolbar.bookmarked") : t("toolbar.bookmarkSurah")}
         label={bookmarked ? t("toolbar.saved") : t("toolbar.save")}
+        // "Save" alone would read like the āyah Save buttons; name the surah.
+        extra={`(${bookmarked ? t("toolbar.bookmarked") : t("toolbar.bookmarkSurah")})`}
         on={bookmarked}
         onClick={toggleBookmark}
       />

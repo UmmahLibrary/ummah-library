@@ -435,14 +435,10 @@ export function SurahReaderClient({
           className="reader-title"
           onClick={() => setGotoOpen(true)}
           aria-haspopup="dialog"
-          aria-label={tf("reader.titleAria", {
-            surah: surah.transliteration,
-            n: surah.number,
-            aya: currentAya || 1,
-            total: surah.ayahCount,
-          })}
           title={t("reader.goToHint")}
         >
+          {/* The visible title is the button's name (WCAG 2.5.3 label in name);
+              the action is added as hidden text after it. */}
           <span className="t1">
             <span>
               {num(surah.number)} · {surah.transliteration}
@@ -457,6 +453,7 @@ export function SurahReaderClient({
               {surah.revelationPlace === "meccan" ? t("quran.meccan") : t("quran.medinan")}
             </span>
           </span>
+          <span className="sr-only">. {t("reader.goToHint")}</span>
         </button>
         <ReaderToolbar
           surahNumber={surah.number}
@@ -604,9 +601,11 @@ export function SurahReaderClient({
                             type="button"
                             className="ayah-marker"
                             data-play-key={`${surah.number}:${ayah.aya}`}
-                            aria-label={tf("reader.playFrom", { aya: ayah.aya })}
                           >
-                            ﴿{toArabicDigits(ayah.aya)}﴾
+                            <span aria-hidden="true">﴿{toArabicDigits(ayah.aya)}﴾</span>
+                            <span className="sr-only">
+                              {tf("reader.playFrom", { aya: ayah.aya })}
+                            </span>
                           </button>
                         </p>
                         <AyahTransliteration surah={surah.number} aya={ayah.aya} />

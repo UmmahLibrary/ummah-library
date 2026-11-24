@@ -53,4 +53,33 @@ describe("Noor palettes — text contrast (ADR 0041: labels at 4.5:1 or better)"
       }
     });
   }
+
+  // Selected pills and the highlighted āyah put accent text on the accentSoft
+  // tint, so the tint (composited over each surface) must keep it at 4.5:1.
+  for (const key of Object.keys(noorThemes) as ThemeKey[]) {
+    it(`${key}: accent text reads at 4.5:1 on the accentSoft tint`, () => {
+      const p = noorThemes[key];
+      const m = p.accentSoft.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+      expect(m).not.toBeNull();
+      const [r, g, b, a] = m!.slice(1).map(Number) as [number, number, number, number];
+      for (const surface of SURFACES) {
+        const base = [1, 3, 5].map((i) => parseInt((p[surface] as string).slice(i, i + 2), 16));
+        const tinted =
+          "#" +
+          [r, g, b]
+            .map((v, i) =>
+              Math.round(v * a + base[i]! * (1 - a))
+                .toString(16)
+                .padStart(2, "0"),
+            )
+            .join("");
+        for (const token of ["accent", "accentHi"] as const) {
+          expect(
+            contrast(p[token], tinted),
+            `${token} on tinted ${surface}`,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    });
+  }
 });

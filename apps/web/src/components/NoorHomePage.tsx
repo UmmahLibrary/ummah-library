@@ -509,6 +509,7 @@ export function NoorHomePage({ surahs, variant = "home" }: Props) {
               {/* The page's h1 already says "The Quran"; no second title here. */}
               {appMode !== "easy" && (
                 <Seg
+                  ariaLabel={t("quran.browseBy")}
                   size="sm"
                   value={tab}
                   onChange={(v) => setTab(v as typeof tab)}
