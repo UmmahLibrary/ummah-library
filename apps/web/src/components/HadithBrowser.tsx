@@ -9,7 +9,7 @@ import {
   hadithGradeCategory,
   searchText,
 } from "@ummahlibrary/core";
-import { N, Icon, Khatam } from "@ummahlibrary/ui";
+import { N, Icon, Khatam, STATUS_HUES, readableHue } from "@ummahlibrary/ui";
 
 interface Collection {
   id: string;
@@ -67,11 +67,12 @@ const META: Record<
 const ORDER = (id: string): number => META[id]?.order ?? 99;
 const shortName = (id: string): string => META[id]?.short ?? id;
 
+// Readable on light themes too (raw, ṣaḥīḥ green was 2:1 on Ivory).
 const GRADE_COLOR: Record<HadithGrade, string> = {
-  sahih: "#5BBF8A",
-  hasan: "#E6B855",
-  daif: "#C98A57",
-  unknown: "#8A93A6",
+  sahih: readableHue(STATUS_HUES.good),
+  hasan: readableHue(STATUS_HUES.fair),
+  daif: readableHue(STATUS_HUES.weak),
+  unknown: readableHue(STATUS_HUES.neutral),
 };
 const GRADE_FILTERS: { key: "all" | HadithGrade; label: string }[] = [
   { key: "all", label: "All grades" },
