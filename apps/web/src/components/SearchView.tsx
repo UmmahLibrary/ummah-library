@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { searchText } from "@ummahlibrary/core";
+import { parseGoTo, searchText } from "@ummahlibrary/core";
 import { N, Icon, Khatam } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
 import { FEATURE_KEYWORDS, NAV_DESTINATIONS } from "../lib/nav";
@@ -290,6 +290,37 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
     return c;
   }, [results]);
 
+  // "2:255", "yasin", "juz 30", "page 3" — places, not words. The reader's Go-to
+  // parser understands them; offer the jump above the text matches, unless the
+  // matches already include that surah.
+  const jump = useMemo(() => {
+    if (q.length < 2) return null;
+    const target = parseGoTo(q, surahs);
+    if (!target) return null;
+    if (target.kind === "surah" && results.some((r) => r.href === `/surah/${target.sura}`)) {
+      return null;
+    }
+    const name = surahs.find((s) => s.number === target.sura)?.transliteration ?? "";
+    switch (target.kind) {
+      case "ayah":
+        return {
+          label: `${name} ${target.sura}:${target.aya}`,
+          href: `/surah/${target.sura}#${target.sura}:${target.aya}`,
+        };
+      case "surah":
+        return { label: `Surah ${target.sura} · ${name}`, href: `/surah/${target.sura}` };
+      case "juz":
+        return { label: `Juzʾ ${target.n}`, href: `/juz/${target.n}` };
+      case "page":
+        return { label: `Page ${target.n}`, href: `/page/${target.n}` };
+      default:
+        return {
+          label: `Ḥizb ${target.n} · ${name} ${target.sura}:${target.aya}`,
+          href: `/surah/${target.sura}#${target.sura}:${target.aya}`,
+        };
+    }
+  }, [q, surahs, results]);
+
   const filtered =
     filter === "all"
       ? results
@@ -505,13 +536,35 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
           <div style={{ fontSize: 13.5, color: N.muted, marginBottom: 14, fontFamily: N.ui }}>
             {!indexReady ? (
               "Searching…"
-            ) : (
+            ) : jump && filtered.length === 0 ? null : (
               <>
                 <span style={{ color: N.fg, fontWeight: 700 }}>{filtered.length}</span> result
                 {filtered.length !== 1 ? "s" : ""} for “<span style={{ color: N.gold }}>{q}</span>”
               </>
             )}
           </div>
+
+          {jump && (
+            <Link
+              href={jump.href}
+              onClick={() => remember(q)}
+              style={{
+                ...card,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "14px 18px",
+                marginBottom: 11,
+                borderColor: N.gold,
+                textDecoration: "none",
+              }}
+            >
+              <Icon name="book" size={18} color={N.gold} />
+              <span style={{ fontSize: 15, fontWeight: 700, color: N.fg, fontFamily: N.ui }}>
+                Go to {jump.label}
+              </span>
+            </Link>
+          )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
             {filtered.slice(0, shown).map((r, i) => {
@@ -628,7 +681,7 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
             </button>
           )}
 
-          {indexReady && filtered.length === 0 && (
+          {indexReady && filtered.length === 0 && !jump && (
             <div style={{ textAlign: "center", padding: "50px 20px" }}>
               <div
                 style={{
