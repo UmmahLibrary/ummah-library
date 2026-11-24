@@ -118,13 +118,11 @@ export function HijriCalendar() {
     const firstWeekday = weekdayOf(
       hijriToGregorian({ year: view.year, month: view.month, day: 1 }, adjust),
     );
-    const out: ({ day: number; greg: string } | null)[] = [];
+    const out: ({ day: number; greg: string; gday: number } | null)[] = [];
     for (let i = 0; i < firstWeekday; i++) out.push(null);
     for (let day = 1; day <= length; day++) {
-      out.push({
-        day,
-        greg: gregorianLabel(hijriToGregorian({ year: view.year, month: view.month, day }, adjust)),
-      });
+      const g = hijriToGregorian({ year: view.year, month: view.month, day }, adjust);
+      out.push({ day, greg: gregorianLabel(g), gday: g.day });
     }
     return out;
   }, [view, adjust]);
@@ -249,14 +247,36 @@ export function HijriCalendar() {
               </div>
             ))}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
+          <ol
+            aria-label={`${month.name} ${view.year} AH`}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7,1fr)",
+              gap: 4,
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+            }}
+          >
             {cells.map((cell, i) => {
-              if (!cell) return <div key={`pad-${i}`} />;
+              if (!cell) return <li key={`pad-${i}`} aria-hidden="true" />;
               const today = isToday(cell.day);
               const ev = eventDays.has(cell.day);
+              // The Gregorian date was only in a hover tooltip — invisible on touch
+              // screens and to screen readers. Name each day in full instead.
+              const label = [
+                `${cell.day} ${month.name}`,
+                cell.greg,
+                today ? "today" : "",
+                ev ? "observance" : "",
+              ]
+                .filter(Boolean)
+                .join(", ");
               return (
-                <div
+                <li
                   key={cell.day}
+                  aria-label={label}
+                  aria-current={today ? "date" : undefined}
                   title={ev ? `${cell.greg} · observance` : cell.greg}
                   style={{
                     aspectRatio: "1",
@@ -272,7 +292,20 @@ export function HijriCalendar() {
                     fontFamily: N.ui,
                   }}
                 >
-                  {cell.day}
+                  <span aria-hidden="true">{cell.day}</span>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      top: 3,
+                      insetInlineEnd: 5,
+                      fontSize: 9.5,
+                      fontWeight: 500,
+                      color: today ? N.ink : N.faint,
+                    }}
+                  >
+                    {cell.gday}
+                  </span>
                   {ev && !today && (
                     <div
                       style={{
@@ -285,10 +318,10 @@ export function HijriCalendar() {
                       }}
                     />
                   )}
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ol>
 
           {/* Legend */}
           <div
