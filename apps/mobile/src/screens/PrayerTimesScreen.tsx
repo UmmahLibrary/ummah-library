@@ -322,9 +322,9 @@ export function PrayerTimesScreen() {
                       hitSlop={14}
                       accessibilityRole="switch"
                       accessibilityState={{ checked: !!reminders[name] }}
-                      accessibilityLabel={tf(reminders[name] ? "pr.reminderOff" : "pr.reminderOn", {
-                        name: prayerName(name),
-                      })}
+                      // A fixed name: the switch's checked state says on/off
+                      // ("Turn off reminder…, switch, on" contradicted itself).
+                      accessibilityLabel={tf("pr.reminderFor", { name: prayerName(name) })}
                     >
                       <Icon
                         name="bell"
