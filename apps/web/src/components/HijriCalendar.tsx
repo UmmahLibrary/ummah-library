@@ -281,8 +281,13 @@ export function HijriCalendar() {
                   style={{
                     aspectRatio: "1",
                     borderRadius: 10,
-                    display: "grid",
-                    placeItems: "center",
+                    // Hijri day over a small Gregorian one: side by side at phone
+                    // width, "13" and "24" read as an exponent ("13²⁴").
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    lineHeight: 1.1,
                     position: "relative",
                     background: today ? N.goldGrad : "transparent",
                     border: `1px solid ${today ? "transparent" : N.borderSoft}`,
@@ -296,9 +301,6 @@ export function HijriCalendar() {
                   <span
                     aria-hidden="true"
                     style={{
-                      position: "absolute",
-                      top: 3,
-                      insetInlineEnd: 5,
                       fontSize: 9.5,
                       fontWeight: 500,
                       color: today ? N.ink : N.faint,
@@ -310,7 +312,8 @@ export function HijriCalendar() {
                     <div
                       style={{
                         position: "absolute",
-                        bottom: 5,
+                        top: 5,
+                        insetInlineEnd: 5,
                         width: 5,
                         height: 5,
                         borderRadius: 3,
