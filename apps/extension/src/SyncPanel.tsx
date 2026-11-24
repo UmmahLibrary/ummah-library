@@ -9,7 +9,11 @@
  */
 import { useEffect, useState } from "react";
 import { N } from "@ummahlibrary/ui";
-import type { SyncOutcome } from "@ummahlibrary/core";
+import {
+  isStrongRecoverySecret,
+  MIN_CUSTOM_SECRET_LENGTH,
+  type SyncOutcome,
+} from "@ummahlibrary/core";
 import { generateRecoveryPhrase } from "./lib/sync/web-crypto-cipher";
 import { disableSync, enableSync, isSyncEnabled, readSyncSecret } from "./lib/sync/sync-settings";
 import { resetSyncRuntime, syncIfEnabled } from "./lib/sync/sync-runtime";
@@ -68,6 +72,8 @@ export function SyncPanel() {
   const [confirmOff, setConfirmOff] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const strong = isStrongRecoverySecret(phrase);
+  const weak = phrase.trim() !== "" && !strong;
 
   useEffect(() => {
     void Promise.all([isSyncEnabled(), readSyncSecret()]).then(([on, s]) => {
@@ -78,7 +84,7 @@ export function SyncPanel() {
 
   async function turnOn() {
     const s = phrase.trim();
-    if (!s) return;
+    if (!isStrongRecoverySecret(s)) return;
     setBusy(true);
     setStatus(null);
     try {
@@ -236,6 +242,8 @@ export function SyncPanel() {
                 onChange={(e) => setPhrase(e.target.value)}
                 placeholder="Enter or generate a phrase"
                 aria-label="Recovery phrase"
+                aria-invalid={weak}
+                aria-describedby={weak ? "sync-phrase-hint" : undefined}
                 spellCheck={false}
                 autoCapitalize="characters"
                 style={{
@@ -250,6 +258,15 @@ export function SyncPanel() {
                   fontFamily: "monospace",
                 }}
               />
+              {weak && (
+                <p
+                  id="sync-phrase-hint"
+                  style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: N.error }}
+                >
+                  Too easy to guess — anyone typing the same phrase would share your synced data.
+                  Use Generate, or at least {MIN_CUSTOM_SECRET_LENGTH} letters and digits.
+                </p>
+              )}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button
                   type="button"
@@ -260,8 +277,8 @@ export function SyncPanel() {
                 </button>
                 <button
                   type="button"
-                  style={{ ...primaryBtn, opacity: phrase.trim() && !busy ? 1 : 0.5 }}
-                  disabled={!phrase.trim() || busy}
+                  style={{ ...primaryBtn, opacity: strong && !busy ? 1 : 0.5 }}
+                  disabled={!strong || busy}
                   onClick={() => void turnOn()}
                 >
                   {busy ? "Turning on…" : "Turn on sync"}

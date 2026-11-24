@@ -9,6 +9,7 @@
 import { describe, expect, it } from "vitest";
 import { BIP39_WORDLIST } from "./bip39-wordlist";
 import {
+  isStrongRecoverySecret,
   canonicalizeRecoverySecret,
   encodeRecoveryPhrase,
   RECOVERY_PHRASE_ENTROPY_BYTES,
@@ -81,5 +82,28 @@ describe("canonicalizeRecoverySecret", () => {
     const phrase = encodeRecoveryPhrase(new Uint8Array(RECOVERY_PHRASE_ENTROPY_BYTES).fill(0x42));
     expect(canonicalizeRecoverySecret(phrase)).toBe(phrase);
     expect(canonicalizeRecoverySecret(phrase.toUpperCase())).toBe(phrase);
+  });
+});
+
+describe("isStrongRecoverySecret", () => {
+  it("rejects short or common typed phrases that strangers would share", () => {
+    for (const weak of [
+      "",
+      "abc",
+      "password",
+      "bismillah",
+      "assalamu alaikum",
+      "abandon ability",
+    ]) {
+      expect(isStrongRecoverySecret(weak)).toBe(false);
+    }
+  });
+
+  it("accepts a generated 12-word phrase, a legacy code, and a long custom secret", () => {
+    const words =
+      "abandon ability able about above absent absorb abstract absurd abuse access accident";
+    expect(isStrongRecoverySecret(words)).toBe(true);
+    expect(isStrongRecoverySecret("ABCDE-FGHJK-MNPQR-STVWX-YZ234")).toBe(true);
+    expect(isStrongRecoverySecret("my own very long sync secret 2026")).toBe(true);
   });
 });

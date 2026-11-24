@@ -112,6 +112,8 @@ export const en = {
   "set.sync.placeholder": "Enter or generate a phrase",
   "set.sync.generate": "Generate",
   "set.sync.turnOn": "Turn on sync",
+  "set.sync.weak":
+    "Too easy to guess — anyone typing the same phrase would share your synced data. Use Generate, or at least {n} letters and digits.",
   "set.sync.warn":
     "⚠ Your recovery phrase is the only key to your synced data. We can’t see it or recover it — if you lose it, the data can’t be decrypted. Keep a copy somewhere safe (your exported backup file is a good place).",
   // Privacy
@@ -224,6 +226,8 @@ export const ar: Record<Key, string> = {
   "set.sync.placeholder": "أدخل عبارة أو أنشئ واحدة",
   "set.sync.generate": "إنشاء",
   "set.sync.turnOn": "تشغيل المزامنة",
+  "set.sync.weak":
+    "سهلة التخمين — أي شخص يكتب العبارة نفسها سيشارك بياناتك المتزامنة. استخدم «إنشاء» أو {n} حرفًا ورقمًا على الأقل.",
   "set.sync.warn":
     "⚠ عبارة الاسترداد هي المفتاح الوحيد لبياناتك المتزامنة. لا يمكننا رؤيتها ولا استعادتها — إن فقدتها فلن يمكن فك تشفير البيانات. احتفظ بنسخة في مكان آمن (ملف النسخة الاحتياطية المصدَّر مكان مناسب).",
   "set.p.updated": "آخر تحديث: {date}.",
@@ -338,6 +342,8 @@ export const ur: Record<Key, string> = {
   "set.sync.placeholder": "فقرہ درج کریں یا بنائیں",
   "set.sync.generate": "بنائیں",
   "set.sync.turnOn": "سنک چالو کریں",
+  "set.sync.weak":
+    "اندازہ لگانا بہت آسان ہے — یہی جملہ لکھنے والا ہر شخص آپ کا سنک شدہ ڈیٹا دیکھ سکے گا۔ «بنائیں» استعمال کریں، یا کم از کم {n} حروف اور ہندسے۔",
   "set.sync.warn":
     "⚠ آپ کا ریکوری فقرہ آپ کے سنک شدہ ڈیٹا کی واحد کلید ہے۔ ہم اسے نہ دیکھ سکتے ہیں نہ بحال کر سکتے ہیں — اگر یہ گم ہو گیا تو ڈیٹا ڈی کرپٹ نہیں ہو سکے گا۔ اس کی ایک نقل کسی محفوظ جگہ رکھیں (آپ کی ایکسپورٹ کی ہوئی بیک اپ فائل اچھی جگہ ہے)۔",
   "set.p.updated": "آخری تازہ کاری: {date}۔",
@@ -454,6 +460,8 @@ export const id: Record<Key, string> = {
   "set.sync.placeholder": "Masukkan atau buat frasa",
   "set.sync.generate": "Buat",
   "set.sync.turnOn": "Aktifkan sinkronisasi",
+  "set.sync.weak":
+    "Terlalu mudah ditebak — siapa pun yang mengetik frasa yang sama akan berbagi data sinkron Anda. Gunakan Buat, atau minimal {n} huruf dan angka.",
   "set.sync.warn":
     "⚠ Frasa pemulihan adalah satu-satunya kunci data tersinkron Anda. Kami tidak dapat melihat atau memulihkannya — jika hilang, data tidak dapat didekripsi. Simpan salinannya di tempat aman (file cadangan yang Anda ekspor adalah tempat yang baik).",
   "set.p.updated": "Terakhir diperbarui {date}.",
@@ -566,6 +574,8 @@ export const bn: Record<Key, string> = {
   "set.sync.placeholder": "ফ্রেজ লিখুন বা তৈরি করুন",
   "set.sync.generate": "তৈরি করুন",
   "set.sync.turnOn": "সিঙ্ক চালু করুন",
+  "set.sync.weak":
+    "অনুমান করা খুব সহজ — একই বাক্যাংশ লিখলে যে কেউ আপনার সিঙ্ক করা ডেটা দেখতে পাবে। তৈরি করুন ব্যবহার করুন, অথবা অন্তত {n}টি অক্ষর ও সংখ্যা দিন।",
   "set.sync.warn":
     "⚠ আপনার রিকভারি ফ্রেজই সিঙ্ক করা ডেটার একমাত্র চাবি। আমরা এটি দেখতে বা পুনরুদ্ধার করতে পারি না — হারালে ডেটা ডিক্রিপ্ট করা যাবে না। একটি কপি নিরাপদ জায়গায় রাখুন (আপনার এক্সপোর্ট করা ব্যাকআপ ফাইল ভালো জায়গা)।",
   "set.p.updated": "সর্বশেষ হালনাগাদ {date}।",
@@ -678,6 +688,8 @@ export const tr: Record<Key, string> = {
   "set.sync.placeholder": "Bir ifade girin ya da oluşturun",
   "set.sync.generate": "Oluştur",
   "set.sync.turnOn": "Eşitlemeyi aç",
+  "set.sync.weak":
+    "Tahmin etmesi çok kolay — aynı ifadeyi yazan herkes eşitlenen verilerinizi paylaşır. Oluştur'u kullanın ya da en az {n} harf ve rakam girin.",
   "set.sync.warn":
     "⚠ Kurtarma ifadeniz, eşitlenen verilerinizin tek anahtarıdır. Biz onu göremeyiz ve kurtaramayız — kaybederseniz verilerin şifresi çözülemez. Bir kopyasını güvenli bir yerde saklayın (dışa aktardığınız yedek dosyası iyi bir yerdir).",
   "set.p.updated": "Son güncelleme: {date}.",

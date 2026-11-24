@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { SyncOutcome } from "@ummahlibrary/core";
+import {
+  isStrongRecoverySecret,
+  MIN_CUSTOM_SECRET_LENGTH,
+  type SyncOutcome,
+} from "@ummahlibrary/core";
 import { N } from "@ummahlibrary/ui";
 import { generateRecoveryPhrase } from "../lib/sync/web-crypto-cipher";
 import { disableSync, enableSync, isSyncEnabled, readSyncSecret } from "../lib/sync/sync-settings";
@@ -97,6 +101,7 @@ export function SyncSettings() {
   const [reveal, setReveal] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const strong = isStrongRecoverySecret(phrase);
 
   // Read localStorage only after mount to avoid a server/client hydration mismatch.
   useEffect(() => {
@@ -108,7 +113,7 @@ export function SyncSettings() {
 
   async function turnOn() {
     const s = phrase.trim();
-    if (!s) return;
+    if (!isStrongRecoverySecret(s)) return;
     setBusy(true);
     setStatus(null);
     await enableSync(s);
@@ -252,6 +257,8 @@ export function SyncSettings() {
                 placeholder="Enter or generate a phrase"
                 spellCheck={false}
                 aria-label="Recovery phrase"
+                aria-invalid={phrase.trim() !== "" && !strong}
+                aria-describedby={phrase.trim() && !strong ? "sync-phrase-hint" : undefined}
                 style={inputStyle}
               />
               <button
@@ -262,10 +269,25 @@ export function SyncSettings() {
                 Generate
               </button>
             </div>
+            {phrase.trim() && !strong && (
+              <p
+                id="sync-phrase-hint"
+                style={{
+                  fontSize: 13,
+                  color: N.error,
+                  lineHeight: 1.55,
+                  margin: "-4px 0 12px",
+                  fontFamily: N.ui,
+                }}
+              >
+                Too easy to guess — anyone typing the same phrase would share your synced data. Use
+                Generate, or at least {MIN_CUSTOM_SECRET_LENGTH} letters and digits.
+              </p>
+            )}
             <button
               type="button"
-              style={{ ...primaryBtn, opacity: phrase.trim() && !busy ? 1 : 0.5 }}
-              disabled={!phrase.trim() || busy}
+              style={{ ...primaryBtn, opacity: strong && !busy ? 1 : 0.5 }}
+              disabled={!strong || busy}
               onClick={() => void turnOn()}
             >
               {busy ? "Turning on…" : "Turn on sync"}
