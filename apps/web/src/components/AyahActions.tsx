@@ -5,7 +5,7 @@ import {
   type Collection,
   collectionsWithAyah,
   createCard,
-  createCollection,
+  saveToNamedCollection,
   toggleAyah,
 } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
@@ -233,7 +233,8 @@ export function AyahActions({
   }
   function addCollection() {
     const id = newId();
-    const next = toggleAyah(createCollection(collections, id, newName), id, ref);
+    // A name that already exists saves into that collection, not a duplicate.
+    const next = saveToNamedCollection(collections, id, newName, ref);
     setCollections(next);
     void writeCollections(next);
     setNewName("");
