@@ -48,3 +48,19 @@ describe("QiblaCompass", () => {
     expect(JSON.parse(localStorage.getItem(COORDS_KEY)!)).toMatchObject(london);
   });
 });
+
+describe("QiblaCompass — location failures", () => {
+  it("doesn't call a timeout a denied permission", async () => {
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: {
+        getCurrentPosition: (_ok: PositionCallback, err: PositionErrorCallback) =>
+          err({ code: 3 } as GeolocationPositionError), // TIMEOUT
+      },
+    });
+    render(<QiblaCompass />);
+    await userEvent.click(screen.getByRole("button", { name: /location/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Couldn’t determine your location/);
+    expect(screen.queryByText(/permission was denied/)).toBeNull();
+  });
+});

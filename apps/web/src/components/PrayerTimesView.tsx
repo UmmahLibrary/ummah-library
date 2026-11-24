@@ -31,7 +31,7 @@ import { fmtPrayerTime } from "../lib/prayer-time-format";
 import { PRAYER_SETTINGS_EVENT, webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { WebNotifier } from "../lib/web-notifier";
 
-type Status = "idle" | "locating" | "loading" | "ready" | "error" | "denied";
+type Status = "idle" | "locating" | "loading" | "ready" | "error" | "denied" | "unavailable";
 
 /** Local calendar date as YYYY-MM-DD (not UTC — prayer times are a local concept). */
 function localDate(d: Date): string {
@@ -97,35 +97,38 @@ export function PrayerTimesView() {
   // Fetch the whole current week in parallel; today's card is derived from it.
   const fetchTimings = useCallback(
     async (c: Coordinates, m: string, mad: Madhab, hlr: HighLatitudeRuleId) => {
-    const id = ++reqId.current;
-    setStatus("loading");
-    try {
-      const days = weekDays(new Date());
-      const results = await Promise.all(
-        days.map(async (d) => {
-          const params = new URLSearchParams({
-            lat: String(c.latitude),
-            lng: String(c.longitude),
-            date: localDate(d.date),
-            method: m,
-            madhab: mad,
-            hlr,
-          });
-          const res = await fetch(`/api/v1/prayer-times?${params}`);
-          if (!res.ok) return null;
-          return (await res.json()) as { timings: ExtendedPrayerTimings };
-        }),
-      );
-      if (id !== reqId.current) return;
-      const filled: WeekDay[] = days.map((d, i) => ({ ...d, timings: results[i]?.timings ?? null }));
-      const today = filled.find((d) => d.isToday)?.timings ?? null;
-      if (!today) throw new Error("missing today");
-      setWeek(filled);
-      setTimings(today);
-      setStatus("ready");
-    } catch {
-      if (id === reqId.current) setStatus("error");
-    }
+      const id = ++reqId.current;
+      setStatus("loading");
+      try {
+        const days = weekDays(new Date());
+        const results = await Promise.all(
+          days.map(async (d) => {
+            const params = new URLSearchParams({
+              lat: String(c.latitude),
+              lng: String(c.longitude),
+              date: localDate(d.date),
+              method: m,
+              madhab: mad,
+              hlr,
+            });
+            const res = await fetch(`/api/v1/prayer-times?${params}`);
+            if (!res.ok) return null;
+            return (await res.json()) as { timings: ExtendedPrayerTimings };
+          }),
+        );
+        if (id !== reqId.current) return;
+        const filled: WeekDay[] = days.map((d, i) => ({
+          ...d,
+          timings: results[i]?.timings ?? null,
+        }));
+        const today = filled.find((d) => d.isToday)?.timings ?? null;
+        if (!today) throw new Error("missing today");
+        setWeek(filled);
+        setTimings(today);
+        setStatus("ready");
+      } catch {
+        if (id === reqId.current) setStatus("error");
+      }
     },
     [],
   );
@@ -152,15 +155,17 @@ export function PrayerTimesView() {
   // too, without re-running the reminder/permission reads above.
   useEffect(() => {
     const onSettings = () =>
-      void webPrayerSettingsStore.read().then(({ coords: c, method: m, madhab: mad, highLatitudeRule: hlr }) => {
-        setMethod(m);
-        setMadhab(mad);
-        setHighLat(hlr);
-        if (c) {
-          setCoords(c);
-          void fetchTimings(c, m, mad, hlr);
-        }
-      });
+      void webPrayerSettingsStore
+        .read()
+        .then(({ coords: c, method: m, madhab: mad, highLatitudeRule: hlr }) => {
+          setMethod(m);
+          setMadhab(mad);
+          setHighLat(hlr);
+          if (c) {
+            setCoords(c);
+            void fetchTimings(c, m, mad, hlr);
+          }
+        });
     window.addEventListener(PRAYER_SETTINGS_EVENT, onSettings);
     return () => window.removeEventListener(PRAYER_SETTINGS_EVENT, onSettings);
   }, [fetchTimings]);
@@ -184,7 +189,8 @@ export function PrayerTimesView() {
         void webPrayerSettingsStore.writeCoords(c);
         void fetchTimings(c, method, madhab, highLat);
       },
-      () => setStatus("denied"),
+      // Only code 1 is a refusal; a timeout / location off needs another fix.
+      (err) => setStatus(err.code === 1 ? "denied" : "unavailable"),
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 3600000 },
     );
   }
@@ -258,8 +264,27 @@ export function PrayerTimesView() {
       )}
 
       {status === "locating" && <p style={{ color: N.muted }}>Getting your location…</p>}
+      {status === "unavailable" && (
+        <div
+          role="alert"
+          style={{ ...cardStyle, padding: 24, display: "flex", flexDirection: "column", gap: 14 }}
+        >
+          <p style={{ margin: 0, color: N.muted, lineHeight: 1.6 }}>
+            Couldn’t get your location. Check that location services are turned on, then try again.
+          </p>
+          <button
+            type="button"
+            style={{ ...selectStyle, alignSelf: "flex-start", cursor: "pointer" }}
+            onClick={locate}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
       {status === "denied" && (
         <div
+          role="alert"
           style={{ ...cardStyle, padding: 24, display: "flex", flexDirection: "column", gap: 14 }}
         >
           <p style={{ margin: 0, color: N.muted, lineHeight: 1.6 }}>
@@ -275,7 +300,7 @@ export function PrayerTimesView() {
         </div>
       )}
       {status === "error" && (
-        <p style={{ color: N.muted }}>
+        <p role="alert" style={{ color: N.muted }}>
           Couldn’t load prayer times. Check your connection and retry.
         </p>
       )}
@@ -406,7 +431,11 @@ export function PrayerTimesView() {
                               color: on ? N.gold : N.faint,
                             }}
                           >
-                            <Icon name={on ? "check" : "plus"} size={18} color={on ? N.gold : N.faint} />
+                            <Icon
+                              name={on ? "check" : "plus"}
+                              size={18}
+                              color={on ? N.gold : N.faint}
+                            />
                           </button>
                         );
                       })()}

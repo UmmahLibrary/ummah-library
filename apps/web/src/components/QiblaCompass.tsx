@@ -105,7 +105,8 @@ export function QiblaCompass() {
         setStatus("ready");
         void webPrayerSettingsStore.writeCoords(c);
       },
-      () => setStatus("denied"),
+      // Only code 1 is a refusal; a timeout / location off is "couldn't determine".
+      (err) => setStatus(err.code === 1 ? "denied" : "error"),
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 3600000 },
     );
   }
@@ -153,7 +154,7 @@ export function QiblaCompass() {
 
       {status === "locating" && <p style={{ color: N.muted }}>Getting your location…</p>}
       {status === "denied" && (
-        <div style={ctaCard}>
+        <div style={ctaCard} role="alert">
           <p style={{ margin: 0, color: N.muted, lineHeight: 1.6 }}>
             Location permission was denied. Enable it in your browser to find the qibla.
           </p>
@@ -163,7 +164,7 @@ export function QiblaCompass() {
         </div>
       )}
       {status === "error" && (
-        <p style={{ color: N.muted }}>
+        <p role="alert" style={{ color: N.muted }}>
           Couldn’t determine your location. Check your settings and retry.
         </p>
       )}
