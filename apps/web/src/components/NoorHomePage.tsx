@@ -170,7 +170,12 @@ function GroupHeader({
           {title}
         </span>
         {ar && (
-          <span className="noor-ar" style={{ fontSize: 19, color: N.goldHi, flexShrink: 0 }}>
+          <span
+            className="noor-ar"
+            lang="ar"
+            dir="rtl"
+            style={{ fontSize: 19, color: N.goldHi, flexShrink: 0 }}
+          >
             {ar}
           </span>
         )}

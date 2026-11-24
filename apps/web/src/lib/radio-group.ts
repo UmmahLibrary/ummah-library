@@ -8,7 +8,16 @@ import type { KeyboardEvent } from "react";
  * Selecting is a click on the target, so each group keeps its own onClick.
  */
 export function onRadioGroupKeyDown(e: KeyboardEvent<HTMLElement>): void {
-  const radios = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]'));
+  rovingKeyDown(e, '[role="radio"]');
+}
+
+/** The same arrow-key model for a `role="tablist"` (selection follows focus). */
+export function onTabListKeyDown(e: KeyboardEvent<HTMLElement>): void {
+  rovingKeyDown(e, '[role="tab"]');
+}
+
+function rovingKeyDown(e: KeyboardEvent<HTMLElement>, selector: string): void {
+  const radios = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(selector));
   const at = radios.indexOf(document.activeElement as HTMLElement);
   if (at < 0 || radios.length === 0) return;
   const rtl = getComputedStyle(e.currentTarget).direction === "rtl";

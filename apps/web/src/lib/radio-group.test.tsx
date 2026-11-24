@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { onRadioGroupKeyDown, radioTabIndex } from "./radio-group";
+import { onRadioGroupKeyDown, onTabListKeyDown, radioTabIndex } from "./radio-group";
 
 function Group() {
   const [v, setV] = useState("b");
@@ -42,5 +42,34 @@ describe("radio group keyboard", () => {
     expect(screen.getByRole("radio", { name: "a" })).toHaveAttribute("aria-checked", "true");
     await userEvent.tab();
     expect(screen.getByRole("button", { name: "after" })).toHaveFocus();
+  });
+});
+
+describe("tab list keyboard", () => {
+  it("moves between tabs with the arrow keys", async () => {
+    function Tabs() {
+      const [v, setV] = useState("x");
+      return (
+        <div role="tablist" aria-label="Tabs" onKeyDown={onTabListKeyDown}>
+          {["x", "y"].map((o) => (
+            <button
+              key={o}
+              type="button"
+              role="tab"
+              aria-selected={v === o}
+              tabIndex={v === o ? 0 : -1}
+              onClick={() => setV(o)}
+            >
+              {o}
+            </button>
+          ))}
+        </div>
+      );
+    }
+    render(<Tabs />);
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { name: "y" })).toHaveFocus();
+    expect(screen.getByRole("tab", { name: "y" })).toHaveAttribute("aria-selected", "true");
   });
 });

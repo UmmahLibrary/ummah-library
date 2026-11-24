@@ -16,11 +16,13 @@ function tsxFiles(dir: string): string[] {
 describe("Arabic text is marked as Arabic", () => {
   // Without lang="ar" the Quran text inherits the interface language: in the
   // Urdu UI a screen reader voiced the Arabic as Urdu (WCAG 3.1.2).
-  it("every element styled .arabic carries lang", () => {
+  it("every element styled .arabic or .noor-ar carries lang", () => {
     const missing: string[] = [];
     for (const f of tsxFiles(src)) {
       const text = readFileSync(f, "utf8");
-      for (const m of text.matchAll(/<(\w+)\s[^>]*?className="[^"]*\barabic\b[^"]*"[^>]*>/gs)) {
+      for (const m of text.matchAll(
+        /<(\w+)\s[^>]*?className="[^"]*\b(?:arabic|noor-ar)\b[^"]*"[^>]*>/gs,
+      )) {
         if (!/\blang=/.test(m[0])) {
           missing.push(`${f.slice(src.length)}:${text.slice(0, m.index).split("\n").length}`);
         }

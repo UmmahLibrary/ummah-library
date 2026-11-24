@@ -12,6 +12,7 @@ import {
 } from "@ummahlibrary/core";
 import { Icon, N } from "@ummahlibrary/ui";
 import { readAdhkarCounts, writeAdhkarCounts } from "../lib/adhkar";
+import { onTabListKeyDown } from "../lib/radio-group";
 
 export function AdhkarView({ dhikr }: { dhikr: readonly Dhikr[] }) {
   const [occasion, setOccasion] = useState<AdhkarOccasion>("morning");
@@ -50,6 +51,7 @@ export function AdhkarView({ dhikr }: { dhikr: readonly Dhikr[] }) {
       <div
         role="tablist"
         aria-label="Adhkar set"
+        onKeyDown={onTabListKeyDown}
         style={{
           display: "flex",
           flexWrap: "wrap",
@@ -69,6 +71,7 @@ export function AdhkarView({ dhikr }: { dhikr: readonly Dhikr[] }) {
               type="button"
               role="tab"
               aria-selected={active}
+              tabIndex={active ? 0 : -1}
               onClick={() => setOccasion(o.id)}
               style={{
                 display: "inline-flex",
@@ -86,7 +89,7 @@ export function AdhkarView({ dhikr }: { dhikr: readonly Dhikr[] }) {
               }}
             >
               {o.label}
-              <span className="noor-ar" style={{ fontSize: 13, opacity: 0.85 }}>
+              <span className="noor-ar" lang="ar" style={{ fontSize: 13, opacity: 0.85 }}>
                 {o.arabic}
               </span>
             </button>

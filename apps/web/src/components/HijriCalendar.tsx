@@ -188,7 +188,12 @@ export function HijriCalendar() {
           >
             {month.name} {view.year} AH
           </div>
-          <div className="noor-ar" style={{ fontSize: 15, color: N.gold, marginTop: 1 }}>
+          <div
+            className="noor-ar"
+            lang="ar"
+            dir="rtl"
+            style={{ fontSize: 15, color: N.gold, marginTop: 1 }}
+          >
             {month.arabic}
           </div>
         </div>

@@ -14,6 +14,7 @@ import {
 } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
 import { useIntl } from "../i18n/I18nProvider";
+import { onTabListKeyDown } from "../lib/radio-group";
 
 type Tab = "surah" | "juz" | "hizb" | "page";
 
@@ -94,6 +95,7 @@ export function GoToSheet({
       type="button"
       role="tab"
       aria-selected={tab === t}
+      tabIndex={tab === t ? 0 : -1}
       onClick={() => setTab(t)}
       className="goto-tab"
       data-on={tab === t ? "true" : undefined}
@@ -189,7 +191,12 @@ export function GoToSheet({
           )}
         </div>
 
-        <div role="tablist" aria-label={tr("goto.chooseBy")} className="goto-tabs">
+        <div
+          role="tablist"
+          aria-label={tr("goto.chooseBy")}
+          className="goto-tabs"
+          onKeyDown={onTabListKeyDown}
+        >
           {tabBtn("surah", tr("goto.tabSurah"))}
           {tabBtn("juz", tr("goto.tabJuz"))}
           {tabBtn("hizb", tr("goto.tabHizb"))}
