@@ -2,7 +2,7 @@ import { useIntl } from "../i18n/I18nProvider";
 import { LTR_TEXT } from "../text-direction";
 import { memo, useEffect, useMemo, useState } from "react";
 import type { IconName } from "@ummahlibrary/ui";
-import { Modal, Pressable, Share, StyleSheet, Text, View } from "../Type";
+import { AccessibilityInfo, Modal, Pressable, Share, StyleSheet, Text, View } from "../Type";
 import * as Clipboard from "expo-clipboard";
 import { createCard, editionLangCode } from "@ummahlibrary/core";
 import { AyahBlock, Icon, ListRow, quranType } from "@ummahlibrary/ui";
@@ -141,6 +141,8 @@ function AyahViewImpl({
       .join("\n");
     await Clipboard.setStringAsync(block);
     setCopied(true);
+    // The bubble is visual only (pointerEvents none, gone in 2 s) — say it too.
+    AccessibilityInfo.announceForAccessibility(t("rd.copied"));
   };
 
   const share = async () => {
@@ -278,7 +280,9 @@ function AyahViewImpl({
           : translations.map((tr) => ({
               key: tr.id,
               label: tr.name,
-              text: tr.text,
+              // Some sources are blank for whole surahs (Irfan-ul-Quran: all of
+              // Al-Aʿrāf) — say so rather than show the name over nothing.
+              text: tr.text?.trim() || tf("rd.trMissing", { name: tr.name }),
               // Catalogue names ("Urdu") → codes ("ur"), so each gets its own face.
               lang: editionLangCode(tr.language) ?? tr.language,
               dir: tr.direction,
@@ -329,8 +333,18 @@ function AyahViewImpl({
             animationType="fade"
             onRequestClose={() => setMoreOpen(false)}
           >
-            <Pressable style={styles.scrim} onPress={() => setMoreOpen(false)}>
-              <View style={styles.sheet} accessibilityViewIsModal>
+            <Pressable
+              style={styles.scrim}
+              onPress={() => setMoreOpen(false)}
+              // Not an a11y element: an accessible wrapper folds the whole sheet
+              // into one node, so VoiceOver couldn't reach the items inside.
+              accessible={false}
+            >
+              <View
+                style={styles.sheet}
+                accessibilityViewIsModal
+                onAccessibilityEscape={() => setMoreOpen(false)}
+              >
                 {(
                   [
                     ["share", t("ayah.share"), () => void share()],

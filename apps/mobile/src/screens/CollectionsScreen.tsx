@@ -139,10 +139,10 @@ export function CollectionsScreen({ navigation }: Props) {
           collections.map((c) => (
             <View key={c.id} style={styles.collection}>
               <View style={styles.collHead}>
-                <TextInput
+                <CollectionNameInput
                   style={styles.collName}
-                  value={c.name}
-                  onChangeText={(v) => updateCollections(renameCollection(collections, c.id, v))}
+                  name={c.name}
+                  onRename={(v) => updateCollections(renameCollection(collections, c.id, v))}
                   accessibilityLabel={t("rd.coll.nameA11y")}
                 />
                 <Text style={styles.collCount}>{num(c.ayahs.length)}</Text>
@@ -306,4 +306,40 @@ function makeStyles(c: Palette) {
     open: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
     openText: { color: c.accent, fontSize: 13, fontFamily: FONT.semibold },
   });
+}
+
+/**
+ * The editable collection title: edits a local draft and saves when editing
+ * ends. Saving each keystroke through `renameCollection` (which trims and
+ * refuses an empty name) ate a typed space at once ("My" + space + "x" →
+ * "Myx") and wouldn't let the field be cleared to retype.
+ */
+function CollectionNameInput({
+  name,
+  onRename,
+  style,
+  accessibilityLabel,
+}: {
+  name: string;
+  onRename: (name: string) => void;
+  style: React.ComponentProps<typeof TextInput>["style"];
+  accessibilityLabel: string;
+}) {
+  const [draft, setDraft] = useState(name);
+  useEffect(() => setDraft(name), [name]);
+  const commit = () => {
+    if (draft.trim() && draft.trim() !== name) onRename(draft);
+    else setDraft(name);
+  };
+  return (
+    <TextInput
+      style={style}
+      value={draft}
+      onChangeText={setDraft}
+      onEndEditing={commit}
+      onSubmitEditing={commit}
+      returnKeyType="done"
+      accessibilityLabel={accessibilityLabel}
+    />
+  );
 }

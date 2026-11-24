@@ -385,8 +385,12 @@ export const id: Record<MessageKey, string> = {
   "related.none": "Tidak ada hadis dalam enam kitab yang mengutip ayat ini kata per kata.",
   "related.countOne": "{n} hadis mengutip ayat ini",
   "related.countMany": "{n} hadis mengutip ayat ini",
-  "related.note": "Dicocokkan otomatis ketika teks Arab hadis mengulang kata-kata ayat ini. Kesamaan redaksi dengan sendirinya bukan tafsir atas ayat tersebut.",
+  "related.note":
+    "Dicocokkan otomatis ketika teks Arab hadis mengulang kata-kata ayat ini. Kesamaan redaksi dengan sendirinya bukan tafsir atas ayat tersebut.",
   "related.sharedWording": "Redaksi yang sama:",
+  "related.showAll": "Tampilkan semua {n} hadis",
+  "tr.missingAyah": "{name} tidak memuat terjemahan ayat ini.",
+  "tr.missingSurah": "{name} tidak memuat terjemahan surah ini.",
   "onb.translation": "Terjemahan mana yang Anda inginkan?",
   "goto.ayah": "{surah} · Ayat {aya}",
   "goto.juz": "Juz {n} · dimulai di {surah} {key}",

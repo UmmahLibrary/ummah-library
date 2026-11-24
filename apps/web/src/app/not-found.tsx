@@ -7,7 +7,7 @@ export default function NotFound() {
   return (
     <>
       <header className="reader-head" style={{ marginTop: "2rem" }}>
-        <div className="name-ar arabic" style={{ fontSize: "3rem" }}>
+        <div className="name-ar arabic" lang="ar" dir="rtl" style={{ fontSize: "3rem" }}>
           ٤٠٤
         </div>
         <h1 className="name-en">Page not found</h1>

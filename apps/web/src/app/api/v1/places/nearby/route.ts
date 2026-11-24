@@ -1,5 +1,6 @@
 import { placesProvider } from "@ummahlibrary/api";
 import { apiJson } from "../../../../../lib/api-response";
+import { numberParam } from "../../../../../lib/query-number";
 
 // Depends on the caller's coordinates, so it can't be prerendered (mirrors
 // /api/v1/prayer-times — ADR 0012, ADR 0038).
@@ -16,11 +17,18 @@ const ATTRIBUTION = "© OpenStreetMap contributors";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const lat = Number(url.searchParams.get("lat"));
-  const lng = Number(url.searchParams.get("lng"));
-  const radiusParam = Number(url.searchParams.get("radius"));
+  const lat = numberParam(url.searchParams, "lat");
+  const lng = numberParam(url.searchParams, "lng");
+  const radiusParam = numberParam(url.searchParams, "radius");
 
-  if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+  if (
+    !Number.isFinite(lat) ||
+    lat < -90 ||
+    lat > 90 ||
+    !Number.isFinite(lng) ||
+    lng < -180 ||
+    lng > 180
+  ) {
     return apiJson({ error: "bad_coordinates" }, { status: 400 });
   }
 

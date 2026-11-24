@@ -23,6 +23,16 @@ async function openCache(): Promise<Cache | null> {
   }
 }
 
+/** Delete every downloaded recitation on this device (Settings → Erase all data). */
+export async function deleteAllAudio(): Promise<void> {
+  if (typeof caches === "undefined") return;
+  try {
+    await caches.delete(CACHE);
+  } catch {
+    /* Cache API unavailable */
+  }
+}
+
 export const webAudioStore: AudioStore = {
   async has(reciterId, ref) {
     const cache = await openCache();
@@ -75,8 +85,12 @@ export const webAudioStore: AudioStore = {
       if (!m) continue;
       const [, reciterId, suraStr] = m;
       const id = `${reciterId}:${suraStr}`;
-      const entry =
-        bySurah.get(id) ?? { reciterId: reciterId!, surah: Number(suraStr), ayahCount: 0, bytes: 0 };
+      const entry = bySurah.get(id) ?? {
+        reciterId: reciterId!,
+        surah: Number(suraStr),
+        ayahCount: 0,
+        bytes: 0,
+      };
       entry.ayahCount += 1;
       const len = (await cache.match(req))?.headers.get("Content-Length");
       if (len) entry.bytes += Number(len);

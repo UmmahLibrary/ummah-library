@@ -51,7 +51,7 @@ export function SpeakButton({ text, label }: { text: string; label?: string }) {
       type="button"
       className="nf-speak"
       onClick={toggle}
-      aria-pressed={speaking}
+      // The name flips to "Stop reading"; aria-pressed too would contradict it.
       aria-label={speaking ? t("speak.stopReading") : idleLabel}
       title={speaking ? t("speak.stop") : idleLabel}
     >

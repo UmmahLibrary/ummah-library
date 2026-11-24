@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type Palette, type ThemeKey, noorThemes } from "./themes";
+import { READABLE_HUE_MIX, STATUS_HUES, readableHueFor } from "./tokens";
 
 /** WCAG 2.x relative luminance of a `#rrggbb` colour. */
 function luminance(hex: string): number {
@@ -78,6 +79,29 @@ describe("Noor palettes — text contrast (ADR 0041: labels at 4.5:1 or better)"
             contrast(p[token], tinted),
             `${token} on tinted ${surface}`,
           ).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    });
+  }
+});
+
+describe("readableHue — status hues as text (hadith grades)", () => {
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const toHex = (c: number[]) =>
+    `#${c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
+  const mix = (a: string, b: string, pctA: number) =>
+    toHex(rgb(a).map((v, i) => (v * pctA + rgb(b)[i]! * (100 - pctA)) / 100));
+
+  for (const key of Object.keys(noorThemes) as ThemeKey[]) {
+    it(`${key}: every status hue reads at 4.5:1, even on its own 13% tint`, () => {
+      const p = noorThemes[key];
+      const pct = p.scheme === "light" ? READABLE_HUE_MIX.light : READABLE_HUE_MIX.dark;
+      for (const hue of Object.values(STATUS_HUES)) {
+        const text = mix(hue, p.fg, pct);
+        expect(readableHueFor(hue, p)).toBe(text); // native and web blend alike
+        for (const surface of SURFACES) {
+          const tint = mix(hue, p[surface] as string, 13);
+          expect(contrast(text, tint), `${hue} on ${surface}`).toBeGreaterThanOrEqual(4.5);
         }
       }
     });

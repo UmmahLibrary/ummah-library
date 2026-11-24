@@ -58,3 +58,16 @@ local copy is added.
 - **Reuse:** the port + orchestration are shared — the mobile adapter (~80 lines)
   is a thin file-system mirror of the web one, and both call the same
   `downloadSurahAudio`/`isSurahDownloaded` in `core`.
+
+## Amendment (2026-11-24) — the service worker must not drop the audio cache
+
+The web downloads live in the Cache API store `ul-audio-v1`, on the same origin
+as the service worker's own caches. The worker's `activate` step deleted every
+cache whose name wasn't in its current list, so the first service-worker update
+after a download would have silently erased every saved recitation. `sw.js` now
+prunes only caches it owns (`ul-pages-*`, `ul-static-*`, `ul-api-*`); a test
+pins `ul-audio-v1` surviving an update. The same change adds `ul-api-v1`, a
+capped (120 entries) network-first copy of public reader-content APIs (tafsir,
+translations, related hadith, names, adhkār), so what you opened online also
+opens offline — as ADR 0044 already assumed for Related hadith. Location-bearing
+APIs and whole hadith collections (~12 MB each) are excluded.

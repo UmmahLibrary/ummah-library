@@ -43,6 +43,22 @@ describe("SyncSettings", () => {
     expect(generate().length).toBeGreaterThan(10);
   });
 
+  it("refuses a guessable phrase that strangers could share", () => {
+    render(<SyncSettings />);
+    const box = screen.getByLabelText("Recovery phrase");
+    fireEvent.change(box, { target: { value: "bismillah" } });
+    expect(screen.getByText("Turn on sync").closest("button")).toBeDisabled();
+    expect(box).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText(/Too easy to guess/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Turn on sync"));
+    expect(syncIfEnabled).not.toHaveBeenCalled();
+    expect(localStorage.getItem("ul.sync.secret")).toBeNull();
+
+    generate();
+    expect(screen.getByText("Turn on sync").closest("button")).toBeEnabled();
+    expect(screen.queryByText(/Too easy to guess/)).not.toBeInTheDocument();
+  });
+
   it("turning on syncs, stores the secret, and shows the active state", async () => {
     render(<SyncSettings />);
     await enableViaUI();

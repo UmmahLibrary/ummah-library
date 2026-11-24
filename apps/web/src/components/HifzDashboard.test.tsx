@@ -53,3 +53,13 @@ describe("HifzDashboard — gentle consistency (ADR 0041)", () => {
     expect(screen.queryByText(/🔥/)).toBeNull();
   });
 });
+
+describe("HifzDashboard — review heatmap", () => {
+  it("gives the colour-only heatmap a spoken summary", async () => {
+    localStorage.setItem("ul.hifz", JSON.stringify({ "1:1": card }));
+    render(<HifzDashboard surahs={SURAHS} />);
+    expect(
+      await screen.findByRole("img", { name: /^Reviews over the last \d+ days: / }),
+    ).toBeInTheDocument();
+  });
+});

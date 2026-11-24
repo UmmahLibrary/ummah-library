@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DUAS, DUA_CATEGORIES, duaOfToday } from "./duas";
+import { DUAS, DUA_CATEGORIES, duaOfToday, duaVerse } from "./duas";
 
 describe("DUAS", () => {
   it("every entry is well-formed and uses a known category", () => {
@@ -56,5 +56,12 @@ describe("duaOfToday", () => {
     } finally {
       process.env.TZ = original;
     }
+  });
+});
+
+describe("duaVerse", () => {
+  it("points every duʿā at the āyah it starts on", () => {
+    expect(duaVerse({ ref: "Ṭā-Hā 20:25–26" })).toEqual({ sura: 20, aya: 25 });
+    for (const dua of DUAS) expect(duaVerse(dua)).not.toBeNull();
   });
 });

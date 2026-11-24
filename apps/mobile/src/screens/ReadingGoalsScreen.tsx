@@ -43,11 +43,16 @@ const DAY_LABELS: MessageKey[] = [
 const GOAL_OPTIONS = [2, 4, 8, 16, 20];
 
 function lastSevenDays(log: Record<string, number>) {
-  const out: { label: MessageKey; pages: number; isToday: boolean }[] = [];
+  const out: { label: MessageKey; date: Date; pages: number; isToday: boolean }[] = [];
   const now = new Date();
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    out.push({ label: DAY_LABELS[d.getDay()]!, pages: log[todayStr(d)] ?? 0, isToday: i === 0 });
+    out.push({
+      label: DAY_LABELS[d.getDay()]!,
+      date: d,
+      pages: log[todayStr(d)] ?? 0,
+      isToday: i === 0,
+    });
   }
   return out;
 }
@@ -57,7 +62,7 @@ export function ReadingGoalsScreen({ navigation }: Props) {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [state, setState] = useState<ReadingState | null>(null);
   const { comfort } = useSettings();
-  const { t, tf, num } = useIntl();
+  const { t, tf, num, locale } = useIntl();
 
   const refresh = useCallback(() => {
     void readReadingState().then(setState);
@@ -189,7 +194,18 @@ export function ReadingGoalsScreen({ navigation }: Props) {
         <Text style={styles.sectionLabel}>{t("mem.goals.thisWeek")}</Text>
         <View style={styles.weekRow}>
           {week.map((d, i) => (
-            <View key={i} style={styles.weekCol}>
+            <View
+              key={i}
+              style={styles.weekCol}
+              // The day initials repeat (T, S) and the bar height isn't read
+              // aloud — name each column with its date and page count.
+              accessible
+              accessibilityLabel={`${d.date.toLocaleDateString(locale, {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              })}: ${tf("mem.goals.pages", { n: num(d.pages) })}`}
+            >
               <View
                 style={[
                   styles.bar,

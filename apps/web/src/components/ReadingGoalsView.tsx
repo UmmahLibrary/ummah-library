@@ -55,12 +55,18 @@ function pill(active: boolean) {
 
 /** Pages read on each of the last 7 days (oldest → today), with weekday labels. */
 function lastSevenDays(log: Record<string, number>) {
-  const out: { label: string; pages: number; isToday: boolean }[] = [];
+  const out: { label: string; name: string; pages: number; isToday: boolean }[] = [];
   const now = new Date();
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
     const key = today(d);
-    out.push({ label: DAY_LABELS[d.getDay()]!, pages: log[key] ?? 0, isToday: i === 0 });
+    out.push({
+      label: DAY_LABELS[d.getDay()]!,
+      // The single-letter labels repeat (T, S) — a screen reader gets the date.
+      name: d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }),
+      pages: log[key] ?? 0,
+      isToday: i === 0,
+    });
   }
   return out;
 }
@@ -73,7 +79,9 @@ export function ReadingGoalsView() {
   const [paused, setPaused] = useState(false);
   const [loggedToday, setLoggedToday] = useState(false);
   const [pages, setPages] = useState(0);
-  const [week, setWeek] = useState<{ label: string; pages: number; isToday: boolean }[]>([]);
+  const [week, setWeek] = useState<
+    { label: string; name: string; pages: number; isToday: boolean }[]
+  >([]);
   const [khatma, setKhatma] = useState<KhatmaPlan | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -245,10 +253,16 @@ export function ReadingGoalsView() {
             >
               This week
             </div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 110 }}>
+            <div
+              role="list"
+              aria-label="Pages read, last 7 days"
+              style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 110 }}
+            >
               {week.map((d, i) => (
                 <div
                   key={i}
+                  role="listitem"
+                  aria-label={`${d.name}${d.isToday ? " (today)" : ""}: ${d.pages} page${d.pages === 1 ? "" : "s"}`}
                   style={{
                     flex: 1,
                     display: "flex",
@@ -268,6 +282,7 @@ export function ReadingGoalsView() {
                     }}
                   />
                   <span
+                    aria-hidden="true"
                     style={{
                       fontSize: 11.5,
                       color: d.isToday ? N.gold : N.faint,

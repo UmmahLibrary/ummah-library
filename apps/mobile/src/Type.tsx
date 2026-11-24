@@ -1,6 +1,7 @@
 /**
  * Noor-typed re-export of react-native. Everything passes through unchanged
- * except Text and TextInput, which are wrapped to pick the correct Hanken (UI)
+ * except Pressable (a button by default, see below) and Text and TextInput,
+ * which are wrapped to pick the correct Hanken (UI)
  * or IBM Plex Sans Arabic family for their weight / writing direction.
  *
  * Why: React Native won't synthesise a bold face from a single custom-font file
@@ -27,6 +28,8 @@ import {
   type ReactNode,
 } from "react";
 import {
+  Pressable as RNPressable,
+  type PressableProps,
   StyleSheet,
   Text as RNText,
   TextInput as RNTextInput,
@@ -210,4 +213,16 @@ const TextInput = forwardRef<ComponentRef<typeof RNTextInput>, TextInputProps>(f
   );
 });
 
-export { Text, TextInput };
+/**
+ * A Pressable is a button unless the caller says otherwise. Without a role,
+ * TalkBack and VoiceOver read the label but never "button", so 165 of the
+ * app's 192 Pressables gave no hint that they could be activated. An explicit
+ * `accessibilityRole` (switch, checkbox, link…) or `role` still wins.
+ */
+const Pressable = forwardRef<ComponentRef<typeof RNPressable>, PressableProps>(
+  function Pressable(props, ref) {
+    return <RNPressable accessibilityRole="button" {...props} ref={ref} />;
+  },
+);
+
+export { Pressable, Text, TextInput };

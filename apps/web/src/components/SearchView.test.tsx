@@ -59,6 +59,33 @@ describe("SearchView", () => {
     expect(screen.queryByRole("button", { name: /Show more/ })).toBeNull();
   });
 
+  it("offers a jump for a place — an āyah reference or a loosely spelt surah name", async () => {
+    mockCorpus();
+    const surahs = [
+      {
+        number: 2,
+        name: "البقرة",
+        transliteration: "Al-Baqara",
+        englishName: "The Cow",
+        ayahCount: 286,
+      },
+      { number: 36, name: "يس", transliteration: "Yaseen", englishName: "Yaseen", ayahCount: 83 },
+    ];
+    window.history.replaceState(null, "", "/search?q=2:255");
+    const { unmount } = render(<SearchView surahs={surahs} />);
+    const jump = await screen.findByRole("link", { name: "Go to Al-Baqara 2:255" });
+    expect(jump).toHaveAttribute("href", "/surah/2#2:255");
+    expect(screen.queryByText("Nothing found")).toBeNull();
+    unmount();
+
+    window.history.replaceState(null, "", "/search?q=yasin");
+    render(<SearchView surahs={surahs} />);
+    expect(await screen.findByRole("link", { name: "Go to Surah 36 · Yaseen" })).toHaveAttribute(
+      "href",
+      "/surah/36",
+    );
+  });
+
   it("lets the search box shrink so Clear stays on a phone screen", async () => {
     mockCorpus();
     window.history.replaceState(null, "", "/search?q=mercy");

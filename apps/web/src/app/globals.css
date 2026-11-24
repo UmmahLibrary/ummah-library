@@ -33,6 +33,18 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+/* Search boxes and number fields are a bare <input> inside a styled pill, with
+   the input's own outline turned off — ring the pill instead, or keyboard users
+   see no focus at all (WCAG 2.4.7). */
+.noor-field:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* …and let the bare input fill the pill's height, so tapping anywhere on the
+   44px pill — not just the 21px text line — puts the cursor in it. */
+.noor-field input {
+  align-self: stretch;
+}
 /* Hidden-until-focused via clipping to a 1px box, not an off-canvas offset —
    an offset like `left: -9999px` extends the document's scrollable area in
    that direction, which is catastrophic under `dir="rtl"` (ADR 0040): the
@@ -476,6 +488,15 @@ body.script-indopak .ayah-ar {
 }
 .ayah-marker:hover {
   opacity: 0.7;
+}
+/* For children the āyah's play button is a big, easy target — the shared 1rem
+   marker was a 28px tap. The Arabic line is ~95px tall, so this fits in it. */
+.ayah-marker.kids-play {
+  font-size: 1.6rem;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 4px 8px;
+  border-radius: 12px;
 }
 .ayah--playing {
   background: var(--accent-soft);
@@ -1466,7 +1487,8 @@ body.peek-on.peek-hide-tr .ayah-tr {
 }
 .collection-name:focus {
   outline: none;
-  border-bottom: 1px solid var(--accent);
+  /* !important: the input's inline style sets a transparent bottom border. */
+  border-bottom: 1px solid var(--accent) !important;
 }
 .collection-count {
   font-size: 0.8rem;
@@ -2011,6 +2033,9 @@ html.tr-soft .ayah-tr {
 .back-link {
   color: var(--accent);
   font-size: 0.9rem;
+  /* a ~23px text line → a comfortable tap target (WCAG 2.5.8) */
+  display: inline-block;
+  padding: 4px 0;
 }
 .reader-nav span {
   color: var(--faint);

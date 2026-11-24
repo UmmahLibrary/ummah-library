@@ -21,5 +21,13 @@ describe("CodeBlock", () => {
     await userEvent.click(screen.getByText("Copy"));
     expect(writeText).toHaveBeenCalledWith("const x = 1;");
     expect(await screen.findByText("Copied")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Code copied");
+  });
+
+  it("lets a keyboard reach a code block that scrolls sideways", () => {
+    render(<CodeBlock lang="ts" code="const x = 1;" />);
+    const pre = screen.getByLabelText("ts example");
+    expect(pre.tagName).toBe("PRE");
+    expect(pre).toHaveAttribute("tabindex", "0");
   });
 });

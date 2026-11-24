@@ -18,6 +18,15 @@ describe("ReadingGoalsView", () => {
     expect(await screen.findByText(/5 pages to reach today/)).toBeInTheDocument();
   });
 
+  it("names each day of the week chart with its date and pages", async () => {
+    localStorage.setItem("ul.readingLog", JSON.stringify({ [today()]: 3 }));
+    render(<ReadingGoalsView />);
+    const chart = await screen.findByRole("list", { name: "Pages read, last 7 days" });
+    const days = chart.querySelectorAll('[role="listitem"]');
+    expect(days).toHaveLength(7);
+    expect(days[6]).toHaveAccessibleName(/\(today\): 3 pages$/);
+  });
+
   it("changes the daily goal when a pill is clicked, and persists it", async () => {
     render(<ReadingGoalsView />);
     await userEvent.click(await screen.findByRole("button", { name: "16 pages" }));

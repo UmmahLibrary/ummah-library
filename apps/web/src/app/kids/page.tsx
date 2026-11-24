@@ -6,6 +6,7 @@ import { KIDS_SURAHS } from "../../lib/kids-store";
 export const metadata: Metadata = {
   title: "For children",
   description: "Short surahs with big buttons, word-by-word audio and nothing to distract.",
+  alternates: { canonical: "/kids" },
 };
 
 export default async function KidsPage() {

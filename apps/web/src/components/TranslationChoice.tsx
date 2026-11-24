@@ -12,6 +12,7 @@ import {
   readEditions,
   writeEditions,
 } from "../lib/editions";
+import { onRadioGroupKeyDownFocusOnly } from "../lib/radio-group";
 
 /**
  * "Which translation would you like?" (ADR 0041). Lists the established
@@ -59,12 +60,16 @@ export function TranslationChoice({ onPick }: { onPick?: () => void }) {
 
   // A render function, not a nested component: a component declared here would be
   // a new type every render, remounting the buttons (and dropping focus) on pick.
+  // Roving tab stop (one Tab stop for the group; arrows move — see radio-group).
+  const anyChecked = current === "none" || options.some((e) => e.id === current);
+  const firstId = options[0]?.id ?? "none";
   const row = ({ id, title, sub }: { id: string; title: string; sub?: string }) => (
     <button
       key={id}
       type="button"
       role="radio"
       aria-checked={current === id}
+      tabIndex={current === id || (!anyChecked && id === firstId) ? 0 : -1}
       className="nf-switch"
       onClick={() => choose(id)}
       style={{
@@ -85,6 +90,7 @@ export function TranslationChoice({ onPick }: { onPick?: () => void }) {
     <div
       role="radiogroup"
       aria-label={t("tr.choose")}
+      onKeyDown={onRadioGroupKeyDownFocusOnly}
       style={{ display: "grid", gap: 8, maxHeight: "48dvh", overflowY: "auto" }}
     >
       {options.map((e) =>

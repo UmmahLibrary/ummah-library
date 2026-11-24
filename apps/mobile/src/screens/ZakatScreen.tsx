@@ -9,7 +9,13 @@ import {
   View,
   Pressable,
 } from "../Type";
-import { type NisabBasis, ZAKAT_ASSET_CATEGORIES, calculateZakat } from "@ummahlibrary/core";
+import {
+  type NisabBasis,
+  ZAKAT_ASSET_CATEGORIES,
+  calculateZakat,
+  parseAmount,
+  sanitizeAmountInput,
+} from "@ummahlibrary/core";
 import { Khatam } from "@ummahlibrary/ui";
 import { KEYS, getJSON, isObjectRecord, setJSON } from "../storage";
 import { FONT } from "../fonts";
@@ -55,26 +61,18 @@ const DEFAULT: ZakatState = {
   liabilities: "",
 };
 
-function toNum(s: string): number {
-  const n = Number.parseFloat(s);
-  return Number.isFinite(n) ? n : 0;
-}
+// Typed amounts in any interface language: "10,000", "1.000,50", "١٠٠٠٠".
+const toNum = parseAmount;
 
-/** Sanitize free text into a non-negative decimal string: digits and at most one "." */
-function sanitizeDecimal(s: string): string {
-  const digitsAndDots = s.replace(/[^0-9.]/g, "");
-  const firstDot = digitsAndDots.indexOf(".");
-  if (firstDot === -1) return digitsAndDots;
-  return (
-    digitsAndDots.slice(0, firstDot + 1) + digitsAndDots.slice(firstDot + 1).replace(/\./g, "")
-  );
-}
+/** Digits (Western or Arabic-Indic), "." and "," while typing; no minus sign.
+ *  An Arabic/Urdu keyboard's ١٢٣ used to be wiped out entirely. */
+const sanitizeDecimal = sanitizeAmountInput;
 
 /** Strip digits from the currency symbol field — a symbol/code ("$", "AED") never
  *  contains one, and allowing digits here let a stray one silently fuse into the
  *  displayed totals (money() concatenates currency + amount with no separator). */
 function sanitizeCurrency(s: string): string {
-  return s.replace(/[0-9]/g, "");
+  return s.replace(/[0-9٠-٩۰-۹]/g, "");
 }
 
 export function ZakatScreen() {

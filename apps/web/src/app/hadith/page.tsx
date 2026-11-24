@@ -7,6 +7,7 @@ export const metadata = {
   title: "Hadith",
   description:
     "Search the prophetic tradition across the six major collections — Bukhārī, Muslim, Abū Dāwūd, Tirmidhī, Nasāʾī and Ibn Mājah — with grade filters, on Ummah Library.",
+  alternates: { canonical: "/hadith" },
 };
 
 const COLLECTIONS = pluginRegistry.byKind("hadith").map((c) => ({ id: c.id, name: c.name }));

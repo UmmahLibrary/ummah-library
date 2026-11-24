@@ -9,69 +9,63 @@ import {
   hadithGradeCategory,
   searchText,
 } from "@ummahlibrary/core";
-import { N, Icon, Khatam } from "@ummahlibrary/ui";
+import { N, Icon, Khatam, STATUS_HUES, readableHue } from "@ummahlibrary/ui";
 
 interface Collection {
   id: string;
   name: string;
 }
 
-/** Display metadata (names with diacritics, author, count, short label, order). */
-const META: Record<
-  string,
-  { name: string; short: string; by: string; count: string; order: number }
-> = {
+/** Display metadata (names with diacritics, author, short label, order). Counts
+ *  come from the loaded data — hard-coded ones had drifted (Muslim said 7,500;
+ *  7,360 are bundled). */
+const META: Record<string, { name: string; short: string; by: string; order: number }> = {
   "eng-bukhari": {
     name: "Ṣaḥīḥ al-Bukhārī",
     short: "Bukhārī",
     by: "Imam al-Bukhārī",
-    count: "7,563",
     order: 0,
   },
   "eng-muslim": {
     name: "Ṣaḥīḥ Muslim",
     short: "Muslim",
     by: "Imam Muslim",
-    count: "7,500",
     order: 1,
   },
   "eng-abudawud": {
     name: "Sunan Abī Dāwūd",
     short: "Abū Dāwūd",
     by: "Abū Dāwūd",
-    count: "5,274",
     order: 2,
   },
   "eng-tirmidhi": {
     name: "Jāmiʿ at-Tirmidhī",
     short: "Tirmidhī",
     by: "At-Tirmidhī",
-    count: "3,956",
     order: 3,
   },
   "eng-nasai": {
     name: "Sunan an-Nasāʾī",
     short: "Nasāʾī",
     by: "An-Nasāʾī",
-    count: "5,761",
     order: 4,
   },
   "eng-ibnmajah": {
     name: "Sunan Ibn Mājah",
     short: "Ibn Mājah",
     by: "Ibn Mājah",
-    count: "4,341",
     order: 5,
   },
 };
 const ORDER = (id: string): number => META[id]?.order ?? 99;
 const shortName = (id: string): string => META[id]?.short ?? id;
 
+// Readable on light themes too (raw, ṣaḥīḥ green was 2:1 on Ivory).
 const GRADE_COLOR: Record<HadithGrade, string> = {
-  sahih: "#5BBF8A",
-  hasan: "#E6B855",
-  daif: "#C98A57",
-  unknown: "#8A93A6",
+  sahih: readableHue(STATUS_HUES.good),
+  hasan: readableHue(STATUS_HUES.fair),
+  daif: readableHue(STATUS_HUES.weak),
+  unknown: readableHue(STATUS_HUES.neutral),
 };
 const GRADE_FILTERS: { key: "all" | HadithGrade; label: string }[] = [
   { key: "all", label: "All grades" },
@@ -138,6 +132,18 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
   const [visible, setVisible] = useState(PAGE);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debounced, setDebounced] = useState("");
+  // A deep link to one hadith (`?collection=<id>&hadith=<number>`), e.g. from the
+  // reader's Related panel. Read once on mount; any filter change drops it.
+  const [focus, setFocus] = useState<{ collection: string; number: number } | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const collection = params.get("collection");
+    if (!collection || !collections.some((c) => c.id === collection)) return;
+    setBook(collection);
+    const number = Number(params.get("hadith"));
+    if (Number.isInteger(number) && number > 0) setFocus({ collection, number });
+  }, [collections]);
 
   // Background-prefetch every collection so global search fills in; each static
   // file is cached, so this is a one-time per-device cost (ADR 0022).
@@ -157,6 +163,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
   }, [collections]);
 
   function run(value: string) {
+    setFocus(null);
     setQuery(value);
     setVisible(PAGE);
     if (debounce.current) clearTimeout(debounce.current);
@@ -168,6 +175,10 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
 
   // Flatten the loaded collections once; filter by book + grade; rank by query.
   const results = useMemo(() => {
+    if (focus) {
+      const one = loaded[focus.collection]?.hadiths.find((h) => h.number === focus.number);
+      return one ? [one] : [];
+    }
     const pool: Hadith[] = [];
     for (const id of Object.keys(loaded)) {
       if (book !== "all" && id !== book) continue;
@@ -178,7 +189,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
         ? pool
         : pool.filter((h) => hadithGradeCategory(h.collectionId, h.grades) === grade);
     return q.length >= 2 ? searchText(filtered, q, 300) : filtered;
-  }, [loaded, book, grade, q]);
+  }, [loaded, book, grade, q, focus]);
 
   const sectionName = (h: Hadith): string =>
     loaded[h.collectionId]?.sections[String(h.reference.book)] ?? "";
@@ -187,6 +198,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
   const ordered = [...collections].sort((a, b) => ORDER(a.id) - ORDER(b.id));
 
   const clearAll = () => {
+    setFocus(null);
     run("");
     setDebounced("");
     setBook("all");
@@ -197,6 +209,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
     <div>
       {/* Search field */}
       <div
+        className="noor-field"
         style={{
           ...card,
           display: "flex",
@@ -258,11 +271,24 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
         >
           BOOK
         </span>
-        <Chip on={book === "all"} onClick={() => setBook("all")}>
+        <Chip
+          on={book === "all"}
+          onClick={() => {
+            setFocus(null);
+            setBook("all");
+          }}
+        >
           All
         </Chip>
         {ordered.map((c) => (
-          <Chip key={c.id} on={book === c.id} onClick={() => setBook(book === c.id ? "all" : c.id)}>
+          <Chip
+            key={c.id}
+            on={book === c.id}
+            onClick={() => {
+              setFocus(null);
+              setBook(book === c.id ? "all" : c.id);
+            }}
+          >
             {shortName(c.id)}
           </Chip>
         ))}
@@ -288,7 +314,14 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
           GRADE
         </span>
         {GRADE_FILTERS.map((g) => (
-          <Chip key={g.key} on={grade === g.key} onClick={() => setGrade(g.key)}>
+          <Chip
+            key={g.key}
+            on={grade === g.key}
+            onClick={() => {
+              setFocus(null);
+              setGrade(g.key);
+            }}
+          >
             {g.label}
           </Chip>
         ))}
@@ -323,7 +356,10 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setBook(c.id)}
+                  onClick={() => {
+                    setFocus(null);
+                    setBook(c.id);
+                  }}
                   className="noor-press"
                   style={{
                     ...card,
@@ -381,7 +417,9 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
                       fontFamily: N.ui,
                     }}
                   >
-                    {meta?.count ?? loaded[c.id]?.hadiths.length ?? ""} hadith
+                    {loaded[c.id]
+                      ? `${loaded[c.id]!.hadiths.length.toLocaleString("en")} hadith`
+                      : "…"}
                   </div>
                 </button>
               );
@@ -411,7 +449,10 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
                 </>
               )}
               {book !== "all" && <> in {shortName(book)}</>}
-              {!allLoaded && <span style={{ color: N.faint }}> · indexing…</span>}
+              {focus && <> · #{focus.number}</>}
+              {!(focus ? loaded[focus.collection] : allLoaded) && (
+                <span style={{ color: N.faint }}> · indexing…</span>
+              )}
             </div>
             <button
               type="button"
@@ -552,7 +593,7 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
             </button>
           )}
 
-          {allLoaded && results.length === 0 && (
+          {(focus ? !!loaded[focus.collection] : allLoaded) && results.length === 0 && (
             <div style={{ textAlign: "center", padding: "50px 20px" }}>
               <div
                 style={{

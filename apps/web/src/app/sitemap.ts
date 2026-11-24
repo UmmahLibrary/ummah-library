@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { TOTAL_JUZ, TOTAL_PAGES_MADANI, TOTAL_SURAHS } from "@ummahlibrary/core";
+import { PLAN_TEMPLATES, TOTAL_JUZ, TOTAL_PAGES_MADANI, TOTAL_SURAHS } from "@ummahlibrary/core";
 import { getPublishedArticles } from "../lib/blog/articles";
 import { SITE_URL } from "../lib/site";
 
@@ -8,11 +8,21 @@ const BASE = SITE_URL;
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = [
     "",
+    // The five places (ADR 0043) and their public pages.
+    "/quran",
+    "/prayer",
+    "/learn",
+    "/tools",
     "/search",
     "/goals",
     "/collections",
     "/juz",
     "/hadith",
+    "/tafsir",
+    "/duas",
+    "/plans",
+    "/ramadan",
+    "/kids",
     "/adhkar",
     "/tasbih",
     "/names",
@@ -24,6 +34,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/zakat",
     "/settings",
     "/blog",
+    "/privacy",
   ].map((path) => ({
     url: `${BASE}${path}`,
     changeFrequency: "monthly" as const,
@@ -36,6 +47,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${BASE}/blog/${a.slug}`,
     changeFrequency: "monthly" as const,
     priority: 0.6,
+  }));
+
+  const plans = PLAN_TEMPLATES.map((t) => ({
+    url: `${BASE}/plans/${t.id}`,
+    changeFrequency: "monthly" as const,
+    priority: 0.5,
   }));
 
   const surahs = Array.from({ length: TOTAL_SURAHS }, (_, i) => ({
@@ -56,5 +73,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.5,
   }));
 
-  return [...staticRoutes, ...blogPosts, ...surahs, ...juz, ...pages];
+  return [...staticRoutes, ...blogPosts, ...plans, ...surahs, ...juz, ...pages];
 }

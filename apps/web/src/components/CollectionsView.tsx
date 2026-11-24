@@ -17,6 +17,7 @@ import {
   writeCollections,
 } from "../lib/collections";
 import { N, Khatam } from "@ummahlibrary/ui";
+import { focusSoon, focusTargetAfterRemoving } from "../lib/focus";
 
 interface AyahText {
   arabic: string;
@@ -142,11 +143,9 @@ export function CollectionsView() {
               marginBottom: 12,
             }}
           >
-            <input
-              className="collection-name"
-              value={c.name}
-              onChange={(e) => persist(renameCollection(collections, c.id, e.target.value))}
-              aria-label="Collection name"
+            <CollectionNameInput
+              name={c.name}
+              onRename={(name) => persist(renameCollection(collections, c.id, name))}
               style={{
                 flex: 1,
                 minWidth: 0,
@@ -179,9 +178,11 @@ export function CollectionsView() {
             <button
               type="button"
               aria-label={`Delete collection ${c.name}`}
-              onClick={() => {
+              onClick={(e) => {
                 if (confirm(`Delete the collection “${c.name}”?`)) {
+                  const next = focusTargetAfterRemoving(e.currentTarget.closest("section"));
                   persist(deleteCollection(collections, c.id));
+                  focusSoon(next);
                 }
               }}
               className="noor-press"
@@ -252,7 +253,11 @@ export function CollectionsView() {
                       <button
                         type="button"
                         aria-label={`Remove ${key}`}
-                        onClick={() => persist(toggleAyah(collections, c.id, ref))}
+                        onClick={(e) => {
+                          const next = focusTargetAfterRemoving(e.currentTarget.closest("article"));
+                          persist(toggleAyah(collections, c.id, ref));
+                          focusSoon(next);
+                        }}
                         className="noor-press"
                         style={{
                           width: 28,
@@ -328,6 +333,8 @@ export function CollectionsView() {
                       <Link
                         href={`/surah/${ref.sura}#${key}`}
                         style={{
+                          display: "inline-block",
+                          padding: "4px 0", // a 17px line → a 25px target
                           fontSize: 13,
                           fontWeight: 600,
                           color: N.gold,
@@ -346,5 +353,45 @@ export function CollectionsView() {
         </section>
       ))}
     </div>
+  );
+}
+
+/**
+ * The editable collection title. It edits a local draft and saves on blur or
+ * Enter: saving each keystroke through `renameCollection` (which trims, and
+ * refuses an empty name) ate a typed space at once — "My" + space + "x" became
+ * "Myx" — and wouldn't let the field be cleared to retype. Escape restores.
+ */
+function CollectionNameInput({
+  name,
+  onRename,
+  style,
+}: {
+  name: string;
+  onRename: (name: string) => void;
+  style: React.CSSProperties;
+}) {
+  const [draft, setDraft] = useState(name);
+  useEffect(() => setDraft(name), [name]);
+  const commit = () => {
+    if (draft.trim() && draft.trim() !== name) onRename(draft);
+    else setDraft(name);
+  };
+  return (
+    <input
+      className="collection-name"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") {
+          setDraft(name);
+          requestAnimationFrame(() => (e.target as HTMLInputElement).blur());
+        }
+      }}
+      aria-label="Collection name"
+      style={style}
+    />
   );
 }

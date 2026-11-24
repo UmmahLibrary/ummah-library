@@ -111,10 +111,17 @@ export function WordByWord() {
     <div
       className="wbw-popover"
       style={{ left: popover.x, top: popover.y }}
-      role="dialog"
+      // A live status, not a dialog: it never takes focus, so as a dialog a
+      // screen reader user who activated a word heard nothing. Now the word's
+      // meaning is spoken as it appears.
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
       aria-label="Word meaning"
     >
-      <span className="wbw-arabic arabic">{popover.word.arabic}</span>
+      <span className="wbw-arabic arabic" lang="ar" dir="rtl">
+        {popover.word.arabic}
+      </span>
       {popover.word.translit && <span className="wbw-translit">{popover.word.translit}</span>}
       <span className="wbw-translation">{popover.word.translation ?? "—"}</span>
       <span className="wbw-source">via quran.com</span>

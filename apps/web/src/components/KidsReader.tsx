@@ -111,7 +111,7 @@ export function KidsReader({
                 <AyahWords surah={surah.number} aya={a.aya} text={a.text} />
                 <button
                   type="button"
-                  className="ayah-marker"
+                  className="ayah-marker kids-play"
                   data-play-one={`${surah.number}:${a.aya}`}
                 >
                   <span aria-hidden="true">﴿{toArabicDigits(a.aya)}﴾</span>

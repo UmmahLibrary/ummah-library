@@ -39,6 +39,16 @@ describe("ZakatCalculator", () => {
 
     expect(screen.getAllByPlaceholderText("0")[0]).toHaveValue("500");
   });
+
+  it("accepts Arabic-Indic digits and a decimal comma", async () => {
+    render(<ZakatCalculator />);
+    const cash = screen.getAllByPlaceholderText("0")[0]!;
+    await userEvent.type(cash, "١٠٠٠٠");
+    expect(cash).toHaveValue("10000"); // used to be wiped to ""
+    await userEvent.clear(cash);
+    await userEvent.type(cash, "10,5");
+    expect(cash).toHaveValue("10,5"); // the comma survives typing
+  });
 });
 
 describe("ZakatCalculator — labelled fields", () => {

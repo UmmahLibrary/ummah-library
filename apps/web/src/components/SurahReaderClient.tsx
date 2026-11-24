@@ -387,11 +387,15 @@ export function SurahReaderClient({
   // Mushaf (Arabic only).
   const arabicContinuous = (
     <>
-      {surah.hasBismillah && surah.number !== 1 && <p className="basmala arabic">{bismillah}</p>}
+      {surah.hasBismillah && surah.number !== 1 && (
+        <p className="basmala arabic" lang="ar" dir="rtl">
+          {bismillah}
+        </p>
+      )}
       {pages.map((pg) => (
         <div key={pg.page}>
           <PageMarker n={pg.page} />
-          <p className="mushaf arabic">
+          <p className="mushaf arabic" lang="ar" dir="rtl">
             {pg.ayahs.map((ayah) => (
               <span key={ayah.aya} data-aya={ayah.aya}>
                 {ayah.text}
@@ -583,6 +587,8 @@ export function SurahReaderClient({
               {surah.hasBismillah && surah.number !== 1 && (
                 <p
                   className="basmala arabic"
+                  lang="ar"
+                  dir="rtl"
                   style={{ color: N.fg, textAlign: "center", margin: "1.75rem 0 2.25rem" }}
                 >
                   {bismillah}
@@ -595,7 +601,7 @@ export function SurahReaderClient({
                     <PageMarker n={pg.page} />
                     {pg.ayahs.map((ayah) => (
                       <div key={ayah.aya} id={`${surah.number}:${ayah.aya}`} className="ayah">
-                        <p className="ayah-ar arabic">
+                        <p className="ayah-ar arabic" lang="ar" dir="rtl">
                           <AyahWords surah={surah.number} aya={ayah.aya} text={ayah.text} />
                           <button
                             type="button"

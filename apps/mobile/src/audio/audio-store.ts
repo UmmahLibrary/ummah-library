@@ -31,6 +31,16 @@ function nameOf(entry: File | Directory): string {
   return decodeURIComponent(uri.slice(uri.lastIndexOf("/") + 1));
 }
 
+/** Delete every downloaded recitation on this device (Settings → Erase all data). */
+export function deleteAllAudio(): void {
+  try {
+    const root = audioRoot();
+    if (root.exists) root.delete();
+  } catch {
+    /* nothing to remove */
+  }
+}
+
 export const mobileAudioStore: AudioStore = {
   async has(reciterId, ref) {
     return ayahFile(reciterId, ref).exists;

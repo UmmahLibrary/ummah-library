@@ -7,7 +7,12 @@ import {
   type Madhab,
   type PrayerTimings,
   gregorianToHijri,
-  hijriToGregorian,
+  keptFastDays,
+  migrateRamadanFasts,
+  pagesReadBetween,
+  ramadanDateRange,
+  ramadanYearFor,
+  toggleRamadanFast,
 } from "@ummahlibrary/core";
 import { Khatam, Icon, type IconName } from "@ummahlibrary/ui";
 import { api } from "../api";
@@ -45,9 +50,9 @@ export function RamadanScreen({ navigation }: Props) {
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
   const [hasCoords, setHasCoords] = useState(false);
   const [coords, setCoords] = useState<Coordinates | null>(null);
-  const [fasts, setFasts] = useState<Record<number, true>>({});
+  const [fasts, setFasts] = useState<Record<string, true>>({});
   const [worship, setWorship] = useState<Record<string, true>>({});
-  const [pagesRead, setPagesRead] = useState(0);
+  const [readingLog, setReadingLog] = useState<Record<string, number>>({});
   const [hijriAdjust, setHijriAdjust] = useState(0);
 
   // Guards the same sync-reload-vs-local-write race this loop already fixed
@@ -63,14 +68,10 @@ export function RamadanScreen({ navigation }: Props) {
   const hijri = gregorianToHijri(todayGreg(), hijriAdjust);
   const isRamadan = hijri.month === 9;
   const ramadanDay = isRamadan ? hijri.day : null;
-
-  // The Gregorian date Ramadan 1 falls on this Hijri year — used to scope the
-  // khatm-progress reading count to pages read during Ramadan itself, not the
-  // reader's entire reading history.
-  const ramadanStartGreg = hijriToGregorian({ year: hijri.year, month: 9, day: 1 }, hijriAdjust);
-  const ramadanStartStr = localISODate(
-    new Date(ramadanStartGreg.year, ramadanStartGreg.month - 1, ramadanStartGreg.day),
-  );
+  // The grid is one Ramaḍān's: this year's from Ramaḍān on, else the one just gone
+  // (fasts are keyed "<hijriYear>:<day>" so they don't carry into the next year).
+  const fastYear = ramadanYearFor(hijri);
+  const kept = keptFastDays(migrateRamadanFasts(fasts), fastYear);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -98,7 +99,7 @@ export function RamadanScreen({ navigation }: Props) {
     function loadRamadanData() {
       const gen = writeGen.current;
       const currentGen = () => writeGen.current;
-      void getJSON<Record<number, true>>(KEYS.ramadanFasts, {}, isObjectRecord).then(
+      void getJSON<Record<string, true>>(KEYS.ramadanFasts, {}, isObjectRecord).then(
         ignoreStale(currentGen, gen, setFasts),
       );
       void getJSON<Record<string, Record<string, true>>>(
@@ -106,13 +107,7 @@ export function RamadanScreen({ navigation }: Props) {
         {},
         isObjectRecord,
       ).then((m) => ignoreStale(currentGen, gen, setWorship)(m[today] ?? {}));
-      void getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord).then((log) =>
-        setPagesRead(
-          // YYYY-MM-DD keys sort lexicographically, so a plain string compare
-          // scopes the sum to Ramadan itself rather than the reader's lifetime log.
-          Object.entries(log).reduce((a, [date, n]) => (date >= ramadanStartStr ? a + n : a), 0),
-        ),
-      );
+      void getJSON<Record<string, number>>(KEYS.readingLog, {}, isObjectRecord).then(setReadingLog);
       void (async () => {
         const c = await getJSON<Coordinates | null>(KEYS.prayerCoords, null);
         if (!c) return;
@@ -141,9 +136,7 @@ export function RamadanScreen({ navigation }: Props) {
   function toggleFast(day: number) {
     writeGen.current++;
     setFasts((prev) => {
-      const next = { ...prev };
-      if (next[day]) delete next[day];
-      else next[day] = true;
+      const next = toggleRamadanFast(migrateRamadanFasts(prev), fastYear, day);
       void setJSON(KEYS.ramadanFasts, next);
       return next;
     });
@@ -164,8 +157,11 @@ export function RamadanScreen({ navigation }: Props) {
     });
   }
 
-  const fastsKept = Object.keys(fasts).length;
+  const fastsKept = kept.size;
   const worshipDone = Object.keys(worship).length;
+  // Khatm progress is the shown Ramaḍān's reading only (its first to last day),
+  // not every page logged since it began.
+  const pagesRead = pagesReadBetween(readingLog, ramadanDateRange(fastYear, hijriAdjust));
   const khatmPct = Math.min(100, Math.round((pagesRead / 604) * 100));
   const monthName = t(HIJRI_MONTH_KEY[hijri.month - 1] ?? "lr.hm1");
 
@@ -256,36 +252,38 @@ export function RamadanScreen({ navigation }: Props) {
       <View style={styles.statsRow}>
         <Stat value={tf("pr.pct", { n: khatmPct })} label={t("pr.khatmProgress")} colors={colors} />
         <Stat
-          value={`${num(worshipDone)}/${num(4)}`}
+          value={isRamadan ? `${num(worshipDone)}/${num(4)}` : "—"}
           label={t("pr.todaysWorship")}
           colors={colors}
         />
       </View>
 
       {/* Fasting grid */}
-      <Text style={styles.sectionLabel}>{t("pr.fastingRamadan")}</Text>
+      <Text style={styles.sectionLabel}>
+        {t("pr.fastingRamadan")} {uiDigits(fastYear, locale)}
+      </Text>
       <View style={styles.fastGrid}>
         {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
-          const kept = Boolean(fasts[d]);
+          const done = kept.has(d);
           const isToday = ramadanDay === d;
           return (
             <Pressable
               key={d}
               style={[
                 styles.fastCell,
-                kept && styles.fastCellOn,
-                isToday && !kept && styles.fastCellToday,
+                done && styles.fastCellOn,
+                isToday && !done && styles.fastCellToday,
               ]}
               onPress={() => toggleFast(d)}
               accessibilityRole="checkbox"
-              accessibilityState={{ checked: kept }}
+              accessibilityState={{ checked: done }}
               accessibilityLabel={tf("pr.fastDayA11y", { n: d })}
             >
               <Text
                 style={[
                   styles.fastNum,
-                  kept && styles.fastNumOn,
-                  isToday && !kept && styles.fastNumToday,
+                  done && styles.fastNumOn,
+                  isToday && !done && styles.fastNumToday,
                 ]}
               >
                 {num(d)}
@@ -295,33 +293,39 @@ export function RamadanScreen({ navigation }: Props) {
         })}
       </View>
 
-      {/* Today's worship */}
-      <View style={styles.worshipHead}>
-        <Text style={styles.sectionLabel}>{t("pr.todaysWorship")}</Text>
-        <Text style={styles.worshipCount}>{`${num(worshipDone)}/${num(4)}`}</Text>
-      </View>
-      <View style={styles.worshipGrid}>
-        {WORSHIP.map((w) => {
-          const on = Boolean(worship[w.key]);
-          return (
-            <Pressable
-              key={w.key}
-              style={[styles.worshipItem, on && styles.worshipItemOn]}
-              onPress={() => toggleWorship(w.key)}
-            >
-              <View style={[styles.worshipDot, on && styles.worshipDotOn]}>
-                <Icon
-                  name={on ? "check" : w.icon}
-                  size={13}
-                  color={on ? colors.ink : colors.faint}
-                  sw={2}
-                />
-              </View>
-              <Text style={[styles.worshipLabel, on && styles.worshipLabelOn]}>{t(w.label)}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      {/* Today's worship — suhūr, tarāwīḥ… only mean something in Ramaḍān. */}
+      {isRamadan && (
+        <>
+          <View style={styles.worshipHead}>
+            <Text style={styles.sectionLabel}>{t("pr.todaysWorship")}</Text>
+            <Text style={styles.worshipCount}>{`${num(worshipDone)}/${num(4)}`}</Text>
+          </View>
+          <View style={styles.worshipGrid}>
+            {WORSHIP.map((w) => {
+              const on = Boolean(worship[w.key]);
+              return (
+                <Pressable
+                  key={w.key}
+                  style={[styles.worshipItem, on && styles.worshipItemOn]}
+                  onPress={() => toggleWorship(w.key)}
+                >
+                  <View style={[styles.worshipDot, on && styles.worshipDotOn]}>
+                    <Icon
+                      name={on ? "check" : w.icon}
+                      size={13}
+                      color={on ? colors.ink : colors.faint}
+                      sw={2}
+                    />
+                  </View>
+                  <Text style={[styles.worshipLabel, on && styles.worshipLabelOn]}>
+                    {t(w.label)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }

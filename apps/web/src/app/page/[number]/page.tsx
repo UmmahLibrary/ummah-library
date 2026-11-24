@@ -9,6 +9,7 @@ import {
   pageRange,
 } from "@ummahlibrary/core";
 import { quranRepository } from "@ummahlibrary/api";
+import { SHARE_IMAGE } from "../../../lib/site";
 import { ReadingTracker } from "../../../components/ReadingTracker";
 import { PlanReaderChip } from "../../../components/PlanReaderChip";
 
@@ -64,7 +65,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: `/page/${n}` },
-    openGraph: { title, description, url: `/page/${n}`, type: "article" },
+    openGraph: { title, description, url: `/page/${n}`, type: "article", images: [SHARE_IMAGE] },
   };
 }
 
@@ -77,49 +78,53 @@ export default async function MushafPage({ params }: { params: Promise<{ number:
   return (
     <>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 clamp(16px,4vw,36px) 48px" }}>
-      <Link href="/" className="back-link">
-        ← Home
-      </Link>
-      <header className="reader-head">
-        <h1 className="name-en">Mushaf</h1>
-        <div className="sub">
-          Page {n} of {TOTAL_PAGES_MADANI} · Juzʾ {juz}
+        <Link href="/" className="back-link">
+          ← Home
+        </Link>
+        <header className="reader-head">
+          <h1 className="name-en">Mushaf</h1>
+          <div className="sub">
+            Page {n} of {TOTAL_PAGES_MADANI} · Juzʾ {juz}
+          </div>
+        </header>
+
+        <ReadingTracker page={n} />
+        <PlanReaderChip />
+        <div className="mushaf-page">
+          {sections.map((section) => (
+            <section key={section.surah.number}>
+              {section.startsSurah && (
+                <header className="mushaf-surah-head">
+                  <span className="name-ar arabic" lang="ar" dir="rtl">
+                    {section.surah.name}
+                  </span>
+                  <span className="sub">
+                    {section.surah.transliteration} · {section.surah.englishName}
+                  </span>
+                </header>
+              )}
+              {section.startsSurah && section.surah.hasBismillah && section.surah.number !== 1 && (
+                <p className="basmala arabic" lang="ar" dir="rtl">
+                  {bismillah}
+                </p>
+              )}
+              <p className="mushaf arabic" lang="ar" dir="rtl">
+                {section.ayahs.map((ayah) => (
+                  <span key={ayah.aya}>
+                    {ayah.text}
+                    <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>{" "}
+                  </span>
+                ))}
+              </p>
+            </section>
+          ))}
         </div>
-      </header>
 
-      <ReadingTracker page={n} />
-      <PlanReaderChip />
-      <div className="mushaf-page">
-        {sections.map((section) => (
-          <section key={section.surah.number}>
-            {section.startsSurah && (
-              <header className="mushaf-surah-head">
-                <span className="name-ar arabic">{section.surah.name}</span>
-                <span className="sub">
-                  {section.surah.transliteration} · {section.surah.englishName}
-                </span>
-              </header>
-            )}
-            {section.startsSurah && section.surah.hasBismillah && section.surah.number !== 1 && (
-              <p className="basmala arabic">{bismillah}</p>
-            )}
-            <p className="mushaf arabic">
-              {section.ayahs.map((ayah) => (
-                <span key={ayah.aya}>
-                  {ayah.text}
-                  <span className="end-marker">﴿{toArabicDigits(ayah.aya)}﴾</span>{" "}
-                </span>
-              ))}
-            </p>
-          </section>
-        ))}
-      </div>
-
-      <nav className="reader-nav">
-        {n > 1 ? <Link href={`/page/${n - 1}`}>← Previous page</Link> : <span />}
-        {n < TOTAL_PAGES_MADANI ? <Link href={`/page/${n + 1}`}>Next page →</Link> : <span />}
-      </nav>
-      <p className="foot">Arabic: Tanzil (CC-BY 3.0) · Madani Mushaf page layout</p>
+        <nav className="reader-nav">
+          {n > 1 ? <Link href={`/page/${n - 1}`}>← Previous page</Link> : <span />}
+          {n < TOTAL_PAGES_MADANI ? <Link href={`/page/${n + 1}`}>Next page →</Link> : <span />}
+        </nav>
+        <p className="foot">Arabic: Tanzil (CC-BY 3.0) · Madani Mushaf page layout</p>
       </div>
     </>
   );

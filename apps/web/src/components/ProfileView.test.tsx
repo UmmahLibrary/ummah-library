@@ -38,3 +38,19 @@ describe("ProfileView — locked achievements stay readable", () => {
     expect(glyph).toHaveAttribute("aria-hidden", "true");
   });
 });
+
+describe("ProfileView — counts", () => {
+  it("says 'Āyah memorized' and 'Surah started' for exactly one", async () => {
+    const card = {
+      repetitions: 0,
+      easeFactor: 2.5,
+      intervalDays: 0,
+      due: new Date().toISOString(),
+      lastReviewed: null,
+    };
+    localStorage.setItem("ul.hifz", JSON.stringify({ "1:1": card }));
+    render(<ProfileView />);
+    expect(await screen.findByText("Āyah memorized")).toBeInTheDocument();
+    expect(screen.getByText("Surah started")).toBeInTheDocument();
+  });
+});

@@ -8,7 +8,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "../Type";
 import { setStringAsync } from "expo-clipboard";
-import type { SyncOutcome } from "@ummahlibrary/core";
+import {
+  isStrongRecoverySecret,
+  MIN_CUSTOM_SECRET_LENGTH,
+  type SyncOutcome,
+} from "@ummahlibrary/core";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { generateRecoveryPhrase } from "../lib/sync/noble-cipher";
@@ -35,6 +39,8 @@ export function SyncSection() {
   const [reveal, setReveal] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const strong = isStrongRecoverySecret(phrase);
+  const weak = phrase.trim() !== "" && !strong;
 
   useEffect(() => {
     void Promise.all([isSyncEnabled(), readSyncSecret()]).then(([on, s]) => {
@@ -45,7 +51,7 @@ export function SyncSection() {
 
   async function turnOn() {
     const s = phrase.trim();
-    if (!s) return;
+    if (!isStrongRecoverySecret(s)) return;
     setBusy(true);
     setStatus(null);
     await enableSync(s);
@@ -153,6 +159,11 @@ export function SyncSection() {
             spellCheck={false}
             style={styles.input}
           />
+          {weak && (
+            <Text style={styles.weakText} accessibilityLiveRegion="polite">
+              {tf("set.sync.weak", { n: MIN_CUSTOM_SECRET_LENGTH })}
+            </Text>
+          )}
           <View style={styles.btnRow}>
             <Pressable
               style={styles.secondaryBtn}
@@ -161,8 +172,8 @@ export function SyncSection() {
               <Text style={styles.secondaryText}>{t("set.sync.generate")}</Text>
             </Pressable>
             <Pressable
-              style={[styles.primaryBtn, (!phrase.trim() || busy) && styles.dim]}
-              disabled={!phrase.trim() || busy}
+              style={[styles.primaryBtn, (!strong || busy) && styles.dim]}
+              disabled={!strong || busy}
               onPress={() => void turnOn()}
             >
               {busy ? (
@@ -200,6 +211,7 @@ function makeStyles(c: Palette) {
       padding: 16,
     },
     cardBody: { color: c.muted, fontSize: 13.5, lineHeight: 20, marginBottom: 14 },
+    weakText: { color: c.error, fontSize: 13, lineHeight: 19, marginTop: -6, marginBottom: 12 },
     btnRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" },
     primaryBtn: {
       backgroundColor: c.accent,
