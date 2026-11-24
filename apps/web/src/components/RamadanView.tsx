@@ -122,7 +122,7 @@ export function RamadanView() {
 
   // The grid is one Ramaḍān's: this year's from Ramaḍān on, else the one just gone.
   const fastYear = ramadanYearFor(hijri);
-  const kept = keptFastDays(migrateRamadanFasts(fasts, fastYear), fastYear);
+  const kept = keptFastDays(migrateRamadanFasts(fasts), fastYear);
   const fastsKept = kept.size;
   // Khatm progress is that Ramaḍān's reading, not every page ever logged.
   const pagesRead = pagesReadBetween(readingLog, ramadanDateRange(fastYear, hijriAdjust));

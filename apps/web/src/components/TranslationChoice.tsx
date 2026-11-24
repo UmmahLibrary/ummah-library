@@ -12,7 +12,7 @@ import {
   readEditions,
   writeEditions,
 } from "../lib/editions";
-import { onRadioGroupKeyDown } from "../lib/radio-group";
+import { onRadioGroupKeyDownFocusOnly } from "../lib/radio-group";
 
 /**
  * "Which translation would you like?" (ADR 0041). Lists the established
@@ -90,7 +90,7 @@ export function TranslationChoice({ onPick }: { onPick?: () => void }) {
     <div
       role="radiogroup"
       aria-label={t("tr.choose")}
-      onKeyDown={onRadioGroupKeyDown}
+      onKeyDown={onRadioGroupKeyDownFocusOnly}
       style={{ display: "grid", gap: 8, maxHeight: "48dvh", overflowY: "auto" }}
     >
       {options.map((e) =>

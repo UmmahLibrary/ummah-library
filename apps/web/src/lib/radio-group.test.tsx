@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { onRadioGroupKeyDown, onTabListKeyDown, radioTabIndex } from "./radio-group";
+import {
+  onRadioGroupKeyDown,
+  onRadioGroupKeyDownFocusOnly,
+  onTabListKeyDown,
+  radioTabIndex,
+} from "./radio-group";
 
 function Group() {
   const [v, setV] = useState("b");
@@ -71,5 +76,33 @@ describe("tab list keyboard", () => {
     await userEvent.keyboard("{ArrowRight}");
     expect(screen.getByRole("tab", { name: "y" })).toHaveFocus();
     expect(screen.getByRole("tab", { name: "y" })).toHaveAttribute("aria-selected", "true");
+  });
+});
+
+describe("focus-only radio group", () => {
+  it("moves focus with the arrows without picking (picking can have side effects)", async () => {
+    const picked: string[] = [];
+    render(
+      <div role="radiogroup" aria-label="Translations" onKeyDown={onRadioGroupKeyDownFocusOnly}>
+        {["a", "b"].map((o, i) => (
+          <button
+            key={o}
+            type="button"
+            role="radio"
+            aria-checked={i === 0}
+            tabIndex={i === 0 ? 0 : -1}
+            onClick={() => picked.push(o)}
+          >
+            {o}
+          </button>
+        ))}
+      </div>,
+    );
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(screen.getByRole("radio", { name: "b" })).toHaveFocus();
+    expect(picked).toEqual([]);
+    await userEvent.keyboard(" ");
+    expect(picked).toEqual(["b"]);
   });
 });

@@ -21,11 +21,11 @@ function emit(): void {
  * Kept fasts keyed `"<hijriYear>:<day>"`; year-less legacy entries are read as
  * `legacyYear`'s (see `migrateRamadanFasts`).
  */
-export function readFasts(legacyYear: number): Record<string, true> {
+export function readFasts(legacyYear?: number): Record<string, true> {
   return migrateRamadanFasts(readFastsRaw(), legacyYear);
 }
 
-export function toggleFast(year: number, day: number, legacyYear = year): Record<string, true> {
+export function toggleFast(year: number, day: number, legacyYear?: number): Record<string, true> {
   const next = toggleRamadanFast(readFasts(legacyYear), year, day);
   writeFastsRaw(next);
   emit();

@@ -23,10 +23,18 @@ export function ramadanYearFor(today: HijriDate): number {
 const LEGACY = /^\d{1,2}$/;
 
 /**
- * Move year-less legacy entries ("5") to `legacyYear` ("1447:5"). Those were
- * ticked in the most recent Ramaḍān, which is what {@link ramadanYearFor} gives.
+ * The Ramaḍān every year-less entry belongs to. They were all written before
+ * year keys existed (November 2026), so the latest they can be from is 1447.
+ * Deriving it from "today" instead re-dated them on the first visit in Ramaḍān
+ * 1448, showing last year's fasts as this year's — the very bug being fixed.
  */
-export function migrateRamadanFasts(fasts: RamadanFasts, legacyYear: number): Record<string, true> {
+export const LEGACY_FASTS_YEAR = 1447;
+
+/** Move year-less legacy entries ("5") to `legacyYear` ("1447:5"). */
+export function migrateRamadanFasts(
+  fasts: RamadanFasts,
+  legacyYear: number = LEGACY_FASTS_YEAR,
+): Record<string, true> {
   const out: Record<string, true> = {};
   for (const key of Object.keys(fasts)) {
     if (fasts[key] !== true) continue;

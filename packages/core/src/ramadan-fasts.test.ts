@@ -50,3 +50,12 @@ describe("ramadan reading", () => {
     expect(later.start > base.start).toBe(true);
   });
 });
+
+describe("legacy fasts", () => {
+  it("stay in Ramaḍān 1447 even when first read during Ramaḍān 1448", () => {
+    // Read for the first time on 1 Ramaḍān 1448: still last year's, not this year's.
+    const migrated = migrateRamadanFasts({ "1": true, "2": true });
+    expect(keptFastDays(migrated, 1448).size).toBe(0);
+    expect([...keptFastDays(migrated, 1447)].sort()).toEqual([1, 2]);
+  });
+});

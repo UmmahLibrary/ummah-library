@@ -71,7 +71,7 @@ export function RamadanScreen({ navigation }: Props) {
   // The grid is one Ramaḍān's: this year's from Ramaḍān on, else the one just gone
   // (fasts are keyed "<hijriYear>:<day>" so they don't carry into the next year).
   const fastYear = ramadanYearFor(hijri);
-  const kept = keptFastDays(migrateRamadanFasts(fasts, fastYear), fastYear);
+  const kept = keptFastDays(migrateRamadanFasts(fasts), fastYear);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -136,7 +136,7 @@ export function RamadanScreen({ navigation }: Props) {
   function toggleFast(day: number) {
     writeGen.current++;
     setFasts((prev) => {
-      const next = toggleRamadanFast(migrateRamadanFasts(prev, fastYear), fastYear, day);
+      const next = toggleRamadanFast(migrateRamadanFasts(prev), fastYear, day);
       void setJSON(KEYS.ramadanFasts, next);
       return next;
     });
