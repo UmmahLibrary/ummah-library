@@ -377,8 +377,10 @@ export const tr: Record<MessageKey, string> = {
   "related.none": "Altı külliyatta bu ayeti kelimesi kelimesine aktaran bir hadis yok.",
   "related.countOne": "{n} hadis bu ayeti aktarıyor",
   "related.countMany": "{n} hadis bu ayeti aktarıyor",
-  "related.note": "Hadisin Arapça metni bu ayetin sözlerini yinelediğinde eşleşme otomatik kurulmuştur. Söz birliği tek başına ayetin tefsiri değildir.",
+  "related.note":
+    "Hadisin Arapça metni bu ayetin sözlerini yinelediğinde eşleşme otomatik kurulmuştur. Söz birliği tek başına ayetin tefsiri değildir.",
   "related.sharedWording": "Ortak lafız:",
+  "related.showAll": "{n} hadisin tümünü göster",
   "onb.translation": "Hangi meali istersiniz?",
   "goto.ayah": "{surah} · {aya}. ayet",
   "goto.juz": "{n}. cüz · {surah} {key} ile başlar",

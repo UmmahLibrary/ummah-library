@@ -59,10 +59,15 @@ const GRADE_COLOR: Record<HadithGrade, string> = {
  * matched span as evidence and says plainly how the connection was made, rather
  * than presenting it as an editorial judgement it is not.
  */
+const PREVIEW = 3;
+
 export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
   const { t, tf } = useIntl();
   const [items, setItems] = useState<RelatedHadithItem[] | null>(null);
   const [failed, setFailed] = useState(false);
+  // 33:21 alone has 34 long hadith — ~29,000px on a phone between one āyah and
+  // the next. Show a few; the rest on request.
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -124,7 +129,7 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {items.map((h) => {
+        {(showAll ? items : items.slice(0, PREVIEW)).map((h) => {
           const grade = hadithGradeCategory(h.collectionId, h.grades);
           return (
             <article
@@ -195,6 +200,16 @@ export function RelatedHadith({ surah, aya }: { surah: number; aya: number }) {
           );
         })}
       </div>
+      {!showAll && items.length > PREVIEW && (
+        <button
+          type="button"
+          className="nf-btn"
+          onClick={() => setShowAll(true)}
+          style={{ marginTop: 12, minHeight: 44, padding: "0 16px", fontSize: 14 }}
+        >
+          {tf("related.showAll", { n: items.length })}
+        </button>
+      )}
     </div>
   );
 }

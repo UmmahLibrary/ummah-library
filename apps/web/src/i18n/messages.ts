@@ -284,8 +284,10 @@ export const en = {
   "related.none": "No hadith in the six collections quotes this āyah word for word.",
   "related.countOne": "{n} hadith quotes this āyah",
   "related.countMany": "{n} hadith quote this āyah",
-  "related.note": "Matched automatically where the hadith’s Arabic repeats this āyah’s words. A shared wording is not by itself a commentary on the verse.",
+  "related.note":
+    "Matched automatically where the hadith’s Arabic repeats this āyah’s words. A shared wording is not by itself a commentary on the verse.",
   "related.sharedWording": "Shared wording:",
+  "related.showAll": "Show all {n} hadith",
   "onb.translation": "Which translation would you like?",
   "title.collections": "Collections",
   "title.privacy": "Privacy Policy",
