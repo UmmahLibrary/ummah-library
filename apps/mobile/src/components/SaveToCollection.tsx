@@ -86,9 +86,21 @@ export function SaveToCollection({
       )}
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => setOpen(false)}
+          // Tap-outside wrappers aren't a11y elements: accessible, they folded
+          // the whole sheet into one node VoiceOver couldn't look inside.
+          accessible={false}
+        >
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <Pressable
+              style={styles.sheet}
+              onPress={(e) => e.stopPropagation()}
+              accessible={false}
+              accessibilityViewIsModal
+              onAccessibilityEscape={() => setOpen(false)}
+            >
               <Text style={styles.title}>
                 {tf("rd.save.title", { ref: `${num(sura)}:${num(aya)}` })}
               </Text>
