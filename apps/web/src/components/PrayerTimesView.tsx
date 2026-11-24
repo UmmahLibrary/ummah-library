@@ -420,7 +420,9 @@ export function PrayerTimesView() {
                             type="button"
                             onClick={() => void toggleReminder(name)}
                             aria-pressed={on}
-                            aria-label={`${on ? "Turn off" : "Turn on"} the ${PRAYER_LABELS[name]} reminder`}
+                            // One fixed name; aria-pressed says on/off ("Turn off…, pressed"
+                            // contradicted itself).
+                            aria-label={`${PRAYER_LABELS[name]} reminder`}
                             title={on ? "Reminder on" : "Remind me"}
                             style={{
                               background: "none",

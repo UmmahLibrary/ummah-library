@@ -324,7 +324,7 @@ export function RamadanView() {
               key={d}
               type="button"
               onClick={() => setFasts(toggleFast(fastYear, d))}
-              aria-label={`Fast day ${d}${done ? " done" : ""}`}
+              aria-label={`Fast day ${d}`}
               aria-pressed={done}
               style={{
                 aspectRatio: "1",
