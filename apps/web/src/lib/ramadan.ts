@@ -4,12 +4,8 @@
  * adapter (ADR 0024); a window event lets the page re-render. Mirrors the mobile
  * Ramadan screen's storage.
  */
-import {
-  readFastsRaw,
-  readWorshipRaw,
-  writeFastsRaw,
-  writeWorshipRaw,
-} from "./ramadan-store";
+import { migrateRamadanFasts, toggleRamadanFast } from "@ummahlibrary/core";
+import { readFastsRaw, readWorshipRaw, writeFastsRaw, writeWorshipRaw } from "./ramadan-store";
 
 export const RAMADAN_EVENT = "ul.ramadan";
 
@@ -21,14 +17,16 @@ function emit(): void {
   }
 }
 
-export function readFasts(): Record<number, true> {
-  return readFastsRaw();
+/**
+ * Kept fasts keyed `"<hijriYear>:<day>"`; year-less legacy entries are read as
+ * `legacyYear`'s (see `migrateRamadanFasts`).
+ */
+export function readFasts(legacyYear: number): Record<string, true> {
+  return migrateRamadanFasts(readFastsRaw(), legacyYear);
 }
 
-export function toggleFast(day: number): Record<number, true> {
-  const next = { ...readFastsRaw() };
-  if (next[day]) delete next[day];
-  else next[day] = true;
+export function toggleFast(year: number, day: number, legacyYear = year): Record<string, true> {
+  const next = toggleRamadanFast(readFasts(legacyYear), year, day);
   writeFastsRaw(next);
   emit();
   return next;

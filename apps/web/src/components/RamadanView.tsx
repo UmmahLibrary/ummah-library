@@ -2,13 +2,22 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { type Coordinates, type PrayerTimings, gregorianToHijri, hijriMonth } from "@ummahlibrary/core";
+import {
+  type Coordinates,
+  type PrayerTimings,
+  gregorianToHijri,
+  hijriMonth,
+  keptFastDays,
+  migrateRamadanFasts,
+  ramadanYearFor,
+} from "@ummahlibrary/core";
 import { N, Khatam, Icon } from "@ummahlibrary/ui";
 import type { IconName } from "@ummahlibrary/ui";
 import { fmtPrayerTime } from "../lib/prayer-time-format";
 import { PRAYER_SETTINGS_EVENT, webPrayerSettingsStore } from "../lib/prayer-settings-store";
 import { webPrayerTimingsProvider } from "../lib/prayer-timings-provider";
-import { RAMADAN_EVENT, readFasts, readWorship, toggleFast, toggleWorship } from "../lib/ramadan";
+import { RAMADAN_EVENT, readWorship, toggleFast, toggleWorship } from "../lib/ramadan";
+import { readFastsRaw } from "../lib/ramadan-store";
 import { readReadingState } from "../lib/reading-goals";
 import { HIJRI_ADJUST_KEY, readHijriAdjust } from "../lib/hijri";
 
@@ -56,7 +65,7 @@ export function RamadanView() {
   const [now, setNow] = useState(() => new Date());
   const [timings, setTimings] = useState<PrayerTimings | null>(null);
   const [coords, setCoords] = useState<Coordinates | null>(null);
-  const [fasts, setFasts] = useState<Record<number, true>>({});
+  const [fasts, setFasts] = useState<Record<string, true>>({});
   const [worship, setWorship] = useState<Record<string, true>>({});
   const [pagesRead, setPagesRead] = useState(0);
   const [hijriAdjust, setHijriAdjust] = useState(0);
@@ -64,9 +73,11 @@ export function RamadanView() {
 
   useEffect(() => {
     const sync = () => {
-      setFasts(readFasts());
+      setFasts(readFastsRaw());
       setWorship(readWorship(today));
-      void readReadingState().then((s) => setPagesRead(Object.values(s.log).reduce((a, b) => a + b, 0)));
+      void readReadingState().then((s) =>
+        setPagesRead(Object.values(s.log).reduce((a, b) => a + b, 0)),
+      );
     };
     sync();
     window.addEventListener(RAMADAN_EVENT, sync);
@@ -109,7 +120,10 @@ export function RamadanView() {
   const isRamadan = hijri.month === 9;
   const ramadanDay = isRamadan ? hijri.day : null;
 
-  const fastsKept = Object.keys(fasts).length;
+  // The grid is one Ramaḍān's: this year's from Ramaḍān on, else the one just gone.
+  const fastYear = ramadanYearFor(hijri);
+  const kept = keptFastDays(migrateRamadanFasts(fasts, fastYear), fastYear);
+  const fastsKept = kept.size;
   const worshipDone = Object.keys(worship).length;
   const khatmPct = Math.min(100, Math.round((pagesRead / 604) * 100));
 
@@ -120,7 +134,10 @@ export function RamadanView() {
     suhurEnd && iftar
       ? Math.max(
           0,
-          Math.min(100, ((now.getTime() - suhurEnd.getTime()) / (iftar.getTime() - suhurEnd.getTime())) * 100),
+          Math.min(
+            100,
+            ((now.getTime() - suhurEnd.getTime()) / (iftar.getTime() - suhurEnd.getTime())) * 100,
+          ),
         )
       : 0;
 
@@ -133,7 +150,15 @@ export function RamadanView() {
 
   return (
     <div>
-      <div style={{ textAlign: "center", color: N.muted, fontSize: 13.5, fontFamily: N.ui, marginBottom: 14 }}>
+      <div
+        style={{
+          textAlign: "center",
+          color: N.muted,
+          fontSize: 13.5,
+          fontFamily: N.ui,
+          marginBottom: 14,
+        }}
+      >
         {isRamadan
           ? `${ramadanDay} Ramaḍān ${hijri.year} AH`
           : `${hijri.day} ${hijriMonth(hijri.month).name} ${hijri.year} AH`}
@@ -151,28 +176,81 @@ export function RamadanView() {
           overflow: "hidden",
         }}
       >
-        <div aria-hidden="true" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+            pointerEvents: "none",
+          }}
+        >
           <Khatam size={220} color={N.gold} sw={0.9} opacity={0.06} />
         </div>
         {iftar && suhurEnd ? (
           <div style={{ position: "relative" }}>
-            <div style={{ fontSize: 12, letterSpacing: 1.4, textTransform: "uppercase", color: N.gold, fontWeight: 700, fontFamily: N.ui }}>
+            <div
+              style={{
+                fontSize: 12,
+                letterSpacing: 1.4,
+                textTransform: "uppercase",
+                color: N.gold,
+                fontWeight: 700,
+                fontFamily: N.ui,
+              }}
+            >
               {beforeIftar ? "Time until Ifṭār" : "Ifṭār has begun"}
             </div>
-            <div style={{ fontSize: 46, fontWeight: 800, letterSpacing: -1.5, color: N.fg, margin: "6px 0", fontFamily: N.ui }}>
+            <div
+              style={{
+                fontSize: 46,
+                fontWeight: 800,
+                letterSpacing: -1.5,
+                color: N.fg,
+                margin: "6px 0",
+                fontFamily: N.ui,
+              }}
+            >
               {beforeIftar ? countdown(iftar, now) : "🌙 Iftar mubarak"}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12.5, color: N.muted, fontFamily: N.ui }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: 8,
+                fontSize: 12.5,
+                color: N.muted,
+                fontFamily: N.ui,
+              }}
+            >
               <span>Suhūr {fmtPrayerTime(timings!.fajr, coords)}</span>
               <span>Ifṭār {fmtPrayerTime(timings!.maghrib, coords)}</span>
             </div>
-            <div style={{ height: 7, borderRadius: 4, background: N.border, overflow: "hidden", marginTop: 6 }}>
+            <div
+              style={{
+                height: 7,
+                borderRadius: 4,
+                background: N.border,
+                overflow: "hidden",
+                marginTop: 6,
+              }}
+            >
               <div style={{ width: `${dayProgress}%`, height: "100%", background: N.goldGrad }} />
             </div>
           </div>
         ) : (
           <div style={{ position: "relative" }}>
-            <div style={{ fontSize: 12, letterSpacing: 1.4, textTransform: "uppercase", color: N.gold, fontWeight: 700, fontFamily: N.ui }}>
+            <div
+              style={{
+                fontSize: 12,
+                letterSpacing: 1.4,
+                textTransform: "uppercase",
+                color: N.gold,
+                fontWeight: 700,
+                fontFamily: N.ui,
+              }}
+            >
               Ifṭār countdown
             </div>
             <div style={{ fontSize: 14.5, color: N.muted, marginTop: 10, fontFamily: N.ui }}>
@@ -205,14 +283,26 @@ export function RamadanView() {
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 12 }}>
         {stats.map(([v, l]) => (
           <div key={l} style={statCard}>
-            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, color: N.gold, fontFamily: N.ui }}>{v}</div>
-            <div style={{ fontSize: 12.5, color: N.faint, marginTop: 3, fontFamily: N.ui }}>{l}</div>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                letterSpacing: -0.5,
+                color: N.gold,
+                fontFamily: N.ui,
+              }}
+            >
+              {v}
+            </div>
+            <div style={{ fontSize: 12.5, color: N.faint, marginTop: 3, fontFamily: N.ui }}>
+              {l}
+            </div>
           </div>
         ))}
       </div>
 
       {/* Fasting grid */}
-      <div style={sectionLabel}>Fasting · Ramaḍān</div>
+      <div style={sectionLabel}>Fasting · Ramaḍān {fastYear}</div>
       <div
         style={{
           display: "grid",
@@ -225,21 +315,21 @@ export function RamadanView() {
         }}
       >
         {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
-          const kept = Boolean(fasts[d]);
-          const isToday = ramadanDay === d;
+          const done = kept.has(d);
+          const isToday = isRamadan && ramadanDay === d;
           return (
             <button
               key={d}
               type="button"
-              onClick={() => setFasts(toggleFast(d))}
-              aria-label={`Fast day ${d}${kept ? " kept" : ""}`}
-              aria-pressed={kept}
+              onClick={() => setFasts(toggleFast(fastYear, d))}
+              aria-label={`Fast day ${d}${done ? " done" : ""}`}
+              aria-pressed={done}
               style={{
                 aspectRatio: "1",
                 borderRadius: 8,
-                border: `1px solid ${isToday && !kept ? N.gold : kept ? "transparent" : N.borderSoft}`,
-                background: kept ? N.goldGrad : "transparent",
-                color: kept ? N.ink : isToday ? N.gold : N.faint,
+                border: `1px solid ${isToday && !done ? N.gold : done ? "transparent" : N.borderSoft}`,
+                background: done ? N.goldGrad : "transparent",
+                color: done ? N.ink : isToday ? N.gold : N.faint,
                 fontSize: 11.5,
                 fontWeight: 700,
                 cursor: "pointer",
@@ -253,11 +343,26 @@ export function RamadanView() {
       </div>
 
       {/* Today's worship */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "22px 0 12px" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          margin: "22px 0 12px",
+        }}
+      >
         <span style={{ ...sectionLabel, margin: 0 }}>Today’s worship</span>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: N.gold, fontFamily: N.ui }}>{worshipDone}/4</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: N.gold, fontFamily: N.ui }}>
+          {worshipDone}/4
+        </span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 10,
+        }}
+      >
         {WORSHIP.map((w) => {
           const on = Boolean(worship[w.key]);
           return (
@@ -292,7 +397,14 @@ export function RamadanView() {
               >
                 <Icon name={on ? "check" : w.icon} size={14} color={on ? N.ink : N.faint} sw={2} />
               </span>
-              <span style={{ fontSize: 13.5, fontWeight: 600, color: on ? N.fg : N.muted, fontFamily: N.ui }}>
+              <span
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: on ? N.fg : N.muted,
+                  fontFamily: N.ui,
+                }}
+              >
                 {w.label}
               </span>
             </button>

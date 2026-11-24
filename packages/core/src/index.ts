@@ -31,6 +31,7 @@ export * from "./achievements";
 export * from "./qibla";
 export * from "./geo";
 export * from "./hijri";
+export * from "./ramadan-fasts";
 export * from "./islamic-events";
 export * from "./sunnah-fasting";
 export * from "./zakat";
