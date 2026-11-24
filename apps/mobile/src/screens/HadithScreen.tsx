@@ -6,8 +6,7 @@ import { HADITH_COLLECTIONS } from "../plugins";
 import { useTheme, type Palette } from "../theme";
 import { FONT } from "../fonts";
 import { useIntl } from "../i18n/I18nProvider";
-
-const GRADE_GOOD = "#5bbf8a";
+import { STATUS_HUES, readableHueFor } from "@ummahlibrary/ui";
 
 export function HadithScreen() {
   const { colors } = useTheme();
@@ -160,11 +159,12 @@ function makeStyles(c: Palette) {
     cardCol: { color: c.muted, fontSize: 12, fontFamily: FONT.semibold, flex: 1 },
     cardBook: { color: c.faint, fontFamily: FONT.regular },
     grade: {
-      color: GRADE_GOOD,
+      // Raw green was ~2:1 on the light themes; blend it toward the text colour.
+      color: readableHueFor(STATUS_HUES.good, c),
       fontSize: 11,
       fontFamily: FONT.bold,
       borderWidth: 1,
-      borderColor: GRADE_GOOD,
+      borderColor: readableHueFor(STATUS_HUES.good, c),
       borderRadius: 6,
       paddingVertical: 3,
       paddingHorizontal: 8,

@@ -40,7 +40,7 @@ export { NoorThemeProvider, useNoorTheme } from "./NoorThemeContext";
 
 // Noor primitives — platform files (.native.tsx) are resolved automatically
 // by Metro for React Native; Next.js/webpack uses the .tsx (web) versions.
-export { N, READABLE_HUE_MIX, STATUS_HUES, readableHue } from "./tokens";
+export { N, READABLE_HUE_MIX, STATUS_HUES, readableHue, readableHueFor } from "./tokens";
 export { Icon } from "./Icon";
 export type { IconName } from "./Icon";
 export { Khatam } from "./Khatam";

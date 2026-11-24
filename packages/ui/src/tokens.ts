@@ -45,6 +45,26 @@ export const STATUS_HUES = {
 /** How much of the hue survives the blend toward the theme's foreground colour. */
 export const READABLE_HUE_MIX = { light: 30, dark: 75 } as const;
 
+/** `pct`% of `hex` blended into `base` (both `#rrggbb`) — the sRGB `color-mix`. */
+function blendHex(hex: string, base: string, pct: number): string {
+  const ch = (h: string, i: number) => parseInt(h.slice(i, i + 2), 16);
+  return `#${[1, 3, 5]
+    .map((i) => Math.round((ch(hex, i) * pct + ch(base, i) * (100 - pct)) / 100))
+    .map((v) => v.toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+/**
+ * The native counterpart of {@link readableHue}: the same blend, resolved
+ * against a concrete palette (React Native has no CSS variables).
+ */
+export function readableHueFor(
+  hex: string,
+  palette: { fg: string; scheme: "light" | "dark" },
+): string {
+  return blendHex(hex, palette.fg, READABLE_HUE_MIX[palette.scheme]);
+}
+
 /**
  * A status hue as text readable at 4.5:1 on every Noor surface: blended toward
  * the theme's foreground (`--noor-fg`), much more on light themes. Relies on the
