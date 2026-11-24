@@ -252,7 +252,7 @@ export function RamadanScreen({ navigation }: Props) {
       <View style={styles.statsRow}>
         <Stat value={tf("pr.pct", { n: khatmPct })} label={t("pr.khatmProgress")} colors={colors} />
         <Stat
-          value={`${num(worshipDone)}/${num(4)}`}
+          value={isRamadan ? `${num(worshipDone)}/${num(4)}` : "—"}
           label={t("pr.todaysWorship")}
           colors={colors}
         />
@@ -293,33 +293,39 @@ export function RamadanScreen({ navigation }: Props) {
         })}
       </View>
 
-      {/* Today's worship */}
-      <View style={styles.worshipHead}>
-        <Text style={styles.sectionLabel}>{t("pr.todaysWorship")}</Text>
-        <Text style={styles.worshipCount}>{`${num(worshipDone)}/${num(4)}`}</Text>
-      </View>
-      <View style={styles.worshipGrid}>
-        {WORSHIP.map((w) => {
-          const on = Boolean(worship[w.key]);
-          return (
-            <Pressable
-              key={w.key}
-              style={[styles.worshipItem, on && styles.worshipItemOn]}
-              onPress={() => toggleWorship(w.key)}
-            >
-              <View style={[styles.worshipDot, on && styles.worshipDotOn]}>
-                <Icon
-                  name={on ? "check" : w.icon}
-                  size={13}
-                  color={on ? colors.ink : colors.faint}
-                  sw={2}
-                />
-              </View>
-              <Text style={[styles.worshipLabel, on && styles.worshipLabelOn]}>{t(w.label)}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      {/* Today's worship — suhūr, tarāwīḥ… only mean something in Ramaḍān. */}
+      {isRamadan && (
+        <>
+          <View style={styles.worshipHead}>
+            <Text style={styles.sectionLabel}>{t("pr.todaysWorship")}</Text>
+            <Text style={styles.worshipCount}>{`${num(worshipDone)}/${num(4)}`}</Text>
+          </View>
+          <View style={styles.worshipGrid}>
+            {WORSHIP.map((w) => {
+              const on = Boolean(worship[w.key]);
+              return (
+                <Pressable
+                  key={w.key}
+                  style={[styles.worshipItem, on && styles.worshipItemOn]}
+                  onPress={() => toggleWorship(w.key)}
+                >
+                  <View style={[styles.worshipDot, on && styles.worshipDotOn]}>
+                    <Icon
+                      name={on ? "check" : w.icon}
+                      size={13}
+                      color={on ? colors.ink : colors.faint}
+                      sw={2}
+                    />
+                  </View>
+                  <Text style={[styles.worshipLabel, on && styles.worshipLabelOn]}>
+                    {t(w.label)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }

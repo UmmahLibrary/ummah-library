@@ -147,7 +147,7 @@ export function RamadanView() {
     [`${fastsKept}/30`, "Fasts kept"],
     [isRamadan ? `${ramadanDay}/30` : "—", "Day of Ramaḍān"],
     [`${khatmPct}%`, "Khatm progress"],
-    [`${worshipDone}/4`, "Today’s worship"],
+    [isRamadan ? `${worshipDone}/4` : "—", "Today’s worship"],
   ];
 
   return (
@@ -344,75 +344,84 @@ export function RamadanView() {
         })}
       </div>
 
-      {/* Today's worship */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          margin: "22px 0 12px",
-        }}
-      >
-        <span style={{ ...sectionLabel, margin: 0 }}>Today’s worship</span>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: N.gold, fontFamily: N.ui }}>
-          {worshipDone}/4
-        </span>
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: 10,
-        }}
-      >
-        {WORSHIP.map((w) => {
-          const on = Boolean(worship[w.key]);
-          return (
-            <button
-              key={w.key}
-              type="button"
-              onClick={() => setWorship(toggleWorship(today, w.key))}
-              className="noor-press"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 11,
-                padding: "12px 14px",
-                borderRadius: 12,
-                border: `1px solid ${on ? N.gold : N.border}`,
-                background: on ? N.goldSoft : N.card,
-                cursor: "pointer",
-                textAlign: "left",
-              }}
-            >
-              <span
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
-                  display: "grid",
-                  placeItems: "center",
-                  background: on ? N.goldGrad : "transparent",
-                  border: `1px solid ${on ? N.gold : N.border}`,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon name={on ? "check" : w.icon} size={14} color={on ? N.ink : N.faint} sw={2} />
-              </span>
-              <span
-                style={{
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: on ? N.fg : N.muted,
-                  fontFamily: N.ui,
-                }}
-              >
-                {w.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Today's worship — suhūr, tarāwīḥ… only mean something in Ramaḍān. */}
+      {isRamadan && (
+        <>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              margin: "22px 0 12px",
+            }}
+          >
+            <span style={{ ...sectionLabel, margin: 0 }}>Today’s worship</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: N.gold, fontFamily: N.ui }}>
+              {worshipDone}/4
+            </span>
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: 10,
+            }}
+          >
+            {WORSHIP.map((w) => {
+              const on = Boolean(worship[w.key]);
+              return (
+                <button
+                  key={w.key}
+                  type="button"
+                  onClick={() => setWorship(toggleWorship(today, w.key))}
+                  className="noor-press"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 11,
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    border: `1px solid ${on ? N.gold : N.border}`,
+                    background: on ? N.goldSoft : N.card,
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 13,
+                      display: "grid",
+                      placeItems: "center",
+                      background: on ? N.goldGrad : "transparent",
+                      border: `1px solid ${on ? N.gold : N.border}`,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon
+                      name={on ? "check" : w.icon}
+                      size={14}
+                      color={on ? N.ink : N.faint}
+                      sw={2}
+                    />
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: on ? N.fg : N.muted,
+                      fontFamily: N.ui,
+                    }}
+                  >
+                    {w.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
