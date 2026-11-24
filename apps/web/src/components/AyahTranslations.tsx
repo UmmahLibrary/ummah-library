@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { EditionChoice } from "../lib/editions";
 import { EDITIONS_KEY, editionLangCode, readEditions } from "../lib/editions";
 import { fetchCatalogue, fetchEditionSurah } from "../lib/catalogue";
+import { useIntl } from "../i18n/I18nProvider";
 
 interface Line {
   id: string;
@@ -25,6 +26,7 @@ interface Line {
  * translation the label is noise (it repeats under every āyah).
  */
 export function AyahTranslations({ surah, aya }: { surah: number; aya: number }) {
+  const { tf } = useIntl();
   const [lines, setLines] = useState<Line[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,12 +45,20 @@ export function AyahTranslations({ surah, aya }: { surah: number; aya: number })
       const catalogue = await fetchCatalogue();
       const metaById = new Map(catalogue.map((e) => [e.id, e]));
       const entries = await Promise.all(
-        ids.map((id) => fetchEditionSurah(id, surah).then((m) => [id, m.get(aya)] as const)),
+        ids.map((id) =>
+          fetchEditionSurah(id, surah).then(
+            // An edition that loaded but has nothing for this āyah gets an
+            // explicit note ("" below); one that failed to load (empty map) is
+            // skipped as before. Irfan-ul-Quran's source, for one, is blank for
+            // all of Al-Aʿrāf — that used to show no translation, silently.
+            (m) => [id, m.size === 0 ? undefined : (m.get(aya)?.trim() ?? "")] as const,
+          ),
+        ),
       );
       if (!active) return;
       setLines(
         entries
-          .filter((e): e is [string, string] => Boolean(e[1]))
+          .filter((e): e is [string, string] => e[1] !== undefined)
           .map(([id, text]) => {
             const meta: EditionChoice | undefined = metaById.get(id);
             return {
@@ -88,7 +98,11 @@ export function AyahTranslations({ surah, aya }: { surah: number; aya: number })
       {lines.map((l) => (
         <p key={l.id} className="ayah-tr" data-edition={l.id} dir={l.direction} lang={l.lang}>
           {showName && <span className="tr-name">{l.name}</span>}
-          {l.text}
+          {l.text || (
+            <span className="tr-missing" style={{ fontStyle: "italic", opacity: 0.75 }}>
+              {tf("tr.missingAyah", { name: l.name })}
+            </span>
+          )}
         </p>
       ))}
     </>

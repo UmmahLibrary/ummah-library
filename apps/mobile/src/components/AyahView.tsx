@@ -278,7 +278,9 @@ function AyahViewImpl({
           : translations.map((tr) => ({
               key: tr.id,
               label: tr.name,
-              text: tr.text,
+              // Some sources are blank for whole surahs (Irfan-ul-Quran: all of
+              // Al-Aʿrāf) — say so rather than show the name over nothing.
+              text: tr.text?.trim() || tf("rd.trMissing", { name: tr.name }),
               // Catalogue names ("Urdu") → codes ("ur"), so each gets its own face.
               lang: editionLangCode(tr.language) ?? tr.language,
               dir: tr.direction,

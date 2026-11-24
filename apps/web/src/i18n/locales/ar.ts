@@ -381,6 +381,8 @@ export const ar: Record<MessageKey, string> = {
     "المطابقة تلقائية حيث يعيد النص العربي للحديث كلمات هذه الآية. واتفاق اللفظ لا يُعدّ بذاته تفسيرًا للآية.",
   "related.sharedWording": "اللفظ المشترك:",
   "related.showAll": "عرض الأحاديث كلها ({n})",
+  "tr.missingAyah": "لا تتضمن ترجمة {name} هذه الآية.",
+  "tr.missingSurah": "لا تتضمن ترجمة {name} هذه السورة.",
   "onb.translation": "أي ترجمة تفضّل؟",
   "goto.ayah": "{surah} · الآية {aya}",
   "goto.juz": "الجزء {n} · يبدأ عند {surah} {key}",

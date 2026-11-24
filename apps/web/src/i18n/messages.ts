@@ -288,6 +288,8 @@ export const en = {
     "Matched automatically where the hadith’s Arabic repeats this āyah’s words. A shared wording is not by itself a commentary on the verse.",
   "related.sharedWording": "Shared wording:",
   "related.showAll": "Show all {n} hadith",
+  "tr.missingAyah": "{name} has no translation for this āyah.",
+  "tr.missingSurah": "{name} has no translation for this surah.",
   "onb.translation": "Which translation would you like?",
   "title.collections": "Collections",
   "title.privacy": "Privacy Policy",

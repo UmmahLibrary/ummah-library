@@ -381,6 +381,8 @@ export const tr: Record<MessageKey, string> = {
     "Hadisin Arapça metni bu ayetin sözlerini yinelediğinde eşleşme otomatik kurulmuştur. Söz birliği tek başına ayetin tefsiri değildir.",
   "related.sharedWording": "Ortak lafız:",
   "related.showAll": "{n} hadisin tümünü göster",
+  "tr.missingAyah": "{name} bu ayetin mealini içermiyor.",
+  "tr.missingSurah": "{name} bu surenin mealini içermiyor.",
   "onb.translation": "Hangi meali istersiniz?",
   "goto.ayah": "{surah} · {aya}. ayet",
   "goto.juz": "{n}. cüz · {surah} {key} ile başlar",

@@ -376,6 +376,8 @@ export const ur: Record<MessageKey, string> = {
     "مطابقت خود کار طور پر کی گئی ہے جہاں حدیث کا عربی متن اس آیت کے الفاظ دہراتا ہے۔ الفاظ کا اشتراک بجائے خود آیت کی تفسیر نہیں۔",
   "related.sharedWording": "مشترک الفاظ:",
   "related.showAll": "تمام {n} احادیث دکھائیں",
+  "tr.missingAyah": "{name} میں اس آیت کا ترجمہ موجود نہیں۔",
+  "tr.missingSurah": "{name} میں اس سورت کا ترجمہ موجود نہیں۔",
   "onb.translation": "آپ کون سا ترجمہ پسند کریں گے؟",
   "goto.ayah": "{surah} · آیت {aya}",
   "goto.juz": "پارہ {n} · شروع {surah} {key} سے",

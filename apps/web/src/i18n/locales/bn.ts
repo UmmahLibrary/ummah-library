@@ -380,6 +380,8 @@ export const bn: Record<MessageKey, string> = {
     "হাদিসের আরবি পাঠে এই আয়াতের শব্দগুলো পুনরাবৃত্ত হলে স্বয়ংক্রিয়ভাবে মিল ধরা হয়েছে। শব্দের মিল নিজে থেকেই আয়াতের তাফসির নয়।",
   "related.sharedWording": "অভিন্ন শব্দ:",
   "related.showAll": "সব {n}টি হাদিস দেখান",
+  "tr.missingAyah": "{name}-এ এই আয়াতের অনুবাদ নেই।",
+  "tr.missingSurah": "{name}-এ এই সূরার অনুবাদ নেই।",
   "onb.translation": "কোন অনুবাদটি চান?",
   "goto.ayah": "{surah} · আয়াত {aya}",
   "goto.juz": "পারা {n} · শুরু {surah} {key} থেকে",

@@ -11,6 +11,7 @@ import {
   readReadingTranslation,
 } from "../lib/editions";
 import { fetchCatalogue, fetchEditionSurah } from "../lib/catalogue";
+import { useIntl } from "../i18n/I18nProvider";
 
 /**
  * The continuous "Reading → Translations" flow for a surah (or a juzʾ section):
@@ -22,6 +23,8 @@ export function ReadingTranslationFlow({ surah, ayat }: { surah: number; ayat: n
   const [lines, setLines] = useState<{ aya: number; text: string }[]>([]);
   const [dir, setDir] = useState<"ltr" | "rtl">("ltr");
   const [lang, setLang] = useState<string | undefined>(undefined);
+  const [blankName, setBlankName] = useState<string | null>(null);
+  const { tf } = useIntl();
 
   useEffect(() => {
     let active = true;
@@ -47,8 +50,15 @@ export function ReadingTranslationFlow({ surah, ayat }: { surah: number; ayat: n
       setLang(editionLangCode(meta?.language));
       setLines(
         ayat
-          .map((aya) => ({ aya, text: textByAya.get(aya) }))
+          .map((aya) => ({ aya, text: textByAya.get(aya)?.trim() }))
           .filter((l): l is { aya: number; text: string } => Boolean(l.text)),
+      );
+      // Loaded, yet blank for every āyah here (the source's gap, not a network
+      // failure): say so instead of an empty column.
+      setBlankName(
+        textByAya.size > 0 && ayat.every((a) => !textByAya.get(a)?.trim())
+          ? (meta?.name ?? activeId)
+          : null,
       );
     }
     void load();
@@ -61,6 +71,14 @@ export function ReadingTranslationFlow({ surah, ayat }: { surah: number; ayat: n
       window.removeEventListener(READING_TR_KEY, onChange);
     };
   }, [surah, ayat]);
+
+  if (blankName) {
+    return (
+      <p className="read-flow tr-missing" style={{ fontStyle: "italic", opacity: 0.75 }}>
+        {tf("tr.missingSurah", { name: blankName })}
+      </p>
+    );
+  }
 
   return (
     <div className="read-flow" dir={dir} lang={lang}>
