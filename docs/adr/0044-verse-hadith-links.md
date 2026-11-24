@@ -129,50 +129,56 @@ This needed one new port method rather than a redesign:
 dataset already has and surfaced as `relatedHadithVerses()` in `api`. A future
 topical mapping prerenders on the same path for free.
 
-### What this does NOT do: it does not close the offline gap
+### What this does and does not do for offline
 
-#200's criterion "works offline for bundled collections" is **still unmet**, and
-prerendering does not meet it. Measured against the built app with the server
-killed, which is a true offline test rather than an emulated one:
+Prerendering is **not** itself an offline mechanism, and this is worth stating
+precisely because it is easy to assume otherwise: it puts the file on the
+*server* and does not change the URL, so it cannot change what a client keeps.
+
+What closes the offline case is #297's service-worker tier, which landed
+separately and caches public reader content network-first with a cache
+fallback:
+
+```js
+const isContentApi = (url) =>
+  /^\/api\/v1\/(surahs|translations|tafsirs|names|adhkar|editions|search\/corpus|recitations|hadith\/[^/]+\/sections)(\/|$)/.test(
+    url.pathname,
+  );
+```
+
+That pattern matches `/api/v1/surahs/{n}/ayahs/{a}/hadith`. Measured against the
+built app with the server **killed** — a real outage, not Playwright's
+`setOffline`, which does not block loopback and reports a false pass:
 
 | Case | Server down |
 | --- | --- |
-| `33:21` fetched once while online, then server down | **200, 34 links** |
-| `33:21` never fetched, then server down | **fails** |
-| `1:1` (unlinked, never prerendered) | fails |
+| `33:21` opened once, then server down | **200, 34 links**, served from `ul-api-v1` |
+| `33:21` **never opened**, then server down | **fails** |
 
-The first row is the **browser's HTTP cache**, not prerendering: `apiJson` sets
-`max-age=3600` on every success, so a visited response survives a server outage
-whether the route is static or dynamic. The second row is the one that matters
-for offline-first, and it fails, because prerendering puts the file on the
-*server*. Nothing caches it on the client: `apps/web/public/sw.js` handles
-navigations and static assets only, and
+So #200's criterion is met in the sense that matters day to day — an ayah whose
+links you have seen stays readable offline, which is the same guarantee the
+reader already gives for pages and tafsir — and is **not** met in the literal
+sense of "every bundled link available on a device that has never opened it".
+Two things bound it: the cache holds the 120 most recent content-API responses,
+and nothing is populated until first view.
 
-```js
-const isStaticAsset = (url) =>
-  url.pathname.startsWith("/_next/static") ||
-  url.pathname.startsWith("/icons/") ||
-  /\.(?:js|css|woff2?|png|svg|ico|webmanifest)$/.test(url.pathname);
-```
+Prerendering still earns its place alongside that: static delivery, no function
+invocation per request, CDN-cacheable under `s-maxage=86400`, and a cache fill
+that costs a static file read rather than a dataset join. It is complementary to
+the service-worker tier, not a substitute for it.
 
-`/api/v1/...` matches none of those — and prerendering does not change the URL,
-so it does not change what the service worker will cache.
+Closing the literal reading would need one of:
 
-So this amendment is worth having on its own terms — static delivery, no
-function invocation per request, CDN-cacheable under `s-maxage=86400` — but it is
-**groundwork for** an offline fix, not the fix. Closing the criterion needs a
-client-side mechanism, and the three candidates differ enough in cost that the
-choice is deliberately left open here:
+1. **Precache all 411 responses at install.** True offline-first, but `33:21`
+   alone is 76 KB, so the set runs to several MB of install-time download, and
+   the service worker deliberately avoids bloating the origin toward eviction —
+   offline recitation audio shares that budget.
+2. **Stop fetching for the panel: pass links down from the already-static surah
+   page.** Needs no cache at all, but the panel renders hadith *text*, so
+   inlining it trades one request for a much larger payload on every reader
+   page. Wants its own ADR.
 
-1. **A service-worker tier for `/api/v1` responses.** Smallest change, but only
-   gives "works offline once seen" — a never-visited ayah still fails. Changes
-   caching for every API route.
-2. **Precache all 411 responses at install.** True offline-first, but 33:21
-   alone is 76 KB, so the set runs to several MB of install-time download.
-3. **Stop fetching for the panel: pass links down from the already-static surah
-   page.** Architecturally the cleanest and needs no cache at all, but the panel
-   renders hadith *text*, and inlining that into every reader page trades a
-   request for a much larger page payload.
+Neither is taken here. The current behaviour is recorded as the accepted state.
 
 ## Consequences
 

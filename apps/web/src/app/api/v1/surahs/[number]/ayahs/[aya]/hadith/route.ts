@@ -12,13 +12,12 @@ import { apiJson } from "../../../../../../../../lib/api-response";
  * time. They cost the build 411 small files; the empty majority keeps the
  * on-demand path and costs nothing.
  *
- * This is **not** an offline fix, despite making the responses static files:
- * prerendering puts them on the server and does not change the URL, so the
- * service worker — which caches navigations and static assets only, never
- * `/api/v1/*` — still will not keep them. An ayah fetched once survives a
- * network outage via `apiJson`'s `max-age=3600`, exactly as it did when this
- * route was dynamic; one never fetched still fails. See the ADR amendment for
- * the measurements and the three candidate fixes.
+ * Prerendering is not itself an offline mechanism — it puts the file on the
+ * server and does not change the URL. Offline comes from the service worker's
+ * content-API tier (`isContentApi` in `public/sw.js`), whose pattern matches
+ * this path: an ayah opened once stays readable with no network, one never
+ * opened does not. The two are complementary; see the ADR amendment for the
+ * measurements and the bounds.
  */
 export const dynamic = "force-static";
 // Deliberately not `dynamicParams = false`: an ayah with no links is not in
