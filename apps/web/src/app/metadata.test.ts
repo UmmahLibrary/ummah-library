@@ -64,3 +64,11 @@ describe("share previews", () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe("favicon", () => {
+  // Browsers, feed readers and crawlers ask for /favicon.ico whatever the
+  // <link rel="icon"> tags say; without the file every one of them was a 404.
+  it("ships app/favicon.ico", () => {
+    expect(existsSync(join(appDir, "favicon.ico"))).toBe(true);
+  });
+});
