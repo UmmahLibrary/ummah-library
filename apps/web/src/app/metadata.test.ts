@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -32,6 +32,35 @@ describe("page metadata", () => {
       .map((e) => new URL(e.url).pathname)
       .filter((p) => p !== "/" && !/^\/(surah|juz|page|blog|plans)\/./.test(p));
     const missing = routes.filter((r) => !routeSource(r).includes("canonical"));
+    expect(missing).toEqual([]);
+  });
+});
+
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) return name === "api" ? [] : sourceFiles(full);
+    return /^(page|layout)\.tsx$/.test(name) ? [full] : [];
+  });
+}
+
+describe("share previews", () => {
+  // A url/title in the root layout's openGraph is inherited by every page that
+  // doesn't set its own — og:url then sends scrapers to the home page.
+  it("keeps page-specific fields out of the root layout's openGraph", () => {
+    const layout = readFileSync(join(appDir, "layout.tsx"), "utf8");
+    const og = layout.slice(layout.indexOf("openGraph:"), layout.indexOf("twitter:"));
+    expect(og).not.toMatch(/\burl:|\btitle:/);
+  });
+
+  // A page's own openGraph replaces the inherited one, images included. (The
+  // home page sits beside app/opengraph-image.tsx, so it keeps the file image.)
+  it("re-lists the share image wherever a page sets its own openGraph", () => {
+    const home = join(appDir, "page.tsx");
+    const missing = sourceFiles(appDir).filter((f) => {
+      const src = readFileSync(f, "utf8");
+      return f !== home && /openGraph: \{[^}]*\btitle\b/s.test(src) && !src.includes("SHARE_IMAGE");
+    });
     expect(missing).toEqual([]);
   });
 });

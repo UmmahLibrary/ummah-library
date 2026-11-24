@@ -19,7 +19,7 @@ import { AyahWords } from "../../../components/AyahWords";
 import { AyahStar } from "../../../components/AyahStar";
 import { ReadingTranslationFlow } from "../../../components/ReadingTranslationFlow";
 import { ReaderShortcuts } from "../../../components/ReaderShortcuts";
-import { SITE_URL } from "../../../lib/site";
+import { SHARE_IMAGE, SITE_URL } from "../../../lib/site";
 import { WordByWord } from "../../../components/WordByWord";
 import { MemorizeBar } from "../../../components/MemorizeBar";
 
@@ -106,8 +106,8 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, url, type: "article" },
-    twitter: { card: "summary", title, description },
+    openGraph: { title, description, url, type: "article", images: [SHARE_IMAGE] },
+    twitter: { card: "summary", title, description, images: [SHARE_IMAGE] },
   };
 }
 

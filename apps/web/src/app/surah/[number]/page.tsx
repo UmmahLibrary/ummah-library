@@ -4,7 +4,7 @@ import { N } from "@ummahlibrary/ui";
 import { SurahReaderClient } from "../../../components/SurahReaderClient";
 import { TOTAL_SURAHS, isValidSurahNumber } from "@ummahlibrary/core";
 import { pluginRegistry, quranRepository } from "@ummahlibrary/api";
-import { SITE_URL } from "../../../lib/site";
+import { SHARE_IMAGE, SITE_URL } from "../../../lib/site";
 
 const RECITERS = pluginRegistry.byKind("reciter");
 const TAFSIRS = pluginRegistry.byKind("tafsir").map((t) => ({ id: t.id, name: t.name }));
@@ -61,8 +61,8 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, url, type: "article" },
-    twitter: { card: "summary", title, description },
+    openGraph: { title, description, url, type: "article", images: [SHARE_IMAGE] },
+    twitter: { card: "summary", title, description, images: [SHARE_IMAGE] },
   };
 }
 
