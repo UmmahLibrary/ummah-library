@@ -16,51 +16,44 @@ interface Collection {
   name: string;
 }
 
-/** Display metadata (names with diacritics, author, count, short label, order). */
-const META: Record<
-  string,
-  { name: string; short: string; by: string; count: string; order: number }
-> = {
+/** Display metadata (names with diacritics, author, short label, order). Counts
+ *  come from the loaded data — hard-coded ones had drifted (Muslim said 7,500;
+ *  7,360 are bundled). */
+const META: Record<string, { name: string; short: string; by: string; order: number }> = {
   "eng-bukhari": {
     name: "Ṣaḥīḥ al-Bukhārī",
     short: "Bukhārī",
     by: "Imam al-Bukhārī",
-    count: "7,563",
     order: 0,
   },
   "eng-muslim": {
     name: "Ṣaḥīḥ Muslim",
     short: "Muslim",
     by: "Imam Muslim",
-    count: "7,500",
     order: 1,
   },
   "eng-abudawud": {
     name: "Sunan Abī Dāwūd",
     short: "Abū Dāwūd",
     by: "Abū Dāwūd",
-    count: "5,274",
     order: 2,
   },
   "eng-tirmidhi": {
     name: "Jāmiʿ at-Tirmidhī",
     short: "Tirmidhī",
     by: "At-Tirmidhī",
-    count: "3,956",
     order: 3,
   },
   "eng-nasai": {
     name: "Sunan an-Nasāʾī",
     short: "Nasāʾī",
     by: "An-Nasāʾī",
-    count: "5,761",
     order: 4,
   },
   "eng-ibnmajah": {
     name: "Sunan Ibn Mājah",
     short: "Ibn Mājah",
     by: "Ibn Mājah",
-    count: "4,341",
     order: 5,
   },
 };
@@ -424,7 +417,9 @@ export function HadithBrowser({ collections }: { collections: Collection[] }) {
                       fontFamily: N.ui,
                     }}
                   >
-                    {meta?.count ?? loaded[c.id]?.hadiths.length ?? ""} hadith
+                    {loaded[c.id]
+                      ? `${loaded[c.id]!.hadiths.length.toLocaleString("en")} hadith`
+                      : "…"}
                   </div>
                 </button>
               );

@@ -66,3 +66,31 @@ describe("HadithBrowser deep link", () => {
     expect(await screen.findByText("First narration")).toBeInTheDocument();
   });
 });
+
+describe("HadithBrowser collection cards", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("shows how many hadith are actually loaded, not a hard-coded figure", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            id: "eng-muslim",
+            sections: {},
+            hadiths: [1, 2, 3].map((n) => ({
+              collectionId: "eng-muslim",
+              number: n,
+              text: "t",
+              grades: [],
+              reference: { book: 1, hadith: n },
+            })),
+          }),
+      }),
+    );
+    render(<HadithBrowser collections={[{ id: "eng-muslim", name: "Muslim" }]} />);
+    expect(await screen.findByText("3 hadith")).toBeInTheDocument();
+    expect(screen.queryByText("7,500 hadith")).toBeNull();
+  });
+});
