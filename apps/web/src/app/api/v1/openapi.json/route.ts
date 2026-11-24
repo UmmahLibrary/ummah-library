@@ -252,6 +252,33 @@ const spec = {
         },
       },
     },
+    "/places/nearby": {
+      get: {
+        summary: "Mosques near a location (OpenStreetMap via Overpass), nearest first",
+        parameters: [
+          { name: "lat", in: "query", required: true, schema: { type: "number" } },
+          { name: "lng", in: "query", required: true, schema: { type: "number" } },
+          {
+            name: "radius",
+            in: "query",
+            required: false,
+            schema: { type: "number", minimum: 200, maximum: 20000, default: 5000 },
+            description: "Search radius in metres, clamped to 200–20000",
+          },
+        ],
+        responses: {
+          "200": { description: "Up to 50 places with © OpenStreetMap attribution" },
+          "400": { description: "Missing or out-of-range coordinates" },
+          "502": { description: "The places provider could not be reached" },
+        },
+      },
+    },
+    "/search/corpus": {
+      get: {
+        summary: "The whole Arabic Quran text (6,236 āyāt) in one payload, for client-side search",
+        responses: { "200": { description: "{ count, verses: [{ s, a, t }] }" } },
+      },
+    },
     "/recitations/{reciterId}/surahs/{number}/timings": {
       get: {
         summary: "Get word-level recitation timings for a reciter's surah",
