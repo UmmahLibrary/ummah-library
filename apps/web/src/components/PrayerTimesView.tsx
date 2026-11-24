@@ -428,7 +428,9 @@ export function PrayerTimesView() {
                               background: "none",
                               border: "none",
                               cursor: "pointer",
-                              padding: 0,
+                              // An 18px bell alone was an 18px target (WCAG 2.5.8 asks 24).
+                              padding: 7,
+                              margin: -7,
                               display: "flex",
                               color: on ? N.gold : N.faint,
                             }}

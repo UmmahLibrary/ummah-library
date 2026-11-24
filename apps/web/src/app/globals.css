@@ -40,6 +40,11 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* …and let the bare input fill the pill's height, so tapping anywhere on the
+   44px pill — not just the 21px text line — puts the cursor in it. */
+.noor-field input {
+  align-self: stretch;
+}
 /* Hidden-until-focused via clipping to a 1px box, not an off-canvas offset —
    an offset like `left: -9999px` extends the document's scrollable area in
    that direction, which is catastrophic under `dir="rtl"` (ADR 0040): the

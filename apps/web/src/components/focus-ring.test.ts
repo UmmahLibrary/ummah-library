@@ -13,6 +13,8 @@ const SCRIPT_FOCUS_ONLY = new Set(["HifzReview.tsx"]);
 describe("keyboard focus stays visible (WCAG 2.4.7)", () => {
   it("rings the wrapper of every input that turns its own outline off", () => {
     expect(css).toMatch(/\.noor-field:focus-within\s*\{[^}]*outline:/);
+    // The bare input fills its pill, so the whole 44px pill is the tap target.
+    expect(css).toMatch(/\.noor-field input\s*\{[^}]*align-self:\s*stretch/);
     const offenders = readdirSync(dir)
       .filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx") && !SCRIPT_FOCUS_ONLY.has(f))
       .filter((f) => {

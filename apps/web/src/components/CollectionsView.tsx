@@ -333,6 +333,8 @@ export function CollectionsView() {
                       <Link
                         href={`/surah/${ref.sura}#${key}`}
                         style={{
+                          display: "inline-block",
+                          padding: "4px 0", // a 17px line → a 25px target
                           fontSize: 13,
                           fontWeight: 600,
                           color: N.gold,

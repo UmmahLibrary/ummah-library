@@ -393,7 +393,9 @@ export function SearchView({ surahs }: { surahs: SurahRef[] }) {
               border: "none",
               cursor: "pointer",
               display: "flex",
-              padding: 0,
+              // An 18px icon alone was an 18px target (WCAG 2.5.8 asks 24).
+              padding: 7,
+              margin: -7,
             }}
           >
             <Icon name="close" size={18} color={N.faint} />

@@ -21,7 +21,7 @@ function DuaRef({ dua }: { dua: Dua }) {
     <Link
       href={`/surah/${v.sura}#${v.sura}:${v.aya}`}
       aria-label={`${dua.ref} — read in context`}
-      style={{ ...refStyle, textDecoration: "none", display: "inline-block" }}
+      style={{ ...refStyle, textDecoration: "none", display: "inline-block", padding: "4px 0" }}
     >
       {dua.ref} →
     </Link>
