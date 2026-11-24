@@ -17,6 +17,7 @@ import {
   FileQuranRepository,
   FileRecitationTimingRepository,
   FileTranslationRepository,
+  FileVerseHadithLinkRepository,
   loadPluginRegistry,
 } from "./index";
 import surahsData from "../datasets/surahs.json";
@@ -281,5 +282,54 @@ describe("reciter plugins", () => {
       expect(validatePlugin(r)).toEqual([]);
       expect(r.audioUrlTemplate).toMatch(/\{surah/);
     }
+  });
+});
+
+/**
+ * `linkedVerses()` feeds `generateStaticParams` for the Related-hadith route
+ * (ADR 0044, amended), so it decides which ayahs are prerendered and therefore
+ * which ones work offline. A silent regression here would not fail any other
+ * test — the route would simply go back to serving everything on demand — so
+ * it gets its own assertions.
+ */
+describe("FileVerseHadithLinkRepository — linkedVerses", () => {
+  const repo = new FileVerseHadithLinkRepository();
+
+  it("lists every ayah that has links, and only those", async () => {
+    const verses = await repo.linkedVerses();
+    expect(verses.length).toBeGreaterThan(0);
+
+    // Each listed ayah really does have links...
+    for (const ref of verses.slice(0, 40)) {
+      expect((await repo.linksForVerse(ref)).length).toBeGreaterThan(0);
+    }
+    // ...and the count matches the dataset's own key count exactly, so nothing
+    // is dropped by the key parsing.
+    const keys = Object.keys(
+      JSON.parse(
+        readFileSync(
+          fileURLToPath(new URL("../datasets/verse-hadith-links.json", import.meta.url)),
+          "utf8",
+        ),
+      ).links,
+    );
+    expect(verses.length).toBe(keys.length);
+  });
+
+  it("returns refs in the shape generateStaticParams needs", async () => {
+    for (const ref of await repo.linkedVerses()) {
+      expect(Number.isInteger(ref.sura)).toBe(true);
+      expect(Number.isInteger(ref.aya)).toBe(true);
+      expect(ref.sura).toBeGreaterThan(0);
+      expect(ref.aya).toBeGreaterThan(0);
+    }
+  });
+
+  it("excludes an ayah no hadith quotes", async () => {
+    // 1:1 is the Basmala — four words normalised, below MIN_QUOTE_WORDS, so it
+    // is never indexed. If it ever appears here the threshold has moved.
+    const verses = await repo.linkedVerses();
+    expect(verses.some((v) => v.sura === 1 && v.aya === 1)).toBe(false);
+    expect(await repo.linksForVerse({ sura: 1, aya: 1 })).toEqual([]);
   });
 });

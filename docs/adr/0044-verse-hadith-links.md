@@ -90,11 +90,18 @@ lives in `hadiths/*.json`. Duplicating it would double the payload for nothing.
 `packages/api/src/related-hadith.ts` joins references to text, grouping by
 collection so each file loads once. Result: **159 KB**, comfortably bundleable.
 
-**5. A dynamic REST route, not 6,236 prerendered ones.** Only 411 ayahs have any
-links, so prerendering the other 5,825 would spend most of the build writing
-empty responses. `GET /api/v1/surahs/{n}/ayahs/{a}/hadith` is `force-dynamic`,
-reads only bundled files, and lets `apiJson`'s cache headers absorb repeats. Both
-dataset slices are added to `outputFileTracingIncludes` (AGENTS rule 5).
+**5. Prerender the 411 ayahs that have links; serve the rest on demand.**
+_(Amended 2026-11-24 — see the amendment below. As first accepted, this decision
+read "a dynamic REST route, not 6,236 prerendered ones": `force-dynamic`,
+reasoning that prerendering the other 5,825 would spend most of the build writing
+empty responses.)_
+
+`GET /api/v1/surahs/{n}/ayahs/{a}/hadith` is `force-static` with a
+`generateStaticParams` that emits exactly the ayahs `linkedVerses()` reports —
+411 of 6,236. `dynamicParams` stays `true`, so an unlinked ayah still reaches the
+handler and gets the documented `{ count: 0, hadiths: [] }` rather than Next's
+HTML not-found page. Both dataset slices remain in `outputFileTracingIncludes`
+(AGENTS rule 5), because that on-demand path still reads them at runtime.
 
 **6. The UI states how the link was made.** The panel mirrors the `TafsirCompare`
 toggle, and each card shows the **matched span**. These links are generated, not
@@ -102,6 +109,76 @@ curated, and the panel says so: _"Matched automatically where the hadith's Arabi
 repeats this āyah's words. A shared wording is not by itself a commentary on the
 verse."_ A reader can see the evidence and judge it, rather than inheriting a
 claim of editorial endorsement we have not made.
+
+## Amendment, 2026-11-24 — prerender the linked ayahs
+
+Decision 5 originally read "a dynamic REST route, not 6,236 prerendered ones":
+`force-dynamic`, on the reasoning that prerendering the other 5,825 would spend
+most of the build writing empty responses.
+
+That reasoning is sound for all 6,236 and does not apply to the **411 that have
+links**, which were already known at build time. Treating prerendering as
+all-or-nothing was the error. `generateStaticParams` now emits exactly those 411
+(`linkedVerses()`), `dynamicParams` stays `true` so an unlinked ayah still
+reaches the handler for its documented `{ count: 0, hadiths: [] }`, and the
+empty majority keeps the on-demand path at no build cost. Measured: static
+pages 2,544 → 2,955, exactly +411, and 411 `hadith.body` files on disk.
+
+This needed one new port method rather than a redesign:
+`VerseHadithLinkRepository.linkedVerses()`, implemented over the keys the
+dataset already has and surfaced as `relatedHadithVerses()` in `api`. A future
+topical mapping prerenders on the same path for free.
+
+### What this does and does not do for offline
+
+Prerendering is **not** itself an offline mechanism, and this is worth stating
+precisely because it is easy to assume otherwise: it puts the file on the
+*server* and does not change the URL, so it cannot change what a client keeps.
+
+What closes the offline case is #297's service-worker tier, which landed
+separately and caches public reader content network-first with a cache
+fallback:
+
+```js
+const isContentApi = (url) =>
+  /^\/api\/v1\/(surahs|translations|tafsirs|names|adhkar|editions|search\/corpus|recitations|hadith\/[^/]+\/sections)(\/|$)/.test(
+    url.pathname,
+  );
+```
+
+That pattern matches `/api/v1/surahs/{n}/ayahs/{a}/hadith`. Measured against the
+built app with the server **killed** — a real outage, not Playwright's
+`setOffline`, which does not block loopback and reports a false pass:
+
+| Case | Server down |
+| --- | --- |
+| `33:21` opened once, then server down | **200, 34 links**, served from `ul-api-v1` |
+| `33:21` **never opened**, then server down | **fails** |
+
+So #200's criterion is met in the sense that matters day to day — an ayah whose
+links you have seen stays readable offline, which is the same guarantee the
+reader already gives for pages and tafsir — and is **not** met in the literal
+sense of "every bundled link available on a device that has never opened it".
+Two things bound it: the cache holds the 120 most recent content-API responses,
+and nothing is populated until first view.
+
+Prerendering still earns its place alongside that: static delivery, no function
+invocation per request, CDN-cacheable under `s-maxage=86400`, and a cache fill
+that costs a static file read rather than a dataset join. It is complementary to
+the service-worker tier, not a substitute for it.
+
+Closing the literal reading would need one of:
+
+1. **Precache all 411 responses at install.** True offline-first, but `33:21`
+   alone is 76 KB, so the set runs to several MB of install-time download, and
+   the service worker deliberately avoids bloating the origin toward eviction —
+   offline recitation audio shares that budget.
+2. **Stop fetching for the panel: pass links down from the already-static surah
+   page.** Needs no cache at all, but the panel renders hadith *text*, so
+   inlining it trades one request for a much larger payload on every reader
+   page. Wants its own ADR.
+
+Neither is taken here. The current behaviour is recorded as the accepted state.
 
 ## Consequences
 

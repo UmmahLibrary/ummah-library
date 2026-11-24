@@ -89,3 +89,14 @@ export async function relatedHadith(ref: VerseKey): Promise<RelatedHadith[]> {
   out.sort((a, b) => a.collectionId.localeCompare(b.collectionId) || a.number - b.number);
   return out;
 }
+
+/**
+ * Every ayah that has at least one linked hadith.
+ *
+ * The delivery layer prerenders exactly these (ADR 0044, amended), so the
+ * ayahs that have something to show are served from a static file instead of a
+ * function invocation.
+ */
+export function relatedHadithVerses(): Promise<readonly VerseKey[]> {
+  return verseHadithLinkRepository.linkedVerses();
+}

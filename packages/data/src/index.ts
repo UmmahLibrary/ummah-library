@@ -45,6 +45,7 @@ import {
   filterByOccasion,
   isValidSurahNumber,
   isValidVerseRef,
+  parseVerseKey,
 } from "@ummahlibrary/core";
 import surahsData from "../datasets/surahs.json";
 import pluginsData from "../datasets/plugins.json";
@@ -343,5 +344,17 @@ export class FileVerseHadithLinkRepository implements VerseHadithLinkRepository 
   linksForVerse(ref: VerseKey): Promise<readonly HadithLink[]> {
     const doc = this.#load();
     return Promise.resolve(doc?.links[`${ref.sura}:${ref.aya}`] ?? []);
+  }
+
+  linkedVerses(): Promise<readonly VerseKey[]> {
+    const doc = this.#load();
+    if (!doc) return Promise.resolve([]);
+    // A malformed key is skipped rather than thrown on, for the same reason an
+    // absent dataset degrades to "no links": this feeds prerendering, and one
+    // bad key should not take the whole build down.
+    const refs = Object.keys(doc.links)
+      .map(parseVerseKey)
+      .filter((ref): ref is VerseKey => ref !== null);
+    return Promise.resolve(refs);
   }
 }
