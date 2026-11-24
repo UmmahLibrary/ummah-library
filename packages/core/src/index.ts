@@ -21,6 +21,7 @@ export * from "./consistency";
 export * from "./translation-defaults";
 export * from "./i18n-format";
 export * from "./hadith";
+export * from "./verse-hadith";
 export * from "./prayer";
 export * from "./prayer-tracker";
 export * from "./qada";
