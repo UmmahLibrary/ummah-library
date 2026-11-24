@@ -7,8 +7,10 @@ export interface StreakData {
   lastDate: string; // YYYY-MM-DD
 }
 
+/** The local calendar day — the same day key mobile and the review heatmap use. */
 function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 export function getStreak(): StreakData {
