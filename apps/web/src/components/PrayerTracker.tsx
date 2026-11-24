@@ -119,7 +119,6 @@ export function PrayerTracker() {
                 key={p}
                 type="button"
                 onClick={() => void cyclePrayer(todayStr, p).then(setLog)}
-                aria-label={`${PRAYER_LABELS[p]}: ${statusLabel(st)} — tap to change`}
                 style={{
                   padding: "16px 6px",
                   borderRadius: 13,
@@ -161,6 +160,7 @@ export function PrayerTracker() {
                 <span style={{ fontSize: 11, color: lit ? N.gold : N.faint, fontWeight: 600 }}>
                   {statusLabel(st)}
                 </span>
+                <span className="sr-only"> — tap to change</span>
               </button>
             );
           })}

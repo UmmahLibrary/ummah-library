@@ -113,9 +113,9 @@ export function KidsReader({
                   type="button"
                   className="ayah-marker"
                   data-play-one={`${surah.number}:${a.aya}`}
-                  aria-label={tf("kids.playAyah", { aya: a.aya })}
                 >
-                  ﴿{toArabicDigits(a.aya)}﴾
+                  <span aria-hidden="true">﴿{toArabicDigits(a.aya)}﴾</span>
+                  <span className="sr-only">{tf("kids.playAyah", { aya: a.aya })}</span>
                 </button>
               </p>
             </div>

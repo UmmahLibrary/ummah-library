@@ -15,7 +15,7 @@ describe("ReaderToolbar — Text panel placement", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Text size and display" }));
+    fireEvent.click(screen.getByRole("button", { name: "Text" }));
 
     const panel = screen.getByText("Text size").parentElement as HTMLElement;
     expect(panel.style.insetInlineEnd).toBe("0");
@@ -35,7 +35,7 @@ describe("ReaderToolbar — Text panel placement", () => {
         onSeg={() => {}}
       />,
     );
-    const btn = screen.getByRole("button", { name: "Text size and display" });
+    const btn = screen.getByRole("button", { name: "Text" });
     btn.focus();
     fireEvent.click(btn);
     expect(btn).toHaveAttribute("aria-pressed", "true");
