@@ -428,7 +428,7 @@ export function HijriCalendar() {
                       type="button"
                       onClick={() => void toggleReminder(m.event.id)}
                       aria-pressed={!!reminders[m.event.id]}
-                      aria-label={`${reminders[m.event.id] ? "Turn off" : "Turn on"} reminder for ${m.event.name}`}
+                      aria-label={`Remind me about ${m.event.name}`}
                       title="Remind me the evening before"
                       style={{
                         flexShrink: 0,
@@ -452,6 +452,15 @@ export function HijriCalendar() {
                 );
               })}
             </div>
+          )}
+          {Object.values(reminders).some(Boolean) && notifier.permission() === "denied" && (
+            <p
+              role="status"
+              style={{ fontSize: 12.5, color: N.faint, marginTop: 10, fontFamily: N.ui }}
+            >
+              Notifications are blocked in your browser — enable them in site settings to get these
+              reminders.
+            </p>
           )}
 
           {/* Sighting adjustment */}
