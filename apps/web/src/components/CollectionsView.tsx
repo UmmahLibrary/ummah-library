@@ -17,6 +17,7 @@ import {
   writeCollections,
 } from "../lib/collections";
 import { N, Khatam } from "@ummahlibrary/ui";
+import { focusSoon, focusTargetAfterRemoving } from "../lib/focus";
 
 interface AyahText {
   arabic: string;
@@ -179,9 +180,11 @@ export function CollectionsView() {
             <button
               type="button"
               aria-label={`Delete collection ${c.name}`}
-              onClick={() => {
+              onClick={(e) => {
                 if (confirm(`Delete the collection “${c.name}”?`)) {
+                  const next = focusTargetAfterRemoving(e.currentTarget.closest("section"));
                   persist(deleteCollection(collections, c.id));
+                  focusSoon(next);
                 }
               }}
               className="noor-press"
@@ -252,7 +255,11 @@ export function CollectionsView() {
                       <button
                         type="button"
                         aria-label={`Remove ${key}`}
-                        onClick={() => persist(toggleAyah(collections, c.id, ref))}
+                        onClick={(e) => {
+                          const next = focusTargetAfterRemoving(e.currentTarget.closest("article"));
+                          persist(toggleAyah(collections, c.id, ref));
+                          focusSoon(next);
+                        }}
                         className="noor-press"
                         style={{
                           width: 28,

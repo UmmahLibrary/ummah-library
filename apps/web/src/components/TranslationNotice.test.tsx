@@ -24,6 +24,6 @@ describe("TranslationNotice", () => {
     keep.focus();
     await userEvent.click(keep);
     await waitFor(() => expect(screen.queryByRole("button", { name: "Keep this" })).toBeNull());
-    expect(screen.getByRole("button", { name: "Play āyah 1" })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Play āyah 1" })).toHaveFocus());
   });
 });

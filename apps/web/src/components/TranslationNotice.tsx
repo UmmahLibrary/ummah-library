@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { N, Icon } from "@ummahlibrary/ui";
 import { useIntl } from "../i18n/I18nProvider";
 import { fetchCatalogue } from "../lib/catalogue";
+import { focusSoon, focusTargetAfterRemoving } from "../lib/focus";
 import { EDITIONS_KEY, editionsChosen, readEditions, writeEditions } from "../lib/editions";
 
 /** Window event the reader toolbar listens for to open the translation chooser. */
@@ -23,21 +24,10 @@ export function TranslationNotice() {
   // "Keep" removes the notice — and the focused button with it. Hand focus to
   // whatever comes next on the page instead of dropping it to <body>.
   function keep() {
-    const focusables = Array.from(
-      document.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      ),
-    );
-    const el = box.current;
-    const next = el
-      ? focusables.find(
-          (f) =>
-            !el.contains(f) && el.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING,
-        )
-      : undefined;
+    const next = focusTargetAfterRemoving(box.current);
     void readEditions()
       .then((ids) => writeEditions(ids))
-      .then(() => next?.focus());
+      .then(() => focusSoon(next));
   }
 
   useEffect(() => {

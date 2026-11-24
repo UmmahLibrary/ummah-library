@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { type DownloadedSurah, ayahCountOf } from "@ummahlibrary/core";
 import { N, Icon } from "@ummahlibrary/ui";
 import { webAudioStore } from "../lib/audio-store";
+import { focusSoon, focusTargetAfterRemoving } from "../lib/focus";
 
 function fmtBytes(b: number): string {
   if (b < 1024) return `${b} B`;
@@ -95,11 +96,13 @@ export function DownloadsManager({
             </div>
             <button
               type="button"
-              onClick={async () => {
+              onClick={async (e) => {
                 // Same guard as the mobile app: re-downloading costs data and time.
                 const name = surahNames[it.surah] ?? `Surah ${it.surah}`;
                 if (!window.confirm(`Remove ${name} from this device?`)) return;
+                const next = focusTargetAfterRemoving(e.currentTarget.parentElement);
                 await webAudioStore.removeSurah(it.reciterId, it.surah);
+                focusSoon(next);
                 refresh();
               }}
               aria-label={`Delete ${surahNames[it.surah] ?? `Surah ${it.surah}`} download`}
