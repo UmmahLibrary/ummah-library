@@ -94,6 +94,10 @@ export function CodeBlock({ lang, code }: { lang: string; code: string }) {
         >
           {copied ? "Copied" : "Copy"}
         </button>
+        {/* The button's own label change isn't reliably spoken; this is. */}
+        <span role="status" className="sr-only">
+          {copied ? "Code copied" : ""}
+        </span>
       </div>
       <pre
         // A long line scrolls sideways; without a tab stop keyboard users
