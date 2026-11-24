@@ -2,7 +2,7 @@ import { useIntl } from "../i18n/I18nProvider";
 import { LTR_TEXT } from "../text-direction";
 import { memo, useEffect, useMemo, useState } from "react";
 import type { IconName } from "@ummahlibrary/ui";
-import { Modal, Pressable, Share, StyleSheet, Text, View } from "../Type";
+import { AccessibilityInfo, Modal, Pressable, Share, StyleSheet, Text, View } from "../Type";
 import * as Clipboard from "expo-clipboard";
 import { createCard, editionLangCode } from "@ummahlibrary/core";
 import { AyahBlock, Icon, ListRow, quranType } from "@ummahlibrary/ui";
@@ -141,6 +141,8 @@ function AyahViewImpl({
       .join("\n");
     await Clipboard.setStringAsync(block);
     setCopied(true);
+    // The bubble is visual only (pointerEvents none, gone in 2 s) — say it too.
+    AccessibilityInfo.announceForAccessibility(t("rd.copied"));
   };
 
   const share = async () => {
