@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  withoutImpossibleTimes,
   CALCULATION_METHODS,
   DEFAULT_CALCULATION_METHOD,
   DEFAULT_HIGH_LATITUDE_RULE,
@@ -192,5 +193,34 @@ describe("prayerReminders", () => {
 
   it("returns nothing when no prayers are enabled", () => {
     expect(prayerReminders(timings, {}, new Date("2026-06-07T00:00:00Z"))).toEqual([]);
+  });
+});
+
+describe("withoutImpossibleTimes", () => {
+  const day = (h: string) => `2026-11-24T${h}:00.000Z`;
+  it("blanks an Asr that falls before sunrise (Tromsø, late November)", () => {
+    const t = withoutImpossibleTimes({
+      fajr: day("04:45"),
+      sunrise: day("09:32"),
+      dhuhr: day("10:32"),
+      asr: day("07:32"),
+      maghrib: day("11:28"),
+      isha: day("16:04"),
+    });
+    expect(t.asr).toBe("");
+    expect(t.maghrib).toBe(day("11:28"));
+    expect(t.fajr).toBe(day("04:45"));
+  });
+
+  it("leaves an ordinary day untouched", () => {
+    const t = {
+      fajr: day("01:17"),
+      sunrise: day("02:37"),
+      dhuhr: day("08:07"),
+      asr: day("11:15"),
+      maghrib: day("13:37"),
+      isha: day("15:07"),
+    };
+    expect(withoutImpossibleTimes(t)).toEqual(t);
   });
 });

@@ -13,7 +13,11 @@ import type {
   PrayerTimesCalculator,
   PrayerTimesQuery,
 } from "@ummahlibrary/core";
-import { DEFAULT_CALCULATION_METHOD, imsakFromFajr } from "@ummahlibrary/core";
+import {
+  DEFAULT_CALCULATION_METHOD,
+  imsakFromFajr,
+  withoutImpossibleTimes,
+} from "@ummahlibrary/core";
 
 /** Method id → the `adhan` preset factory. Keys match `core.CALCULATION_METHODS`. */
 const METHOD_FACTORIES: Record<string, () => CalculationParameters> = {
@@ -70,17 +74,21 @@ export class AdhanPrayerTimes implements PrayerTimesCalculator {
     const iso = (d: Date) => (Number.isNaN(d.getTime()) ? "" : d.toISOString());
     const fajr = iso(t.fajr);
 
-    return Promise.resolve({
-      fajr,
-      sunrise: iso(t.sunrise),
-      dhuhr: iso(t.dhuhr),
-      asr: iso(t.asr),
-      maghrib: iso(t.maghrib),
-      isha: iso(t.isha),
-      // Don't synthesise Imsāk from an empty Fajr (`new Date("")` → 1970 / throw).
-      imsak: fajr ? imsakFromFajr(fajr) : "",
-      midnight: iso(sunnah.middleOfTheNight),
-      lastThird: iso(sunnah.lastThirdOfTheNight),
-    });
+    // Near the poles the library can also return a *valid* but impossible time
+    // (Asr before sunrise); drop those too, rather than print them.
+    return Promise.resolve(
+      withoutImpossibleTimes({
+        fajr,
+        sunrise: iso(t.sunrise),
+        dhuhr: iso(t.dhuhr),
+        asr: iso(t.asr),
+        maghrib: iso(t.maghrib),
+        isha: iso(t.isha),
+        // Don't synthesise Imsāk from an empty Fajr (`new Date("")` → 1970 / throw).
+        imsak: fajr ? imsakFromFajr(fajr) : "",
+        midnight: iso(sunnah.middleOfTheNight),
+        lastThird: iso(sunnah.lastThirdOfTheNight),
+      }),
+    );
   }
 }
